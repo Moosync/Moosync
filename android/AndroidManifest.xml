@@ -17,6 +17,8 @@
 
     <application
         android:label="@string/app_name"
+        android:allowBackup="false"
+        android:usesCleartextTraffic="false"
         android:hasCode="true">
 
         <!-- NativeActivity hosts the Slint/Rust UI via the slint_app shared library -->
@@ -44,7 +46,7 @@
 
         <!-- Receives hardware media button events and routes them to the MediaSession -->
         <receiver android:name="app.moosync.android.services.MediaButtonIntentReceiver"
-            android:exported="true">
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.MEDIA_BUTTON" />
             </intent-filter>

@@ -23,29 +23,14 @@ use std::{
 };
 
 use extensions_proto::moosync::types::PlayerState;
-use serde::{Deserialize, Serialize};
 #[cfg(target_os = "android")]
 use types::android::AndroidJNIContext;
+pub use types::mpris::MprisPlayerDetails;
 use types::plugin::{Plugin, PluginContext};
 pub mod error;
 #[cfg(not(target_os = "android"))]
 use crate::context::{DummyContext, SouvlakiMprisContext};
 use crate::{context::MprisContext, error::MprisError};
-
-#[derive(Clone, Debug, Serialize, Deserialize, Default)]
-pub struct MprisPlayerDetails {
-    pub id: Option<String>,
-    pub title: Option<String>,
-    #[serde(rename = "artistName")]
-    pub artist_name: Option<String>,
-    #[serde(rename = "albumName")]
-    pub album_name: Option<String>,
-    #[serde(rename = "albumArtist")]
-    pub album_artist: Option<String>,
-    pub genres: Option<Vec<String>>,
-    pub duration: Option<f64>,
-    pub thumbnail: Option<String>,
-}
 
 // ─────────────────────────────────────────────────────────────────────── //
 //  Platform-agnostic MediaControlEvent.                                   //

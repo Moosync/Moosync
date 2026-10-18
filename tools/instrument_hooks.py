@@ -8,7 +8,7 @@ files_to_instrument = [
     "core/state_manager/src/hooks/scanner.rs"
 ]
 
-FN_START_RE = re.compile(r'^(\s*)(?:pub\s+(?:\([^)]+\)\s+)?)?(?:async\s+)?(?:const\s+)?fn\s+([a-zA-Z0-9_]+)\s*(?:<[^>]+>)?\s*\(')
+FN_START_RE = re.compile(r'^(\s*)(?:pub(?:\([^)]*\))?\s+)?(?:async\s+)?(?:const\s+)?fn\s+(\w+)(?:<[^>]*>)?\s*\(')
 
 project_root = os.getcwd()
 
@@ -57,7 +57,7 @@ for rel_path in files_to_instrument:
                     if "#[tracing::instrument" in prev or "#[instrument" in prev:
                         instrument_idx = idx - lookback
                         break
-                    if prev.endswith("}") or prev.endswith(";"):
+                    if prev.endswith(("}", ";")) :
                         break
             
             is_common = fn_name in ["main", "default", "from", "into", "try_from", "fmt", "clone", "drop"]

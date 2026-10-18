@@ -35,12 +35,12 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [ "$RUN_COVERAGE" = true ]; then
+if [[ "$RUN_COVERAGE" = true ]]; then
   echo "==> Running Bazel test coverage on //:core_tests..."
   bazel coverage -k //:core_tests || true
 fi
 
-if [ "$RUN_CLIPPY" = true ]; then
+if [[ "$RUN_CLIPPY" = true ]]; then
   echo "==> Running Bazel Clippy aspect to emit diagnostics..."
   bazel build --@rules_rust//rust/settings:clippy_output_diagnostics=true --output_groups=+clippy_output //:core_tests
 fi
@@ -50,9 +50,9 @@ COVERAGE_OUT="${WORKSPACE_DIR}/coverage.lcov"
 > "$COVERAGE_OUT"
 
 FOUND_COVERAGE=0
-if [ -d "bazel-testlogs" ]; then
+if [[ -d "bazel-testlogs" ]]; then
   while IFS= read -r f; do
-    if [ -s "$f" ]; then
+    if [[ -s "$f" ]]; then
       cat "$f" >> "$COVERAGE_OUT"
       echo "" >> "$COVERAGE_OUT"
       FOUND_COVERAGE=$((FOUND_COVERAGE + 1))
@@ -60,7 +60,7 @@ if [ -d "bazel-testlogs" ]; then
   done < <(find bazel-testlogs/ -type f -name "coverage.dat" 2>/dev/null | sort)
 fi
 
-if [ "$FOUND_COVERAGE" -gt 0 ]; then
+if [[ "$FOUND_COVERAGE" -gt 0 ]]; then
   echo "Collected $FOUND_COVERAGE coverage report(s) into coverage.lcov ($(wc -l < "$COVERAGE_OUT") lines)."
 else
   echo "No coverage.dat files found in bazel-testlogs."
@@ -71,9 +71,9 @@ CLIPPY_OUT="${WORKSPACE_DIR}/clippy-report.json"
 > "$CLIPPY_OUT"
 
 FOUND_CLIPPY=0
-if [ -d "bazel-bin" ]; then
+if [[ -d "bazel-bin" ]]; then
   while IFS= read -r f; do
-    if [ -s "$f" ]; then
+    if [[ -s "$f" ]]; then
       while IFS= read -r line; do
         if [[ "$line" =~ "\"\\\$message_type\":\"diagnostic\"" ]] && [[ ! "$line" =~ "\"code\":null" ]]; then
           echo "{\"reason\":\"compiler-message\",\"message\":$line}" >> "$CLIPPY_OUT"
@@ -87,7 +87,7 @@ if [ -d "bazel-bin" ]; then
   done < <(find bazel-bin/ -type f -name "*.clippy.diagnostics" 2>/dev/null | sort)
 fi
 
-if [ "$FOUND_CLIPPY" -gt 0 ]; then
+if [[ "$FOUND_CLIPPY" -gt 0 ]]; then
   echo "Collected $FOUND_CLIPPY Clippy diagnostic report(s) into clippy-report.json."
 else
   # Keep an empty clippy-report.json so SonarQube imports without error
@@ -96,9 +96,9 @@ else
 fi
 
 # Run sonar-scanner if scan is enabled and scanner arguments or files are ready
-if [ "$RUN_SCAN" = true ]; then
+if [[ "$RUN_SCAN" = true ]]; then
   SONAR_BIN="$(command -v sonar-scanner 2>/dev/null || echo "/opt/sonar-scanner/bin/sonar-scanner")"
-  if [ -x "$SONAR_BIN" ]; then
+  if [[ -x "$SONAR_BIN" ]]; then
     echo "==> Executing $SONAR_BIN ${REMAINING_ARGS[*]}..."
     exec "$SONAR_BIN" "${REMAINING_ARGS[@]}"
   else

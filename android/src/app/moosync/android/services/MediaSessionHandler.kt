@@ -11,6 +11,7 @@ import android.media.session.MediaSession
 import android.media.session.PlaybackState
 import android.util.Log
 import java.io.File
+import java.net.URI
 import java.net.URL
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -68,6 +69,28 @@ class MediaSessionHandler(private val mContext: Context) {
         mMediaSession.setPlaybackState(builder.build())
     }
 
+    private fun loadThumbnailBitmap(uri: String): Bitmap? {
+        val resolvedUri = if (uri.startsWith("/data/data")) {
+            val parts = uri.split("/")
+            File(mContext.filesDir, parts.last()).absolutePath
+        } else {
+            uri
+        }
+
+        return try {
+            if (resolvedUri.startsWith("http://") || resolvedUri.startsWith("https://")) {
+                URI.create(resolvedUri).toURL().openStream().use { inputStream ->
+                    BitmapFactory.decodeStream(inputStream)
+                }
+            } else {
+                BitmapFactory.decodeFile(resolvedUri)
+            }
+        } catch (e: Exception) {
+            Log.e("MoosyncAndroid", "Error loading thumbnail: ${e.message}")
+            null
+        }
+    }
+
     fun updateMetadata(
         title: String?,
         artistName: String?,
@@ -82,27 +105,10 @@ class MediaSessionHandler(private val mContext: Context) {
             .putLong(MediaMetadata.METADATA_KEY_DURATION, durationMs)
 
         if (thumbnailUri != null) {
-            val resolvedUri = if (thumbnailUri.startsWith("/data/data")) {
-                val parts = thumbnailUri.split("/")
-                File(mContext.filesDir, parts.last()).absolutePath
-            } else {
-                thumbnailUri
-            }
-
             mExecutor.submit {
-                try {
-                    var bitmap: Bitmap? = null
-                    if (resolvedUri.startsWith("http://") || resolvedUri.startsWith("https://")) {
-                        val inputStream = URL(resolvedUri).openStream()
-                        bitmap = BitmapFactory.decodeStream(inputStream)
-                    } else {
-                        bitmap = BitmapFactory.decodeFile(resolvedUri)
-                    }
-                    if (bitmap != null) {
-                        builder.putBitmap(MediaMetadata.METADATA_KEY_ART, bitmap)
-                    }
-                } catch (e: Exception) {
-                    Log.e("MoosyncAndroid", "Error loading thumbnail: ${e.message}")
+                val bitmap = loadThumbnailBitmap(thumbnailUri)
+                if (bitmap != null) {
+                    builder.putBitmap(MediaMetadata.METADATA_KEY_ART, bitmap)
                 }
                 mMediaSession.setMetadata(builder.build())
             }

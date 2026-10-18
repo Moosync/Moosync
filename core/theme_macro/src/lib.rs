@@ -331,6 +331,22 @@ pub fn generate_theme_ui_helpers(input: TokenStream) -> TokenStream {
     expanded.into()
 }
 
+fn find_file_in_ancestors(mut dir: std::path::PathBuf, path_str: &str) -> Option<String> {
+    loop {
+        let is_root = dir.join("WORKSPACE").exists()
+            || dir.join("WORKSPACE.bazel").exists()
+            || dir.join("Cargo.toml").exists();
+        if is_root {
+            let path = dir.join(path_str);
+            if path.exists() {
+                return std::fs::read_to_string(path).ok();
+            }
+        }
+        let parent = dir.parent()?;
+        dir = parent.to_path_buf();
+    }
+}
+
 fn read_file(path_str: &str) -> std::io::Result<String> {
     use std::path::PathBuf;
 
@@ -350,22 +366,8 @@ fn read_file(path_str: &str) -> std::io::Result<String> {
         }
 
         // 3. Try walking up to find WORKSPACE or Cargo.toml
-        let mut dir = current_dir;
-        loop {
-            let workspace = dir.join("WORKSPACE");
-            let workspace_bazel = dir.join("WORKSPACE.bazel");
-            let cargo_toml = dir.join("Cargo.toml");
-            if workspace.exists() || workspace_bazel.exists() || cargo_toml.exists() {
-                let path = dir.join(path_str);
-                if path.exists() {
-                    return std::fs::read_to_string(path);
-                }
-            }
-            if let Some(parent) = dir.parent() {
-                dir = parent.to_path_buf();
-            } else {
-                break;
-            }
+        if let Some(content) = find_file_in_ancestors(current_dir, path_str) {
+            return Ok(content);
         }
     }
 
@@ -373,52 +375,60 @@ fn read_file(path_str: &str) -> std::io::Result<String> {
     std::fs::read_to_string(path_str)
 }
 
+fn find_theme_block(content: &str) -> Option<&str> {
+    let theme_start = content.find("global Theme")?;
+    let brace_start = content[theme_start..].find('{')?;
+    let start_idx = theme_start + brace_start + 1;
+    let mut brace_count = 1;
+    for (i, c) in content[start_idx..].char_indices() {
+        match c {
+            '{' => brace_count += 1,
+            '}' => {
+                brace_count -= 1;
+                if brace_count == 0 {
+                    return Some(&content[start_idx..start_idx + i]);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+fn parse_theme_property(statement: &str) -> Option<(String, String, String)> {
+    let prop_idx = statement.find("property")?;
+    let after_prop = statement[prop_idx + 8..].trim();
+    if !after_prop.starts_with('<') {
+        return None;
+    }
+    let type_end = after_prop.find('>')?;
+    let prop_type = after_prop[1..type_end].trim().to_string();
+    let after_type = after_prop[type_end + 1..].trim();
+    if let Some(colon_idx) = after_type.find(':') {
+        let prop_name = after_type[..colon_idx].trim().to_string();
+        let default_val = after_type[colon_idx + 1..].trim().to_string();
+        Some((prop_name, prop_type, default_val))
+    } else {
+        let prop_name = after_type.trim().to_string();
+        Some((prop_name, prop_type, String::new()))
+    }
+}
+
 fn parse_slint_theme(content: &str) -> Vec<(String, String, String)> {
     let mut properties = Vec::new();
     let content = strip_comments(content);
 
-    if let Some(theme_start) = content.find("global Theme")
-        && let Some(brace_start) = content[theme_start..].find('{')
-    {
-        let start_idx = theme_start + brace_start + 1;
-        let mut brace_count = 1;
-        let mut end_idx = start_idx;
-        let chars: Vec<char> = content[start_idx..].chars().collect();
-        for (i, c) in chars.iter().enumerate() {
-            if *c == '{' {
-                brace_count += 1;
-            } else if *c == '}' {
-                brace_count -= 1;
-                if brace_count == 0 {
-                    end_idx = start_idx + i;
-                    break;
-                }
-            }
-        }
+    let Some(theme_block) = find_theme_block(&content) else {
+        return properties;
+    };
 
-        let theme_block = &content[start_idx..end_idx];
-        for statement in theme_block.split(';') {
-            let statement = statement.trim();
-            if statement.is_empty() {
-                continue;
-            }
-            if let Some(prop_idx) = statement.find("property") {
-                let after_prop = &statement[prop_idx + 8..].trim();
-                if after_prop.starts_with('<')
-                    && let Some(type_end) = after_prop.find('>')
-                {
-                    let prop_type = after_prop[1..type_end].trim().to_string();
-                    let after_type = after_prop[type_end + 1..].trim();
-                    if let Some(colon_idx) = after_type.find(':') {
-                        let prop_name = after_type[..colon_idx].trim().to_string();
-                        let default_val = after_type[colon_idx + 1..].trim().to_string();
-                        properties.push((prop_name, prop_type, default_val));
-                    } else {
-                        let prop_name = after_type.trim().to_string();
-                        properties.push((prop_name, prop_type, String::new()));
-                    }
-                }
-            }
+    for statement in theme_block.split(';') {
+        let statement = statement.trim();
+        if statement.is_empty() {
+            continue;
+        }
+        if let Some(prop) = parse_theme_property(statement) {
+            properties.push(prop);
         }
     }
     properties
@@ -426,33 +436,28 @@ fn parse_slint_theme(content: &str) -> Vec<(String, String, String)> {
 
 fn strip_comments(content: &str) -> String {
     let mut result = String::new();
-    let mut in_line_comment = false;
-    let mut in_block_comment = false;
-    let chars: Vec<char> = content.chars().collect();
-    let mut i = 0;
-    while i < chars.len() {
-        if in_line_comment {
-            if chars[i] == '\n' {
-                in_line_comment = false;
-                result.push('\n');
+    let mut chars = content.chars().peekable();
+
+    while let Some(c) = chars.next() {
+        if c == '/' && chars.peek() == Some(&'/') {
+            chars.next();
+            for next_c in chars.by_ref() {
+                if next_c == '\n' {
+                    result.push('\n');
+                    break;
+                }
             }
-        } else if in_block_comment {
-            if i + 1 < chars.len() && chars[i] == '*' && chars[i + 1] == '/' {
-                in_block_comment = false;
-                i += 1;
+        } else if c == '/' && chars.peek() == Some(&'*') {
+            chars.next();
+            while let Some(next_c) = chars.next() {
+                if next_c == '*' && chars.peek() == Some(&'/') {
+                    chars.next();
+                    break;
+                }
             }
         } else {
-            if i + 1 < chars.len() && chars[i] == '/' && chars[i + 1] == '/' {
-                in_line_comment = true;
-                i += 1;
-            } else if i + 1 < chars.len() && chars[i] == '/' && chars[i + 1] == '*' {
-                in_block_comment = true;
-                i += 1;
-            } else {
-                result.push(chars[i]);
-            }
+            result.push(c);
         }
-        i += 1;
     }
     result
 }

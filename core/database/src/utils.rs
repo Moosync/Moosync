@@ -174,6 +174,7 @@ pub fn map_row_to_inner_song(row: &rusqlite::Row) -> rusqlite::Result<InnerSong>
     })
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 pub(crate) fn proto_to_db_ms(
     proto_dur: &Option<songs_proto::duration_proto::google::protobuf::Duration>,
 ) -> i64 {
@@ -184,6 +185,7 @@ pub(crate) fn proto_to_db_ms(
 }
 
 // Convert DB milliseconds back to Protobuf Duration
+#[tracing::instrument(level = "debug", skip_all)]
 pub(crate) fn db_ms_to_proto(
     db_ms: i64,
 ) -> songs_proto::duration_proto::google::protobuf::Duration {

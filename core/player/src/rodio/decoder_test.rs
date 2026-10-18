@@ -14,11 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{fs, time::Duration};
+use std::time::Duration;
 
 use assertables::{assert_len_eq_x, assert_not_empty, assert_ok};
 use rodio::Source;
 use rstest::rstest;
+use tokio::fs;
 use tracing_test::traced_test;
 use wiremock::{Mock, MockServer, ResponseTemplate, matchers::method};
 
@@ -38,7 +39,9 @@ fn capture_raw_decoder_output(decoder: FFMPEGDecoder, sample_rate: u32, channels
 #[tracing::instrument(level = "debug", skip_all)]
 async fn spawn_audio_mock_server(path: &str) -> (MockServer, String) {
     let mock_server = MockServer::start().await;
-    let audio_bytes = fs::read(path).expect("Failed to read test audio file");
+    let audio_bytes = fs::read(path)
+        .await
+        .expect("Failed to read test audio file");
 
     Mock::given(method("GET"))
         .respond_with(

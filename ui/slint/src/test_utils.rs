@@ -81,9 +81,15 @@ macro_rules! parameterized_test {
 }
 
 pub mod integration {
-    use std::{env, fs, path::PathBuf, time::Duration};
+    use std::{
+        env, fs,
+        path::{Path, PathBuf},
+        time::Duration,
+    };
 
-    use extensions_proto::moosync::types::{ExtensionManifest, ManifestPermissions};
+    use extensions_proto::moosync::types::{
+        ExtensionManifest, ExtensionProviderScope, ManifestPermissions,
+    };
     use futures::FutureExt;
     use player_proto::moosync::types::RepeatMode;
     use prost::Message;
@@ -184,70 +190,64 @@ pub mod integration {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub async fn reset_test_state(
-        main_window: &'static MainWindow,
-        state_manager: &'static StateManager,
-    ) {
-        await_cleanup_handles().await;
-
-        // 1. Remove all installed custom extensions
-        {
-            let ext_handler = state_manager.get_extension_handler();
-            for detail in ext_handler.get_installed_extensions() {
-                let _ = ext_handler.remove_extension(detail.package_name);
-            }
-            if let Ok(entries) = fs::read_dir(&ext_handler.extensions_dir) {
-                for entry in entries.flatten() {
-                    if entry.path().is_dir() {
-                        let _ = fs::remove_dir_all(entry.path());
-                    }
-                }
-            }
-            let _ = ext_handler.find_new_extensions();
-            ext_handler.trigger_extensions_updated();
-            ext_handler.trigger_accounts_updated(None);
-            ext_handler.trigger_preferences_updated(String::new());
+    fn reset_test_extensions(state_manager: &'static StateManager) {
+        let ext_handler = state_manager.get_extension_handler();
+        for detail in ext_handler.get_installed_extensions() {
+            let _ = ext_handler.remove_extension(detail.package_name);
         }
-
-        // 2. Clear Database
-        {
-            let database = state_manager.get_database();
-            if let Ok(songs) = database.get_songs_by_options(GetSongOptions {
-                song: Some(SearchableSong::default()),
-                ..Default::default()
-            }) {
-                let ids: Vec<String> = songs
-                    .into_iter()
-                    .filter_map(|s| s.song.and_then(|is| is.id))
-                    .collect();
-                if !ids.is_empty() {
-                    let _ = database.remove_songs(&ids);
+        if let Ok(entries) = fs::read_dir(&ext_handler.extensions_dir) {
+            for entry in entries.flatten() {
+                if entry.path().is_dir() {
+                    let _ = fs::remove_dir_all(entry.path());
                 }
             }
-            if let Ok(playlists_res) = database.get_entity_by_options(GetEntityOptions {
-                playlist: Some(Playlist::default()),
-                ..Default::default()
-            }) {
-                if let Some(entity_result::Result::Playlists(pl)) = playlists_res.result {
-                    for p in pl.playlists {
-                        if let Some(id) = p.playlist_id {
-                            let _ = database.remove_playlist(&id);
-                        }
+        }
+        let _ = ext_handler.find_new_extensions();
+        ext_handler.trigger_extensions_updated();
+        ext_handler.trigger_accounts_updated(None);
+        ext_handler.trigger_preferences_updated(String::new());
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn reset_test_database(state_manager: &'static StateManager) {
+        let database = state_manager.get_database();
+        if let Ok(songs) = database.get_songs_by_options(GetSongOptions {
+            song: Some(SearchableSong::default()),
+            ..Default::default()
+        }) {
+            let ids: Vec<String> = songs
+                .into_iter()
+                .filter_map(|s| s.song.and_then(|is| is.id))
+                .collect();
+            if !ids.is_empty() {
+                let _ = database.remove_songs(&ids);
+            }
+        }
+        if let Ok(playlists_res) = database.get_entity_by_options(GetEntityOptions {
+            playlist: Some(Playlist::default()),
+            ..Default::default()
+        }) {
+            if let Some(entity_result::Result::Playlists(pl)) = playlists_res.result {
+                for p in pl.playlists {
+                    if let Some(id) = p.playlist_id {
+                        let _ = database.remove_playlist(&id);
                     }
                 }
             }
         }
+    }
 
-        // 3. Reset Player Handler
-        {
-            let ph = state_manager.get_player_handler();
-            ph.clear_queue().await;
-            ph.clear_queue().await;
-            let _ = ph.pause();
-            ph.repeat(RepeatMode::RepeatNone);
-        }
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn reset_test_player(state_manager: &'static StateManager) {
+        let ph = state_manager.get_player_handler();
+        ph.clear_queue().await;
+        ph.clear_queue().await;
+        let _ = ph.pause();
+        ph.repeat(RepeatMode::RepeatNone);
+    }
 
-        // 4. Reset Slint UI Modals and State
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn reset_test_ui(main_window: &'static MainWindow) {
         main_window
             .global::<SettingsState>()
             .set_show_settings(false);
@@ -343,7 +343,18 @@ pub mod integration {
         main_window
             .global::<AppCallbacks>()
             .invoke_active_page_changed(Pages::AllSongs);
+    }
 
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub async fn reset_test_state(
+        main_window: &'static MainWindow,
+        state_manager: &'static StateManager,
+    ) {
+        await_cleanup_handles().await;
+        reset_test_extensions(state_manager);
+        reset_test_database(state_manager);
+        reset_test_player(state_manager).await;
+        reset_test_ui(main_window);
         tokio::time::sleep(Duration::from_millis(260)).await;
     }
 
@@ -491,17 +502,13 @@ pub mod integration {
         }
 
         #[tracing::instrument(level = "debug", skip_all)]
-        pub async fn new_from_subpath(
-            state_manager: &'static StateManager,
+        fn setup_fixture_files(
+            ext_dir: &Path,
             subpath: &str,
             package_name: &str,
             display_name: &str,
-        ) -> Self {
-            await_cleanup_handles().await;
-
-            let ext_handler = state_manager.get_extension_handler();
-            let ext_dir = ext_handler.extensions_dir.join(package_name);
-            fs::create_dir_all(&ext_dir).unwrap();
+        ) {
+            fs::create_dir_all(ext_dir).unwrap();
 
             let src_ext_path = get_sample_ext_path_for(subpath);
             assert!(
@@ -523,18 +530,18 @@ pub mod integration {
 
             let scopes = if subpath == "empty" {
                 vec![
-                    extensions_proto::moosync::types::ExtensionProviderScope::Search as i32,
-                    extensions_proto::moosync::types::ExtensionProviderScope::Accounts as i32,
+                    ExtensionProviderScope::Search as i32,
+                    ExtensionProviderScope::Accounts as i32,
                 ]
             } else {
                 vec![
-                    extensions_proto::moosync::types::ExtensionProviderScope::Accounts as i32,
-                    extensions_proto::moosync::types::ExtensionProviderScope::Search as i32,
-                    extensions_proto::moosync::types::ExtensionProviderScope::Playlists as i32,
-                    extensions_proto::moosync::types::ExtensionProviderScope::PlaylistSongs as i32,
-                    extensions_proto::moosync::types::ExtensionProviderScope::ArtistSongs as i32,
-                    extensions_proto::moosync::types::ExtensionProviderScope::AlbumSongs as i32,
-                    extensions_proto::moosync::types::ExtensionProviderScope::Lyrics as i32,
+                    ExtensionProviderScope::Accounts as i32,
+                    ExtensionProviderScope::Search as i32,
+                    ExtensionProviderScope::Playlists as i32,
+                    ExtensionProviderScope::PlaylistSongs as i32,
+                    ExtensionProviderScope::ArtistSongs as i32,
+                    ExtensionProviderScope::AlbumSongs as i32,
+                    ExtensionProviderScope::Lyrics as i32,
                 ]
             };
 
@@ -562,6 +569,34 @@ pub mod integration {
                 ext_dir.join("manifest.pb"),
                 Message::encode_to_vec(&manifest),
             )
+            .unwrap();
+        }
+
+        #[tracing::instrument(level = "debug", skip_all)]
+        pub async fn new_from_subpath(
+            state_manager: &'static StateManager,
+            subpath: &str,
+            package_name: &str,
+            display_name: &str,
+        ) -> Self {
+            await_cleanup_handles().await;
+
+            let ext_handler = state_manager.get_extension_handler();
+            let ext_dir = ext_handler.extensions_dir.join(package_name);
+            let ext_dir_clone = ext_dir.clone();
+            let subpath_string = subpath.to_string();
+            let package_name_string = package_name.to_string();
+            let display_name_string = display_name.to_string();
+
+            tokio::task::spawn_blocking(move || {
+                Self::setup_fixture_files(
+                    &ext_dir_clone,
+                    &subpath_string,
+                    &package_name_string,
+                    &display_name_string,
+                );
+            })
+            .await
             .unwrap();
 
             ext_handler.find_new_extensions().unwrap();

@@ -1,3 +1,5 @@
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 use std::{
     path::PathBuf,
     sync::{Arc, Mutex},
@@ -12,6 +14,7 @@ use extensions_proto::moosync::types::{
 use preferences_proto::moosync::types::PreferenceItem;
 use prost::Message;
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
+use tokio::fs::create_dir_all as async_create_dir_all;
 
 use crate::{context::ReplyHandler, errors::ExtensionError, ext_runner::ExtensionHandlerInner};
 
@@ -510,6 +513,77 @@ impl Drop for TestCleanupGuard {
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+fn resolve_source_extension_path(subdir: &str, runfiles_dir: &str) -> PathBuf {
+    let subdir_or_default = if subdir.is_empty() { "default" } else { subdir };
+    let candidates = [
+        PathBuf::from(runfiles_dir)
+            .join("_main/sample_extensions")
+            .join(subdir_or_default),
+        PathBuf::from(runfiles_dir)
+            .join("moosync/sample_extensions")
+            .join(subdir_or_default),
+        PathBuf::from(runfiles_dir)
+            .join("moosync_ext+/sample_extensions")
+            .join(subdir_or_default),
+        PathBuf::from(runfiles_dir)
+            .join("moosync_ext/sample_extensions")
+            .join(subdir_or_default),
+    ];
+    let path = candidates
+        .iter()
+        .find(|p| p.exists())
+        .cloned()
+        .unwrap_or_else(|| candidates[0].clone());
+    if !path.exists() {
+        panic!("Source extensions path not found: {:?}", path);
+    }
+    path
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn copy_extension_files(src_path: &Path, dest_path: &Path) {
+    for entry in std::fs::read_dir(src_path).unwrap() {
+        let entry = entry.unwrap();
+        let path = entry.path();
+        if path.is_file() {
+            let dest = dest_path.join(path.file_name().unwrap());
+            std::fs::copy(&path, &dest).unwrap();
+            #[cfg(unix)]
+            {
+                let perms = std::fs::Permissions::from_mode(0o600);
+                std::fs::set_permissions(&dest, perms).unwrap();
+            }
+        }
+    }
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn write_test_manifest(dest_ext_path: &Path, actual_pkg: &str) {
+    let manifest_pb_path = dest_ext_path.join("manifest.pb");
+    if manifest_pb_path.exists() {
+        let contents = std::fs::read(&manifest_pb_path).unwrap();
+        let mut manifest =
+            extensions_proto::moosync::types::ExtensionManifest::decode(&contents[..]).unwrap();
+        manifest.name = actual_pkg.to_string();
+        if manifest.icon.is_empty() {
+            manifest.icon = "icon.png".to_string();
+        }
+        std::fs::write(&manifest_pb_path, prost::Message::encode_to_vec(&manifest)).unwrap();
+    } else {
+        let manifest = extensions_proto::moosync::types::ExtensionManifest {
+            name: actual_pkg.to_string(),
+            display_name: "Sample Extension".to_string(),
+            version: "1.0.0".to_string(),
+            extension_entry: "sample_extension.wasm".to_string(),
+            icon: "icon.png".to_string(),
+            author: Some("Moosync".to_string()),
+            ..Default::default()
+        };
+        std::fs::write(&manifest_pb_path, prost::Message::encode_to_vec(&manifest)).unwrap();
+    }
+}
+
 async fn setup_extension_at(
     subdir: &str,
     pkg: &str,
@@ -522,87 +596,19 @@ async fn setup_extension_at(
     let temp_dir = TempDir::new();
     let cache_path = temp_dir.path().join("cache");
     let extensions_path = temp_dir.path().join("extensions");
-    std::fs::create_dir_all(&extensions_path).unwrap();
+    async_create_dir_all(&extensions_path).await.unwrap();
     let handler = Arc::new(ExtensionHandlerInner::new(extensions_path, cache_path));
 
     let runfiles_dir = std::env::var("TEST_SRCDIR").unwrap_or_else(|_| ".".to_string());
-
-    let src_ext_path = {
-        let subdir_or_default = if subdir.is_empty() { "default" } else { subdir };
-        let candidates = [
-            PathBuf::from(&runfiles_dir)
-                .join("_main/sample_extensions")
-                .join(subdir_or_default),
-            PathBuf::from(&runfiles_dir)
-                .join("moosync/sample_extensions")
-                .join(subdir_or_default),
-            PathBuf::from(&runfiles_dir)
-                .join("moosync_ext+/sample_extensions")
-                .join(subdir_or_default),
-            PathBuf::from(&runfiles_dir)
-                .join("moosync_ext/sample_extensions")
-                .join(subdir_or_default),
-        ];
-        candidates
-            .iter()
-            .find(|p| p.exists())
-            .cloned()
-            .unwrap_or_else(|| candidates[0].clone())
-    };
-
-    if !src_ext_path.exists() {
-        panic!("Source extensions path not found: {:?}", src_ext_path);
-    }
+    let src_ext_path = resolve_source_extension_path(subdir, &runfiles_dir);
 
     let uuid_str = uuid::Uuid::new_v4().simple().to_string();
     let actual_pkg = format!("{}-{}", pkg.replace(".", "-"), uuid_str);
     let dest_ext_path = temp_dir.path().join("extensions").join(&actual_pkg);
-    std::fs::create_dir_all(&dest_ext_path).unwrap();
+    async_create_dir_all(&dest_ext_path).await.unwrap();
 
-    for entry in std::fs::read_dir(&src_ext_path).unwrap() {
-        let entry = entry.unwrap();
-        let path = entry.path();
-        if path.is_file() {
-            let dest = dest_ext_path.join(path.file_name().unwrap());
-            std::fs::copy(&path, &dest).unwrap();
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::PermissionsExt;
-                let perms = std::fs::Permissions::from_mode(0o644);
-                std::fs::set_permissions(&dest, perms).unwrap();
-            }
-            #[cfg(not(unix))]
-            {
-                let mut perms = std::fs::metadata(&dest).unwrap().permissions();
-                #[allow(clippy::permissions_set_readonly_false)]
-                perms.set_readonly(false);
-                std::fs::set_permissions(&dest, perms).unwrap();
-            }
-        }
-    }
-
-    let manifest_pb_path = dest_ext_path.join("manifest.pb");
-    if manifest_pb_path.exists() {
-        let contents = std::fs::read(&manifest_pb_path).unwrap();
-        let mut manifest =
-            extensions_proto::moosync::types::ExtensionManifest::decode(&contents[..]).unwrap();
-        manifest.name = actual_pkg.clone();
-        if manifest.icon.is_empty() {
-            manifest.icon = "icon.png".to_string();
-        }
-        std::fs::write(&manifest_pb_path, prost::Message::encode_to_vec(&manifest)).unwrap();
-    } else {
-        let manifest = extensions_proto::moosync::types::ExtensionManifest {
-            name: actual_pkg.clone(),
-            display_name: "Sample Extension".to_string(),
-            version: "1.0.0".to_string(),
-            extension_entry: "sample_extension.wasm".to_string(),
-            icon: "icon.png".to_string(),
-            author: Some("Moosync".to_string()),
-            ..Default::default()
-        };
-        std::fs::write(&manifest_pb_path, prost::Message::encode_to_vec(&manifest)).unwrap();
-    }
+    copy_extension_files(&src_ext_path, &dest_ext_path);
+    write_test_manifest(&dest_ext_path, &actual_pkg);
 
     static ONCE: std::sync::Once = std::sync::Once::new();
     ONCE.call_once(|| {

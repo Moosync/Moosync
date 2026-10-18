@@ -14,19 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{
-    collections::HashMap,
-    fs::{self, File},
-    io::Write,
-    path::PathBuf,
-    str::FromStr,
-    sync::Arc,
-};
+use std::{collections::HashMap, fs, path::PathBuf, str::FromStr, sync::Arc};
 
 use fs_extra::dir::CopyOptions;
 use futures::StreamExt;
 use prost::Message;
 use themes_proto::moosync::types::ThemeDetails;
+use tokio::{fs::File as AsyncFile, io::AsyncWriteExt};
 use types::{
     plugin::{Plugin, PluginContext},
     subscription::SubscriberList,
@@ -186,11 +180,13 @@ impl ThemeHolder {
             .await
             .map_err(ThemesError::Network)?
             .bytes_stream();
-        let mut file = File::create(file_path.clone()).map_err(ThemesError::Io)?;
+        let mut file = AsyncFile::create(file_path.clone())
+            .await
+            .map_err(ThemesError::Io)?;
 
         while let Some(chunk_result) = stream.next().await {
             let chunk = chunk_result.map_err(ThemesError::Network)?;
-            file.write_all(&chunk).map_err(ThemesError::Io)?;
+            file.write_all(&chunk).await.map_err(ThemesError::Io)?;
         }
 
         tracing::info!("Wrote file");

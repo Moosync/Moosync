@@ -45,13 +45,11 @@ class NotificationHandler(
     }
 
     private fun buildMediaButtonPendingIntent(action: Long): PendingIntent {
-        var keyCode = KeyEvent.KEYCODE_UNKNOWN
-        if (action == PlaybackState.ACTION_SKIP_TO_PREVIOUS) {
-            keyCode = KeyEvent.KEYCODE_MEDIA_PREVIOUS
-        } else if (action == PlaybackState.ACTION_PAUSE || action == PlaybackState.ACTION_PLAY_PAUSE) {
-            keyCode = KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
-        } else if (action == PlaybackState.ACTION_SKIP_TO_NEXT) {
-            keyCode = KeyEvent.KEYCODE_MEDIA_NEXT
+        val keyCode = when (action) {
+            PlaybackState.ACTION_SKIP_TO_PREVIOUS -> KeyEvent.KEYCODE_MEDIA_PREVIOUS
+            PlaybackState.ACTION_PAUSE, PlaybackState.ACTION_PLAY_PAUSE -> KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
+            PlaybackState.ACTION_SKIP_TO_NEXT -> KeyEvent.KEYCODE_MEDIA_NEXT
+            else -> KeyEvent.KEYCODE_UNKNOWN
         }
 
         val intent = Intent(Intent.ACTION_MEDIA_BUTTON).apply {

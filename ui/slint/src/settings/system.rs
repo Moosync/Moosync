@@ -20,11 +20,12 @@ use preferences::keys::{
     AUTO_STARTUP, CLEAR_QUEUE, I18N_LANGUAGE, JUKEBOX_MODE, MINIMIZE_TO_TRAY, VOLUME_PERSIST_MODE,
 };
 use preferences_proto::moosync::types::PreferenceItem as ProtoPreferenceItem;
-use slint::{ComponentHandle, ModelRc, VecModel, invoke_from_event_loop};
+use slint::ComponentHandle;
 use state_manager::StateManager;
 use tracing::Instrument;
 
-use crate::{AppPreferences, MainWindow, PreferenceItem, pages::PageHandler};
+use super::utils::{clone_lazy_preferences, to_preference_model, update_preferences_in_ui};
+use crate::{AppPreferences, MainWindow, pages::PageHandler};
 
 pub static PREFERENCES: &[&LazyLock<ProtoPreferenceItem>] = &[
     &AUTO_STARTUP,
@@ -50,32 +51,25 @@ impl SystemPageHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn get_preferences() -> Vec<ProtoPreferenceItem> {
-        PREFERENCES.iter().map(|p| (**p).clone()).collect()
-    }
+    pub fn get_preferences() -> Vec<ProtoPreferenceItem> { clone_lazy_preferences(PREFERENCES) }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub async fn refresh_preferences(
         main_window_weak: slint::Weak<MainWindow>,
         state_manager: &'static StateManager,
     ) {
-        let config = state_manager.get_preference_config();
-        let items: Vec<ProtoPreferenceItem> =
-            PREFERENCES.iter().map(|pref| config.load(pref)).collect();
-
-        if let Err(e) = invoke_from_event_loop(move || {
-            if let Some(main_window) = main_window_weak.upgrade() {
-                let slint_items: Vec<PreferenceItem> =
-                    items.into_iter().map(PreferenceItem::from).collect();
-                let prefs_global = main_window.global::<AppPreferences>();
-                prefs_global.set_system_items(ModelRc::new(VecModel::from(slint_items)));
-            }
-        }) {
-            tracing::error!(
-                "Failed to invoke from event loop in system refresh_preferences: {:?}",
-                e
-            );
-        }
+        update_preferences_in_ui(
+            main_window_weak,
+            state_manager,
+            PREFERENCES,
+            "system",
+            |main_window, items| {
+                main_window
+                    .global::<AppPreferences>()
+                    .set_system_items(to_preference_model(items));
+            },
+        )
+        .await;
     }
 }
 

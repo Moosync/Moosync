@@ -135,7 +135,7 @@ jobs:
 
       - name: Install Common Linux Dependencies
         if: runner.os == 'Linux'
-        uses: awalsh128/cache-apt-pkgs-action@latest
+        uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # v1.6.3
         with:
           packages: >
             nasm yasm autoconf automake libtool pkg-config make build-essential clang
@@ -166,7 +166,7 @@ jobs:
 
       - name: Setup Android SDK and NDK
         if: contains(matrix.target, 'android')
-        uses: android-actions/setup-android@v4
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
         with:
           cmdline-tools-version: 12266719 # v16
           packages: ""
@@ -175,7 +175,7 @@ jobs:
         if: contains(matrix.target, 'android')
         run: yes | sdkmanager "ndk;29.0.13599879"
 
-      - uses: bazel-contrib/setup-bazel@0.16.0
+      - uses: bazel-contrib/setup-bazel@8310a45e30297e76bc8fbae427fb6068efa01eb8 # v0.16.0
         with:
           bazelisk-cache: true
           disk-cache: ${{ matrix.name }}
@@ -273,7 +273,7 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Publish Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           name: Moosync v${{ steps.prepare-release.outputs.version }}
           tag_name: Moosync-v${{ steps.prepare-release.outputs.version }}

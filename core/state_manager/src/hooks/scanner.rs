@@ -13,7 +13,9 @@ use preferences::{
     keys::{EXCLUDE_MUSIC_PATHS, MUSIC_PATHS, PreferenceItemExt, SCAN_INTERVAL, SCAN_THREADS},
     preferences::PreferenceConfig,
 };
-use songs_proto::moosync::types::{GetSongOptions, InnerSong, SearchableSong, Song, SongType};
+use songs_proto::moosync::types::{
+    GetSongOptions, InnerSong, Playlist, SearchableSong, Song, SongType,
+};
 use tokio::{
     task::JoinHandle,
     time::{Duration, sleep},
@@ -34,6 +36,120 @@ impl ScannerHook {
     pub fn new() -> Self { Self }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn save_scanned_playlists(
+    database: Arc<Database>,
+    playlists: Vec<(Playlist, Vec<PlaylistSongId>)>,
+) {
+    for (playlist, song_identifiers) in playlists {
+        let mut playlist_songs = Vec::new();
+        for identifier in song_identifiers {
+            if let Some(song) = resolve_or_create_playlist_song(&database, identifier) {
+                playlist_songs.push(song);
+            }
+        }
+        if let Err(e) = database.create_playlist_with_songs(playlist, &playlist_songs) {
+            tracing::error!("Failed to create playlist with songs: {:?}", e);
+        }
+    }
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn save_scanned_songs(
+    database: Arc<Database>,
+    playlist_id: Option<String>,
+    songs: Vec<Song>,
+) {
+    let songs = match database.insert_songs(songs) {
+        Ok(songs) => songs,
+        Err(e) => {
+            tracing::error!("Failed to insert scanned songs: {:?}", e);
+            return;
+        }
+    };
+    if let Some(playlist_id) = playlist_id
+        && let Err(e) = database.add_to_playlist(&playlist_id, &songs)
+    {
+        tracing::error!(
+            "Failed to add scanned songs to playlist {}: {:?}",
+            playlist_id,
+            e
+        );
+    }
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn sync_music_paths(
+    key: String,
+    scanner: Arc<ScannerHolder>,
+    preferences: Arc<PreferenceConfig>,
+    database: Arc<Database>,
+) {
+    let mut scan_dirs = preferences
+        .load(&MUSIC_PATHS)
+        .value::<Vec<String>>()
+        .unwrap_or_default()
+        .into_iter()
+        .map(PathBuf::from)
+        .collect::<Vec<_>>();
+
+    if scan_dirs.is_empty()
+        && let Some(user_dirs) = UserDirs::new()
+    {
+        scan_dirs.push(user_dirs.music_dir);
+    }
+
+    let exclude_dirs = preferences
+        .load(&EXCLUDE_MUSIC_PATHS)
+        .value::<Vec<String>>()
+        .unwrap_or_default()
+        .into_iter()
+        .map(PathBuf::from)
+        .collect::<Vec<_>>();
+
+    let threads = preferences.load(&SCAN_THREADS).value::<i32>().unwrap_or(0);
+
+    scanner.set_scan_dirs(scan_dirs.clone());
+    scanner.set_exclude_dirs(exclude_dirs);
+    scanner.set_scan_threads(threads);
+
+    if key == MUSIC_PATHS.id && !scan_dirs.is_empty() {
+        if let Err(e) = database.remove_songs_outside_directories(&scan_dirs) {
+            tracing::error!("Failed to clean up songs: {:?}", e);
+        }
+        if let Err(e) = scanner.start_scan().await {
+            tracing::error!("Scan failed: {:?}", e);
+        }
+    }
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn update_periodic_scan(
+    interval_mins: i32,
+    scanner: Arc<ScannerHolder>,
+    periodic_task: &mut Option<JoinHandle<()>>,
+) {
+    if let Some(handle) = periodic_task.take() {
+        handle.abort();
+    }
+
+    if interval_mins <= 0 {
+        return;
+    }
+
+    *periodic_task = Some(tokio::spawn(
+        async move {
+            loop {
+                sleep(Duration::from_secs(interval_mins as u64 * 60)).await;
+                if let Err(e) = scanner.start_scan().await {
+                    tracing::error!("Periodic scan failed: {:?}", e);
+                }
+            }
+        }
+        .in_current_span(),
+    ));
+}
+
 #[async_trait]
 impl Hook for ScannerHook {
     #[tracing::instrument(level = "debug", skip_all)]
@@ -45,53 +161,18 @@ impl Hook for ScannerHook {
         let preferences = state_manager.plugins.get::<PreferenceConfig>();
         let database = state_manager.plugins.get::<Database>();
 
-        {
-            scanner.set_artist_split(",".into());
-            scanner.set_thumbnail_dir(temp_dir());
+        scanner.set_artist_split(",".into());
+        scanner.set_thumbnail_dir(temp_dir());
 
-            let db_playlist = database.clone();
-            scanner.set_on_playlist(move |playlists_with_songs| {
-                let db = db_playlist.clone();
-                async move {
-                    for (playlist, song_identifiers) in playlists_with_songs {
-                        let mut playlist_songs = Vec::new();
-                        for identifier in song_identifiers {
-                            if let Some(song) = resolve_or_create_playlist_song(&db, identifier) {
-                                playlist_songs.push(song);
-                            }
-                        }
-                        if let Err(e) = db.create_playlist_with_songs(playlist, &playlist_songs) {
-                            tracing::error!("Failed to create playlist with songs: {:?}", e);
-                        }
-                    }
-                }
-                .in_current_span()
-            });
+        let db = database.clone();
+        scanner.set_on_playlist(move |playlists| {
+            save_scanned_playlists(db.clone(), playlists).in_current_span()
+        });
 
-            let db_song = database.clone();
-            scanner.set_on_song(move |pl_id: Option<String>, songs| {
-                let db = db_song.clone();
-                async move {
-                    let songs = match db.insert_songs(songs) {
-                        Ok(songs) => songs,
-                        Err(e) => {
-                            tracing::error!("Failed to insert scanned songs: {:?}", e);
-                            return;
-                        }
-                    };
-                    if let Some(pl_id) = pl_id
-                        && let Err(e) = db.add_to_playlist(&pl_id, &songs)
-                    {
-                        tracing::error!(
-                            "Failed to add scanned songs to playlist {}: {:?}",
-                            pl_id,
-                            e
-                        );
-                    }
-                }
-                .in_current_span()
-            });
-        }
+        let db = database.clone();
+        scanner.set_on_song(move |playlist_id, songs| {
+            save_scanned_songs(db.clone(), playlist_id, songs).in_current_span()
+        });
 
         preferences.on_preference_changed.listen_filtered_immediate(
             {
@@ -99,53 +180,13 @@ impl Hook for ScannerHook {
                 let scanner = scanner.clone();
                 let preferences = preferences.clone();
                 move |key| {
-                    let database = database.clone();
-                    let scanner = scanner.clone();
-                    let preferences = preferences.clone();
                     tokio::spawn(
-                        async move {
-                            let mut scan_dirs = preferences
-                                .load(&MUSIC_PATHS)
-                                .value::<Vec<String>>()
-                                .unwrap_or_default()
-                                .into_iter()
-                                .map(PathBuf::from)
-                                .collect::<Vec<_>>();
-
-                            if scan_dirs.is_empty()
-                                && let Some(user_dirs) = UserDirs::new()
-                            {
-                                scan_dirs.push(user_dirs.music_dir);
-                            }
-
-                            let exclude_dirs = preferences
-                                .load(&EXCLUDE_MUSIC_PATHS)
-                                .value::<Vec<String>>()
-                                .unwrap_or_default()
-                                .into_iter()
-                                .map(PathBuf::from)
-                                .collect::<Vec<_>>();
-
-                            let threads =
-                                preferences.load(&SCAN_THREADS).value::<i32>().unwrap_or(0);
-
-                            {
-                                scanner.set_scan_dirs(scan_dirs.clone());
-                                scanner.set_exclude_dirs(exclude_dirs);
-                                scanner.set_scan_threads(threads);
-                            }
-
-                            if key == MUSIC_PATHS.id && !scan_dirs.is_empty() {
-                                if let Err(e) =
-                                    database.remove_songs_outside_directories(&scan_dirs)
-                                {
-                                    tracing::error!("Failed to clean up songs: {:?}", e);
-                                }
-                                if let Err(e) = scanner.start_scan().await {
-                                    tracing::error!("Scan failed: {:?}", e);
-                                }
-                            }
-                        }
+                        sync_music_paths(
+                            key,
+                            scanner.clone(),
+                            preferences.clone(),
+                            database.clone(),
+                        )
                         .in_current_span(),
                     );
                 }
@@ -157,56 +198,19 @@ impl Hook for ScannerHook {
             ],
         );
 
-        let periodic_task = Arc::new(Mutex::new(None::<JoinHandle<()>>));
-
+        let periodic_task = Arc::new(Mutex::new(None));
         preferences.on_preference_changed.listen_filtered_immediate(
             {
                 let scanner = scanner.clone();
                 let preferences = preferences.clone();
-                let periodic_task = periodic_task.clone();
-                move |key| {
-                    if key != SCAN_INTERVAL.id {
-                        return;
+                move |_| {
+                    let interval = preferences.load(&SCAN_INTERVAL).value::<i32>().unwrap_or(0);
+                    if let Ok(mut guard) = periodic_task.lock() {
+                        update_periodic_scan(interval, scanner.clone(), &mut guard);
                     }
-                    let scanner = scanner.clone();
-                    let preferences = preferences.clone();
-                    let periodic_task = periodic_task.clone();
-                    tokio::spawn(
-                        async move {
-                            let interval_mins =
-                                preferences.load(&SCAN_INTERVAL).value::<i32>().unwrap_or(0);
-
-                            if let Ok(mut guard) = periodic_task.lock()
-                                && let Some(handle) = guard.take()
-                            {
-                                handle.abort();
-                            }
-
-                            if interval_mins <= 0 {
-                                return;
-                            }
-
-                            let scanner = scanner.clone();
-                            let handle = tokio::spawn(
-                                async move {
-                                    loop {
-                                        sleep(Duration::from_secs(interval_mins as u64 * 60)).await;
-                                        if let Err(e) = scanner.start_scan().await {
-                                            tracing::error!("Periodic scan failed: {:?}", e);
-                                        }
-                                    }
-                                }
-                                .in_current_span(),
-                            );
-                            if let Ok(mut guard) = periodic_task.lock() {
-                                *guard = Some(handle);
-                            }
-                        }
-                        .in_current_span(),
-                    );
                 }
             },
-            SCAN_INTERVAL.id.clone(),
+            vec![SCAN_INTERVAL.id.clone()],
         );
 
         Ok(())

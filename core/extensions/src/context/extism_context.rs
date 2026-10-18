@@ -633,10 +633,30 @@ files-total-size-soft-limit = "1Gi"
     }
 }
 
-struct CancelGuard(extism::CancelHandle);
+struct CancelGuard {
+    handle: extism::CancelHandle,
+    active: bool,
+}
+
+impl CancelGuard {
+    #[tracing::instrument(level = "trace", skip_all)]
+    fn new(handle: extism::CancelHandle) -> Self {
+        Self {
+            handle,
+            active: true,
+        }
+    }
+
+    #[tracing::instrument(level = "trace", skip_all)]
+    fn defuse(&mut self) { self.active = false; }
+}
 
 impl Drop for CancelGuard {
-    fn drop(&mut self) { let _ = self.0.cancel(); }
+    fn drop(&mut self) {
+        if self.active {
+            let _ = self.handle.cancel();
+        }
+    }
 }
 
 #[async_trait::async_trait]
@@ -646,7 +666,7 @@ impl ExtensionContext for ExtismContext {
         &self,
         command: ExtensionCommand,
     ) -> Result<ExtensionCommandResponse, ExtensionError> {
-        let guard = CancelGuard(self.cancel_handle.clone());
+        let mut guard = CancelGuard::new(self.cancel_handle.clone());
 
         let plugin = self.plugin.clone();
         let package_name = self.package_name.clone();
@@ -674,7 +694,7 @@ impl ExtensionContext for ExtismContext {
             Err(e) => Err(ExtensionError::Extism(extism::Error::msg(e.to_string()))),
         };
 
-        std::mem::forget(guard);
+        guard.defuse();
         res
     }
 }

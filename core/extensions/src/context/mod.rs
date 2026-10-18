@@ -176,87 +176,82 @@ impl DispatchCommand for main_command::Command {
                         })
                     })
             }
-            main_command::Command::SetPreference(req) => {
-                if let Some(data) = req.data {
-                    let val = data.value.unwrap_or_default();
-                    reply_handler
-                        .set_preference(package_name, &data.key, val)
-                        .map(|success| {
-                            main_command_response::Response::SetPreference(SetPreferenceResponse {
-                                success,
-                            })
-                        })
-                } else {
-                    Ok(main_command_response::Response::SetPreference(
-                        SetPreferenceResponse { success: false },
-                    ))
-                }
-            }
+            main_command::Command::SetPreference(req) => req
+                .data
+                .map_or(Ok(false), |data| {
+                    reply_handler.set_preference(
+                        package_name,
+                        &data.key,
+                        data.value.unwrap_or_default(),
+                    )
+                })
+                .map(|success| {
+                    main_command_response::Response::SetPreference(SetPreferenceResponse {
+                        success,
+                    })
+                }),
             main_command::Command::GetSecure(req) => {
-                let key = req.data.as_ref().map(|d| d.key.clone()).unwrap_or_default();
+                let key = req.data.map(|d| d.key).unwrap_or_default();
                 reply_handler.get_secure(package_name, &key).map(|value| {
                     main_command_response::Response::GetSecure(GetSecureResponse {
                         data: Some(PreferenceData { key, value }),
                     })
                 })
             }
-            main_command::Command::SetSecure(req) => {
-                if let Some(data) = req.data {
-                    let val = data.value.unwrap_or_default();
-                    reply_handler
-                        .set_secure(package_name, &data.key, val)
-                        .map(|success| {
-                            main_command_response::Response::SetSecure(SetSecureResponse {
-                                success,
-                            })
-                        })
-                } else {
-                    Ok(main_command_response::Response::SetSecure(
-                        SetSecureResponse { success: false },
-                    ))
-                }
-            }
+            main_command::Command::SetSecure(req) => req
+                .data
+                .map_or(Ok(false), |data| {
+                    reply_handler.set_secure(
+                        package_name,
+                        &data.key,
+                        data.value.unwrap_or_default(),
+                    )
+                })
+                .map(|success| {
+                    main_command_response::Response::SetSecure(SetSecureResponse { success })
+                }),
+            main_command::Command::RegisterUserPreference(req) => reply_handler
+                .register_user_preference(package_name, req.prefs)
+                .map(|success| {
+                    main_command_response::Response::RegisterUserPreference(
+                        RegisterUserPreferenceResponse { success },
+                    )
+                }),
+            main_command::Command::UnregisterUserPreference(req) => reply_handler
+                .unregister_user_preference(package_name, req.keys)
+                .map(|success| {
+                    main_command_response::Response::UnregisterUserPreference(
+                        UnregisterUserPreferenceResponse { success },
+                    )
+                }),
             main_command::Command::AddSongs(req) => reply_handler
                 .add_songs(package_name, req.songs)
                 .map(|songs| main_command_response::Response::AddSongs(AddSongsResponse { songs })),
-            main_command::Command::RemoveSong(req) => {
-                if let Some(song) = req.song {
-                    reply_handler
-                        .remove_song(package_name, song)
-                        .map(|success| {
-                            main_command_response::Response::RemoveSong(RemoveSongResponse {
-                                success,
-                            })
-                        })
-                } else {
-                    Ok(main_command_response::Response::RemoveSong(
-                        RemoveSongResponse { success: false },
-                    ))
-                }
-            }
+            main_command::Command::RemoveSong(req) => req
+                .song
+                .map_or(Ok(false), |song| {
+                    reply_handler.remove_song(package_name, song)
+                })
+                .map(|success| {
+                    main_command_response::Response::RemoveSong(RemoveSongResponse { success })
+                }),
             main_command::Command::UpdateSong(req) => {
-                if let Some(song) = req.song {
-                    reply_handler.update_song(package_name, song).map(|song| {
-                        main_command_response::Response::UpdateSong(UpdateSongResponse {
-                            song: Some(song),
-                        })
+                let song = req.song.ok_or(ExtensionError::MissingSong)?;
+                reply_handler.update_song(package_name, song).map(|song| {
+                    main_command_response::Response::UpdateSong(UpdateSongResponse {
+                        song: Some(song),
                     })
-                } else {
-                    Err(ExtensionError::MissingSong)
-                }
+                })
             }
             main_command::Command::AddPlaylist(req) => {
-                if let Some(playlist) = req.playlist {
-                    reply_handler
-                        .add_playlist(package_name, playlist)
-                        .map(|playlist_id| {
-                            main_command_response::Response::AddPlaylist(AddPlaylistResponse {
-                                playlist_id,
-                            })
+                let playlist = req.playlist.ok_or(ExtensionError::MissingPlaylist)?;
+                reply_handler
+                    .add_playlist(package_name, playlist)
+                    .map(|playlist_id| {
+                        main_command_response::Response::AddPlaylist(AddPlaylistResponse {
+                            playlist_id,
                         })
-                } else {
-                    Err(ExtensionError::MissingPlaylist)
-                }
+                    })
             }
             main_command::Command::AddToPlaylist(req) => reply_handler
                 .add_to_playlist(package_name, req.playlist_id, req.songs)
@@ -291,20 +286,6 @@ impl DispatchCommand for main_command::Command {
                         main_command_response::Response::SetAccount(SetAccountResponse { success })
                     })
             }
-            main_command::Command::RegisterUserPreference(req) => reply_handler
-                .register_user_preference(package_name, req.prefs)
-                .map(|success| {
-                    main_command_response::Response::RegisterUserPreference(
-                        RegisterUserPreferenceResponse { success },
-                    )
-                }),
-            main_command::Command::UnregisterUserPreference(req) => reply_handler
-                .unregister_user_preference(package_name, req.keys)
-                .map(|success| {
-                    main_command_response::Response::UnregisterUserPreference(
-                        UnregisterUserPreferenceResponse { success },
-                    )
-                }),
             main_command::Command::ExtensionsUpdated(_) => {
                 reply_handler.extensions_updated(package_name).map(|_| {
                     main_command_response::Response::ExtensionsUpdated(ExtensionsUpdatedResponse {})

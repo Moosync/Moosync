@@ -414,15 +414,24 @@ fn resolve_current_song_covers(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static StateManager) {
-    // Clear default values on load
-    main_window
-        .global::<PlayerProps>()
-        .set_current_song(SongModel::from(Song::default()));
-    main_window
-        .global::<QueuePageProps>()
-        .set_queue(ModelRc::new(VecModel::default()));
+fn update_player_event_props(player_props: &PlayerProps, event: &PlayerEvent) {
+    match event {
+        PlayerEvent::Play(_) => {
+            player_props.set_playing(true);
+        }
+        PlayerEvent::Pause(_) => {
+            player_props.set_playing(false);
+        }
+        PlayerEvent::TimeUpdate(pos) => {
+            player_props.set_current_duration(pos.seconds as i32);
+            player_props.set_current_pos_str(format_duration(pos.seconds).into());
+        }
+        _ => {}
+    }
+}
 
+#[tracing::instrument(level = "debug", skip_all)]
+fn setup_player_listener(main_window: &'static MainWindow, state_manager: &'static StateManager) {
     let main_window_weak = main_window.as_weak();
     tokio::spawn(
         async move {
@@ -481,20 +490,7 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
                     if let Some(main_window) = mw_weak.upgrade() {
                         if let Some(ev) = &event_cloned.event {
                             let player_props = main_window.global::<PlayerProps>();
-                            match ev {
-                                PlayerEvent::Play(_) => {
-                                    player_props.set_playing(true);
-                                }
-                                PlayerEvent::Pause(_) => {
-                                    player_props.set_playing(false);
-                                }
-                                PlayerEvent::TimeUpdate(pos) => {
-                                    player_props.set_current_duration(pos.seconds as i32);
-                                    player_props
-                                        .set_current_pos_str(format_duration(pos.seconds).into());
-                                }
-                                _ => {}
-                            }
+                            update_player_event_props(&player_props, ev);
                         }
                     }
                 });
@@ -502,7 +498,13 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
         }
         .in_current_span(),
     );
+}
 
+#[tracing::instrument(level = "debug", skip_all)]
+fn setup_player_bottom_bar_callbacks(
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) {
     main_window
         .global::<BottomBarCallbacks>()
         .on_next_song(move || {
@@ -566,6 +568,20 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
                 .instrument(tracing::debug_span!("slint_cb_on_seek")),
             );
         });
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static StateManager) {
+    // Clear default values on load
+    main_window
+        .global::<PlayerProps>()
+        .set_current_song(SongModel::from(Song::default()));
+    main_window
+        .global::<QueuePageProps>()
+        .set_queue(ModelRc::new(VecModel::default()));
+
+    setup_player_listener(main_window, state_manager);
+    setup_player_bottom_bar_callbacks(main_window, state_manager);
 }
 
 #[tracing::instrument(level = "debug", skip_all)]

@@ -1,9 +1,17 @@
 import os
 import re
 
+def is_valid_rs_file(root, file):
+    if not file.endswith(".rs"):
+        return False
+    if "test" in file or "bench" in file or file == "build.rs":
+        return False
+    if "plugin_macro" in root or "theme_macro" in root or "benches" in root:
+        return False
+    return True
+
 def get_all_rs_files(project_root):
     rs_files = []
-    # Check core/ and ui/slint/src/
     search_dirs = [
         os.path.join(project_root, "core"),
         os.path.join(project_root, "ui", "slint", "src")
@@ -12,16 +20,12 @@ def get_all_rs_files(project_root):
         if not os.path.exists(search_dir):
             continue
         for root, _, files in os.walk(search_dir):
-            if "plugin_macro" in root or "theme_macro" in root or "benches" in root:
-                continue
             for file in files:
-                if file.endswith(".rs"):
-                    if "test" in file or "bench" in file or file == "build.rs":
-                        continue
+                if is_valid_rs_file(root, file):
                     rs_files.append(os.path.relpath(os.path.join(root, file), project_root))
     return rs_files
 
-FN_START_RE = re.compile(r'^(\s*)(?:pub\s+(?:\([^)]+\)\s+)?)?(?:async\s+)?(?:const\s+)?fn\s+([a-zA-Z0-9_]+)\s*(?:<[^>]+>)?\s*\(')
+FN_START_RE = re.compile(r'^(\s*)(?:pub(?:\([^)]*\))?\s+)?(?:async\s+)?(?:const\s+)?fn\s+(\w+)(?:<[^>]*>)?\s*\(')
 IGNORE_DIRECTIVE_RE = re.compile(r'^\s*//\s*moosync::no_instrument\s*\(\s*reason\s*=\s*["\']([^"\']+)["\']\s*\)')
 
 project_root = os.getcwd()
@@ -78,7 +82,7 @@ for rel_path in files_to_instrument:
                         break
                     elif prev.startswith("#["):
                         continue
-                    elif prev.endswith("}") or prev.endswith(";"):
+                    elif prev.endswith(("}", ";")):
                         break
 
             joined_comments = " ".join(reversed(comment_lines))
@@ -100,7 +104,7 @@ for rel_path in files_to_instrument:
                     l_strip = l.strip()
                     if "mod test" in l_strip or "mod tests" in l_strip:
                         in_test = True
-                    if l_strip.startswith("pub trait ") or l_strip.startswith("trait "):
+                    if l_strip.startswith(("pub trait ", "trait ")):
                         in_trait = True
                     if "{" in l:
                         brace_count += l.count("{")

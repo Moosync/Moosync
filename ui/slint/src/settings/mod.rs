@@ -91,6 +91,137 @@ pub fn get_all_static_preferences() -> Vec<ProtoPreferenceItem> {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
+fn find_preference_item(
+    key: &str,
+    state_manager: &'static StateManager,
+) -> Option<ProtoPreferenceItem> {
+    let config = state_manager.get_preference_config();
+    if let Some(item) = config.get(key) {
+        return Some(item);
+    }
+
+    if let Some(item) = get_all_static_preferences()
+        .into_iter()
+        .find(|p| p.id == key)
+    {
+        return Some(item);
+    }
+
+    if key.starts_with("ext:") {
+        let ext_handler = state_manager.get_extension_handler();
+        for ext in ext_handler.get_installed_extensions() {
+            for mut p in ext.preferences {
+                let scoped_id = format!("ext:{}:{}", ext.package_name, p.id);
+                if scoped_id == key {
+                    p.id = scoped_id;
+                    return Some(p);
+                }
+            }
+        }
+    }
+
+    None
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn compute_list_value(
+    item: &ProtoPreferenceItem,
+    value_string: String,
+    value_list: Vec<String>,
+) -> preferences_proto::moosync::types::preference_value::Value {
+    let list_to_save = if !value_list.is_empty() {
+        value_list
+    } else if !value_string.is_empty() {
+        let mut current_list = item.value::<Vec<String>>().unwrap_or_default();
+        if let Some(pos) = current_list.iter().position(|s| s == &value_string) {
+            current_list.remove(pos);
+        } else {
+            current_list.push(value_string);
+        }
+        current_list
+    } else {
+        Vec::new()
+    };
+
+    preferences_proto::moosync::types::preference_value::Value::ListValue(
+        preferences_proto::moosync::types::StringList {
+            values: list_to_save,
+        },
+    )
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn compute_updated_preference_value(
+    item: &ProtoPreferenceItem,
+    value_string: String,
+    value_bool: bool,
+    value_number: f32,
+    value_list: Vec<String>,
+) -> preferences_proto::moosync::types::preference_value::Value {
+    let pref_type = preferences_proto::moosync::types::PreferenceType::try_from(item.pref_type)
+        .unwrap_or(preferences_proto::moosync::types::PreferenceType::TextInputGroup);
+
+    match pref_type {
+        preferences_proto::moosync::types::PreferenceType::ToggleGroup => {
+            preferences_proto::moosync::types::preference_value::Value::BoolValue(value_bool)
+        }
+        preferences_proto::moosync::types::PreferenceType::NumberInputGroup => {
+            preferences_proto::moosync::types::preference_value::Value::NumberValue(value_number)
+        }
+        preferences_proto::moosync::types::PreferenceType::PathSelector
+        | preferences_proto::moosync::types::PreferenceType::TextArrayInput => {
+            compute_list_value(item, value_string, value_list)
+        }
+        _ => preferences_proto::moosync::types::preference_value::Value::StringValue(value_string),
+    }
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn refresh_relevant_page(
+    key: &str,
+    main_window_weak: slint::Weak<MainWindow>,
+    state_manager: &'static StateManager,
+) {
+    if paths::PREFERENCES.iter().any(|p| p.id == key) {
+        PathsPageHandler::refresh_preferences(main_window_weak, state_manager).await;
+    } else if system::PREFERENCES.iter().any(|p| p.id == key) {
+        SystemPageHandler::refresh_preferences(main_window_weak, state_manager).await;
+    } else if extensions::PREFERENCES.iter().any(|p| p.id == key) || key.starts_with("ext:") {
+        ExtensionsPageHandler::refresh_preferences(main_window_weak, state_manager).await;
+    }
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn notify_extension_preference_changed(key: &str, state_manager: &'static StateManager) {
+    let Some(rest) = key.strip_prefix("ext:") else {
+        return;
+    };
+    let Some((pkg, ext_key)) = rest.split_once(':') else {
+        return;
+    };
+
+    let ext_handler = state_manager.get_extension_handler();
+    match ext_handler.get_extension(pkg) {
+        Ok(ext) => {
+            if let Err(e) = ext
+                .preference_changed(PreferenceChangedRequest {
+                    preference: Some(PreferenceArgs {
+                        key: ext_key.to_string(),
+                        value: Default::default(),
+                    }),
+                })
+                .await
+            {
+                tracing::error!("Failed to notify extension {}: {:?}", pkg, e);
+            }
+        }
+        Err(e) => {
+            tracing::error!("Failed to get extension {} for pref change: {:?}", pkg, e);
+        }
+    }
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
 pub async fn handle_preference_change(
     key: String,
     value_string: String,
@@ -106,125 +237,23 @@ pub async fn handle_preference_change(
     );
     let config = state_manager.get_preference_config();
 
-    // Load existing preference or template from static list or extension
-    // preferences
-    let mut existing_item = config.get(&key).or_else(|| {
-        get_all_static_preferences()
-            .into_iter()
-            .find(|p| p.id == key)
-    });
-
-    if existing_item.is_none() && key.starts_with("ext:") {
-        let ext_handler = state_manager.get_extension_handler();
-        for ext in ext_handler.get_installed_extensions() {
-            for mut p in ext.preferences {
-                let scoped_id = format!("ext:{}:{}", ext.package_name, p.id);
-                if scoped_id == key {
-                    p.id = scoped_id;
-                    existing_item = Some(p);
-                    break;
-                }
-            }
-            if existing_item.is_some() {
-                break;
-            }
-        }
-    }
-
-    if let Some(mut item) = existing_item {
-        // Update item's value based on change and item.pref_type
-        let pref_type =
-            match preferences_proto::moosync::types::PreferenceType::try_from(item.pref_type) {
-                Ok(t) => t,
-                Err(_) => preferences_proto::moosync::types::PreferenceType::TextInputGroup,
-            };
-
-        let val = match pref_type {
-            preferences_proto::moosync::types::PreferenceType::ToggleGroup => {
-                preferences_proto::moosync::types::preference_value::Value::BoolValue(value_bool)
-            }
-            preferences_proto::moosync::types::PreferenceType::NumberInputGroup => {
-                preferences_proto::moosync::types::preference_value::Value::NumberValue(
-                    value_number,
-                )
-            }
-            preferences_proto::moosync::types::PreferenceType::TextInputGroup
-            | preferences_proto::moosync::types::PreferenceType::SingleFileInput
-            | preferences_proto::moosync::types::PreferenceType::RadioGroup
-            | preferences_proto::moosync::types::PreferenceType::DropdownGroup => {
-                preferences_proto::moosync::types::preference_value::Value::StringValue(
-                    value_string,
-                )
-            }
-            preferences_proto::moosync::types::PreferenceType::PathSelector
-            | preferences_proto::moosync::types::PreferenceType::TextArrayInput => {
-                let list_to_save = if !value_list.is_empty() {
-                    value_list
-                } else if !value_string.is_empty() {
-                    let mut current_list = item.value::<Vec<String>>().unwrap_or_default();
-                    if let Some(pos) = current_list.iter().position(|s| s == &value_string) {
-                        current_list.remove(pos);
-                    } else {
-                        current_list.push(value_string.clone());
-                    }
-                    current_list
-                } else {
-                    Vec::new()
-                };
-                preferences_proto::moosync::types::preference_value::Value::ListValue(
-                    preferences_proto::moosync::types::StringList {
-                        values: list_to_save,
-                    },
-                )
-            }
-            _ => preferences_proto::moosync::types::preference_value::Value::StringValue(
-                value_string,
-            ),
-        };
-
-        item.value = Some(preferences_proto::moosync::types::PreferenceValue { value: Some(val) });
-
-        if let Err(e) = config.save(item) {
-            tracing::error!("Failed to save preference for {}: {:?}", key, e);
-        } else {
-            tracing::debug!("Successfully applied preference change: key = {}", key);
-        }
-
-        if paths::PREFERENCES.iter().any(|p| p.id == key) {
-            PathsPageHandler::refresh_preferences(main_window_weak.clone(), state_manager).await;
-        } else if system::PREFERENCES.iter().any(|p| p.id == key) {
-            SystemPageHandler::refresh_preferences(main_window_weak.clone(), state_manager).await;
-        } else if extensions::PREFERENCES.iter().any(|p| p.id == key) || key.starts_with("ext:") {
-            ExtensionsPageHandler::refresh_preferences(main_window_weak.clone(), state_manager)
-                .await;
-        }
-    } else {
+    let Some(mut item) = find_preference_item(&key, state_manager) else {
         tracing::error!("Preference {} not found in store or static registry", key);
+        return;
+    };
+
+    let val =
+        compute_updated_preference_value(&item, value_string, value_bool, value_number, value_list);
+    item.value = Some(preferences_proto::moosync::types::PreferenceValue { value: Some(val) });
+
+    if let Err(e) = config.save(item) {
+        tracing::error!("Failed to save preference for {}: {:?}", key, e);
+    } else {
+        tracing::debug!("Successfully applied preference change: key = {}", key);
     }
 
-    if let Some(rest) = key.strip_prefix("ext:") {
-        if let Some((pkg, ext_key)) = rest.split_once(':') {
-            let ext_handler = state_manager.get_extension_handler();
-            match ext_handler.get_extension(pkg) {
-                Ok(ext) => {
-                    if let Err(e) = ext
-                        .preference_changed(PreferenceChangedRequest {
-                            preference: Some(PreferenceArgs {
-                                key: ext_key.to_string(),
-                                value: Default::default(),
-                            }),
-                        })
-                        .await
-                    {
-                        tracing::error!("Failed to notify extension {}: {:?}", pkg, e);
-                    }
-                }
-                Err(e) => {
-                    tracing::error!("Failed to get extension {}: {:?}", pkg, e);
-                }
-            }
-        }
-    }
+    refresh_relevant_page(&key, main_window_weak, state_manager).await;
+    notify_extension_preference_changed(&key, state_manager).await;
 }
 
 #[tracing::instrument(level = "debug", skip_all)]

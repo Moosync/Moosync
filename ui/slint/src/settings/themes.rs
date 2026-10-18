@@ -256,309 +256,353 @@ impl ThemesPageHandler {
     }
 }
 
-impl PageHandler for ThemesPageHandler {
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn initialize(&self) {
-        let state_manager = self.state_manager;
-        let main_window_weak = self.main_window.as_weak();
+#[tracing::instrument(level = "debug", skip_all)]
+fn spawn_debounce_worker(
+    state_manager: &'static StateManager,
+    main_window_weak: slint::Weak<MainWindow>,
+    mut rx: tokio::sync::mpsc::UnboundedReceiver<(String, String)>,
+) {
+    tokio::spawn(
+        async move {
+            let mut pending_changes = std::collections::HashMap::new();
+            loop {
+                let timeout = tokio::time::sleep(std::time::Duration::from_millis(150));
+                tokio::pin!(timeout);
 
-        // debounce theme configuration writes to disk
-        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<(String, String)>();
-        let main_window_weak_bg = main_window_weak.clone();
-
-        tokio::spawn(
-            async move {
-                let mut pending_changes = std::collections::HashMap::new();
-                loop {
-                    let timeout = tokio::time::sleep(std::time::Duration::from_millis(150));
-                    tokio::pin!(timeout);
-
-                    tokio::select! {
-                        maybe_msg = rx.recv() => {
-                            if let Some((name, val)) = maybe_msg {
-                                pending_changes.insert(name, val);
-                            } else {
-                                if !pending_changes.is_empty() {
-                                    Self::flush_changes(state_manager, &main_window_weak_bg, &mut pending_changes);
-                                }
-                                break;
-                            }
-                        }
-                        _ = &mut timeout => {
+                tokio::select! {
+                    maybe_msg = rx.recv() => {
+                        if let Some((name, val)) = maybe_msg {
+                            pending_changes.insert(name, val);
+                        } else {
                             if !pending_changes.is_empty() {
-                                Self::flush_changes(state_manager, &main_window_weak_bg, &mut pending_changes);
+                                ThemesPageHandler::flush_changes(state_manager, &main_window_weak, &mut pending_changes);
                             }
+                            break;
+                        }
+                    }
+                    _ = &mut timeout => {
+                        if !pending_changes.is_empty() {
+                            ThemesPageHandler::flush_changes(state_manager, &main_window_weak, &mut pending_changes);
                         }
                     }
                 }
             }
-            .in_current_span(),
-        );
+        }
+        .in_current_span(),
+    );
+}
 
-        tokio::spawn(
-            async move {
-                let preference_config = state_manager.get_preference_config();
-                preference_config
-                    .on_preference_changed
-                    .listen_filtered_immediate(
-                        {
-                            let main_window_weak = main_window_weak.clone();
-                            move |key| {
-                                if key == ACTIVE_THEME_ID.id.as_str() {
-                                    let main_window_weak = main_window_weak.clone();
-                                    tokio::spawn(
-                                        async move {
-                                            let theme_holder = state_manager.get_theme_holder();
-                                            let preference_config =
-                                                state_manager.get_preference_config();
-                                            let active_theme_id = preference_config
-                                                .inner
-                                                .load(&ACTIVE_THEME_ID)
-                                                .value::<String>()
-                                                .unwrap_or_else(|| "default".to_string());
+#[tracing::instrument(level = "debug", skip_all)]
+fn listen_active_theme_preference(
+    state_manager: &'static StateManager,
+    main_window_weak: slint::Weak<MainWindow>,
+) {
+    tokio::spawn(
+        async move {
+            let preference_config = state_manager.get_preference_config();
+            preference_config
+                .on_preference_changed
+                .listen_filtered_immediate(
+                    {
+                        let main_window_weak = main_window_weak.clone();
+                        move |key| {
+                            if key == ACTIVE_THEME_ID.id.as_str() {
+                                let main_window_weak = main_window_weak.clone();
+                                tokio::spawn(
+                                    async move {
+                                        let theme_holder = state_manager.get_theme_holder();
+                                        let preference_config =
+                                            state_manager.get_preference_config();
+                                        let active_theme_id = preference_config
+                                            .inner
+                                            .load(&ACTIVE_THEME_ID)
+                                            .value::<String>()
+                                            .unwrap_or_else(|| "default".to_string());
 
-                                            let active_theme = theme_holder
-                                                .inner
-                                                .load_theme(active_theme_id.clone())
-                                                .unwrap_or_else(|_| ThemeDetails {
-                                                    id: "default".to_string(),
-                                                    name: "Default".to_string(),
-                                                    ..Default::default()
-                                                });
+                                        let active_theme = theme_holder
+                                            .inner
+                                            .load_theme(active_theme_id.clone())
+                                            .unwrap_or_else(|_| ThemeDetails {
+                                                id: "default".to_string(),
+                                                name: "Default".to_string(),
+                                                ..Default::default()
+                                            });
 
-                                            let themes_list =
-                                                Self::get_all_themes_list(&theme_holder.inner);
+                                        let themes_list = ThemesPageHandler::get_all_themes_list(
+                                            &theme_holder.inner,
+                                        );
 
-                                            let _ = slint::invoke_from_event_loop(move || {
-                                                if let Some(main_window) =
-                                                    main_window_weak.upgrade()
-                                                {
-                                                    let themes_props =
-                                                        main_window.global::<ThemesPageProps>();
-                                                    themes_props.set_active_theme_id(
-                                                        active_theme_id.into(),
-                                                    );
-                                                    Self::apply_theme(&main_window, &active_theme);
+                                        let _ = slint::invoke_from_event_loop(move || {
+                                            if let Some(main_window) = main_window_weak.upgrade() {
+                                                let themes_props =
+                                                    main_window.global::<ThemesPageProps>();
+                                                themes_props
+                                                    .set_active_theme_id(active_theme_id.into());
+                                                ThemesPageHandler::apply_theme(
+                                                    &main_window,
+                                                    &active_theme,
+                                                );
 
-                                                    let vec_model = slint::VecModel::default();
-                                                    for t in themes_list {
-                                                        vec_model
-                                                            .push(Self::map_theme_to_config(&t));
-                                                    }
-                                                    themes_props.set_available_themes(
-                                                        slint::ModelRc::new(vec_model),
+                                                let vec_model = slint::VecModel::default();
+                                                for t in themes_list {
+                                                    vec_model.push(
+                                                        ThemesPageHandler::map_theme_to_config(&t),
                                                     );
                                                 }
-                                            });
-                                        }
-                                        .in_current_span(),
-                                    );
-                                }
-                            }
-                        },
-                        ACTIVE_THEME_ID.id.as_str(),
-                    );
-            }
-            .in_current_span(),
-        );
-
-        self.main_window
-            .global::<crate::AppCallbacks>()
-            .on_select_preset_theme({
-                let state_manager = self.state_manager;
-                let main_window_weak = self.main_window.as_weak();
-                move |theme_id| {
-                    let theme_id = theme_id.to_string();
-                    let main_window_weak = main_window_weak.clone();
-
-                    tokio::spawn(
-                        async move {
-                            tracing::debug!("Selecting preset theme: {}", theme_id);
-                            let theme_holder = state_manager.get_theme_holder();
-                            let preference_config = state_manager.get_preference_config();
-
-                            match theme_holder.inner.load_theme(theme_id.clone()) {
-                                Ok(theme) => {
-                                    let mut pref_item = (*ACTIVE_THEME_ID).clone();
-                                    pref_item.value = Some(PreferenceValue {
-                                        value: Some(preference_value::Value::StringValue(
-                                            theme_id.clone(),
-                                        )),
-                                    });
-                                    if let Err(e) = preference_config.inner.save(pref_item) {
-                                        tracing::error!(
-                                            "Failed to save active theme preference: {:?}",
-                                            e
-                                        );
+                                                themes_props.set_available_themes(
+                                                    slint::ModelRc::new(vec_model),
+                                                );
+                                            }
+                                        });
                                     }
-                                    theme_holder.inner.on_theme_changed.emit(theme.clone());
-
-                                    let theme_id = theme_id.clone();
-                                    let _ = slint::invoke_from_event_loop(move || {
-                                        if let Some(main_window) = main_window_weak.upgrade() {
-                                            main_window
-                                                .global::<ThemesPageProps>()
-                                                .set_active_theme_id(theme_id.into());
-                                            Self::apply_theme(&main_window, &theme);
-                                        }
-                                    });
-                                }
-                                Err(e) => {
-                                    tracing::error!("Failed to load theme {}: {:?}", theme_id, e);
-                                }
+                                    .in_current_span(),
+                                );
                             }
                         }
-                        .instrument(tracing::debug_span!("slint_cb_on_select_preset_theme")),
-                    );
-                }
-            });
+                    },
+                    ACTIVE_THEME_ID.id.as_str(),
+                );
+        }
+        .in_current_span(),
+    );
+}
 
-        self.main_window
-            .global::<crate::AppCallbacks>()
-            .on_theme_constant_changed({
-                let main_window_weak = self.main_window.as_weak();
-                let tx = tx.clone();
-                move |constant_name, value| {
-                    let constant_name = constant_name.to_string();
-                    let value = value.to_string();
-                    tracing::info!(
-                        "theme_constant_changed callback: name={}, value={}",
-                        constant_name,
-                        value
-                    );
+#[tracing::instrument(level = "debug", skip_all)]
+fn setup_select_preset_theme(main_window: &MainWindow, state_manager: &'static StateManager) {
+    main_window
+        .global::<crate::AppCallbacks>()
+        .on_select_preset_theme({
+            let main_window_weak = main_window.as_weak();
+            move |theme_id| {
+                let theme_id = theme_id.to_string();
+                let main_window_weak = main_window_weak.clone();
 
-                    if let Some(main_window) = main_window_weak.upgrade() {
-                        let theme_global = main_window.global::<crate::Theme>();
-                        Self::apply_single_constant(&theme_global, &constant_name, &value);
-                    }
+                tokio::spawn(
+                    async move {
+                        tracing::debug!("Selecting preset theme: {}", theme_id);
+                        let theme_holder = state_manager.get_theme_holder();
+                        let preference_config = state_manager.get_preference_config();
 
-                    let _ = tx.send((constant_name, value));
-                }
-            });
-
-        self.main_window
-            .global::<crate::AppCallbacks>()
-            .on_save_custom_theme({
-                let state_manager = self.state_manager;
-                let main_window_weak = self.main_window.as_weak();
-                move |name, author, description| {
-                    let name = name.to_string();
-                    let author = author.to_string();
-                    let description = description.to_string();
-                    let main_window_weak = main_window_weak.clone();
-
-                    tokio::spawn(
-                        async move {
-                            tracing::debug!("Saving custom theme: name={}, author={}", name, author);
-                            let theme_holder = state_manager.get_theme_holder();
-                            let preference_config = state_manager.get_preference_config();
-
-                            match theme_holder.inner.load_theme("current".to_string()) {
-                                Ok(mut theme) => {
-                                    let new_id = uuid::Uuid::new_v4().to_string();
-                                    theme.id = new_id.clone();
-                                    theme.name = name;
-                                    theme.author = Some(author);
-                                    theme.description = Some(description);
-
-                                    if let Err(e) = theme_holder.inner.save_theme(theme.clone()) {
-                                        tracing::error!("Failed to save custom theme: {:?}", e);
-                                        return;
-                                    }
-
-                                    if let Err(e) = theme_holder.inner.remove_theme("current".to_string()) {
-                                        tracing::error!("Failed to remove current temporary theme: {:?}", e);
-                                    }
-                                    let mut pref_item = (*ACTIVE_THEME_ID).clone();
-                                    pref_item.value = Some(PreferenceValue {
-                                        value: Some(preference_value::Value::StringValue(new_id.clone())),
-                                    });
-                                    if let Err(e) = preference_config.inner.save(pref_item) {
-                                        tracing::error!("Failed to save active theme preference: {:?}", e);
-                                    }
-
-                                    let themes_list = Self::get_all_themes_list(&theme_holder.inner);
-
-                                    let main_window_weak = main_window_weak.clone();
-                                    let new_id = new_id.clone();
-                                    let _ = slint::invoke_from_event_loop(move || {
-                                        if let Some(main_window) = main_window_weak.upgrade() {
-                                            let themes_props = main_window.global::<ThemesPageProps>();
-                                            themes_props.set_active_theme_id(new_id.into());
-                                            Self::apply_theme(&main_window, &theme);
-
-                                             let vec_model = slint::VecModel::default();
-                                            for t in themes_list {
-                                                vec_model.push(Self::map_theme_to_config(&t));
-                                            }
-                                            themes_props
-                                                .set_available_themes(slint::ModelRc::new(vec_model));
-                                        }
-                                    });
-                                }
-                                Err(e) => {
+                        match theme_holder.inner.load_theme(theme_id.clone()) {
+                            Ok(theme) => {
+                                let mut pref_item = (*ACTIVE_THEME_ID).clone();
+                                pref_item.value = Some(PreferenceValue {
+                                    value: Some(preference_value::Value::StringValue(
+                                        theme_id.clone(),
+                                    )),
+                                });
+                                if let Err(e) = preference_config.inner.save(pref_item) {
                                     tracing::error!(
-                                        "Failed to load 'current' theme for saving custom theme: {:?}",
+                                        "Failed to save active theme preference: {:?}",
                                         e
                                     );
                                 }
-                            }
-                        }
-                        .instrument(tracing::debug_span!("slint_cb_on_save_custom_theme")),
-                    );
-                }
-            });
+                                theme_holder.inner.on_theme_changed.emit(theme.clone());
 
-        tokio::spawn({
-            let state_manager = self.state_manager;
-            let main_window_weak = self.main_window.as_weak();
-            async move {
-                let theme_holder = state_manager.get_theme_holder();
-                let main_window_weak = main_window_weak.clone();
-
-                theme_holder.on_theme_changed.listen(move |changed_theme| {
-                    let changed_theme = changed_theme.clone();
-                    let main_window_weak = main_window_weak.clone();
-
-                    tokio::spawn(
-                        async move {
-                            let theme_holder = state_manager.get_theme_holder();
-                            let preference_config = state_manager.get_preference_config();
-
-                            let active_theme_id = preference_config
-                                .inner
-                                .load(&ACTIVE_THEME_ID)
-                                .value::<String>()
-                                .unwrap_or_else(|| "default".to_string());
-
-                            if changed_theme.id == active_theme_id {
-                                let changed_theme = changed_theme.clone();
-                                let main_window_weak = main_window_weak.clone();
+                                let theme_id = theme_id.clone();
                                 let _ = slint::invoke_from_event_loop(move || {
                                     if let Some(main_window) = main_window_weak.upgrade() {
-                                        Self::apply_theme(&main_window, &changed_theme);
+                                        main_window
+                                            .global::<ThemesPageProps>()
+                                            .set_active_theme_id(theme_id.into());
+                                        ThemesPageHandler::apply_theme(&main_window, &theme);
                                     }
                                 });
                             }
+                            Err(e) => {
+                                tracing::error!("Failed to load theme {}: {:?}", theme_id, e);
+                            }
+                        }
+                    }
+                    .instrument(tracing::debug_span!("slint_cb_on_select_preset_theme")),
+                );
+            }
+        });
+}
 
-                            let themes_list = Self::get_all_themes_list(&theme_holder.inner);
+#[tracing::instrument(level = "debug", skip_all)]
+fn setup_theme_constant_changed(
+    main_window: &MainWindow,
+    tx: tokio::sync::mpsc::UnboundedSender<(String, String)>,
+) {
+    main_window
+        .global::<crate::AppCallbacks>()
+        .on_theme_constant_changed({
+            let main_window_weak = main_window.as_weak();
+            move |constant_name, value| {
+                let constant_name = constant_name.to_string();
+                let value = value.to_string();
+                tracing::info!(
+                    "theme_constant_changed callback: name={}, value={}",
+                    constant_name,
+                    value
+                );
+
+                if let Some(main_window) = main_window_weak.upgrade() {
+                    let theme_global = main_window.global::<crate::Theme>();
+                    ThemesPageHandler::apply_single_constant(&theme_global, &constant_name, &value);
+                }
+
+                let _ = tx.send((constant_name, value));
+            }
+        });
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn setup_save_custom_theme(main_window: &MainWindow, state_manager: &'static StateManager) {
+    main_window
+        .global::<crate::AppCallbacks>()
+        .on_save_custom_theme({
+            let main_window_weak = main_window.as_weak();
+            move |name, author, description| {
+                let name = name.to_string();
+                let author = author.to_string();
+                let description = description.to_string();
+                let main_window_weak = main_window_weak.clone();
+
+                tokio::spawn(
+                    async move {
+                        tracing::debug!("Saving custom theme: name={}, author={}", name, author);
+                        let theme_holder = state_manager.get_theme_holder();
+                        let preference_config = state_manager.get_preference_config();
+
+                        match theme_holder.inner.load_theme("current".to_string()) {
+                            Ok(mut theme) => {
+                                let new_id = uuid::Uuid::new_v4().to_string();
+                                theme.id = new_id.clone();
+                                theme.name = name;
+                                theme.author = Some(author);
+                                theme.description = Some(description);
+
+                                if let Err(e) = theme_holder.inner.save_theme(theme.clone()) {
+                                    tracing::error!("Failed to save custom theme: {:?}", e);
+                                    return;
+                                }
+
+                                if let Err(e) =
+                                    theme_holder.inner.remove_theme("current".to_string())
+                                {
+                                    tracing::error!(
+                                        "Failed to remove current temporary theme: {:?}",
+                                        e
+                                    );
+                                }
+                                let mut pref_item = (*ACTIVE_THEME_ID).clone();
+                                pref_item.value = Some(PreferenceValue {
+                                    value: Some(preference_value::Value::StringValue(
+                                        new_id.clone(),
+                                    )),
+                                });
+                                if let Err(e) = preference_config.inner.save(pref_item) {
+                                    tracing::error!(
+                                        "Failed to save active theme preference: {:?}",
+                                        e
+                                    );
+                                }
+
+                                let themes_list =
+                                    ThemesPageHandler::get_all_themes_list(&theme_holder.inner);
+
+                                let main_window_weak = main_window_weak.clone();
+                                let new_id = new_id.clone();
+                                let _ = slint::invoke_from_event_loop(move || {
+                                    if let Some(main_window) = main_window_weak.upgrade() {
+                                        let themes_props = main_window.global::<ThemesPageProps>();
+                                        themes_props.set_active_theme_id(new_id.into());
+                                        ThemesPageHandler::apply_theme(&main_window, &theme);
+
+                                        let vec_model = slint::VecModel::default();
+                                        for t in themes_list {
+                                            vec_model
+                                                .push(ThemesPageHandler::map_theme_to_config(&t));
+                                        }
+                                        themes_props
+                                            .set_available_themes(slint::ModelRc::new(vec_model));
+                                    }
+                                });
+                            }
+                            Err(e) => {
+                                tracing::error!(
+                                    "Failed to load 'current' theme for saving custom theme: {:?}",
+                                    e
+                                );
+                            }
+                        }
+                    }
+                    .instrument(tracing::debug_span!("slint_cb_on_save_custom_theme")),
+                );
+            }
+        });
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn listen_theme_holder_changed(
+    state_manager: &'static StateManager,
+    main_window_weak: slint::Weak<MainWindow>,
+) {
+    tokio::spawn({
+        async move {
+            let theme_holder = state_manager.get_theme_holder();
+            let main_window_weak = main_window_weak.clone();
+
+            theme_holder.on_theme_changed.listen(move |changed_theme| {
+                let changed_theme = changed_theme.clone();
+                let main_window_weak = main_window_weak.clone();
+
+                tokio::spawn(
+                    async move {
+                        let theme_holder = state_manager.get_theme_holder();
+                        let preference_config = state_manager.get_preference_config();
+
+                        let active_theme_id = preference_config
+                            .inner
+                            .load(&ACTIVE_THEME_ID)
+                            .value::<String>()
+                            .unwrap_or_else(|| "default".to_string());
+
+                        if changed_theme.id == active_theme_id {
+                            let changed_theme = changed_theme.clone();
+                            let main_window_weak = main_window_weak.clone();
                             let _ = slint::invoke_from_event_loop(move || {
                                 if let Some(main_window) = main_window_weak.upgrade() {
-                                    let vec_model = slint::VecModel::default();
-                                    for t in themes_list {
-                                        vec_model.push(Self::map_theme_to_config(&t));
-                                    }
-                                    main_window
-                                        .global::<ThemesPageProps>()
-                                        .set_available_themes(slint::ModelRc::new(vec_model));
+                                    ThemesPageHandler::apply_theme(&main_window, &changed_theme);
                                 }
                             });
                         }
-                        .in_current_span(),
-                    );
-                });
-            }
-            .in_current_span()
-        });
+
+                        let themes_list =
+                            ThemesPageHandler::get_all_themes_list(&theme_holder.inner);
+                        let _ = slint::invoke_from_event_loop(move || {
+                            if let Some(main_window) = main_window_weak.upgrade() {
+                                let vec_model = slint::VecModel::default();
+                                for t in themes_list {
+                                    vec_model.push(ThemesPageHandler::map_theme_to_config(&t));
+                                }
+                                main_window
+                                    .global::<ThemesPageProps>()
+                                    .set_available_themes(slint::ModelRc::new(vec_model));
+                            }
+                        });
+                    }
+                    .in_current_span(),
+                );
+            });
+        }
+        .in_current_span()
+    });
+}
+
+impl PageHandler for ThemesPageHandler {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn initialize(&self) {
+        let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<(String, String)>();
+        let main_window_weak = self.main_window.as_weak();
+
+        spawn_debounce_worker(self.state_manager, main_window_weak.clone(), rx);
+        listen_active_theme_preference(self.state_manager, main_window_weak.clone());
+        setup_select_preset_theme(self.main_window, self.state_manager);
+        setup_theme_constant_changed(self.main_window, tx);
+        setup_save_custom_theme(self.main_window, self.state_manager);
+        listen_theme_holder_changed(self.state_manager, main_window_weak);
     }
 }

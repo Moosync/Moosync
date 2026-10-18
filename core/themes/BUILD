@@ -25,6 +25,7 @@ rust_library(
         "@crates//:regex",
         "@crates//:reqwest",
         "@crates//:thiserror",
+        "@crates//:tokio",
         "@crates//:tracing",
         "@crates//:uuid",
         "@crates//:zip-extensions",

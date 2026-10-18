@@ -14,11 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{collections::HashSet, fs::File, io::Write, path::PathBuf};
+use std::{collections::HashSet, path::PathBuf};
 
 use extensions_proto::moosync::types::{ExtensionManifest, ExtensionRegistryManifest};
 use futures::StreamExt;
 use prost::Message;
+use tokio::{fs::File, io::AsyncWriteExt};
 
 use crate::errors::ExtensionError;
 
@@ -143,11 +144,11 @@ impl RemoteExtensions {
             .await?
             .error_for_status()?
             .bytes_stream();
-        let mut file = File::create(file_path.clone())?;
+        let mut file = File::create(file_path.clone()).await?;
 
         while let Some(chunk_result) = stream.next().await {
             let chunk = chunk_result?;
-            file.write_all(&chunk)?;
+            file.write_all(&chunk).await?;
         }
 
         tracing::info!("Wrote file");

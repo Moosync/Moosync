@@ -1,9 +1,6 @@
 #![no_main]
 
-use std::{
-    sync::atomic::{AtomicBool, Ordering},
-    time::Duration,
-};
+use std::time::Duration;
 
 use moosync_edk::{
     ContextMenuActionRequest, ContextMenuReturnType, CustomRequest, ExtensionAccountDetail,
@@ -25,23 +22,18 @@ use moosync_edk::{
     info,
 };
 
-static LOGGED_IN: AtomicBool = AtomicBool::new(false);
-
-fn sync_account() {
-    let is_logged_in = LOGGED_IN.load(Ordering::SeqCst);
-    let _ = set_account(ExtensionAccountDetail {
+fn update_spotify_account(logged_in: bool) {
+    let username = logged_in.then(|| "EmptyUser".to_string());
+    let detail = ExtensionAccountDetail {
         id: "sample_spotify".to_string(),
         name: "Spotify".to_string(),
         bg_color: "#1ed760".to_string(),
         icon: "spotify".to_string(),
-        logged_in: is_logged_in,
-        username: if is_logged_in {
-            Some("EmptyUser".to_string())
-        } else {
-            None
-        },
+        logged_in,
+        username,
         ..Default::default()
-    });
+    };
+    let _ = set_account(detail);
 }
 
 struct EmptySampleExtension;
@@ -51,20 +43,21 @@ impl Extension for EmptySampleExtension {}
 impl Accounts for EmptySampleExtension {
     fn perform_account_login(&self, req: PerformAccountLoginRequest) -> api::MoosyncResult<String> {
         info!("perform_account_login called: {:?}", req);
-        if req.login_status {
-            let _ = register_oauth("sample_callback".to_string());
-            Ok("https://example.com/oauth/authorize".to_string())
-        } else {
-            LOGGED_IN.store(false, Ordering::SeqCst);
-            sync_account();
-            Ok("logged_out".to_string())
+        match req.login_status {
+            true => {
+                let _ = register_oauth("sample_callback".to_string());
+                Ok("https://example.com/oauth/authorize".to_string())
+            }
+            false => {
+                update_spotify_account(false);
+                Ok("logged_out".to_string())
+            }
         }
     }
 
     fn oauth_callback(&self, req: OauthCallbackRequest) -> api::MoosyncResult<()> {
         info!("oauth_callback called with code: {}", req.callback_uri);
-        LOGGED_IN.store(true, Ordering::SeqCst);
-        sync_account();
+        update_spotify_account(true);
         Ok(())
     }
 }
@@ -230,5 +223,5 @@ impl ContextMenu for EmptySampleExtension {
 #[unsafe(no_mangle)]
 pub extern "C" fn init() {
     moosync_edk::handler::register_extension(Box::new(EmptySampleExtension)).unwrap();
-    sync_account();
+    update_spotify_account(false);
 }

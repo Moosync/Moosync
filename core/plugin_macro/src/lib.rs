@@ -13,6 +13,91 @@ use syn::{
 #[cfg(test)]
 mod lib_test;
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum ReceiverKind {
+    Shared,
+    Mut,
+}
+
+fn get_receiver_kind(method: &ImplItemFn) -> Option<ReceiverKind> {
+    for arg in &method.sig.inputs {
+        if let FnArg::Receiver(r) = arg
+            && r.reference.is_some()
+        {
+            if r.mutability.is_some() {
+                return Some(ReceiverKind::Mut);
+            } else {
+                return Some(ReceiverKind::Shared);
+            }
+        }
+    }
+    None
+}
+
+struct GeneratedMethods {
+    trait_methods: Vec<TokenStream2>,
+    vec_impl_methods: Vec<TokenStream2>,
+    wrapper_methods_shared: Vec<TokenStream2>,
+    wrapper_methods_mut: Vec<TokenStream2>,
+}
+
+fn process_method(method: &ImplItemFn, methods: &mut GeneratedMethods) {
+    if matches!(method.vis, syn::Visibility::Inherited) {
+        return;
+    }
+
+    let Some(receiver_kind) = get_receiver_kind(method) else {
+        return;
+    };
+
+    let method_name = &method.sig.ident;
+    let before_name = format_ident!("before_{}", method_name);
+    let after_name = format_ident!("after_{}", method_name);
+
+    let ExtractedArgs {
+        trait_sigs,
+        wrapper_calls,
+        vec_calls,
+        inner_calls,
+        mut_shadows,
+    } = extract_arguments(method);
+    let return_type = get_return_type(method);
+
+    let has_generics = !method.sig.generics.params.is_empty();
+    let is_intercepted = !has_generics;
+
+    if !has_generics {
+        methods.trait_methods.push(generate_trait_methods(
+            &before_name,
+            &after_name,
+            &trait_sigs,
+            &return_type,
+        ));
+        methods.vec_impl_methods.push(generate_vec_impl_methods(
+            &before_name,
+            &after_name,
+            &trait_sigs,
+            &vec_calls,
+            &return_type,
+        ));
+    }
+
+    let generated = generate_wrapper_method(
+        method,
+        &before_name,
+        &after_name,
+        &wrapper_calls,
+        &inner_calls,
+        &mut_shadows,
+        is_intercepted,
+    );
+
+    match receiver_kind {
+        ReceiverKind::Mut => methods.wrapper_methods_mut.push(generated),
+        ReceiverKind::Shared => methods.wrapper_methods_shared.push(generated),
+    }
+}
+
 #[proc_macro_attribute]
 pub fn generate(_args: TokenStream, input: TokenStream) -> TokenStream {
     let impl_block = parse_macro_input!(input as ItemImpl);
@@ -22,91 +107,25 @@ pub fn generate(_args: TokenStream, input: TokenStream) -> TokenStream {
     let trait_name = format_ident!("{}Interceptor", struct_name);
     let wrapper_name = format_ident!("Intercepted{}", struct_name);
 
-    let mut trait_methods = Vec::new();
-    let mut vec_impl_methods = Vec::new();
-    let mut wrapper_methods_shared = Vec::new();
-    let mut wrapper_methods_mut = Vec::new();
+    let mut methods = GeneratedMethods {
+        trait_methods: Vec::new(),
+        vec_impl_methods: Vec::new(),
+        wrapper_methods_shared: Vec::new(),
+        wrapper_methods_mut: Vec::new(),
+    };
 
     for item in &impl_block.items {
         if let ImplItem::Fn(method) = item {
-            if matches!(method.vis, syn::Visibility::Inherited) {
-                continue;
-            }
-
-            let is_shared_self = method.sig.inputs.iter().any(|arg| match arg {
-                FnArg::Receiver(r) => r.reference.is_some() && r.mutability.is_none(),
-                _ => false,
-            });
-            let is_mut_self = method.sig.inputs.iter().any(|arg| match arg {
-                FnArg::Receiver(r) => r.reference.is_some() && r.mutability.is_some(),
-                _ => false,
-            });
-
-            if !is_shared_self && !is_mut_self {
-                continue;
-            }
-
-            let method_name = &method.sig.ident;
-            let before_name = format_ident!("before_{}", method_name);
-            let after_name = format_ident!("after_{}", method_name);
-
-            let ExtractedArgs {
-                trait_sigs,
-                wrapper_calls,
-                vec_calls,
-                inner_calls,
-                mut_shadows,
-            } = extract_arguments(method);
-            let return_type = get_return_type(method);
-
-            let has_generics = !method.sig.generics.params.is_empty();
-
-            if has_generics {
-                let generated = generate_wrapper_method(
-                    method,
-                    &before_name,
-                    &after_name,
-                    &wrapper_calls,
-                    &inner_calls,
-                    &mut_shadows,
-                    false, // is_intercepted = false
-                );
-                if is_mut_self {
-                    wrapper_methods_mut.push(generated);
-                } else {
-                    wrapper_methods_shared.push(generated);
-                }
-            } else {
-                trait_methods.push(generate_trait_methods(
-                    &before_name,
-                    &after_name,
-                    &trait_sigs,
-                    &return_type,
-                ));
-                vec_impl_methods.push(generate_vec_impl_methods(
-                    &before_name,
-                    &after_name,
-                    &trait_sigs,
-                    &vec_calls,
-                    &return_type,
-                ));
-                let generated = generate_wrapper_method(
-                    method,
-                    &before_name,
-                    &after_name,
-                    &wrapper_calls,
-                    &inner_calls,
-                    &mut_shadows,
-                    true, // is_intercepted = true
-                );
-                if is_mut_self {
-                    wrapper_methods_mut.push(generated);
-                } else {
-                    wrapper_methods_shared.push(generated);
-                }
-            }
+            process_method(method, &mut methods);
         }
     }
+
+    let GeneratedMethods {
+        trait_methods,
+        vec_impl_methods,
+        wrapper_methods_shared,
+        wrapper_methods_mut,
+    } = methods;
 
     TokenStream::from(quote! {
         #original_impl

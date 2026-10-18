@@ -19,22 +19,22 @@ BUILDIFIER_PATH=$(rlocation "$3")
 BUF_PATH=$(rlocation "$4")
 shift 4
 
-if [ -z "$RUSTFMT_PATH" ] || [ ! -f "$RUSTFMT_PATH" ]; then
+if [[ -z "$RUSTFMT_PATH" ]] || [[ ! -f "$RUSTFMT_PATH" ]]; then
   echo "ERROR: Could not resolve hermetic rustfmt path" >&2
   exit 1
 fi
 
-if [ -z "$SLINT_LSP_PATH" ] || [ ! -f "$SLINT_LSP_PATH" ]; then
+if [[ -z "$SLINT_LSP_PATH" ]] || [[ ! -f "$SLINT_LSP_PATH" ]]; then
   echo "ERROR: Could not resolve hermetic slint-lsp path" >&2
   exit 1
 fi
 
-if [ -z "$BUILDIFIER_PATH" ] || [ ! -f "$BUILDIFIER_PATH" ]; then
+if [[ -z "$BUILDIFIER_PATH" ]] || [[ ! -f "$BUILDIFIER_PATH" ]]; then
   echo "ERROR: Could not resolve hermetic buildifier path" >&2
   exit 1
 fi
 
-if [ -z "$BUF_PATH" ] || [ ! -f "$BUF_PATH" ]; then
+if [[ -z "$BUF_PATH" ]] || [[ ! -f "$BUF_PATH" ]]; then
   echo "ERROR: Could not resolve hermetic buf path" >&2
   exit 1
 fi
@@ -46,7 +46,7 @@ chmod +x "$BUF_PATH" 2>/dev/null || true
 WORKSPACE_DIR="${BUILD_WORKSPACE_DIRECTORY:-$(pwd)}"
 cd "$WORKSPACE_DIR"
 
-if [ "${1:-}" = "--fix" ]; then
+if [[ "${1:-}" = "--fix" ]]; then
   shift
   file="${1:-}"
   case "$file" in
@@ -76,10 +76,10 @@ if [ "${1:-}" = "--fix" ]; then
   exit 0
 fi
 
-if [ $# -gt 0 ]; then
+if [[ $# -gt 0 ]]; then
   # Format only the specified files (e.g. staged files)
   for file in "$@"; do
-    if [ -f "$file" ]; then
+    if [[ -f "$file" ]]; then
       case "$file" in
         *.rs)
           echo "Formatting $file..."

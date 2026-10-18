@@ -9,7 +9,7 @@ find_manifest() {
     "$WORKSPACE_DIR/bazel-bin/tools/format.runfiles_manifest" \
     "$WORKSPACE_DIR/bazel-out/k8-fastbuild/bin/tools/format.runfiles_manifest" \
     "$WORKSPACE_DIR/bazel-Moosync/bazel-out/k8-fastbuild/bin/tools/format.runfiles_manifest"; do
-    if [ -f "$candidate" ]; then
+    if [[ -f "$candidate" ]]; then
       printf '%s' "$candidate"
       return 0
     fi
@@ -19,12 +19,12 @@ find_manifest() {
 
 MANIFEST=$(find_manifest)
 
-if [ -z "$MANIFEST" ] || [ ! -f "$MANIFEST" ]; then
+if [[ -z "$MANIFEST" ]] || [[ ! -f "$MANIFEST" ]]; then
   LOCK_FILE="/tmp/moosync_bazel_format.lock"
   (
     flock 200
     M=$(find_manifest)
-    if [ -z "$M" ] || [ ! -f "$M" ]; then
+    if [[ -z "$M" ]] || [[ ! -f "$M" ]]; then
       if ! err=$(bazel build --ui_event_filters=-info,-stdout --noshow_progress //tools:format 2>&1); then
         echo "$err" >&2
         exit 1
@@ -34,7 +34,7 @@ if [ -z "$MANIFEST" ] || [ ! -f "$MANIFEST" ]; then
   MANIFEST=$(find_manifest)
 fi
 
-if [ -z "$MANIFEST" ] || [ ! -f "$MANIFEST" ]; then
+if [[ -z "$MANIFEST" ]] || [[ ! -f "$MANIFEST" ]]; then
   echo "Error: format.runfiles_manifest could not be located" >&2
   exit 1
 fi

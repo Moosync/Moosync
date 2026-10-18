@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::Arc, time::Duration};
 
 use assertables::{assert_is_empty, assert_len_eq_x};
 use extensions_proto::moosync::types::{
@@ -23,6 +23,7 @@ use extensions_proto::moosync::types::{
 use preferences_proto::moosync::types::{PreferenceItem, PreferenceType};
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
 use tempdir::TempDir;
+use tokio::time::sleep;
 use tracing_test::traced_test;
 
 use crate::{ExtensionError, context::ReplyHandler, ext_runner::ExtensionHandlerInner};
@@ -277,7 +278,7 @@ async fn test_handle_extension_command() {
     let reply_handler = Arc::new(TestReplyHandler);
     handler.spawn_extensions(reply_handler);
 
-    std::thread::sleep(std::time::Duration::from_millis(500));
+    sleep(Duration::from_millis(500)).await;
 
     let ext = {
         let map = handler.extensions_map.read().unwrap();

@@ -3,6 +3,10 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
+dependencyLocking {
+    lockAllConfigurations()
+}
+
 android {
     namespace 'app.moosync.android'
     compileSdk 34

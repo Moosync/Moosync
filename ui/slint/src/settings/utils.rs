@@ -14,13 +14,54 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use std::sync::LazyLock;
+
 use preferences_proto::moosync::types::{
     PreferenceItem as ProtoPreferenceItem, PreferenceOption as ProtoPreferenceOption,
     PreferenceType as ProtoPreferenceType, PreferenceValue, StringList, preference_value,
 };
-use slint::{Model, ModelRc, SharedString, VecModel};
+use slint::{Model, ModelRc, SharedString, VecModel, invoke_from_event_loop};
+use state_manager::StateManager;
 
-use crate::{PreferenceItem, PreferenceOption, PreferenceType};
+use crate::{MainWindow, PreferenceItem, PreferenceOption, PreferenceType};
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn clone_lazy_preferences(
+    preferences: &[&LazyLock<ProtoPreferenceItem>],
+) -> Vec<ProtoPreferenceItem> {
+    preferences.iter().map(|p| (**p).clone()).collect()
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn to_preference_model(items: Vec<ProtoPreferenceItem>) -> ModelRc<PreferenceItem> {
+    let slint_items: Vec<PreferenceItem> = items.into_iter().map(PreferenceItem::from).collect();
+    ModelRc::new(VecModel::from(slint_items))
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub async fn update_preferences_in_ui<F>(
+    main_window_weak: slint::Weak<MainWindow>,
+    state_manager: &'static StateManager,
+    preferences: &[&LazyLock<ProtoPreferenceItem>],
+    context_name: &'static str,
+    on_render: F,
+) where
+    F: FnOnce(&MainWindow, Vec<ProtoPreferenceItem>) + Send + 'static,
+{
+    let config = state_manager.get_preference_config();
+    let items: Vec<ProtoPreferenceItem> =
+        preferences.iter().map(|pref| config.load(pref)).collect();
+
+    if let Err(e) = invoke_from_event_loop(move || {
+        if let Some(main_window) = main_window_weak.upgrade() {
+            on_render(&main_window, items);
+        }
+    }) {
+        tracing::error!(
+            "Failed to invoke from event loop in {context_name} refresh_preferences: {e:?}"
+        );
+    }
+}
 
 impl From<ProtoPreferenceType> for PreferenceType {
     fn from(t: ProtoPreferenceType) -> Self {

@@ -1,9 +1,17 @@
 import os
 import re
 
+def is_valid_rs_file(root, file):
+    if not file.endswith(".rs"):
+        return False
+    if "test" in file or "bench" in file or file == "build.rs":
+        return False
+    if "plugin_macro" in root or "theme_macro" in root or "benches" in root:
+        return False
+    return True
+
 def get_all_rs_files(project_root):
     rs_files = []
-    # Check core/ and ui/slint/src/
     search_dirs = [
         os.path.join(project_root, "core"),
         os.path.join(project_root, "ui", "slint", "src")
@@ -12,16 +20,12 @@ def get_all_rs_files(project_root):
         if not os.path.exists(search_dir):
             continue
         for root, _, files in os.walk(search_dir):
-            if "plugin_macro" in root or "theme_macro" in root or "benches" in root:
-                continue
             for file in files:
-                if file.endswith(".rs"):
-                    if "test" in file or "bench" in file or file == "build.rs":
-                        continue
+                if is_valid_rs_file(root, file):
                     rs_files.append(os.path.relpath(os.path.join(root, file), project_root))
     return rs_files
 
-FN_START_RE = re.compile(r'^(\s*)(?:pub\s+(?:\([^)]+\)\s+)?)?(?:async\s+)?(?:const\s+)?fn\s+([a-zA-Z0-9_]+)\s*(?:<[^>]+>)?\s*\(')
+FN_START_RE = re.compile(r'^(\s*)(?:pub(?:\([^)]*\))?\s+)?(?:async\s+)?(?:const\s+)?fn\s+(\w+)(?:<[^>]*>)?\s*\(')
 
 project_root = os.getcwd()
 files_to_instrument = get_all_rs_files(project_root)
@@ -53,7 +57,7 @@ for rel_path in files_to_instrument:
                     if "#[tracing::instrument" in prev or "#[instrument" in prev:
                         instrument_idx = idx - lookback
                         break
-                    if prev.endswith("}") or prev.endswith(";"):
+                    if prev.endswith(("}", ";")):
                         break
             
             if instrument_idx is not None:

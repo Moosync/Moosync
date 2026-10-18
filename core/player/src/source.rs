@@ -58,6 +58,7 @@ impl<'a> ValidSrc<'a> {
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 pub(crate) fn get_valid_src(song: &'_ Song) -> Result<ValidSrc<'_>, PlayerError> {
     let path_opt = song
         .get_path()

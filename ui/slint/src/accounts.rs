@@ -79,59 +79,87 @@ impl AccountsHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn setup_callbacks(main_window: &'static MainWindow, state_manager: &'static StateManager) {
+    async fn handle_account_login(
+        package_name: String,
+        account_id: String,
+        state_manager: &'static StateManager,
+        main_window_weak: slint::Weak<MainWindow>,
+    ) {
+        let extension_handler = state_manager.get_extension_handler();
+        let ext = match extension_handler.get_extension(&package_name) {
+            Ok(ext) => ext,
+            Err(e) => {
+                tracing::error!("Failed to get extension {}: {:?}", package_name, e);
+                return;
+            }
+        };
+
+        let resp = match ext
+            .perform_account_login(
+                extensions_proto::moosync::types::PerformAccountLoginRequest {
+                    account_id,
+                    login_status: true,
+                },
+            )
+            .await
+        {
+            Ok(resp) => resp,
+            Err(e) => {
+                tracing::error!("Account login error for {}: {:?}", package_name, e);
+                return;
+            }
+        };
+
+        tracing::debug!("perform_account_login response status: {}", resp.status);
+        let url = resp.status;
+        #[cfg(not(test))]
+        Self::open_browser(&url);
+
+        let url_shared: slint::SharedString = url.into();
+        let _ = slint::invoke_from_event_loop(move || {
+            if let Some(main_window) = main_window_weak.upgrade() {
+                let oauth_state = main_window.global::<OAuthState>();
+                oauth_state.set_oauth_url(url_shared);
+                oauth_state.set_oauth_code(slint::SharedString::default());
+                oauth_state.set_show_oauth_modal(true);
+            }
+        });
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn setup_login_callback(
+        main_window: &'static MainWindow,
+        state_manager: &'static StateManager,
+    ) {
         let main_window_weak = main_window.as_weak();
         main_window
             .global::<AppCallbacks>()
             .on_account_login(move |package_name, account_id| {
-                tracing::debug!("on_account_login triggered: pkg={}, acc={}", package_name, account_id);
+                tracing::debug!(
+                    "on_account_login triggered: pkg={}, acc={}",
+                    package_name,
+                    account_id
+                );
                 let main_window_weak = main_window_weak.clone();
                 let package_name = package_name.to_string();
                 let account_id = account_id.to_string();
                 tokio::spawn(
-                    async move {
-                        let extension_handler = state_manager.get_extension_handler();
-                        match extension_handler.get_extension(&package_name) {
-                            Ok(ext) => {
-                                match ext
-                                    .perform_account_login(
-                                        extensions_proto::moosync::types::PerformAccountLoginRequest {
-                                            account_id,
-                                            login_status: true,
-                                        },
-                                    )
-                                    .await
-                                {
-                                    Ok(resp) => {
-                                        tracing::debug!("perform_account_login response status: {}", resp.status);
-                                        let url = resp.status;
-                                        #[cfg(not(test))]
-                                        Self::open_browser(&url);
-
-                                        let url_shared: slint::SharedString = url.into();
-                                        let _ = slint::invoke_from_event_loop(move || {
-                                            if let Some(main_window) = main_window_weak.upgrade() {
-                                                let oauth_state = main_window.global::<OAuthState>();
-                                                oauth_state.set_oauth_url(url_shared);
-                                                oauth_state.set_oauth_code(slint::SharedString::default());
-                                                oauth_state.set_show_oauth_modal(true);
-                                            }
-                                        });
-                                    }
-                                    Err(e) => {
-                                        tracing::error!("Account login error for {}: {:?}", package_name, e);
-                                    }
-                                }
-                            }
-                            Err(e) => {
-                                tracing::error!("Failed to get extension {}: {:?}", package_name, e);
-                            }
-                        }
-                    }
+                    Self::handle_account_login(
+                        package_name,
+                        account_id,
+                        state_manager,
+                        main_window_weak,
+                    )
                     .in_current_span(),
                 );
             });
+    }
 
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn setup_logout_callback(
+        main_window: &'static MainWindow,
+        state_manager: &'static StateManager,
+    ) {
         main_window
             .global::<AppCallbacks>()
             .on_account_logout(move |package_name, account_id| {
@@ -161,7 +189,13 @@ impl AccountsHandler {
                     .in_current_span(),
                 );
             });
+    }
 
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn setup_oauth_code_callback(
+        main_window: &'static MainWindow,
+        state_manager: &'static StateManager,
+    ) {
         let main_window_weak = main_window.as_weak();
         main_window
             .global::<AppCallbacks>()
@@ -193,6 +227,13 @@ impl AccountsHandler {
                     .in_current_span(),
                 );
             });
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn setup_callbacks(main_window: &'static MainWindow, state_manager: &'static StateManager) {
+        Self::setup_login_callback(main_window, state_manager);
+        Self::setup_logout_callback(main_window, state_manager);
+        Self::setup_oauth_code_callback(main_window, state_manager);
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

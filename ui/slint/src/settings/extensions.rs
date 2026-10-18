@@ -23,6 +23,7 @@ use slint::{ComponentHandle, ModelRc, VecModel, invoke_from_event_loop};
 use state_manager::StateManager;
 use tracing::Instrument;
 
+use super::utils::clone_lazy_preferences;
 use crate::{
     AppCallbacks, ExtensionItem, ExtensionPreferenceGroup, ExtensionsPageProps,
     ExtensionsPreferenceProps, MainWindow, PreferenceItem, Theme, pages::PageHandler,
@@ -46,9 +47,7 @@ impl ExtensionsPageHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn get_preferences() -> Vec<ProtoPreferenceItem> {
-        PREFERENCES.iter().map(|p| (**p).clone()).collect()
-    }
+    pub fn get_preferences() -> Vec<ProtoPreferenceItem> { clone_lazy_preferences(PREFERENCES) }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn render_extensions(

@@ -17,7 +17,7 @@
 use std::{
     collections::{HashMap, HashSet},
     fs,
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::{Arc, RwLock},
 };
 
@@ -29,6 +29,25 @@ pub(crate) struct ExtensionHandlerInner {
     extensions_path: String,
     pub(crate) extensions_map: RwLock<HashMap<String, Arc<Extension>>>,
     cache_path: PathBuf,
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn is_manifest_file(path: &Path) -> bool {
+    path.is_file() && path.file_name() == Some("manifest.pb".as_ref())
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn find_manifests_in_dir(dir_path: &Path, manifest_paths: &mut Vec<PathBuf>) {
+    let Ok(sub_entries) = fs::read_dir(dir_path) else {
+        return;
+    };
+
+    for sub_entry in sub_entries.flatten() {
+        let sub_path = sub_entry.path();
+        if is_manifest_file(&sub_path) {
+            manifest_paths.push(sub_path);
+        }
+    }
 }
 
 impl ExtensionHandlerInner {
@@ -45,24 +64,16 @@ impl ExtensionHandlerInner {
     fn find_extension_manifests(&self) -> Vec<PathBuf> {
         let mut manifest_paths = Vec::new();
 
-        if let Ok(entries) = fs::read_dir(self.extensions_path.clone()) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if path.is_dir() {
-                    // Check only the first level subdirectories
-                    if let Ok(sub_entries) = fs::read_dir(&path) {
-                        for sub_entry in sub_entries.flatten() {
-                            let sub_path = sub_entry.path();
-                            if sub_path.is_file()
-                                && sub_path.file_name() == Some("manifest.pb".as_ref())
-                            {
-                                manifest_paths.push(sub_path);
-                            }
-                        }
-                    }
-                } else if path.is_file() && path.file_name() == Some("manifest.pb".as_ref()) {
-                    manifest_paths.push(path);
-                }
+        let Ok(entries) = fs::read_dir(&self.extensions_path) else {
+            return manifest_paths;
+        };
+
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                find_manifests_in_dir(&path, &mut manifest_paths);
+            } else if is_manifest_file(&path) {
+                manifest_paths.push(path);
             }
         }
         manifest_paths

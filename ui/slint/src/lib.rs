@@ -2,7 +2,7 @@
 // slint::include_modules!();
 include!(concat!(env!("OUT_DIR"), "/app.rs"));
 
-use std::{thread::available_parallelism, time::Duration};
+use std::{path::PathBuf, thread::available_parallelism, time::Duration};
 
 use extensions_proto::moosync::types::player_event::Event as PlayerEvent;
 use player_proto::moosync::types::RepeatMode;
@@ -16,7 +16,7 @@ use types::prelude::format_duration;
 
 use crate::{
     pages::{NavigationManager, PageLifecycleManager},
-    utils::{find_cached_or_local_image, resolve_image},
+    utils::{find_cached_or_local_image, load_image, resolve_image},
 };
 
 pub mod accounts;
@@ -120,6 +120,44 @@ fn setup_resize(main_window: &MainWindow) {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
+fn handle_cover_fetch<F>(
+    mw_weak: slint::Weak<MainWindow>,
+    cache_dir: PathBuf,
+    song_id: String,
+    cover_url: String,
+    update_cover: F,
+) -> Image
+where
+    F: Fn(&MainWindow, Image) + Send + 'static,
+{
+    if let Some(image) = find_cached_or_local_image(cover_url.as_str(), &cache_dir) {
+        return image;
+    }
+    if !cover_url.is_empty() {
+        tokio::spawn(
+            async move {
+                let Some(img) = resolve_image(cover_url.as_str(), &cache_dir).await else {
+                    return;
+                };
+
+                let _ = slint::invoke_from_event_loop(move || {
+                    let Some(main_window) = mw_weak.upgrade() else {
+                        return;
+                    };
+                    let player_props = main_window.global::<PlayerProps>();
+                    let current = player_props.get_current_song();
+                    if current.id == song_id {
+                        update_cover(&main_window, load_image(&img));
+                    }
+                });
+            }
+            .in_current_span(),
+        );
+    }
+    Image::default()
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
 fn setup_cover_helper(main_window: &MainWindow, state_manager: &'static StateManager) {
     let mw_high = main_window.as_weak();
     main_window
@@ -127,38 +165,20 @@ fn setup_cover_helper(main_window: &MainWindow, state_manager: &'static StateMan
         .on_fetch_cover_high(move |song_model| {
             trace!("Fetching high-res cover for song {}", song_model.title);
             let cache_dir = state_manager.get_cache_dir();
-            if let Some(image) =
-                find_cached_or_local_image(song_model.coverPathUrlHigh.as_str(), &cache_dir)
-            {
-                return image;
-            }
-            if !song_model.coverPathUrlHigh.is_empty() {
-                let song_id = song_model.id.clone();
-                let cover_url = song_model.coverPathUrlHigh.clone();
-                let mw_weak = mw_high.clone();
-                tokio::spawn(
-                    async move {
-                        let Some(img) = resolve_image(cover_url.as_str(), &cache_dir).await else {
-                            return;
-                        };
-
-                        let _ = slint::invoke_from_event_loop(move || {
-                            let Some(main_window) = mw_weak.upgrade() else {
-                                return;
-                            };
-                            let player_props = main_window.global::<PlayerProps>();
-                            let mut current = player_props.get_current_song();
-                            if current.id == song_id {
-                                current.coverPathHigh =
-                                    Image::load_from_path(&img).unwrap_or_default();
-                                player_props.set_current_song(current);
-                            }
-                        });
-                    }
-                    .in_current_span(),
-                );
-            }
-            Image::default()
+            let song_id = song_model.id.to_string();
+            let cover_url = song_model.coverPathUrlHigh.to_string();
+            handle_cover_fetch(
+                mw_high.clone(),
+                cache_dir,
+                song_id,
+                cover_url,
+                |main_window, image| {
+                    let player_props = main_window.global::<PlayerProps>();
+                    let mut current = player_props.get_current_song();
+                    current.coverPathHigh = image;
+                    player_props.set_current_song(current);
+                },
+            )
         });
 
     let mw_low = main_window.as_weak();
@@ -167,38 +187,20 @@ fn setup_cover_helper(main_window: &MainWindow, state_manager: &'static StateMan
         .on_fetch_cover_low(move |song_model| {
             trace!("Fetching low-res cover for song {}", song_model.title);
             let cache_dir = state_manager.get_cache_dir();
-            if let Some(image) =
-                find_cached_or_local_image(song_model.coverPathUrlLow.as_str(), &cache_dir)
-            {
-                return image;
-            }
-            if !song_model.coverPathUrlLow.is_empty() {
-                let song_id = song_model.id.clone();
-                let cover_url = song_model.coverPathUrlLow.clone();
-                let mw_weak = mw_low.clone();
-                tokio::spawn(
-                    async move {
-                        let Some(img) = resolve_image(cover_url.as_str(), &cache_dir).await else {
-                            return;
-                        };
-
-                        let _ = slint::invoke_from_event_loop(move || {
-                            let Some(main_window) = mw_weak.upgrade() else {
-                                return;
-                            };
-                            let player_props = main_window.global::<PlayerProps>();
-                            let mut current = player_props.get_current_song();
-                            if current.id == song_id {
-                                current.coverPathLow =
-                                    Image::load_from_path(&img).unwrap_or_default();
-                                player_props.set_current_song(current);
-                            }
-                        });
-                    }
-                    .in_current_span(),
-                );
-            }
-            Image::default()
+            let song_id = song_model.id.to_string();
+            let cover_url = song_model.coverPathUrlLow.to_string();
+            handle_cover_fetch(
+                mw_low.clone(),
+                cache_dir,
+                song_id,
+                cover_url,
+                |main_window, image| {
+                    let player_props = main_window.global::<PlayerProps>();
+                    let mut current = player_props.get_current_song();
+                    current.coverPathLow = image;
+                    player_props.set_current_song(current);
+                },
+            )
         });
 }
 
@@ -389,10 +391,8 @@ fn resolve_current_song_covers(
             }
 
             let _ = slint::invoke_from_event_loop(move || {
-                let low_img =
-                    Image::load_from_path(&low_img.unwrap_or_default()).unwrap_or_default();
-                let high_img =
-                    Image::load_from_path(&high_img.unwrap_or_default()).unwrap_or_default();
+                let low_img = low_img.as_ref().map(load_image).unwrap_or_default();
+                let high_img = high_img.as_ref().map(load_image).unwrap_or_default();
 
                 let Some(main_window) = mw_weak.upgrade() else {
                     return;

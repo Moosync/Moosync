@@ -34,31 +34,28 @@ fn get_extension_from_bytes(bytes: &[u8]) -> &'static str {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn find_cached_image(img_cache_dir: &Path, safe_name: &str) -> Option<PathBuf> {
-    const EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "webp", "gif", "avif", "ico", "bmp"];
-    for ext in EXTENSIONS {
-        let path = img_cache_dir.join(format!("{}.{}", safe_name, ext));
-        if path.exists() {
-            return Some(path);
-        }
+pub fn load_image(path: impl AsRef<Path>) -> Image {
+    let p = path.as_ref();
+    if p.as_os_str().is_empty() {
+        return Image::default();
     }
-
-    let unextended_path = img_cache_dir.join(safe_name);
-    if unextended_path.exists() {
-        if let Ok(bytes) = fs::read(&unextended_path).await {
-            let ext = get_extension_from_bytes(&bytes);
-            let target_path = img_cache_dir.join(format!("{}.{}", safe_name, ext));
-            if fs::rename(&unextended_path, &target_path).await.is_ok() {
-                return Some(target_path);
-            }
-        }
-    }
-
-    None
+    Image::load_from_path(p).unwrap_or_default()
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-pub async fn cache_image(cover_url: &str, cache_dir: &Path) -> Option<PathBuf> {
+pub fn load_image_opt(path: impl AsRef<Path>) -> Option<Image> {
+    let p = path.as_ref();
+    if p.as_os_str().is_empty() {
+        return None;
+    }
+    Image::load_from_path(p).ok()
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn find_cached_or_local_path(cover_url: &str, cache_dir: &Path) -> Option<PathBuf> {
+    if cover_url.is_empty() {
+        return None;
+    }
     if !cover_url.starts_with("http://") && !cover_url.starts_with("https://") {
         let path = PathBuf::from(cover_url);
         if path.exists() {
@@ -69,9 +66,56 @@ pub async fn cache_image(cover_url: &str, cache_dir: &Path) -> Option<PathBuf> {
 
     let safe_name = get_safe_name(cover_url);
     let img_cache_dir = cache_dir.join("image_cache");
+    const EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "webp", "gif", "avif", "ico", "bmp"];
+    for ext in EXTENSIONS {
+        let path = img_cache_dir.join(format!("{}.{}", safe_name, ext));
+        if path.exists() {
+            return Some(path);
+        }
+    }
 
-    if let Some(cached_path) = find_cached_image(&img_cache_dir, &safe_name).await {
-        return Some(cached_path);
+    None
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn find_cached_or_local_image(cover_url: &str, cache_dir: &Path) -> Option<Image> {
+    find_cached_or_local_path(cover_url, cache_dir).and_then(load_image_opt)
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn migrate_unextended_file(img_cache_dir: &Path, safe_name: &str) -> Option<PathBuf> {
+    let unextended_path = img_cache_dir.join(safe_name);
+    if unextended_path.exists() {
+        if let Ok(bytes) = fs::read(&unextended_path).await {
+            let ext = get_extension_from_bytes(&bytes);
+            let target_path = img_cache_dir.join(format!("{}.{}", safe_name, ext));
+            if fs::rename(&unextended_path, &target_path).await.is_ok() {
+                return Some(target_path);
+            }
+        }
+    }
+    None
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub async fn resolve_image(cover_url: &str, cache_dir: &Path) -> Option<PathBuf> {
+    if cover_url.is_empty() {
+        return None;
+    }
+
+    if let Some(path) = find_cached_or_local_path(cover_url, cache_dir) {
+        return Some(path);
+    }
+
+    if !cover_url.starts_with("http://") && !cover_url.starts_with("https://") {
+        return None;
+    }
+
+    let safe_name = get_safe_name(cover_url);
+    let img_cache_dir = cache_dir.join("image_cache");
+
+    if let Some(migrated_path) = migrate_unextended_file(&img_cache_dir, &safe_name).await {
+        return Some(migrated_path);
     }
 
     if !img_cache_dir.exists() {
@@ -90,57 +134,19 @@ pub async fn cache_image(cover_url: &str, cache_dir: &Path) -> Option<PathBuf> {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-pub fn find_cached_or_local_image(cover_url: &str, cache_dir: &Path) -> Option<Image> {
-    if cover_url.is_empty() {
-        return None;
-    }
-    if !cover_url.starts_with("http://") && !cover_url.starts_with("https://") {
-        let path = Path::new(cover_url);
-        if path.exists() {
-            return Image::load_from_path(path).ok();
-        }
-        return None;
-    }
-
-    let safe_name = get_safe_name(cover_url);
-    let img_cache_dir = cache_dir.join("image_cache");
-    const EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "webp", "gif", "avif", "ico", "bmp"];
-    for ext in EXTENSIONS {
-        let path = img_cache_dir.join(format!("{}.{}", safe_name, ext));
-        if path.exists() {
-            return Image::load_from_path(&path).ok();
+pub fn resolve_extension_icon(
+    detail: Option<&ExtensionDetail>,
+    fallback_icon: Option<&str>,
+) -> Image {
+    if let Some(detail) = detail {
+        if let Some(icon_path) = detail.extension_icon.as_deref() {
+            let img = load_image(icon_path);
+            if img.size().width > 0 {
+                return img;
+            }
         }
     }
-    None
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-// Always use in tokio context
-pub async fn resolve_image(cover_url: &str, cache_dir: &Path) -> Option<PathBuf> {
-    if cover_url.is_empty() {
-        tracing::trace!("cover_url is empty");
-        return None;
-    }
-    let cover_url_str = cover_url.to_string();
-    let cache_dir_buf = cache_dir.to_path_buf();
-    cache_image(&cover_url_str, &cache_dir_buf).await
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-pub fn load_icon(path: &str) -> Image {
-    if path.is_empty() {
-        return Image::default();
-    }
-    Image::load_from_path(Path::new(path)).unwrap_or_default()
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-pub fn get_extension_icon(detail: Option<&ExtensionDetail>) -> Image {
-    detail
-        .and_then(|d| d.extension_icon.as_ref())
-        .filter(|p| !p.is_empty())
-        .map(|p| load_icon(p))
-        .unwrap_or_default()
+    fallback_icon.map(load_image).unwrap_or_default()
 }
 
 #[tracing::instrument(level = "debug", skip_all)]

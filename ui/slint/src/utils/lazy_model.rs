@@ -9,7 +9,7 @@ use slint::{ComponentHandle, Image, Model, ModelNotify, ModelRc, ModelTracker, S
 use state_manager::StateManager;
 use tracing::{Instrument, trace};
 
-use super::resolve_image;
+use super::{load_image, resolve_image};
 use crate::{
     AlbumModel, ArtistModel, ExtensionItem, GenreModel, MainWindow, PlaylistModel, SongModel,
     Theme, WINDOW_EVENTS,
@@ -159,7 +159,7 @@ impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {
                         .unwrap_or_default();
                 trace!("Image fetched for row {}: {:?}", row, img_path);
                 if let Some(image_path) = img_path {
-                    let image = Image::load_from_path(&image_path).unwrap_or_default();
+                    let image = load_image(&image_path);
                     trace!(
                         "Image loaded for row {}: {} (size: {:?})",
                         row,

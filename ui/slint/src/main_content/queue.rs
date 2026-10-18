@@ -14,8 +14,8 @@ use crate::{
     AppCallbacks, ContextMenuCallbacks, MainWindow, QueuePageProps, SongModel,
     pages::PageHandler,
     utils::{
-        build_queue_context_menu_items, dispatch_song_context_action, make_lazy_song_model,
-        save_queue,
+        build_queue_context_menu_items, dispatch_song_context_action,
+        generate_blurred_cover_disk_cache, load_image, make_lazy_song_model, save_queue,
     },
 };
 
@@ -158,20 +158,7 @@ impl QueuePageHandler {
                 let queue = player_handler.get_queue().to_vec();
                 let current_song = player_handler.get_current_song();
                 let cache_dir = state_manager.get_cache_dir();
-
-                let (song_id, cover_path_high) = match &current_song {
-                    Some(s) => (
-                        s.get_id().unwrap_or_default(),
-                        s.get_cover_high().unwrap_or_default(),
-                    ),
-                    None => ("".into(), "".into()),
-                };
-
-                let blurred_path = crate::utils::generate_blurred_cover_disk_cache(
-                    &song_id,
-                    &cover_path_high,
-                    &cache_dir,
-                );
+                let blurred_path = Self::resolve_blurred_cover(current_song.as_ref(), &cache_dir);
 
                 let mw_weak_ui = main_window_weak.clone();
                 let _ = slint::invoke_from_event_loop(move || {
@@ -185,6 +172,18 @@ impl QueuePageHandler {
             }
             .in_current_span(),
         );
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn resolve_blurred_cover(song: Option<&Song>, cache_dir: &std::path::Path) -> Option<PathBuf> {
+        let (song_id, cover_path_high) = match song {
+            Some(s) => (
+                s.get_id().unwrap_or_default(),
+                s.get_cover_high().unwrap_or_default(),
+            ),
+            None => ("".into(), "".into()),
+        };
+        generate_blurred_cover_disk_cache(&song_id, &cover_path_high, cache_dir)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -210,19 +209,8 @@ impl QueuePageHandler {
 
                     tokio::spawn(
                         async move {
-                            let (song_id, cover_path_high) = match &song {
-                                Some(s) => (
-                                    s.get_id().unwrap_or_default().to_string(),
-                                    s.get_cover_high().unwrap_or_default().to_string(),
-                                ),
-                                None => (String::new(), String::new()),
-                            };
-
-                            let blurred_path = crate::utils::generate_blurred_cover_disk_cache(
-                                &song_id,
-                                &cover_path_high,
-                                &cache_dir,
-                            );
+                            let blurred_path =
+                                Self::resolve_blurred_cover(song.as_ref(), &cache_dir);
 
                             let _ = slint::invoke_from_event_loop(move || {
                                 if let Some(main_window) = mw_weak.upgrade() {
@@ -261,10 +249,7 @@ impl QueuePageHandler {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn update_ui_blurred_cover(main_window: &MainWindow, blurred_path: &Option<PathBuf>) {
-        let blurred_cover = blurred_path
-            .as_deref()
-            .and_then(|path| Image::load_from_path(path).ok())
-            .unwrap_or_default();
+        let blurred_cover = blurred_path.as_deref().map(load_image).unwrap_or_default();
         main_window
             .global::<QueuePageProps>()
             .set_blurred_cover(blurred_cover);

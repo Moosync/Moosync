@@ -12,7 +12,7 @@ use crate::{
     ExplorePageProps, MainWindow, ProviderRecommendations, SongModel,
     error::UiError,
     pages::PageHandler,
-    utils::{cache_image, load_icon, make_lazy_song_model},
+    utils::{load_image, make_lazy_song_model, resolve_image},
 };
 
 type RecommendationItem = (ExtensionDetail, Option<String>, Vec<Song>);
@@ -73,7 +73,7 @@ impl ExplorePageHandler {
                     );
                     if !songs.is_empty() {
                         let cached_path = match &detail.extension_icon {
-                            Some(p) if !p.is_empty() => cache_image(p, &cache_dir)
+                            Some(p) if !p.is_empty() => resolve_image(p, &cache_dir)
                                 .await
                                 .map(|p| p.to_string_lossy().to_string()),
                             _ => None,
@@ -108,7 +108,7 @@ impl PageHandler for ExplorePageHandler {
                             if let Some(main_window) = main_window_weak.upgrade() {
                                 let mut list = Vec::new();
                                 for (detail, cached_path, songs) in recommendations {
-                                    let icon = load_icon(cached_path.as_deref().unwrap_or(""));
+                                    let icon = load_image(cached_path.as_deref().unwrap_or(""));
                                     let song_models = songs
                                         .into_iter()
                                         .map(|s| (s, Some(&detail)).into())

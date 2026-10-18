@@ -9,7 +9,7 @@ use songs_proto::moosync::types::{
 };
 use types::prelude::{SongsExt, core_to_proto_duration};
 
-use super::{get_extension_icon, lazy_model::LazySongVecModel, load_icon, parse_color};
+use super::{lazy_model::LazySongVecModel, load_image, parse_color, resolve_extension_icon};
 use crate::{
     AccountItem, AlbumModel, ArtistModel, ExtensionItem, ExtensionPathPermission, GenreModel,
     PlaylistModel, ProviderScope, SearchResult, SongModel, Theme,
@@ -105,15 +105,6 @@ impl From<SongModel> for Song {
     }
 }
 
-#[tracing::instrument(level = "debug", skip_all)]
-fn resolve_extension_icon(extension: &str, detail: Option<&ExtensionDetail>) -> Image {
-    if !extension.is_empty() {
-        get_extension_icon(detail)
-    } else {
-        Image::default()
-    }
-}
-
 impl From<(Song, Option<&ExtensionDetail>)> for SongModel {
     #[tracing::instrument(level = "debug", skip_all)]
     fn from((song, detail): (Song, Option<&ExtensionDetail>)) -> Self {
@@ -122,7 +113,7 @@ impl From<(Song, Option<&ExtensionDetail>)> for SongModel {
             .or_else(|| song.song.as_ref().and_then(|s| s.extension.as_deref()))
             .unwrap_or_default()
             .into();
-        let extension_icon = resolve_extension_icon(&extension, detail);
+        let extension_icon = resolve_extension_icon(detail, None);
         let raw_duration = song.get_duration_or_default();
         let duration_s = raw_duration.as_secs() as i32;
         let duration_str = song.format_duration();
@@ -284,7 +275,7 @@ impl From<(Album, Option<&ExtensionDetail>)> for AlbumModel {
             .map(|d| d.package_name.as_str())
             .or(album.extension.as_deref())
             .unwrap_or_default();
-        let extension_icon = resolve_extension_icon(extension, detail);
+        let extension_icon = resolve_extension_icon(detail, None);
         let cover_path_url = album.album_coverpath_high();
         Self {
             coverPath: Image::default(),
@@ -322,7 +313,7 @@ impl From<(Artist, Option<&ExtensionDetail>)> for ArtistModel {
             .map(|d| d.package_name.as_str())
             .or(artist.extension.as_deref())
             .unwrap_or_default();
-        let extension_icon = resolve_extension_icon(extension, detail);
+        let extension_icon = resolve_extension_icon(detail, None);
         let cover_path_url = artist.artist_coverpath.as_deref().unwrap_or_default();
         Self {
             coverPath: Image::default(),
@@ -401,16 +392,7 @@ impl From<(Playlist, Option<&ExtensionDetail>)> for PlaylistModel {
             .or(playlist.extension.as_deref())
             .unwrap_or_default();
         let extension_icon = if !extension.is_empty() {
-            detail
-                .map(|d| get_extension_icon(Some(d)))
-                .unwrap_or_else(|| {
-                    playlist
-                        .icon
-                        .as_deref()
-                        .filter(|p| !p.is_empty())
-                        .map(load_icon)
-                        .unwrap_or_default()
-                })
+            resolve_extension_icon(detail, playlist.icon.as_deref())
         } else {
             Image::default()
         };
@@ -574,7 +556,7 @@ pub fn create_search_result(
     cache_dir: &Path,
 ) -> SearchResult {
     let extension = detail.map(|d| d.package_name.as_str()).unwrap_or_default();
-    let extension_icon = get_extension_icon(detail);
+    let extension_icon = resolve_extension_icon(detail, None);
     SearchResult {
         albums: ModelRc::new(LazySongVecModel::new(
             res.albums.into_iter().map(|a| (a, detail).into()).collect(),
@@ -621,11 +603,7 @@ pub fn create_search_result(
 impl From<ExtensionAccountDetail> for AccountItem {
     #[tracing::instrument(level = "debug", skip_all)]
     fn from(detail: ExtensionAccountDetail) -> Self {
-        let icon = if !detail.icon.is_empty() {
-            load_icon(&detail.icon)
-        } else {
-            Image::default()
-        };
+        let icon = load_image(&detail.icon);
 
         Self {
             id: detail.id.into(),

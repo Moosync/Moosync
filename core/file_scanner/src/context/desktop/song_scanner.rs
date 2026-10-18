@@ -90,6 +90,23 @@ fn scan_directory_for_cover(path: &Path) -> Option<String> {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
+async fn process_thumbnail(data: &[u8], path: &Path, size: u32) -> Result<(), ScannerError> {
+    if path.exists() {
+        return Ok(());
+    }
+    let picture_data = data.to_vec();
+    let target_path = path.to_path_buf();
+    tokio::task::spawn_blocking(move || {
+        ImageProcessor::new(&picture_data)
+            .resize(size)
+            .compress()
+            .save(&target_path)
+    })
+    .await
+    .map_err(ScannerError::Join)?
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
 async fn store_picture(
     thumbnail_dir: &Path,
     picture: &lofty::picture::Picture,
@@ -99,24 +116,9 @@ async fn store_picture(
     let low_path = thumbnail_dir.join(format!("{}-low.png", hash_str));
     let high_path = thumbnail_dir.join(format!("{}.png", hash_str));
 
-    if !high_path.exists() {
-        let d = picture.data().to_vec();
-        let hp = high_path.clone();
-        tokio::task::spawn_blocking(move || {
-            ImageProcessor::new(&d).resize(400).compress().save(&hp)
-        })
-        .await
-        .map_err(ScannerError::Join)??;
-    }
-    if !low_path.exists() {
-        let d = picture.data().to_vec();
-        let lp = low_path.clone();
-        tokio::task::spawn_blocking(move || {
-            ImageProcessor::new(&d).resize(80).compress().save(&lp)
-        })
-        .await
-        .map_err(ScannerError::Join)??;
-    }
+    process_thumbnail(picture.data(), &high_path, 400).await?;
+    process_thumbnail(picture.data(), &low_path, 80).await?;
+
     Ok((
         dunce::canonicalize(high_path).map_err(ScannerError::Io)?,
         dunce::canonicalize(low_path).map_err(ScannerError::Io)?,

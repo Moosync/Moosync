@@ -47,6 +47,7 @@ use crate::{
     errors::ExtensionError,
     extension::Extension,
     models::SanitizeCommand,
+    sanitize::Sanitize,
 };
 
 static ENV_VAR_REGEX: LazyLock<Regex> =
@@ -662,8 +663,7 @@ impl ExtensionContext for ExtismContext {
                 tracing::trace!("Finished calling on {:?}", plugin.id);
                 tracing::trace!("Response: {:?}", res);
 
-                let mut parsed_resp = res.0;
-                parsed_resp.sanitize(&package_name)?;
+                let parsed_resp = res.0.sanitize(&package_name);
                 Ok(parsed_resp)
             };
             let _ = tx.send(run());

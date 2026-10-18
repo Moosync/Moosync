@@ -7,7 +7,10 @@ bazel_dep(name = "rules_rust", version = "0.73.0")
 single_version_override(
     module_name = "rules_rust",
     patch_strip = 1,
-    patches = ["//patches:rules_rust_gnu_windows.patch"],
+    patches = [
+        "//patches:rules_rust_gnu_windows.patch",
+        "//patches:rules_rust_flycheck.patch",
+    ],
     version = "0.73.0",
 )
 

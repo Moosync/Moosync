@@ -4,27 +4,13 @@
   "rust-analyzer.checkOnSave": true,
   "bazel.lsp.command": "bazel-lsp",
   "testing.coverageToolbarEnabled": true,
-  "bazel.buildifierFixOnFormat": true,
+  "bazel.buildifier.fixOnFormat": true,
   // Android SDK/NDK env vars are inherited from the user's shell via .bazelrc
   // (--repo_env=ANDROID_HOME, --repo_env=ANDROID_NDK_HOME). Do not override here.
   "rust-analyzer.check.overrideCommand": [
-    "bazel",
-    "--output_base=/tmp/bazel/ra_output",
-    "build",
-    "//core/database",
-    "//core/extensions",
-    "//core/mpris",
-    "//core/player",
-    "//core/plugin_macro",
-    "//core/theme_macro",
-    "//core/preferences",
-    "//core/state_manager",
-    "//core/themes",
-    "//core/types",
-    "//ui/slint:slint_app_lib",
-    "--jobs",
-    "32",
-    "--@rules_rust//:error_format=json",
+    "${workspaceFolder}/.vscode/.rules_rust_analyzer/flycheck.exe",
+    "--saved-file",
+    "$saved_file"
   ],
   // "rust-analyzer.cargo.target": "x86_64-linux-android",
   // "rust-analyzer.workspace.discoverConfig": {
@@ -39,26 +25,32 @@
   //     "MODULE.bazel"
   //   ]
   // },
-  "rust-analyzer.trace.server": "off",
-  "rust-analyzer.server.extraEnv": {
-    "RA_LOG": "info"
-  },
-  "rust-analyzer.linkedProjects": [
-    "rust-project.json"
-  ],
   "rust-analyzer.rustfmt.extraArgs": [
     "+nightly"
-  ]
-  // "rust-analyzer.workspace.discoverConfig": {
-  //   "command": [
-  //     "discover_bazel_rust_project.sh",
-  //     "{arg}"
-  //   ],
-  //   "progressLabel": "rust_analyzer",
-  //   "filesToWatch": [
-  //     "BUILD",
-  //     "BUILD.bazel",
-  //     "MODULE.bazel"
-  //   ]
-  // }
+  ],
+  "rust-analyzer.workspace.discoverConfig": {
+    "command": [
+      "${workspaceFolder}/.vscode/.rules_rust_analyzer/discover_bazel_rust_project.exe",
+      "{arg}"
+    ],
+    "filesToWatch": [
+      "BUILD",
+      "BUILD.bazel",
+      "MODULE.bazel",
+      "WORKSPACE",
+      "WORKSPACE.bazel"
+    ],
+    "progressLabel": "rules_rust"
+  },
+  "rust-analyzer.server.path": "${workspaceFolder}/.vscode/.rules_rust_analyzer/rust_analyzer.exe",
+  "rust-analyzer.procMacro.server": "${workspaceFolder}/.vscode/.rules_rust_analyzer/rust_analyzer_proc_macro_srv.exe",
+  "rust-analyzer.rustfmt.overrideCommand": [
+    "${workspaceFolder}/.vscode/.rules_rust_analyzer/rustfmt.exe"
+  ],
+  "files.watcherExclude": {
+    "**/bazel-*/**": true
+  },
+  "search.exclude": {
+    "**/bazel-*/**": true
+  }
 }

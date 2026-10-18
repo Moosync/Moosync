@@ -94,3 +94,8 @@ sh_binary(
     srcs = [":gen_extract_translations"],
     data = ["@bindeps//:slint-tr-extractor__slint-tr-extractor"],
 )
+
+sh_binary(
+    name = "sonar",
+    srcs = ["sonar.sh"],
+)

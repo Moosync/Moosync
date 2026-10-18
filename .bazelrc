@@ -26,6 +26,10 @@ build --output_groups=+clippy_checks
 build --@rules_rust//rust/settings:extra_rustc_flag=-Aunused_braces
 build --@rules_rust//rust/settings:rustc_output_diagnostics=true --output_groups=+rust_lib_rustc_output,+rust_metadata_rustc_output
 
+# SonarQube & Clippy diagnostics collection config
+build:sonar --@rules_rust//rust/settings:clippy_output_diagnostics=true
+build:sonar --output_groups=+clippy_output
+
 # Android NDK/SDK configuration - propagate from host environment
 common --repo_env=ANDROID_NDK_HOME
 common --action_env=ANDROID_NDK_HOME

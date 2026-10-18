@@ -23,3 +23,8 @@ coverage/
 *.info
 .rules_rust_analyzer
 .aspect
+
+# SonarQube & Coverage outputs
+.scannerwork/
+coverage.lcov
+clippy-report.json

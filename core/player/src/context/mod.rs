@@ -22,7 +22,7 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{error::PlayerError, source::ValidSrc};
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test"))]
 pub mod dummy;
 pub mod file_persist;
 pub mod rodio;
@@ -30,7 +30,7 @@ pub mod rodio;
 #[cfg(test)]
 mod mod_test;
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test"))]
 pub use dummy::{DummyAudioPlayerContext, DummyPersistContext};
 pub use rodio::RodioPlayerContext;
 

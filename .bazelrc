@@ -71,3 +71,6 @@ test:linux --linkopt=-fuse-ld=lld
 coverage:linux --linkopt=-fuse-ld=lld
 build:windows_x86_64 --platforms=//:windows_x86_64_gnu
 build:windows_x86_64 --@rules_rust//rust/settings:extra_rustc_env=PATH=external/+_repo_rules2+mingw_compiler_files/bin:/usr/bin:/bin
+
+# Enable test features only during test execution
+test --define=moosync_test=true

@@ -39,7 +39,7 @@ use std::{
 };
 
 pub use context::{AudioPlayerContext, RodioPlayerContext};
-#[cfg(test)]
+#[cfg(any(test, feature = "test"))]
 pub use context::{DummyAudioPlayerContext, DummyPersistContext};
 use extensions_proto::moosync::types::{PlayerEvent, PlayerState, player_event::Event};
 pub use mux_player::MuxPlayer;
@@ -81,7 +81,7 @@ impl PlayerHandler {
             ended_tx,
             vec![
                 Box::new(RodioPlayerContext::new()),
-                #[cfg(test)]
+                #[cfg(any(test, feature = "test"))]
                 Box::new(DummyAudioPlayerContext::new()),
             ],
             Box::new(FilePersist::new(data_dir)),
@@ -119,7 +119,7 @@ impl PlayerHandler {
         }
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "test"))]
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn new_dummy(ended_tx: UnboundedSender<()>) -> Self {
         Self::new_with_contexts(

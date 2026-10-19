@@ -166,6 +166,14 @@ impl SearchPageHandler {
         self.main_window
             .global::<AppCallbacks>()
             .on_search_term_changed(move |term| {
+                if term.trim().is_empty() {
+                    if let Some(window) = main_window_weak.upgrade() {
+                        window
+                            .global::<SearchPageProps>()
+                            .set_provider_results(ModelRc::default());
+                    }
+                    return;
+                }
                 Self::perform_search(state_manager, main_window_weak.clone(), term.to_string());
             });
     }

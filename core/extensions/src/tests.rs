@@ -17,9 +17,7 @@
 use std::{path::PathBuf, sync::Arc, time::Duration};
 
 use assertables::{assert_is_empty, assert_len_eq_x};
-use extensions_proto::moosync::types::{
-    ExtensionAccountDetail, ExtensionLockData, GetProviderScopesRequest,
-};
+use extensions_proto::moosync::types::{ExtensionAccountDetail, ExtensionLockData};
 use preferences_proto::moosync::types::{PreferenceItem, PreferenceType};
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
 use tempdir::TempDir;
@@ -264,6 +262,7 @@ async fn test_handle_extension_command() {
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
         icon: "icon.png".to_string(),
+        scopes: vec![13, 0, 1, 2, 3, 4, 10],
         ..Default::default()
     };
     std::fs::write(

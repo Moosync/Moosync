@@ -9,6 +9,11 @@ cargo_build_script(
     visibility = ["//visibility:public"],
 )
 
+config_setting(
+    name = "test_enabled",
+    values = {"define": "moosync_test=true"},
+)
+
 rust_library(
     name = "player",
     srcs = [
@@ -33,6 +38,10 @@ rust_library(
         "src/source.rs",
         "src/source_test.rs",
     ],
+    crate_features = select({
+        ":test_enabled": ["test"],
+        "//conditions:default": [],
+    }),
     crate_root = "src/lib.rs",
     data = ["//external/ffmpeg:gen_dir"],
     link_deps = ["//external/ffmpeg"],

@@ -1,15 +1,15 @@
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::{
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::{Arc, Mutex},
 };
 
 use extensions_proto::moosync::types::{
-    ContextMenuActionRequest, CustomRequest, GetProviderScopesRequest, MainCommand,
-    PerformAccountLoginRequest, PlayerState, PlayerStateChangedRequest, PreferenceArgs,
-    PreferenceChangedRequest, RequestedPlaylistsRequest, RequestedSearchResultRequest,
-    SeekedRequest, SongChangedRequest, SongQueueChangedRequest, VolumeChangedRequest, main_command,
+    ContextMenuActionRequest, CustomRequest, MainCommand, PerformAccountLoginRequest, PlayerState,
+    PlayerStateChangedRequest, PreferenceArgs, PreferenceChangedRequest, RequestedPlaylistsRequest,
+    RequestedSearchResultRequest, SeekedRequest, SongChangedRequest, SongQueueChangedRequest,
+    VolumeChangedRequest, main_command,
 };
 use preferences_proto::moosync::types::PreferenceItem;
 use prost::Message;
@@ -1052,12 +1052,7 @@ macro_rules! generate_sample_tests {
     };
 }
 
-generate_sample_tests!(
-    sample_rs,
-    "default",
-    "rs.sample",
-    vec![13, 0, 1, 2, 3, 4, 10]
-);
+generate_sample_tests!(sample_rs, "default", "rs.sample", vec![0, 9]);
 
 mod sample_empty {
     use super::*;

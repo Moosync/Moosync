@@ -2,7 +2,9 @@ load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
 
 rust_test(
     name = "extensions_test",
+    timeout = "long",
     crate = ":extensions",
+    crate_features = ["wasm_integration_tests"],
     data = [
         "tests/fixtures/package.json",
         "//sample_extensions/default:sample_extension",
@@ -62,6 +64,7 @@ rust_library(
         "src/remote_test_smoke.rs",
         "src/sample_tests.rs",
         "src/sanitize.rs",
+        "src/sanitize_test.rs",
         "src/tests.rs",
     ],
     crate_root = "src/lib.rs",

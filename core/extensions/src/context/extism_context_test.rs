@@ -14,13 +14,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::collections::HashMap;
+use std::{collections::HashMap, fs};
 
-use assertables::assert_err;
-use extensions_proto::moosync::types::HttpRequest;
+use assertables::{assert_err, assert_ok, assert_some};
+use extensions_proto::moosync::types::{HttpRequest, ManifestPermissions};
+use tempdir::TempDir;
 use tracing_test::traced_test;
+use wiremock::{
+    Mock, MockServer, ResponseTemplate,
+    matchers::{method, path},
+};
 
-use crate::context::extism_context::execute_single_request;
+use crate::context::extism_context::{ExtismContext, execute_single_request};
 
 #[tracing::instrument(level = "debug", skip_all)]
 fn make_req(url: &str) -> HttpRequest {
@@ -86,4 +91,76 @@ async fn test_execute_single_request_disallowed_subdomain() {
 
     assert_err!(res.as_ref());
     assert!(res.unwrap_err().contains("notspotify.com"));
+}
+
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_execute_single_request_success_with_wiremock() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/api/echo"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"hello server".to_vec()))
+        .mount(&server)
+        .await;
+
+    let client = reqwest::Client::new();
+    let mut headers = HashMap::new();
+    headers.insert("content-type".to_string(), "text/plain".to_string());
+    let req = HttpRequest {
+        url: format!("{}/api/echo", server.uri()),
+        method: "POST".to_string(),
+        headers,
+        body: Some(b"ping data".to_vec()),
+        timeout_ms: Some(5000),
+    };
+    let allowed = vec!["127.0.0.1".to_string()];
+
+    let res = execute_single_request(&client, req, Some(&allowed)).await;
+
+    assert_ok!(res.as_ref());
+    let response = res.unwrap();
+    assert_eq!(response.status_code, 200);
+    assert_eq!(response.body, b"hello server");
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_get_allowed_paths() {
+    let temp_dir = TempDir::new("test_allowed_paths").unwrap();
+    let cache_dir = temp_dir.path().join("cache");
+    let existing_sub = cache_dir.join("sub_dir");
+    fs::create_dir_all(&existing_sub).unwrap();
+
+    let env_sub = temp_dir.path().join("env_dir");
+    fs::create_dir_all(&env_sub).unwrap();
+    unsafe {
+        std::env::set_var("MOOSYNC_TEST_PATH_VAR", &env_sub);
+    }
+
+    let mut paths_map = HashMap::new();
+    paths_map.insert(
+        format!("{}/sub_dir", "{CACHE_DIR}"),
+        "/guest/cache_sub".to_string(),
+    );
+    paths_map.insert(
+        "{MOOSYNC_TEST_PATH_VAR}".to_string(),
+        "/guest/env_dir".to_string(),
+    );
+    paths_map.insert(
+        "/non/existent/path/for/sure".to_string(),
+        "/guest/invalid".to_string(),
+    );
+
+    let permissions = ManifestPermissions {
+        paths: paths_map,
+        hosts: vec![],
+    };
+
+    let allowed = ExtismContext::get_allowed_paths(&permissions, &cache_dir);
+
+    assert_some!(allowed.get(&existing_sub.to_string_lossy().to_string()));
+    assert_some!(allowed.get(&env_sub.to_string_lossy().to_string()));
+    assert_eq!(allowed.len(), 2);
 }

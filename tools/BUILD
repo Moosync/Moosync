@@ -1,3 +1,6 @@
+load("@rules_python//python:defs.bzl", "py_binary")
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+
 package(default_visibility = ["//visibility:public"])
 
 sh_binary(
@@ -20,7 +23,10 @@ sh_binary(
 
 py_binary(
     name = "check_instrument",
-    srcs = ["check_instrument.py"],
+    srcs = [
+        "check_instrument.py",
+        "instrument_common.py",
+    ],
     main = "check_instrument.py",
 )
 

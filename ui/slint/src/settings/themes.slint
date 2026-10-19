@@ -92,30 +92,22 @@ component FullColorPicker inherits VerticalLayout {
 
             // Base active Hue color
             Rectangle {
-                width: 100%;
-                height: 100%;
                 background: rgba(root.hue_rgb.r, root.hue_rgb.g, root.hue_rgb.b, 1.0);
                 border-radius: Theme.borderRadiusLg;
             }
             // Saturation gradient (white -> transparent)
             Rectangle {
-                width: 100%;
-                height: 100%;
                 background: @linear-gradient(90deg, #ffffff, transparent);
                 border-radius: Theme.borderRadiusLg;
             }
             // Value gradient (transparent -> black)
             Rectangle {
-                width: 100%;
-                height: 100%;
                 background: @linear-gradient(180deg, transparent, #000000);
                 border-radius: Theme.borderRadiusLg;
             }
 
             // Interaction TouchArea
             sv_touch := TouchArea {
-                width: 100%;
-                height: 100%;
                 clicked => {
                     root.hsv_s = Math.max(0.0, Math.min(1.0, (self.mouse-x / 1px) / (self.width / 1px)));
                     root.hsv_v = Math.max(0.0, Math.min(1.0, 1.0 - ((self.mouse-y / 1px) / (self.height / 1px))));
@@ -141,11 +133,8 @@ component FullColorPicker inherits VerticalLayout {
                 border-radius: 10px;
                 border-width: 3px;
                 border-color: #ffffff;
-                background: transparent;
 
                 Rectangle {
-                    width: 100%;
-                    height: 100%;
                     border-radius: 10px;
                     border-width: 1px;
                     border-color: #000000.transparentize(50%);
@@ -160,16 +149,12 @@ component FullColorPicker inherits VerticalLayout {
 
             // Hue spectrum background
             Rectangle {
-                width: 100%;
-                height: 100%;
                 border-radius: 12px;
                 background: @linear-gradient(180deg, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%);
             }
 
             // Interaction TouchArea
             hue_touch := TouchArea {
-                width: 100%;
-                height: 100%;
                 clicked => {
                     root.hsv_h = Math.max(0.0, Math.min(360.0, ((self.mouse-y / 1px) / (self.height / 1px)) * 360.0));
                     let new_rgb = root.hsv_to_rgb(root.hsv_h, root.hsv_s, root.hsv_v);
@@ -193,11 +178,8 @@ component FullColorPicker inherits VerticalLayout {
                 border-radius: 10px;
                 border-width: 3px;
                 border-color: #ffffff;
-                background: transparent;
 
                 Rectangle {
-                    width: 100%;
-                    height: 100%;
                     border-radius: 10px;
                     border-width: 1px;
                     border-color: #000000.transparentize(50%);

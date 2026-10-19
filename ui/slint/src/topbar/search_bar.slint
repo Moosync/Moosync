@@ -56,7 +56,6 @@ export component SearchBar inherits Rectangle {
                 color: Theme.textPrimary; // Text Primary
                 font-size: Theme.subtitle;
                 vertical-alignment: center;
-                single-line: true;
 
                 cursor-position-changed(cursor-position) => {
                     if cursor-position.x + self.computed_x < 0px {

@@ -105,3 +105,79 @@ async fn test_state_manager_lifecycle_methods(sm_context: TestSmContext) {
         vec!["startup", "delayed_startup", "exit"]
     );
 }
+
+struct FailingHook;
+
+#[async_trait]
+impl crate::hooks::Hook for FailingHook {
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn on_startup(
+        &self,
+        _state_manager: &StateManager,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        Err("startup failure".into())
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn on_delayed_startup(
+        &self,
+        _state_manager: &StateManager,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        Err("delayed startup failure".into())
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn on_exit(
+        &self,
+        _state_manager: &StateManager,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        Err("exit failure".into())
+    }
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_state_manager_hook_error_handling(sm_context: TestSmContext) {
+    let TestSmContext { sm, .. } = sm_context;
+    sm.register_hook(Arc::new(FailingHook)).await;
+
+    sm.setup().await;
+    sm.delayed_setup().await;
+    sm.shutdown().await;
+}
+
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_state_manager_new_with_custom_env() {
+    let temp_dir = TempDir::new("moosync_env_test").unwrap();
+    let old_data = std::env::var_os("XDG_DATA_HOME");
+    let old_cache = std::env::var_os("XDG_CACHE_HOME");
+
+    unsafe {
+        std::env::set_var("XDG_DATA_HOME", temp_dir.path().join("data"));
+        std::env::set_var("XDG_CACHE_HOME", temp_dir.path().join("cache"));
+    }
+
+    #[cfg(not(target_os = "android"))]
+    let sm = StateManager::new();
+    #[cfg(target_os = "android")]
+    let sm = StateManager::new(types::android::AndroidJNIContext::default());
+
+    unsafe {
+        match old_data {
+            Some(v) => std::env::set_var("XDG_DATA_HOME", v),
+            None => std::env::remove_var("XDG_DATA_HOME"),
+        }
+        match old_cache {
+            Some(v) => std::env::set_var("XDG_CACHE_HOME", v),
+            None => std::env::remove_var("XDG_CACHE_HOME"),
+        }
+    }
+
+    assert!(sm.is_ok());
+    let sm = sm.unwrap();
+    assert!(!sm.get_cache_dir().as_os_str().is_empty());
+}

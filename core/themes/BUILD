@@ -39,6 +39,7 @@ rust_test(
         "@crates//:assertables",
         "@crates//:rstest",
         "@crates//:tempdir",
+        "@crates//:tokio",
         "@crates//:tracing-test",
     ],
 )

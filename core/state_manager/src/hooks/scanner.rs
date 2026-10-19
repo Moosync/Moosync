@@ -282,3 +282,7 @@ fn resolve_or_create_playlist_song(db: &Database, identifier: PlaylistSongId) ->
     };
     inserted.into_iter().next()
 }
+
+#[cfg(test)]
+#[path = "scanner_test.rs"]
+mod scanner_test;

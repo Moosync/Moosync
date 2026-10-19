@@ -149,6 +149,7 @@ fn test_preference_item_value_extraction() {
     };
     assert_eq!(item_number.value::<f32>(), Some(42.0));
     assert_eq!(item_number.value::<i32>(), Some(42));
+    assert_eq!(item_number.value::<u32>(), Some(42));
     assert_eq!(item_number.value::<usize>(), Some(42));
 
     let item_list = PreferenceItem {
@@ -164,6 +165,31 @@ fn test_preference_item_value_extraction() {
         item_list.value::<Vec<String>>(),
         Some(vec!["a".to_string(), "b".to_string()])
     );
+
+    assert_eq!(item_bool.value::<String>(), None);
+    assert_eq!(item_bool.value::<f32>(), None);
+    assert_eq!(item_bool.value::<i32>(), None);
+    assert_eq!(item_bool.value::<u32>(), None);
+    assert_eq!(item_bool.value::<usize>(), None);
+    assert_eq!(item_bool.value::<Vec<String>>(), None);
+
+    assert_eq!(item_string.value::<bool>(), None);
+    assert_eq!(item_string.value::<f32>(), None);
+    assert_eq!(item_string.value::<i32>(), None);
+    assert_eq!(item_string.value::<u32>(), None);
+    assert_eq!(item_string.value::<usize>(), None);
+    assert_eq!(item_string.value::<Vec<String>>(), None);
+
+    assert_eq!(item_number.value::<bool>(), None);
+    assert_eq!(item_number.value::<String>(), None);
+    assert_eq!(item_number.value::<Vec<String>>(), None);
+
+    assert_eq!(item_list.value::<bool>(), None);
+    assert_eq!(item_list.value::<String>(), None);
+    assert_eq!(item_list.value::<f32>(), None);
+    assert_eq!(item_list.value::<i32>(), None);
+    assert_eq!(item_list.value::<u32>(), None);
+    assert_eq!(item_list.value::<usize>(), None);
 }
 
 #[test]

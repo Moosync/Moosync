@@ -186,7 +186,6 @@ export component MainWindow inherits Window {
     }
 
     VerticalLayout {
-        spacing: 0px;
         padding: 0px;
         height: 100%;
         width: 100%;
@@ -198,15 +197,12 @@ export component MainWindow inherits Window {
 
             // Upper section containing Sidebar and main content area with TopBar
             HorizontalLayout {
-                spacing: 0px;
                 width: 100%;
                 height: 100%;
 
                 Sidebar { }
 
                 VerticalLayout {
-                    spacing: 0px;
-
                     TopBar { }
 
                     // Main Content Area
@@ -233,7 +229,6 @@ export component MainWindow inherits Window {
                         }
 
                         PageWrapper {
-                            page-type: Pages.AllSongs;
                             active-page <=> AppProps.active_page;
                             AllSongs { }
                         }

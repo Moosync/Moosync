@@ -18,7 +18,9 @@ pub struct PlaylistListProvider;
 
 impl PlaylistListProvider {
     #[tracing::instrument(level = "debug", skip_all)]
-    async fn get_local_playlists(state_manager: &StateManager) -> Result<Vec<Playlist>, UiError> {
+    pub(crate) async fn get_local_playlists(
+        state_manager: &StateManager,
+    ) -> Result<Vec<Playlist>, UiError> {
         let database = state_manager.get_database();
         let playlists_res = database.get_entity_by_options(GetEntityOptions {
             playlist: Some(Playlist::default()),
@@ -124,7 +126,7 @@ impl PlaylistsPageHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    async fn handle_playlist_action(
+    pub(crate) async fn handle_playlist_action(
         weak: Weak<MainWindow>,
         state_manager: &'static StateManager,
         playlist_ids: Vec<String>,

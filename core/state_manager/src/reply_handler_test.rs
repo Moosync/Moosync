@@ -423,3 +423,80 @@ async fn test_reply_handler_set_account(reply_context: TestReplyContext) {
     // Extension test_pkg is not installed so get_extension fails
     assert!(res.is_err());
 }
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_reply_handler_open_external_url(reply_context: TestReplyContext) {
+    let TestReplyContext { handler, .. } = reply_context;
+
+    let res = tokio::task::spawn_blocking(move || {
+        handler.open_external_url("test_pkg", "https://moosync.app".to_string())
+    })
+    .await
+    .unwrap();
+
+    assert_ok!(res);
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_reply_handler_extensions_updated(reply_context: TestReplyContext) {
+    let TestReplyContext { handler, sm, .. } = reply_context;
+    let (tx, mut rx) = tokio::sync::mpsc::channel(1);
+    let _sub = sm
+        .get_extension_handler()
+        .on_extensions_updated
+        .listen(move |_| {
+            let _ = tx.try_send(());
+        });
+
+    let res = tokio::task::spawn_blocking(move || handler.extensions_updated("test_pkg"))
+        .await
+        .unwrap();
+
+    assert_ok!(res);
+    let received = tokio::time::timeout(std::time::Duration::from_millis(500), rx.recv()).await;
+    assert!(received.is_ok());
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_reply_handler_get_runtime_handle(reply_context: TestReplyContext) {
+    let TestReplyContext { handler, .. } = reply_context;
+
+    let handle = handler.get_runtime_handle();
+
+    assert!(handle.is_some());
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_reply_handler_register_and_unregister_user_preference(
+    reply_context: TestReplyContext,
+) {
+    let TestReplyContext { handler, .. } = reply_context;
+    let handler = std::sync::Arc::new(handler);
+
+    let reg_res = tokio::task::spawn_blocking({
+        let handler = handler.clone();
+        move || handler.register_user_preference("test_pkg", vec![])
+    })
+    .await
+    .unwrap();
+    assert!(reg_res.is_err());
+
+    let unreg_res = tokio::task::spawn_blocking(move || {
+        handler.unregister_user_preference("test_pkg", vec!["pref1".to_string()])
+    })
+    .await
+    .unwrap();
+    assert!(unreg_res.is_err());
+}

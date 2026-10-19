@@ -40,7 +40,24 @@ impl SearchPageHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn append_search_result(
+    pub(crate) fn append_search_result_to_window(
+        window: &MainWindow,
+        cache_dir: &std::path::Path,
+        res: ProtoSearchResult,
+        detail: Option<ExtensionDetail>,
+        has_account: bool,
+    ) {
+        let theme = window.global::<Theme>();
+        let result_model =
+            create_search_result(res, detail.as_ref(), has_account, &theme, cache_dir);
+        let props = window.global::<SearchPageProps>();
+        let mut list: Vec<SearchResult> = props.get_provider_results().into_vec();
+        list.push(result_model);
+        props.set_provider_results(ModelRc::new(VecModel::from(list)));
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub(crate) fn append_search_result(
         main_window_weak: &Weak<MainWindow>,
         state_manager: &StateManager,
         res: ProtoSearchResult,
@@ -49,13 +66,7 @@ impl SearchPageHandler {
     ) {
         let cache_dir = state_manager.get_cache_dir();
         let _ = main_window_weak.upgrade_in_event_loop(move |window| {
-            let theme = window.global::<Theme>();
-            let result_model =
-                create_search_result(res, detail.as_ref(), has_account, &theme, &cache_dir);
-            let props = window.global::<SearchPageProps>();
-            let mut list: Vec<SearchResult> = props.get_provider_results().into_vec();
-            list.push(result_model);
-            props.set_provider_results(ModelRc::new(VecModel::from(list)));
+            Self::append_search_result_to_window(&window, &cache_dir, res, detail, has_account);
         });
     }
 

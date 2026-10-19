@@ -175,7 +175,10 @@ impl QueuePageHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn resolve_blurred_cover(song: Option<&Song>, cache_dir: &std::path::Path) -> Option<PathBuf> {
+    pub(crate) fn resolve_blurred_cover(
+        song: Option<&Song>,
+        cache_dir: &std::path::Path,
+    ) -> Option<PathBuf> {
         let (song_id, cover_path_high) = match song {
             Some(s) => (
                 s.get_id().unwrap_or_default(),
@@ -241,14 +244,21 @@ impl QueuePageHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn update_ui_queue(main_window: &MainWindow, state_manager: &StateManager, queue: Vec<Song>) {
+    pub(crate) fn update_ui_queue(
+        main_window: &MainWindow,
+        state_manager: &StateManager,
+        queue: Vec<Song>,
+    ) {
         let queue_models: Vec<SongModel> = queue.into_iter().map(Into::into).collect();
         let model = make_lazy_song_model(main_window, state_manager, queue_models);
         main_window.global::<QueuePageProps>().set_queue(model);
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn update_ui_blurred_cover(main_window: &MainWindow, blurred_path: &Option<PathBuf>) {
+    pub(crate) fn update_ui_blurred_cover(
+        main_window: &MainWindow,
+        blurred_path: &Option<PathBuf>,
+    ) {
         let blurred_cover = blurred_path.as_deref().map(load_image).unwrap_or_default();
         main_window
             .global::<QueuePageProps>()
@@ -256,7 +266,7 @@ impl QueuePageHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn update_ui_lyrics(
+    pub(crate) fn update_ui_lyrics(
         main_window: &MainWindow,
         lyrics: Option<songs_proto::moosync::types::Lyrics>,
     ) {
@@ -373,6 +383,28 @@ impl QueuePageHandler {
                     action_id.as_str(),
                 );
             });
+    }
+
+    #[cfg(test)]
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub(crate) fn is_visible(&self) -> bool { *self.is_visible.lock().unwrap() }
+
+    #[cfg(test)]
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub(crate) fn clear_queue_ui(&self) {
+        if !*self.is_visible.lock().unwrap() {
+            let mut handles = self.cancel_handles.lock().unwrap();
+            for handle in handles.drain(..) {
+                handle.cancel();
+            }
+
+            self.main_window
+                .global::<QueuePageProps>()
+                .set_queue(slint::ModelRc::default());
+            self.main_window
+                .global::<QueuePageProps>()
+                .set_blurred_cover(Image::default());
+        }
     }
 }
 

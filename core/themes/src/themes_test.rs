@@ -174,3 +174,80 @@ fn test_theme_export_import_cycle(theme_context: TestThemeContext) {
             .any(|theme| theme.name == "Export Test Theme")
     );
 }
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_theme_save_without_id_generates_uuid(theme_context: TestThemeContext) {
+    let TestThemeContext { theme_holder, .. } = theme_context;
+    let theme_details = ThemeDetails {
+        id: "".to_string(),
+        name: "Auto ID Theme".to_string(),
+        ..Default::default()
+    };
+
+    assert_ok!(theme_holder.save_theme(theme_details));
+
+    let all_themes = theme_holder.load_all_themes().unwrap();
+    let auto_theme = all_themes.values().find(|t| t.name == "Auto ID Theme");
+    assert!(auto_theme.is_some());
+    assert!(!auto_theme.unwrap().id.is_empty());
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_theme_load_default(theme_context: TestThemeContext) {
+    let TestThemeContext { theme_holder, .. } = theme_context;
+
+    let default_theme = theme_holder.load_theme("default".to_string());
+
+    assert_ok!(default_theme.as_ref());
+    assert_eq!(default_theme.unwrap().id, "");
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_theme_load_all_with_corrupted_directory(theme_context: TestThemeContext) {
+    let TestThemeContext {
+        _temp_dir,
+        theme_holder,
+    } = theme_context;
+    let corrupt_dir = _temp_dir.path().join("themes").join("corrupt_theme_dir");
+    std::fs::create_dir_all(corrupt_dir).unwrap();
+
+    let all_themes = theme_holder.load_all_themes();
+
+    assert_ok!(all_themes.as_ref());
+    assert!(all_themes.unwrap().contains_key("default"));
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_theme_import_invalid_archive(theme_context: TestThemeContext) {
+    let TestThemeContext {
+        _temp_dir,
+        theme_holder,
+    } = theme_context;
+    let fake_archive = _temp_dir.path().join("invalid.mstx");
+    std::fs::write(&fake_archive, b"not a zip file").unwrap();
+
+    let import_result = theme_holder.import_theme(fake_archive.to_string_lossy().to_string());
+
+    assert_err!(import_result);
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_theme_get_themes_manifest(theme_context: TestThemeContext) {
+    let TestThemeContext { theme_holder, .. } = theme_context;
+
+    let manifest = theme_holder.get_themes_manifest().await;
+
+    assert_ok!(manifest.as_ref());
+    assert!(manifest.unwrap().is_empty());
+}

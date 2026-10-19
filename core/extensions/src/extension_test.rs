@@ -689,3 +689,121 @@ async fn test_extension_provider_scopes_from_manifest() {
     let detail = ext.get_extension_detail();
     assert_eq!(detail.scopes, expected_scopes);
 }
+
+#[derive(Debug)]
+struct MockExtCtx {
+    should_fail: bool,
+}
+
+#[async_trait::async_trait]
+impl crate::context::ExtensionContext for MockExtCtx {
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn execute_command(
+        &self,
+        command: extensions_proto::moosync::types::ExtensionCommand,
+    ) -> Result<ExtensionCommandResponse, ExtensionError> {
+        if self.should_fail {
+            return Err(ExtensionError::InvalidResponse);
+        }
+        let resp = match command.event {
+            Some(
+                extensions_proto::moosync::types::extension_command::Event::RequestedPlaylists(_),
+            ) => extension_command_response::Response::RequestedPlaylists(
+                extensions_proto::moosync::types::RequestedPlaylistsResponse { playlists: vec![] },
+            ),
+            Some(
+                extensions_proto::moosync::types::extension_command::Event::RequestedSongFromUrl(_),
+            ) => extension_command_response::Response::RequestedSongFromUrl(
+                extensions_proto::moosync::types::RequestedSongFromUrlResponse { song: None },
+            ),
+            _ => extension_command_response::Response::RequestedPlaylists(
+                extensions_proto::moosync::types::RequestedPlaylistsResponse { playlists: vec![] },
+            ),
+        };
+        Ok(ExtensionCommandResponse {
+            response: Some(resp),
+        })
+    }
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_async_context_lifecycle() {
+    let context_immediate = crate::extension::AsyncContext::new();
+    let mock = Arc::new(MockExtCtx { should_fail: false });
+    context_immediate.set(Ok(mock.clone()));
+
+    let wait_res = context_immediate.wait().await;
+    assert!(wait_res.is_ok());
+
+    let context_error = crate::extension::AsyncContext::new();
+    context_error.set(Err("initialization failed".to_string()));
+    let err_res = context_error.wait().await;
+    assert!(err_res.is_err());
+
+    let context_delayed = Arc::new(crate::extension::AsyncContext::new());
+    let context_clone = context_delayed.clone();
+    tokio::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+        context_clone.set(Ok(mock));
+    });
+
+    let async_res = context_delayed.wait().await;
+    assert!(async_res.is_ok());
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_extension_accounts_and_delegated_commands() {
+    let temp_dir = TempDir::new("moosync_ext_delegation").unwrap();
+    let manifest = extensions_proto::moosync::types::ExtensionManifest {
+        name: "delegated.ext".to_string(),
+        display_name: "Delegated Extension".to_string(),
+        version: "1.0.0".to_string(),
+        extension_entry: "main.wasm".to_string(),
+        ..Default::default()
+    };
+    let manifest_path = temp_dir.path().join("manifest.pb");
+    fs::write(&manifest_path, prost::Message::encode_to_vec(&manifest)).unwrap();
+    fs::write(temp_dir.path().join("main.wasm"), b"wasm bytes").unwrap();
+
+    let ext = Extension::new(
+        &manifest_path,
+        Arc::new(DummyReply),
+        temp_dir.path().join("cache"),
+        Arc::new(AtomicBool::new(false)),
+    )
+    .unwrap();
+
+    let account = extensions_proto::moosync::types::ExtensionAccountDetail {
+        id: "acc_99".to_string(),
+        name: "My Account".to_string(),
+        ..Default::default()
+    };
+    ext.set_account(account);
+    let accounts = ext.get_accounts();
+    assert_len_eq_x!(&accounts, 1);
+    assert_eq!(accounts[0].package_name, "delegated.ext");
+
+    ext.context
+        .set(Ok(Arc::new(MockExtCtx { should_fail: false })));
+
+    let playlists_res = ext
+        .get_playlists(extensions_proto::moosync::types::RequestedPlaylistsRequest::default())
+        .await;
+    assert!(playlists_res.is_ok());
+
+    let song_url_res = ext
+        .get_song_from_url(extensions_proto::moosync::types::RequestedSongFromUrlRequest::default())
+        .await;
+    assert!(song_url_res.is_ok());
+
+    let invalid_res = ext
+        .get_artist_songs(extensions_proto::moosync::types::RequestedArtistSongsRequest::default())
+        .await;
+    assert!(invalid_res.is_err());
+}

@@ -211,3 +211,55 @@ async fn test_extension_item_with_error(main_window: MainWindow) {
     assert_eq!(state.get_item().error, "failed to load wasm");
     assert!(!state.get_item().loading);
 }
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_extensions_page_handler_render_and_preferences(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let prefs = ExtensionsPageHandler::get_preferences();
+    assert!(!prefs.is_empty());
+
+    let detail = extensions_proto::moosync::types::ExtensionDetail {
+        name: "Mock Ext".to_string(),
+        package_name: "mock.ext".to_string(),
+        version: "1.0.0".to_string(),
+        author: Some("Dev".to_string()),
+        desc: Some("Test".to_string()),
+        ..Default::default()
+    };
+    let extensions = vec![extensions::ExtensionInfo::Local(detail)];
+    let cache_dir = sm.get_cache_dir();
+
+    ExtensionsPageHandler::render_extensions(&main_window, extensions, cache_dir);
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+    let props = main_window.global::<ExtensionsPageProps>();
+    assert_eq!(props.get_extensions().row_count(), 1);
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_extensions_page_handler_action_callbacks(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let main_window = Box::leak(Box::new(main_window));
+    let state_manager = Box::leak(Box::new(sm));
+    let handler = ExtensionsPageHandler::new(main_window, state_manager);
+    handler.initialize();
+
+    let callbacks = main_window.global::<AppCallbacks>();
+    callbacks.invoke_toggle_extension("test.pkg".into());
+    callbacks.invoke_install_extension("test.pkg".into());
+    callbacks.invoke_update_all_extensions();
+
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+}

@@ -30,7 +30,6 @@ component QueueListItem inherits Rectangle {
 
     accessible-role: list-item;
     accessible-label: root.song.title;
-    background: transparent;
     height: 60px + Theme.paddingSm;
 
     DragArea {
@@ -132,14 +131,11 @@ component QueueListItem inherits Rectangle {
                                 if song.extension != "": Image {
                                     width: Theme.iconSizeSm;
                                     source: Utils.load_image_or_default(song.extension_icon, DefaultIconType.Extension);
-                                    vertical-alignment: center;
                                 }
                             }
 
                             HorizontalLayout {
-                                spacing: 0px;
                                 for artist[i] in song.artists: HorizontalLayout {
-                                    spacing: 0px;
                                     Text {
                                         accessible-role: none;
                                         text: (i > 0 ? ", " : "") + artist.title;
@@ -233,8 +229,6 @@ export component QueuePage inherits Rectangle {
     background: Theme.primary;
 
     Rectangle {
-        width: 100%;
-        height: 100%;
         clip: true;
 
         if (QueuePageProps.blurred-cover.width > 0): Image {
@@ -246,8 +240,6 @@ export component QueuePage inherits Rectangle {
         }
 
         Rectangle {
-            width: 100%;
-            height: 100%;
             background: rgba(15, 15, 15, 0.65);
         }
     }

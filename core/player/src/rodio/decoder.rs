@@ -63,7 +63,7 @@ fn format_input_url(path: &str) -> Result<CString, NulError> {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn calculate_seek_timestamp(pos: Duration, time_base: AVRational) -> i64 {
+pub(crate) fn calculate_seek_timestamp(pos: Duration, time_base: AVRational) -> i64 {
     if time_base.den <= 0 || time_base.num <= 0 {
         return 0;
     }
@@ -99,7 +99,10 @@ impl FFMPEGDecoder {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn build_format_options(path: &str, decryption_key: Option<&str>) -> Option<AVDictionary> {
+    pub(crate) fn build_format_options(
+        path: &str,
+        decryption_key: Option<&str>,
+    ) -> Option<AVDictionary> {
         let mut options: Option<AVDictionary> = None;
 
         let mut set_opt = |key: &str, val: &str| {

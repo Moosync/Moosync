@@ -44,7 +44,7 @@ chmod +x "$BUF_PATH" 2>/dev/null || true
 
 # Get the root of the workspace
 WORKSPACE_DIR="${BUILD_WORKSPACE_DIRECTORY:-$(pwd)}"
-cd "$WORKSPACE_DIR"
+cd "$WORKSPACE_DIR" || exit
 
 if [[ "${1:-}" = "--fix" ]]; then
   shift

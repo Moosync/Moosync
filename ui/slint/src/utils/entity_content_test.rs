@@ -9,8 +9,8 @@ use crate::{
     error::UiError,
     test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
     utils::{
-        EntityContentCoordinator, EntitySongProvider, ExtensionPaginationManager,
-        update_provider_list_enabled,
+        EntityContentCoordinator, EntitySongProvider, ExtensionPaginationManager, IntoVec,
+        fetch_scope_providers, map_songs_to_models, update_provider_list_enabled,
     },
 };
 
@@ -26,10 +26,25 @@ impl EntitySongProvider for MockEntitySongProvider {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
+    fn get_songs(main_window: &MainWindow) -> Vec<SongModel> {
+        main_window
+            .global::<AlbumContentPageProps>()
+            .get_songs()
+            .into_vec()
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
     fn set_songs(main_window: &MainWindow, model: ModelRc<SongModel>) {
         main_window
             .global::<AlbumContentPageProps>()
             .set_songs(model);
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_extensions(main_window: &MainWindow) -> ModelRc<ExtensionProviderItem> {
+        main_window
+            .global::<AlbumContentPageProps>()
+            .get_extension_providers()
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -237,4 +252,153 @@ async fn test_entity_content_coordinator_on_hide(
             .row_count(),
         0
     );
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_entity_content_coordinator_clone(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let main_window = Box::leak(Box::new(main_window));
+    let state_manager = Box::leak(Box::new(sm));
+    let coordinator =
+        EntityContentCoordinator::<MockEntitySongProvider>::new(main_window, state_manager);
+
+    let cloned = coordinator.clone();
+    cloned.on_hide();
+
+    assert_eq!(
+        main_window
+            .global::<AlbumContentPageProps>()
+            .get_songs()
+            .row_count(),
+        0
+    );
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_entity_content_coordinator_toggle_extension_disabled(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let main_window = Box::leak(Box::new(main_window));
+    let state_manager = Box::leak(Box::new(sm));
+
+    let song1 = SongModel {
+        id: "s1".into(),
+        extension: "ext_a".into(),
+        ..Default::default()
+    };
+    let song2 = SongModel {
+        id: "s2".into(),
+        extension: "ext_b".into(),
+        ..Default::default()
+    };
+    main_window
+        .global::<AlbumContentPageProps>()
+        .set_songs(ModelRc::new(VecModel::from(vec![song1, song2])));
+
+    EntityContentCoordinator::<MockEntitySongProvider>::disable_extension_in_ui(
+        main_window,
+        state_manager,
+        "ext_a",
+    );
+
+    let songs = main_window.global::<AlbumContentPageProps>().get_songs();
+    assert_eq!(songs.row_count(), 1);
+    assert_eq!(songs.row_data(0).unwrap().id.as_str(), "s2");
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_entity_content_coordinator_load_more_empty(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let main_window = Box::leak(Box::new(main_window));
+    let state_manager = Box::leak(Box::new(sm));
+    let coordinator =
+        EntityContentCoordinator::<MockEntitySongProvider>::new(main_window, state_manager);
+
+    main_window
+        .global::<AlbumContentPageProps>()
+        .set_songs(ModelRc::default());
+
+    coordinator.on_load_more_songs();
+
+    assert_eq!(
+        main_window
+            .global::<AlbumContentPageProps>()
+            .get_songs()
+            .row_count(),
+        0
+    );
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_entity_content_map_songs_to_models() {
+    let songs = vec![Song {
+        song: Some(InnerSong {
+            id: Some("mapped_s1".to_string()),
+            title: Some("Mapped Song".to_string()),
+            ..Default::default()
+        }),
+        ..Default::default()
+    }];
+
+    let models = map_songs_to_models(songs, None);
+
+    assert_eq!(models.len(), 1);
+    assert_eq!(models[0].id.as_str(), "mapped_s1");
+    assert_eq!(models[0].title.as_str(), "Mapped Song");
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_entity_content_fetch_scope_providers_none(state_manager_fixture: TestSlintSmContext) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let handler = sm.get_extension_handler();
+
+    let (providers, detail) = fetch_scope_providers(&handler, None, "").await;
+
+    assert!(providers.is_empty());
+    assert!(detail.is_none());
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_entity_song_provider_update_extensions_enabled(main_window: MainWindow) {
+    let provider = ExtensionProviderItem {
+        id: "ext1".into(),
+        name: "Extension 1".into(),
+        enabled: false,
+    };
+    main_window
+        .global::<AlbumContentPageProps>()
+        .set_extension_providers(ModelRc::new(VecModel::from(vec![provider])));
+
+    MockEntitySongProvider::update_extensions_enabled(&main_window, "ext1", true);
+
+    let providers = main_window
+        .global::<AlbumContentPageProps>()
+        .get_extension_providers();
+    assert_eq!(providers.row_count(), 1);
+    assert!(providers.row_data(0).unwrap().enabled);
 }

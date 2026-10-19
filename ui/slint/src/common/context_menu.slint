@@ -106,8 +106,6 @@ export component ContextMenu inherits TouchArea {
                     }
 
                     Rectangle {
-                        width: 100%;
-                        height: 100%;
                         border-radius: Theme.borderRadiusMd;
                         background: (item_touch.has-hover || root.active_submenu_index == idx) ? Theme.textPrimary.with-alpha(0.1) : transparent;
 
@@ -186,8 +184,6 @@ export component ContextMenu inherits TouchArea {
                     }
 
                     Rectangle {
-                        width: 100%;
-                        height: 100%;
                         border-radius: Theme.borderRadiusMd;
                         background: sub_touch.has-hover ? Theme.textPrimary.with-alpha(0.1) : transparent;
 

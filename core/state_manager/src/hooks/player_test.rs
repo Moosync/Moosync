@@ -15,8 +15,9 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use assertables::assert_ok;
+use player::PlayerHandler;
 use rstest::{fixture, rstest};
-use songs_proto::moosync::types::{InnerSong, Song};
+use songs_proto::moosync::types::{InnerSong, Song, SongType};
 use tempdir::TempDir;
 use tracing_test::traced_test;
 use types::plugin::PluginContext;
@@ -60,13 +61,22 @@ async fn test_player_hook_on_startup(sm_context: TestSmContext) {
 
     assert_ok!(hook.on_startup(&sm).await);
 
-    let mut song = Song {
+    let player_handler = sm.plugins.get::<PlayerHandler>();
+    let test_song = Song {
         song: Some(InnerSong {
             id: Some("hook_test_song".to_string()),
+            title: Some("Resolver Test".to_string()),
+            path: Some("/test/resolver.mp3".to_string()),
+            r#type: SongType::Local.into(),
             ..Default::default()
         }),
         ..Default::default()
     };
-    let player = sm.get_player_handler();
-    assert_ok!(player.resolve_playback_url(&mut song));
+    player_handler.play_now(vec![test_song]).await;
+    let current_song = player_handler.get_current_song();
+    assert!(current_song.is_some());
+    assert_eq!(
+        current_song.unwrap().song.as_ref().unwrap().id.as_deref(),
+        Some("hook_test_song")
+    );
 }

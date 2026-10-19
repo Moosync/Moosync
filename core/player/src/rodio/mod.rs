@@ -49,7 +49,7 @@ pub fn get_system_sample_rate() -> u32 {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn get_cpal_default_sample_rate() -> u32 {
+pub(crate) fn get_cpal_default_sample_rate() -> u32 {
     let Some(device) = rodio::cpal::default_host().default_output_device() else {
         tracing::trace!("cpal: No audio device found, using default 44100 Hz");
         return 44100;

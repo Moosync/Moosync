@@ -33,8 +33,6 @@ export component SongsPageLayout inherits Rectangle {
     callback load_more();
 
     TouchArea {
-        width: 100%;
-        height: 100%;
         clicked => {
             active-idx = -1;
             song-list.selected-indices = [];

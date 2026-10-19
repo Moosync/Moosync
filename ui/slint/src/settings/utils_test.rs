@@ -100,3 +100,106 @@ fn test_preference_item_roundtrip() {
     assert_eq!(converted_back.pref_type, proto_item.pref_type);
     assert_eq!(converted_back.value, proto_item.value);
 }
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_preference_item_number_and_text_roundtrip() {
+    let number_item = ProtoPreferenceItem {
+        id: "num".to_string(),
+        pref_type: ProtoPreferenceType::NumberInputGroup as i32,
+        title: "Number".to_string(),
+        subtitle: "".to_string(),
+        placeholder: None,
+        validation: "".to_string(),
+        options: vec![],
+        value: Some(PreferenceValue {
+            value: Some(preference_value::Value::NumberValue(42.5)),
+        }),
+        default: None,
+    };
+    let ui_num: PreferenceItem = number_item.clone().into();
+    assert_eq!(ui_num.value_number, 42.5);
+    let back_num: ProtoPreferenceItem = ui_num.into();
+    assert_eq!(back_num.value, number_item.value);
+
+    let text_item = ProtoPreferenceItem {
+        id: "txt".to_string(),
+        pref_type: ProtoPreferenceType::TextInputGroup as i32,
+        title: "Text".to_string(),
+        subtitle: "".to_string(),
+        placeholder: None,
+        validation: "".to_string(),
+        options: vec![],
+        value: None,
+        default: Some(PreferenceValue {
+            value: Some(preference_value::Value::StringValue(
+                "default_str".to_string(),
+            )),
+        }),
+    };
+    let ui_txt: PreferenceItem = text_item.into();
+    assert_eq!(ui_txt.value_string.as_str(), "default_str");
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_preference_type_all_variants_roundtrip() {
+    let variants = [
+        (
+            ProtoPreferenceType::PathSelector,
+            PreferenceType::PathSelector,
+        ),
+        (
+            ProtoPreferenceType::SingleFileInput,
+            PreferenceType::SingleFileInput,
+        ),
+        (
+            ProtoPreferenceType::NumberInputGroup,
+            PreferenceType::NumberInputGroup,
+        ),
+        (
+            ProtoPreferenceType::TextInputGroup,
+            PreferenceType::TextInputGroup,
+        ),
+        (
+            ProtoPreferenceType::ToggleGroup,
+            PreferenceType::ToggleGroup,
+        ),
+        (ProtoPreferenceType::RadioGroup, PreferenceType::RadioGroup),
+        (
+            ProtoPreferenceType::DropdownGroup,
+            PreferenceType::DropdownGroup,
+        ),
+        (
+            ProtoPreferenceType::TextArrayInput,
+            PreferenceType::TextArrayInput,
+        ),
+    ];
+
+    for (proto_type, slint_type) in variants {
+        let converted: PreferenceType = proto_type.into();
+        assert_eq!(converted, slint_type);
+        let back: ProtoPreferenceType = converted.into();
+        assert_eq!(back, proto_type);
+    }
+
+    let unspecified = ProtoPreferenceType::Unspecified;
+    let converted: PreferenceType = unspecified.into();
+    assert_eq!(converted, PreferenceType::TextInputGroup);
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_preference_option_roundtrip() {
+    let proto_opt = ProtoPreferenceOption {
+        id: "opt_id".to_string(),
+        label: "Opt Label".to_string(),
+    };
+    let opt: PreferenceOption = proto_opt.clone().into();
+    let back: ProtoPreferenceOption = opt.into();
+    assert_eq!(back.id, proto_opt.id);
+    assert_eq!(back.label, proto_opt.label);
+}

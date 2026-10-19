@@ -10,7 +10,13 @@ pub mod registries;
 pub mod scanner;
 
 #[cfg(test)]
+mod extensions_test;
+#[cfg(test)]
 mod mod_test;
+#[cfg(test)]
+mod player_test;
+#[cfg(test)]
+mod registries_test;
 
 #[async_trait]
 pub trait Hook: Send + Sync {

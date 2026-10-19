@@ -6,7 +6,6 @@ use quote::{format_ident, quote};
 use syn::{
     FnArg, Ident, ImplItem, ImplItemFn, ItemImpl, Pat, Token,
     parse::{Parse, ParseStream},
-    parse_macro_input,
     punctuated::Punctuated,
 };
 
@@ -100,7 +99,14 @@ fn process_method(method: &ImplItemFn, methods: &mut GeneratedMethods) {
 
 #[proc_macro_attribute]
 pub fn generate(_args: TokenStream, input: TokenStream) -> TokenStream {
-    let impl_block = parse_macro_input!(input as ItemImpl);
+    generate_internal(input.into()).into()
+}
+
+pub(crate) fn generate_internal(input: TokenStream2) -> TokenStream2 {
+    let impl_block: ItemImpl = match syn::parse2(input) {
+        Ok(b) => b,
+        Err(e) => return e.to_compile_error(),
+    };
     let original_impl = impl_block.clone();
 
     let struct_name = get_struct_name(&impl_block);
@@ -127,7 +133,7 @@ pub fn generate(_args: TokenStream, input: TokenStream) -> TokenStream {
         wrapper_methods_mut,
     } = methods;
 
-    TokenStream::from(quote! {
+    quote! {
         #original_impl
 
         pub trait #trait_name: Send + Sync + 'static {
@@ -148,6 +154,7 @@ pub fn generate(_args: TokenStream, input: TokenStream) -> TokenStream {
             R: std::ops::Deref<Target = #struct_name>,
         {
             type Target = #struct_name;
+
             fn deref(&self) -> &Self::Target {
                 &*self.inner
             }
@@ -175,7 +182,7 @@ pub fn generate(_args: TokenStream, input: TokenStream) -> TokenStream {
         {
             #(#wrapper_methods_mut)*
         }
-    })
+    }
 }
 
 fn get_struct_name(impl_block: &ItemImpl) -> &Ident {
@@ -367,7 +374,14 @@ impl Parse for InterceptorTypes {
 
 #[proc_macro]
 pub fn generate_plugin_system(input: TokenStream) -> TokenStream {
-    let parsed_input = parse_macro_input!(input as InterceptorTypes);
+    generate_plugin_system_internal(input.into()).into()
+}
+
+pub(crate) fn generate_plugin_system_internal(input: TokenStream2) -> TokenStream2 {
+    let parsed_input: InterceptorTypes = match syn::parse2(input) {
+        Ok(b) => b,
+        Err(e) => return e.to_compile_error(),
+    };
 
     let mut fields = Vec::new();
     let mut defaults = Vec::new();
@@ -434,7 +448,7 @@ pub fn generate_plugin_system(input: TokenStream) -> TokenStream {
         });
     }
 
-    TokenStream::from(quote! {
+    quote! {
         pub struct Interceptors {
             #(#fields),*
         }
@@ -472,7 +486,7 @@ pub fn generate_plugin_system(input: TokenStream) -> TokenStream {
         pub fn init_all_plugins(_registry: &mut types::plugin::PluginRegistry, _context: &types::plugin::PluginContext) {
             #(#init_statements)*
         }
-    })
+    }
 }
 
 fn to_snake_case(s: &str) -> String {

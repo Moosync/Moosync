@@ -72,7 +72,6 @@ export component TextArrayInput inherits VerticalLayout {
                         vertical-alignment: center;
                         color: Theme.textPrimary;
                         font-size: Theme.body;
-                        single-line: true;
 
                         cursor-position-changed(cursor-position) => {
                             if cursor-position.x + self.computed_x < 0px {

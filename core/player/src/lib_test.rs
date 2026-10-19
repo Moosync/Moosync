@@ -14,7 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::sync::{Arc, Mutex};
+use std::{
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
 use assertables::{assert_is_empty, assert_len_eq_x, assert_none, assert_some_eq_x};
 use extensions_proto::moosync::types::PlayerState;
@@ -22,11 +25,13 @@ use player_proto::moosync::types::PlayerData;
 use rstest::{fixture, rstest};
 use songs_proto::moosync::types::{InnerSong, Song};
 use tracing_test::traced_test;
+use types::plugin::{Plugin, PluginContext};
 
 use crate::{
     PlayerHandler, RepeatMode,
-    context::{DummyAudioPlayerContext, DummyPersistContext, PersistContext},
+    context::{AudioPlayerContext, DummyAudioPlayerContext, DummyPersistContext, PersistContext},
     error::PlayerError,
+    source::ValidSrc,
 };
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -847,4 +852,149 @@ async fn test_repeat_persists_player_data() {
         guard.as_ref().unwrap().repeat_mode,
         RepeatMode::RepeatOnce as i32
     );
+}
+
+struct FailingPersistContext;
+
+impl PersistContext for FailingPersistContext {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn persist(&self, _data: &PlayerData) -> Result<(), PlayerError> {
+        Err(PlayerError::IoError(std::io::Error::other(
+            "persist failed",
+        )))
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn load(&self) -> Result<PlayerData, PlayerError> {
+        Err(PlayerError::IoError(std::io::Error::other("load failed")))
+    }
+}
+
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_player_handler_new_dummy_and_methods() {
+    let (ended_tx, _ended_rx) = tokio::sync::mpsc::unbounded_channel();
+    let handler = PlayerHandler::new_dummy(ended_tx);
+
+    let vol = handler.get_volume();
+    assert_eq!(vol, 100);
+
+    let pos = handler.get_current_pos();
+    assert!(pos.is_ok());
+
+    let curr = handler.get_current_song();
+    assert_none!(curr);
+
+    let pause_res = handler.pause();
+    assert!(pause_res.is_ok());
+
+    handler.set_volume(75);
+    handler.seek(std::time::Duration::from_secs(10));
+
+    handler.set_resolver(Box::new(|_song| {
+        Box::new(Box::pin(std::future::ready(Ok(
+            extensions_proto::moosync::types::PlaybackDetailsRequestedResponse {
+                url: "https://example.com/audio.mp3".to_string(),
+                duration: None,
+                decryption_key: None,
+            },
+        ))))
+    }));
+}
+
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_player_handler_failing_persist() {
+    let (ended_tx, _ended_rx) = tokio::sync::mpsc::unbounded_channel();
+    let handler = PlayerHandler::new_with_contexts(
+        ended_tx,
+        vec![Box::new(DummyAudioPlayerContext::new())],
+        Box::new(FailingPersistContext),
+    );
+
+    assert_eq!(handler.get_current_idx(), 0);
+    assert_is_empty!(&handler.get_queue());
+
+    handler.repeat(RepeatMode::RepeatInfinite);
+    let songs = vec![create_mock_song("s1", "Song 1")];
+    handler.add_to_queue(songs).await;
+    assert_len_eq_x!(&handler.get_queue(), 1);
+}
+
+struct FailingSeekAndVolumePlayer;
+
+impl AudioPlayerContext for FailingSeekAndVolumePlayer {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn can_play(&self, _src: &ValidSrc) -> bool { true }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn set_src(
+        &self,
+        _src: ValidSrc,
+        _events_tx: tokio::sync::mpsc::UnboundedSender<
+            extensions_proto::moosync::types::player_event::Event,
+        >,
+    ) -> Result<(), PlayerError> {
+        Ok(())
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn play(&self) -> Result<(), PlayerError> { Ok(()) }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn pause(&self) -> Result<(), PlayerError> { Ok(()) }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn stop(&self) -> Result<(), PlayerError> { Ok(()) }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn set_volume(&self, _vol: u8) -> Result<(), PlayerError> {
+        Err(PlayerError::PlaybackUrlResolutionFailed(
+            "set volume error".to_string(),
+        ))
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn seek(&self, _pos: Duration) -> Result<(), PlayerError> {
+        Err(PlayerError::PlaybackUrlResolutionFailed(
+            "seek error".to_string(),
+        ))
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_volume(&self) -> Result<u8, PlayerError> { Ok(50) }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_current_pos(&self) -> Result<Duration, PlayerError> {
+        Err(PlayerError::PlaybackUrlResolutionFailed(
+            "get current pos error".to_string(),
+        ))
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_player_state(&self) -> Result<PlayerState, PlayerError> { Ok(PlayerState::Stopped) }
+}
+
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_player_handler_seek_volume_errors() {
+    let (ended_tx, _ended_rx) = tokio::sync::mpsc::unbounded_channel();
+    let handler = PlayerHandler::new_with_contexts(
+        ended_tx,
+        vec![Box::new(FailingSeekAndVolumePlayer)],
+        Box::new(DummyPersistContext {}),
+    );
+
+    handler.set_volume(40);
+    handler.seek(Duration::from_secs(15));
+    assert_eq!(handler.get_volume(), 50);
+}
+
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_player_handler_plugin_init() {
+    let tmp = tempdir::TempDir::new("test_player_plugin_init").unwrap();
+    let ctx = PluginContext {
+        data_dir: tmp.path().to_path_buf(),
+        cache_dir: tmp.path().join("cache"),
+        tmp_dir: tmp.path().join("tmp"),
+    };
+    let ph = <PlayerHandler as Plugin>::init(&ctx);
+    assert_eq!(ph.get_volume(), 100);
+    assert_eq!(ph.get_current_idx(), 0);
+    tokio::time::sleep(Duration::from_millis(50)).await;
 }

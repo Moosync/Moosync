@@ -1,32 +1,9 @@
 import os
-import re
 
-def is_valid_rs_file(root, file):
-    if not file.endswith(".rs"):
-        return False
-    if "test" in file or "bench" in file or file == "build.rs":
-        return False
-    if "plugin_macro" in root or "theme_macro" in root or "benches" in root:
-        return False
-    return True
-
-def get_all_rs_files(project_root):
-    rs_files = []
-    search_dirs = [
-        os.path.join(project_root, "core"),
-        os.path.join(project_root, "ui", "slint", "src")
-    ]
-    for search_dir in search_dirs:
-        if not os.path.exists(search_dir):
-            continue
-        for root, _, files in os.walk(search_dir):
-            for file in files:
-                if is_valid_rs_file(root, file):
-                    rs_files.append(os.path.relpath(os.path.join(root, file), project_root))
-    return rs_files
-
-FN_START_RE = re.compile(r'^(\s*)(?:pub(?:\([^)]*\))?\s+)?(?:async\s+)?(?:const\s+)?fn\s+(\w+)(?:<[^>]*>)?\s*\(')
-IGNORE_DIRECTIVE_RE = re.compile(r'^\s*//\s*moosync::no_instrument\s*\(\s*reason\s*=\s*["\']([^"\']+)["\']\s*\)')
+try:
+    from tools.instrument_common import FN_START_RE, IGNORE_DIRECTIVE_RE, get_all_rs_files
+except ImportError:
+    from instrument_common import FN_START_RE, IGNORE_DIRECTIVE_RE, get_all_rs_files
 
 project_root = os.getcwd()
 files_to_instrument = get_all_rs_files(project_root)

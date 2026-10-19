@@ -69,7 +69,7 @@ fn extract_audio_properties(file: &TaggedFile, inner_song: &mut InnerSong) {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn scan_directory_for_cover(path: &Path) -> Option<String> {
+pub(crate) fn scan_directory_for_cover(path: &Path) -> Option<String> {
     let mut base_path = path.to_path_buf();
     base_path.pop();
     let Ok(files) = base_path.read_dir() else {
@@ -90,7 +90,11 @@ fn scan_directory_for_cover(path: &Path) -> Option<String> {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn process_thumbnail(data: &[u8], path: &Path, size: u32) -> Result<(), ScannerError> {
+pub(crate) async fn process_thumbnail(
+    data: &[u8],
+    path: &Path,
+    size: u32,
+) -> Result<(), ScannerError> {
     if path.exists() {
         return Ok(());
     }
@@ -107,7 +111,7 @@ async fn process_thumbnail(data: &[u8], path: &Path, size: u32) -> Result<(), Sc
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn store_picture(
+pub(crate) async fn store_picture(
     thumbnail_dir: &Path,
     picture: &lofty::picture::Picture,
 ) -> Result<(PathBuf, PathBuf), ScannerError> {
@@ -126,7 +130,7 @@ async fn store_picture(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn extract_cover_art(
+pub(crate) async fn extract_cover_art(
     metadata: &Tag,
     path: &Path,
     thumbnail_dir: &Path,
@@ -149,7 +153,7 @@ async fn extract_cover_art(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn parse_artists_string(artist_str: &str, artist_split: &str) -> Vec<Artist> {
+pub(crate) fn parse_artists_string(artist_str: &str, artist_split: &str) -> Vec<Artist> {
     artist_str
         .split(artist_split)
         .map(|s| Artist {
@@ -161,7 +165,7 @@ fn parse_artists_string(artist_str: &str, artist_split: &str) -> Vec<Artist> {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn extract_album(metadata: &Tag, inner_song: &InnerSong) -> Option<Album> {
+pub(crate) fn extract_album(metadata: &Tag, inner_song: &InnerSong) -> Option<Album> {
     let album = metadata.album()?;
     Some(Album {
         album_id: Some(Uuid::new_v4().to_string()),
@@ -176,7 +180,7 @@ fn extract_album(metadata: &Tag, inner_song: &InnerSong) -> Option<Album> {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn extract_metadata(
+pub(crate) fn extract_metadata(
     metadata: &Tag,
     path: &Path,
     artist_split: &str,
@@ -354,7 +358,7 @@ impl<'a> SongScanner<'a> {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn update_scan_progress(total: usize, current: usize, on_progress: &OnProgressUpdated) {
+pub(crate) fn update_scan_progress(total: usize, current: usize, on_progress: &OnProgressUpdated) {
     if let Some(div) = (current * 100).checked_div(total) {
         on_progress(ScanProgress::PROGRESS(div as u8));
     }

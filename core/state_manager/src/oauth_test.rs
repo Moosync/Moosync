@@ -58,3 +58,68 @@ async fn test_state_manager_oauth_delegation(sm_context: TestSmContext) {
         Some("test_pkg".to_string())
     );
 }
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_oauth_manager_register_path_fallback() {
+    let manager = OAuthManager::new();
+
+    manager.register_path("pkg_fallback".to_string(), "://fallback_host/".to_string());
+
+    assert_some_eq_x!(
+        manager.find_package_for_host("fallback_host"),
+        "pkg_fallback"
+    );
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_handle_oauth_callback_invalid_url(sm_context: TestSmContext) {
+    let TestSmContext { sm, .. } = sm_context;
+
+    let res = sm.handle_oauth_callback("not a valid url!").await;
+
+    assert!(res.is_err());
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_handle_oauth_callback_no_host(sm_context: TestSmContext) {
+    let TestSmContext { sm, .. } = sm_context;
+
+    let res = sm.handle_oauth_callback("data:text/plain,hello").await;
+
+    assert!(res.is_err());
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_handle_oauth_callback_unregistered_host(sm_context: TestSmContext) {
+    let TestSmContext { sm, .. } = sm_context;
+
+    let res = sm
+        .handle_oauth_callback("https://unknown-host.com/cb")
+        .await;
+
+    assert!(res.is_err());
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_handle_oauth_callback_missing_extension(sm_context: TestSmContext) {
+    let TestSmContext { sm, .. } = sm_context;
+    sm.register_oauth_path("non_existent_pkg".to_string(), "known-host.com".to_string());
+
+    let res = sm.handle_oauth_callback("https://known-host.com/cb").await;
+
+    assert!(res.is_err());
+}

@@ -50,7 +50,7 @@ impl ExtensionsPageHandler {
     pub fn get_preferences() -> Vec<ProtoPreferenceItem> { clone_lazy_preferences(PREFERENCES) }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn render_extensions(
+    pub(crate) fn render_extensions(
         main_window: &MainWindow,
         extensions: Vec<ExtensionInfo>,
         cache_dir: PathBuf,

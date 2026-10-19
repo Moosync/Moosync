@@ -149,6 +149,22 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
+    pub(crate) fn disable_extension_in_ui(
+        main_window: &MainWindow,
+        state_manager: &'static StateManager,
+        package_name: &str,
+    ) {
+        P::update_extensions_enabled(main_window, package_name, false);
+        let current = P::get_songs(main_window);
+        let filtered: Vec<SongModel> = current
+            .into_iter()
+            .filter(|s| s.extension != package_name)
+            .collect();
+        let model = make_lazy_song_model(main_window, state_manager, filtered);
+        P::set_songs(main_window, model);
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn on_toggle_extension(&self, package_name: String, enabled: bool) {
         if !enabled {
             self.pagination
@@ -157,14 +173,7 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
                 .remove_extension(&package_name);
             let state_manager = self.state_manager;
             let _ = self.weak.upgrade_in_event_loop(move |main_window| {
-                P::update_extensions_enabled(&main_window, &package_name, false);
-                let current = P::get_songs(&main_window);
-                let filtered: Vec<SongModel> = current
-                    .into_iter()
-                    .filter(|s| s.extension != package_name)
-                    .collect();
-                let model = make_lazy_song_model(&main_window, state_manager, filtered);
-                P::set_songs(&main_window, model);
+                Self::disable_extension_in_ui(&main_window, state_manager, &package_name);
             });
             return;
         }
@@ -380,12 +389,15 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn map_songs_to_models(songs: Vec<Song>, detail: Option<&ExtensionDetail>) -> Vec<SongModel> {
+pub(crate) fn map_songs_to_models(
+    songs: Vec<Song>,
+    detail: Option<&ExtensionDetail>,
+) -> Vec<SongModel> {
     songs.into_iter().map(|s| (s, detail).into()).collect()
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn fetch_scope_providers(
+pub(crate) async fn fetch_scope_providers(
     ext_handler: &ExtensionHandler,
     scope: Option<ExtensionProviderScope>,
     current_extension: &str,

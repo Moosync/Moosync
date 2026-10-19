@@ -46,9 +46,7 @@ export component TrackInfo inherits Rectangle {
             }
 
             HorizontalLayout {
-                spacing: 0px;
                 for artist[i] in root.current_song.artists: HorizontalLayout {
-                    spacing: 0px;
                     Text {
                         accessible-role: text;
                         accessible-label: artist.title;

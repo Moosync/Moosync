@@ -9,12 +9,8 @@ export component PlaybackProgressBar inherits Rectangle {
     property <float> progress: root.current_duration / Math.max(root.total_duration, 1);
 
     height: Theme.bottombarProgressBarHeight;
-    background: transparent;
 
     touch := TouchArea {
-        width: parent.width;
-        height: parent.height;
-
         clicked => {
             BottomBarCallbacks.seek(Math.max(0, Math.min(root.total_duration, Math.round((self.mouse-x / self.width) * root.total_duration))));
         }

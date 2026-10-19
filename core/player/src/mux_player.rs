@@ -101,7 +101,7 @@ impl MuxPlayer {
     pub fn set_resolver(&self, f: SourceResolverFn) { self.source_resolver.set_resolver(f); }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn create_new_events_tx(&self) -> UnboundedSender<PlayerEvent> {
+    pub(crate) fn create_new_events_tx(&self) -> UnboundedSender<PlayerEvent> {
         let (events_tx, mut events_rx) = unbounded_channel();
         let callback_clone = self.on_ended_callback.clone();
         tokio::spawn(

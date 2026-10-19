@@ -25,7 +25,7 @@ def get_all_rs_files(project_root):
                     rs_files.append(os.path.relpath(os.path.join(root, file), project_root))
     return rs_files
 
-FN_START_RE = re.compile(r'^(\s*)(?:pub(?:\([^)]*\))?\s+)?(?:async\s+)?(?:const\s+)?fn\s+(\w+)(?:<[^>]*>)?\s*\(')
+FN_START_RE = re.compile(r'^(\s*)(?:pub(?:\([^)]*\))?\s+)?(?:async\s+)?(?:const\s+)?fn\s+(\w+)')
 
 project_root = os.getcwd()
 files_to_instrument = get_all_rs_files(project_root)

@@ -186,3 +186,41 @@ fn test_preferences_secure_storage(prefs_context: TestPrefsContext) {
         prefs.get_secure("auth_token".to_string());
     assert!(deleted.is_err());
 }
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_preferences_debug_format(prefs_context: TestPrefsContext) {
+    let TestPrefsContext { prefs, .. } = prefs_context;
+
+    let debug_str = format!("{:?}", prefs);
+
+    assert!(debug_str.contains("PreferenceConfig"));
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_preferences_corrupted_file_recovery() {
+    let temp_dir = TempDir::new("prefs_corrupt").expect("failed to create temp dir");
+    let config_file = temp_dir.path().join("preferences.bin");
+    std::fs::write(&config_file, b"corrupted bytes that fail prost decoding").unwrap();
+    let mut mock = Box::new(MockKeyring::new());
+    mock.expect_get_secret().returning(|| Ok(vec![0; 32]));
+
+    let prefs = PreferenceConfig::new_with_context(temp_dir.path().to_path_buf(), mock);
+
+    assert_ok!(prefs.as_ref());
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_preferences_get_secure_key_not_found(prefs_context: TestPrefsContext) {
+    let TestPrefsContext { prefs, .. } = prefs_context;
+
+    let result: Result<extensions_proto::moosync::types::PreferenceData, _> =
+        prefs.get_secure("nonexistent_key_12345".to_string());
+
+    assert!(result.is_err());
+}

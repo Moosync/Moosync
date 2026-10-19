@@ -642,30 +642,10 @@ impl Database {
         let mut query = format!(
             "SELECT {ALLSONGS_COLUMNS} FROM allsongs a JOIN album_bridge b ON a._id = b.song JOIN albums al ON b.album = al.album_id"
         );
-        let mut clauses = Vec::new();
-        let mut params = Vec::new();
+        let (clauses, params) = build_album_filter(&options, "al.");
+        apply_where_clause(&mut query, &clauses, inclusive);
 
-        if let Some(ref v) = options.album_id {
-            clauses.push("al.album_id = ?".to_string());
-            params.push(v as &dyn rusqlite::ToSql);
-        }
-        if let Some(ref v) = options.album_name {
-            clauses.push("al.album_name LIKE ?".to_string());
-            params.push(v as &dyn rusqlite::ToSql);
-        }
-
-        if !clauses.is_empty() {
-            let joiner = if inclusive { " AND " } else { " OR " };
-            query.push_str(" WHERE ");
-            query.push_str(&clauses.join(joiner));
-        }
-
-        let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
-        let fetched = stmt
-            .query_map(&*params, map_row_to_inner_song)
-            .map_err(DatabaseError::Query)?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(DatabaseError::Query)?;
+        let fetched = query_inner_songs(conn, &query, &params)?;
         info!("Fetched album songs");
         Ok(fetched)
     }
@@ -681,34 +661,10 @@ impl Database {
         let mut query = format!(
             "SELECT {ALLSONGS_COLUMNS} FROM allsongs a JOIN artist_bridge b ON a._id = b.song JOIN artists ar ON b.artist = ar.artist_id"
         );
-        let mut clauses = Vec::new();
-        let mut params = Vec::new();
+        let (clauses, params) = build_artist_filter(&options, "ar.");
+        apply_where_clause(&mut query, &clauses, inclusive);
 
-        if let Some(ref v) = options.artist_id {
-            clauses.push("ar.artist_id = ?".to_string());
-            params.push(v as &dyn rusqlite::ToSql);
-        }
-        if let Some(ref v) = options.artist_name {
-            clauses.push("ar.artist_name LIKE ?".to_string());
-            params.push(v as &dyn rusqlite::ToSql);
-        }
-        if let Some(ref v) = options.artist_mbid {
-            clauses.push("ar.artist_mbid = ?".to_string());
-            params.push(v as &dyn rusqlite::ToSql);
-        }
-
-        if !clauses.is_empty() {
-            let joiner = if inclusive { " AND " } else { " OR " };
-            query.push_str(" WHERE ");
-            query.push_str(&clauses.join(joiner));
-        }
-
-        let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
-        let fetched = stmt
-            .query_map(&*params, map_row_to_inner_song)
-            .map_err(DatabaseError::Query)?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(DatabaseError::Query)?;
+        let fetched = query_inner_songs(conn, &query, &params)?;
         info!("Fetched artist songs");
         Ok(fetched)
     }
@@ -724,30 +680,10 @@ impl Database {
         let mut query = format!(
             "SELECT {ALLSONGS_COLUMNS} FROM allsongs a JOIN genre_bridge b ON a._id = b.song JOIN genres g ON b.genre = g.genre_id"
         );
-        let mut clauses = Vec::new();
-        let mut params = Vec::new();
+        let (clauses, params) = build_genre_filter(&options, "g.");
+        apply_where_clause(&mut query, &clauses, inclusive);
 
-        if let Some(ref v) = options.genre_id {
-            clauses.push("g.genre_id = ?".to_string());
-            params.push(v as &dyn rusqlite::ToSql);
-        }
-        if let Some(ref v) = options.genre_name {
-            clauses.push("g.genre_name LIKE ?".to_string());
-            params.push(v as &dyn rusqlite::ToSql);
-        }
-
-        if !clauses.is_empty() {
-            let joiner = if inclusive { " AND " } else { " OR " };
-            query.push_str(" WHERE ");
-            query.push_str(&clauses.join(joiner));
-        }
-
-        let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
-        let fetched = stmt
-            .query_map(&*params, map_row_to_inner_song)
-            .map_err(DatabaseError::Query)?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(DatabaseError::Query)?;
+        let fetched = query_inner_songs(conn, &query, &params)?;
         info!("Fetched genre songs");
         Ok(fetched)
     }
@@ -763,34 +699,10 @@ impl Database {
         let mut query = format!(
             "SELECT {ALLSONGS_COLUMNS} FROM allsongs a JOIN playlist_bridge b ON a._id = b.song JOIN playlists p ON b.playlist = p.playlist_id"
         );
-        let mut clauses = Vec::new();
-        let mut params = Vec::new();
+        let (clauses, params) = build_playlist_filter(&options, "p.");
+        apply_where_clause(&mut query, &clauses, inclusive);
 
-        if let Some(ref v) = options.playlist_id {
-            clauses.push("p.playlist_id = ?".to_string());
-            params.push(v as &dyn rusqlite::ToSql);
-        }
-        if !options.playlist_name.is_empty() {
-            clauses.push("p.playlist_name LIKE ?".to_string());
-            params.push(&options.playlist_name as &dyn rusqlite::ToSql);
-        }
-        if let Some(ref v) = options.playlist_path {
-            clauses.push("p.playlist_path LIKE ?".to_string());
-            params.push(v as &dyn rusqlite::ToSql);
-        }
-
-        if !clauses.is_empty() {
-            let joiner = if inclusive { " AND " } else { " OR " };
-            query.push_str(" WHERE ");
-            query.push_str(&clauses.join(joiner));
-        }
-
-        let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
-        let fetched = stmt
-            .query_map(&*params, map_row_to_inner_song)
-            .map_err(DatabaseError::Query)?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(DatabaseError::Query)?;
+        let fetched = query_inner_songs(conn, &query, &params)?;
         info!("Fetched playlist songs");
         Ok(fetched)
     }
@@ -1487,38 +1399,42 @@ fn fetch_inner_songs_by_song_options(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
+fn query_song_bridge_chunks<T, F>(
+    conn: &rusqlite::Connection,
+    song_ids: &[String],
+    query_template: &str,
+    map_row: F,
+) -> Result<Vec<(String, T)>, DatabaseError>
+where
+    F: Fn(&rusqlite::Row<'_>) -> rusqlite::Result<(String, T)> + Copy,
+{
+    let mut results = Vec::new();
+    for chunk in song_ids.chunks(500) {
+        let placeholders = vec!["?"; chunk.len()].join(",");
+        let query = query_template.replace("{}", &placeholders);
+        let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
+        let params: Vec<&dyn rusqlite::ToSql> =
+            chunk.iter().map(|s| s as &dyn rusqlite::ToSql).collect();
+        let rows = stmt
+            .query_map(&*params, map_row)
+            .map_err(DatabaseError::Query)?;
+        for r in rows {
+            results.push(r.map_err(DatabaseError::Query)?);
+        }
+    }
+    Ok(results)
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
 fn fetch_song_albums(
     conn: &rusqlite::Connection,
     song_ids: &[String],
 ) -> Result<std::collections::HashMap<String, Album>, DatabaseError> {
-    let mut albums_map = std::collections::HashMap::new();
-    for chunk in song_ids.chunks(500) {
-        let placeholders = vec!["?"; chunk.len()].join(",");
-        let query = format!(
-            "SELECT a.album_id, a.album_name, a.album_artist, a.album_coverpath_high, a.album_song_count, a.year, a.album_coverpath_low, b.song
-             FROM albums a
-             JOIN album_bridge b ON a.album_id = b.album
-             WHERE b.song IN ({})",
-            placeholders
-        );
-        let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
-        let params = chunk
-            .iter()
-            .map(|s| s as &dyn rusqlite::ToSql)
-            .collect::<Vec<_>>();
-        let rows = stmt
-            .query_map(&*params, |row| {
-                let album = map_row_to_album(row)?;
-                let song_id: String = row.get(7)?;
-                Ok((song_id, album))
-            })
-            .map_err(DatabaseError::Query)?;
-        for r in rows {
-            let (song_id, album) = r.map_err(DatabaseError::Query)?;
-            albums_map.insert(song_id, album);
-        }
-    }
-    Ok(albums_map)
+    let query_template = "SELECT a.album_id, a.album_name, a.album_artist, a.album_coverpath_high, a.album_song_count, a.year, a.album_coverpath_low, b.song FROM albums a JOIN album_bridge b ON a.album_id = b.album WHERE b.song IN ({})";
+    let rows = query_song_bridge_chunks(conn, song_ids, query_template, |row| {
+        Ok((row.get(7)?, map_row_to_album(row)?))
+    })?;
+    Ok(rows.into_iter().collect())
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -1526,33 +1442,14 @@ fn fetch_song_artists(
     conn: &rusqlite::Connection,
     song_ids: &[String],
 ) -> Result<std::collections::HashMap<String, Vec<Artist>>, DatabaseError> {
+    let query_template = "SELECT a.artist_id, a.artist_mbid, a.artist_name, a.artist_coverpath, a.artist_song_count, a.sanitized_artist_name, b.song FROM artists a JOIN artist_bridge b ON a.artist_id = b.artist WHERE b.song IN ({})";
+    let rows = query_song_bridge_chunks(conn, song_ids, query_template, |row| {
+        Ok((row.get(6)?, map_row_to_artist(row)?))
+    })?;
     let mut artists_map: std::collections::HashMap<String, Vec<Artist>> =
         std::collections::HashMap::new();
-    for chunk in song_ids.chunks(500) {
-        let placeholders = vec!["?"; chunk.len()].join(",");
-        let query = format!(
-            "SELECT a.artist_id, a.artist_mbid, a.artist_name, a.artist_coverpath, a.artist_song_count, a.sanitized_artist_name, b.song
-             FROM artists a
-             JOIN artist_bridge b ON a.artist_id = b.artist
-             WHERE b.song IN ({})",
-            placeholders
-        );
-        let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
-        let params = chunk
-            .iter()
-            .map(|s| s as &dyn rusqlite::ToSql)
-            .collect::<Vec<_>>();
-        let rows = stmt
-            .query_map(&*params, |row| {
-                let artist = map_row_to_artist(row)?;
-                let song_id: String = row.get(6)?;
-                Ok((song_id, artist))
-            })
-            .map_err(DatabaseError::Query)?;
-        for r in rows {
-            let (song_id, artist) = r.map_err(DatabaseError::Query)?;
-            artists_map.entry(song_id).or_default().push(artist);
-        }
+    for (song_id, artist) in rows {
+        artists_map.entry(song_id).or_default().push(artist);
     }
     Ok(artists_map)
 }
@@ -1562,33 +1459,14 @@ fn fetch_song_genres(
     conn: &rusqlite::Connection,
     song_ids: &[String],
 ) -> Result<std::collections::HashMap<String, Vec<Genre>>, DatabaseError> {
+    let query_template = "SELECT a.genre_id, a.genre_name, a.genre_song_count, b.song FROM genres a JOIN genre_bridge b ON a.genre_id = b.genre WHERE b.song IN ({})";
+    let rows = query_song_bridge_chunks(conn, song_ids, query_template, |row| {
+        Ok((row.get(3)?, map_row_to_genre(row)?))
+    })?;
     let mut genres_map: std::collections::HashMap<String, Vec<Genre>> =
         std::collections::HashMap::new();
-    for chunk in song_ids.chunks(500) {
-        let placeholders = vec!["?"; chunk.len()].join(",");
-        let query = format!(
-            "SELECT a.genre_id, a.genre_name, a.genre_song_count, b.song
-             FROM genres a
-             JOIN genre_bridge b ON a.genre_id = b.genre
-             WHERE b.song IN ({})",
-            placeholders
-        );
-        let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
-        let params = chunk
-            .iter()
-            .map(|s| s as &dyn rusqlite::ToSql)
-            .collect::<Vec<_>>();
-        let rows = stmt
-            .query_map(&*params, |row| {
-                let genre = map_row_to_genre(row)?;
-                let song_id: String = row.get(3)?;
-                Ok((song_id, genre))
-            })
-            .map_err(DatabaseError::Query)?;
-        for r in rows {
-            let (song_id, genre) = r.map_err(DatabaseError::Query)?;
-            genres_map.entry(song_id).or_default().push(genre);
-        }
+    for (song_id, genre) in rows {
+        genres_map.entry(song_id).or_default().push(genre);
     }
     Ok(genres_map)
 }
@@ -1893,6 +1771,46 @@ fn fetch_existing_song_ids(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
+fn update_single_song_metadata_ids(
+    song: &mut Song,
+    existing_song_ids: &std::collections::HashMap<String, String>,
+    album_ids: &std::collections::HashMap<String, String>,
+    artist_ids: &std::collections::HashMap<String, String>,
+    genre_ids: &std::collections::HashMap<String, String>,
+) {
+    if let Some(inner_song) = song.song.as_mut() {
+        let existing = inner_song
+            .path
+            .as_deref()
+            .filter(|p| !p.is_empty())
+            .and_then(|p| existing_song_ids.get(p).cloned());
+        inner_song.id = existing
+            .or_else(|| inner_song.id.take())
+            .or_else(|| Some(Uuid::new_v4().to_string()));
+    }
+    if let Some(album) = song.album.as_mut()
+        && let Some(name) = &album.album_name
+        && let Some(id) = album_ids.get(name)
+    {
+        album.album_id = Some(id.clone());
+    }
+    for artist in &mut song.artists {
+        if let Some(name) = &artist.artist_name
+            && let Some(id) = artist_ids.get(name)
+        {
+            artist.artist_id = Some(id.clone());
+        }
+    }
+    for genre in &mut song.genre {
+        if let Some(name) = &genre.genre_name
+            && let Some(id) = genre_ids.get(name)
+        {
+            genre.genre_id = Some(id.clone());
+        }
+    }
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
 fn update_song_metadata_ids(
     songs: &mut [Song],
     existing_song_ids: &std::collections::HashMap<String, String>,
@@ -1901,44 +1819,7 @@ fn update_song_metadata_ids(
     genre_ids: &std::collections::HashMap<String, String>,
 ) {
     for song in songs.iter_mut() {
-        if let Some(inner_song) = song.song.as_mut() {
-            let mut resolved_id = None;
-            if let Some(ref path) = inner_song.path
-                && !path.is_empty()
-                && let Some(id) = existing_song_ids.get(path)
-            {
-                resolved_id = Some(id.clone());
-            }
-            if resolved_id.is_none() {
-                resolved_id = Some(
-                    inner_song
-                        .id
-                        .clone()
-                        .unwrap_or_else(|| Uuid::new_v4().to_string()),
-                );
-            }
-            inner_song.id = resolved_id;
-        }
-        if let Some(album) = song.album.as_mut()
-            && let Some(ref name) = album.album_name
-            && let Some(id) = album_ids.get(name)
-        {
-            album.album_id = Some(id.clone());
-        }
-        for artist in song.artists.iter_mut() {
-            if let Some(ref name) = artist.artist_name
-                && let Some(id) = artist_ids.get(name)
-            {
-                artist.artist_id = Some(id.clone());
-            }
-        }
-        for genre in song.genre.iter_mut() {
-            if let Some(ref name) = genre.genre_name
-                && let Some(id) = genre_ids.get(name)
-            {
-                genre.genre_id = Some(id.clone());
-            }
-        }
+        update_single_song_metadata_ids(song, existing_song_ids, album_ids, artist_ids, genre_ids);
     }
 }
 
@@ -1950,66 +1831,87 @@ struct SongRowsAndBridges {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
+fn to_db_song_row(inner_song: &InnerSong) -> DbSongRow {
+    DbSongRow {
+        id: inner_song.id.clone(),
+        path: inner_song.path.clone(),
+        size: inner_song.size,
+        inode: None,
+        deviceno: None,
+        title: inner_song.title.clone(),
+        date: inner_song.date.clone(),
+        year: inner_song.year.clone(),
+        lyrics: inner_song.lyrics.as_ref().map(|l| l.encode_to_vec()),
+        release_type: inner_song.release_type.clone(),
+        bitrate: inner_song.bitrate,
+        codec: inner_song.codec.clone(),
+        container: inner_song.container.clone(),
+        duration: Some(proto_to_db_ms(&inner_song.duration)),
+        sample_rate: inner_song.sample_rate,
+        hash: inner_song.hash.clone(),
+        r#type: song_type_to_str(inner_song.r#type).to_string(),
+        url: inner_song.url.clone(),
+        song_cover_path_high: inner_song.song_cover_path_high.clone(),
+        playback_url: inner_song.playback_url.clone(),
+        song_cover_path_low: inner_song.song_cover_path_low.clone(),
+        date_added: inner_song.date_added,
+        provider_extension: None,
+        icon: None,
+        show_in_library: None,
+        track_no: inner_song.track_no,
+        library_item: None,
+    }
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn collect_song_bridges(
+    song: &Song,
+    song_id: &str,
+    album_bridges: &mut Vec<(String, String)>,
+    artist_bridges: &mut Vec<(String, String)>,
+    genre_bridges: &mut Vec<(String, String)>,
+) {
+    if let Some(album) = &song.album
+        && let Some(ref album_id) = album.album_id
+    {
+        album_bridges.push((song_id.to_string(), album_id.clone()));
+    }
+
+    for artist in &song.artists {
+        if let Some(ref artist_id) = artist.artist_id {
+            artist_bridges.push((song_id.to_string(), artist_id.clone()));
+        }
+    }
+
+    for genre in &song.genre {
+        if let Some(ref genre_id) = genre.genre_id {
+            genre_bridges.push((song_id.to_string(), genre_id.clone()));
+        }
+    }
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
 fn build_db_song_rows_and_bridges(songs: &[Song]) -> SongRowsAndBridges {
-    let mut db_song_rows = Vec::new();
+    let mut db_song_rows = Vec::with_capacity(songs.len());
     let mut album_bridges = Vec::new();
     let mut artist_bridges = Vec::new();
     let mut genre_bridges = Vec::new();
 
     for song in songs {
-        if let Some(inner_song) = &song.song {
-            let song_id = inner_song.id.clone().unwrap_or_default();
-            let song_type = song_type_to_str(inner_song.r#type).to_string();
-
-            db_song_rows.push(DbSongRow {
-                id: inner_song.id.clone(),
-                path: inner_song.path.clone(),
-                size: inner_song.size,
-                inode: None,
-                deviceno: None,
-                title: inner_song.title.clone(),
-                date: inner_song.date.clone(),
-                year: inner_song.year.clone(),
-                lyrics: inner_song.lyrics.as_ref().map(|l| l.encode_to_vec()),
-                release_type: inner_song.release_type.clone(),
-                bitrate: inner_song.bitrate,
-                codec: inner_song.codec.clone(),
-                container: inner_song.container.clone(),
-                duration: Some(proto_to_db_ms(&inner_song.duration)),
-                sample_rate: inner_song.sample_rate,
-                hash: inner_song.hash.clone(),
-                r#type: song_type,
-                url: inner_song.url.clone(),
-                song_cover_path_high: inner_song.song_cover_path_high.clone(),
-                playback_url: inner_song.playback_url.clone(),
-                song_cover_path_low: inner_song.song_cover_path_low.clone(),
-                date_added: inner_song.date_added,
-                provider_extension: None,
-                icon: None,
-                show_in_library: None,
-                track_no: inner_song.track_no,
-                library_item: None,
-            });
-
-            if let Some(album) = &song.album
-                && let Some(ref album_id) = album.album_id
-            {
-                album_bridges.push((song_id.clone(), album_id.clone()));
-            }
-
-            for artist in &song.artists {
-                if let Some(ref artist_id) = artist.artist_id {
-                    artist_bridges.push((song_id.clone(), artist_id.clone()));
-                }
-            }
-
-            for genre in &song.genre {
-                if let Some(ref genre_id) = genre.genre_id {
-                    genre_bridges.push((song_id.clone(), genre_id.clone()));
-                }
-            }
-        }
+        let Some(inner_song) = &song.song else {
+            continue;
+        };
+        let song_id = inner_song.id.clone().unwrap_or_default();
+        db_song_rows.push(to_db_song_row(inner_song));
+        collect_song_bridges(
+            song,
+            &song_id,
+            &mut album_bridges,
+            &mut artist_bridges,
+            &mut genre_bridges,
+        );
     }
+
     SongRowsAndBridges {
         db_song_rows,
         album_bridges,

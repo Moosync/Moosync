@@ -350,3 +350,180 @@ async fn test_extension_handler_update_all_extensions_failed(handler_context: Te
     assert!(res.is_err());
     assert!(handler_context.handler.has_updates());
 }
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_extension_info_methods_and_traits() {
+    use std::{
+        collections::hash_map::DefaultHasher,
+        hash::{Hash, Hasher},
+    };
+
+    let local_info =
+        crate::ExtensionInfo::Local(extensions_proto::moosync::types::ExtensionDetail {
+            package_name: "test.pkg".to_string(),
+            ..Default::default()
+        });
+    let remote_info =
+        crate::ExtensionInfo::Remote(extensions_proto::moosync::types::ExtensionManifest {
+            name: "test.pkg".to_string(),
+            ..Default::default()
+        });
+    let path_info = crate::ExtensionInfo::LocalPath(std::path::PathBuf::from("/some/path"));
+
+    assert_eq!(local_info.package_name(), "test.pkg");
+    assert_eq!(remote_info.package_name(), "test.pkg");
+    assert_eq!(path_info.package_name(), "");
+
+    assert_eq!(local_info, remote_info);
+    assert_ne!(local_info, path_info);
+
+    let mut h1 = DefaultHasher::new();
+    local_info.hash(&mut h1);
+    let mut h2 = DefaultHasher::new();
+    remote_info.hash(&mut h2);
+    assert_eq!(h1.finish(), h2.finish());
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_extension_handler_triggers(handler_context: TestHandlerContext) {
+    let handler = &handler_context.handler;
+
+    handler.trigger_accounts_updated(Some("acc_1".to_string()));
+    handler.trigger_accounts_updated(None);
+    handler.trigger_preferences_updated("pkg.name".to_string());
+
+    assert_eq!(handler.get_active_extensions().len(), 0);
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_extension_handler_get_active_and_toggle(handler_context: TestHandlerContext) {
+    let ext_dir = handler_context.handler.extensions_dir.join("active_ext");
+    fs::create_dir_all(&ext_dir).unwrap();
+    let manifest = extensions_proto::moosync::types::ExtensionManifest {
+        name: "active_ext".to_string(),
+        display_name: "Active Extension".to_string(),
+        version: "1.0.0".to_string(),
+        extension_entry: "main.wasm".to_string(),
+        scopes: vec![extensions_proto::moosync::types::ExtensionProviderScope::Search as i32],
+        ..Default::default()
+    };
+    fs::write(
+        ext_dir.join("manifest.pb"),
+        prost::Message::encode_to_vec(&manifest),
+    )
+    .unwrap();
+    fs::write(ext_dir.join("main.wasm"), b"wasm bytes").unwrap();
+
+    let handler = &handler_context.handler;
+    handler.find_new_extensions().unwrap();
+
+    let ext = handler.get_extension("active_ext");
+    let ext_mut = handler.get_extension_mut("active_ext");
+    assert!(ext.is_ok());
+    assert!(ext_mut.is_ok());
+
+    let scoped = handler
+        .get_extensions_with_scope(extensions_proto::moosync::types::ExtensionProviderScope::Search)
+        .await;
+    assert_eq!(scoped.len(), 1);
+
+    let all = handler.get_all_extensions().await;
+    assert_eq!(all.len(), 1);
+
+    let ext_arc = ext.unwrap();
+    assert_eq!(handler.get_active_extensions().len(), 0);
+
+    let detail = ext_arc.get_extension_detail();
+    let toggle_res = handler.toggle_extension(crate::ExtensionInfo::Local(detail));
+    assert!(toggle_res.is_ok());
+    assert!(handler.get_extension("active_ext").is_err());
+
+    let invalid_toggle = handler.toggle_extension(crate::ExtensionInfo::Remote(manifest));
+    assert!(invalid_toggle.is_err());
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_extension_version_and_installation(handler_context: TestHandlerContext) {
+    let handler = &handler_context.handler;
+    let temp_dir = TempDir::new("ext_version_test").unwrap();
+    let valid_dir = temp_dir.path().join("valid");
+    fs::create_dir_all(&valid_dir).unwrap();
+    let manifest = extensions_proto::moosync::types::ExtensionManifest {
+        moosync_extension: true,
+        name: "zip_ext".to_string(),
+        display_name: "Zip Extension".to_string(),
+        version: "2.3.4".to_string(),
+        extension_entry: "main.wasm".to_string(),
+        ..Default::default()
+    };
+    fs::write(
+        valid_dir.join("manifest.pb"),
+        prost::Message::encode_to_vec(&manifest),
+    )
+    .unwrap();
+    fs::write(valid_dir.join("main.wasm"), b"wasm bytes").unwrap();
+
+    let ver = handler.get_extension_version(valid_dir.clone());
+    assert_eq!(ver.unwrap(), "2.3.4");
+
+    let empty_dir = temp_dir.path().join("empty");
+    fs::create_dir_all(&empty_dir).unwrap();
+    let no_ver = handler.get_extension_version(empty_dir);
+    assert!(no_ver.is_err());
+
+    let local_install = handler
+        .install_extension(crate::ExtensionInfo::Local(
+            extensions_proto::moosync::types::ExtensionDetail::default(),
+        ))
+        .await;
+    assert!(local_install.is_ok());
+
+    let zip_file = temp_dir.path().join("zip_ext.msxt");
+    zip_extensions::zip_create_from_directory(&zip_file, &valid_dir).unwrap();
+
+    let zip_install = handler
+        .install_extension(crate::ExtensionInfo::LocalPath(zip_file))
+        .await;
+    assert!(zip_install.is_ok());
+
+    let installed_ext = handler.get_extension("zip_ext");
+    assert!(installed_ext.is_ok());
+
+    let remote_fetch_res = handler
+        .fetch_remote_manifests(std::collections::HashSet::new())
+        .await;
+    assert!(remote_fetch_res.is_ok());
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_check_for_updates_invalid_semver_edge_cases(handler_context: TestHandlerContext) {
+    let handler = &handler_context.handler;
+
+    let remote_manifests = vec![
+        extensions_proto::moosync::types::ExtensionManifest {
+            name: "uninstalled_ext".to_string(),
+            version: "1.0.0".to_string(),
+            ..Default::default()
+        },
+        extensions_proto::moosync::types::ExtensionManifest {
+            name: "bad_remote_ver".to_string(),
+            version: "invalid-semver".to_string(),
+            ..Default::default()
+        },
+    ];
+    handler.set_remote_manifests(remote_manifests);
+    let has_updates = handler.check_for_updates();
+    assert!(!has_updates);
+}

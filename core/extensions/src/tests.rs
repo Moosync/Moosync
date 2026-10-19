@@ -204,6 +204,48 @@ impl ReplyHandler for TestReplyHandler {
 #[test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
+fn test_reply_handler_defaults() {
+    let handler = TestReplyHandler;
+    assert!(handler.get_song("pkg", GetSongOptions::default()).is_ok());
+    assert!(
+        handler
+            .get_entity("pkg", GetEntityOptions::default())
+            .is_ok()
+    );
+    assert!(handler.get_current_song("pkg").is_ok());
+    assert_eq!(handler.get_player_state("pkg").unwrap(), 0);
+    assert_eq!(handler.get_volume("pkg").unwrap(), 0.0);
+    assert_eq!(handler.get_time("pkg").unwrap(), 0.0);
+    assert!(handler.get_queue("pkg").is_ok());
+    assert!(handler.get_preference("pkg", "k").is_ok());
+    assert!(
+        handler
+            .set_preference("pkg", "k", Default::default())
+            .is_ok()
+    );
+    assert!(handler.get_secure("pkg", "k").is_ok());
+    assert!(handler.set_secure("pkg", "k", Default::default()).is_ok());
+    assert!(handler.add_songs("pkg", vec![]).is_ok());
+    assert!(handler.remove_song("pkg", Song::default()).is_ok());
+    assert!(handler.update_song("pkg", Song::default()).is_ok());
+    assert!(handler.add_playlist("pkg", Playlist::default()).is_ok());
+    assert!(handler.add_to_playlist("pkg", "p".into(), vec![]).is_ok());
+    assert!(handler.register_oauth("pkg", "url".into()).is_ok());
+    assert!(handler.open_external_url("pkg", "url".into()).is_ok());
+    assert!(
+        handler
+            .set_account("pkg", ExtensionAccountDetail::default())
+            .is_ok()
+    );
+    assert!(handler.register_user_preference("pkg", vec![]).is_ok());
+    assert!(handler.unregister_user_preference("pkg", vec![]).is_ok());
+    assert!(handler.extensions_updated("pkg").is_ok());
+    assert_eq!(handler.get_app_version("pkg").unwrap(), "");
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_find_and_spawn_extensions() {
     init_env();
     let tmp_dir = TempDir::new("moosync_test_spawn_ext").unwrap();
@@ -285,6 +327,12 @@ async fn test_handle_extension_command() {
     };
 
     assert_eq!(ext.manifest.scopes, vec![13, 0, 1, 2, 3, 4, 10]);
+
+    let ctx = ext.wait_context().await;
+    if let Ok(c) = ctx {
+        let debug_str = format!("{:?}", c);
+        assert!(debug_str.contains("ExtismContext"));
+    }
 }
 
 #[test]

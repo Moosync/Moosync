@@ -15,8 +15,6 @@ export component GridPageLayout inherits Rectangle {
     pure callback get_context_menu_items(int) -> [ContextMenuItem];
     callback context_menu_action(int, string);
 
-    background: transparent;
-
     VerticalLayout {
         spacing: Theme.spacingXxl;
         alignment: start;

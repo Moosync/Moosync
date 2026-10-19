@@ -14,12 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::time::Duration;
+use std::{borrow::Cow, time::Duration};
 
-use assertables::{assert_len_eq_x, assert_not_empty, assert_some_eq_x};
+use assertables::{assert_len_eq_x, assert_none, assert_not_empty, assert_some, assert_some_eq_x};
+use extensions_proto::moosync::types::RequestedSearchResultResponse;
 use rstest::rstest;
 use songs_proto::moosync::types::{
-    Album, Artist, EntityResult, InnerSong, Song, SongType, entity_result,
+    Album, Artist, EntityResult, Genre, InnerSong, Lyrics, Playlist, Song, SongType, entity_result,
 };
 use themes_proto::moosync::types::ThemeDetails;
 use tracing_test::traced_test;
@@ -27,7 +28,8 @@ use tracing_test::traced_test;
 use crate::{
     ScanProgress,
     prelude::{
-        EntityResultExt, InnerSongExt, SongsExt, ThemeExt, core_to_proto_duration, format_duration,
+        EntityResultExt, InnerSongExt, SearchResultExt, SongsExt, ThemeExt, core_to_proto_duration,
+        format_duration,
     },
 };
 
@@ -162,4 +164,273 @@ fn test_entity_result_ext_albums() {
     let albums = entity.get_albums().unwrap();
 
     assert_len_eq_x!(albums, 1);
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_entity_result_ext_artists() {
+    let entity = EntityResult {
+        result: Some(entity_result::Result::Artists(
+            songs_proto::moosync::types::ArtistList {
+                artists: vec![Artist {
+                    artist_name: Some("Art".to_string()),
+                    ..Default::default()
+                }],
+            },
+        )),
+    };
+
+    let artists = entity.get_artists().unwrap();
+
+    assert_len_eq_x!(artists, 1);
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_entity_result_ext_genres() {
+    let entity = EntityResult {
+        result: Some(entity_result::Result::Genres(
+            songs_proto::moosync::types::GenreList {
+                genres: vec![Genre {
+                    genre_name: Some("Rock".to_string()),
+                    ..Default::default()
+                }],
+            },
+        )),
+    };
+
+    let genres = entity.get_genres().unwrap();
+
+    assert_len_eq_x!(genres, 1);
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_entity_result_ext_playlists() {
+    let entity = EntityResult {
+        result: Some(entity_result::Result::Playlists(
+            songs_proto::moosync::types::PlaylistList {
+                playlists: vec![Playlist {
+                    playlist_name: "Play".to_string(),
+                    ..Default::default()
+                }],
+            },
+        )),
+    };
+
+    let playlists = entity.get_playlists().unwrap();
+
+    assert_len_eq_x!(playlists, 1);
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_entity_result_ext_none_variants() {
+    let entity_none = EntityResult { result: None };
+
+    assert_none!(entity_none.clone().get_albums());
+    assert_none!(entity_none.clone().get_artists());
+    assert_none!(entity_none.clone().get_genres());
+    assert_none!(entity_none.get_playlists());
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_song_cover_getters() {
+    let both = Song {
+        song: Some(InnerSong {
+            song_cover_path_high: Some("high.jpg".to_string()),
+            song_cover_path_low: Some("low.jpg".to_string()),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+    let only_high = Song {
+        song: Some(InnerSong {
+            song_cover_path_high: Some("high.jpg".to_string()),
+            song_cover_path_low: None,
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+    let neither = Song {
+        song: Some(InnerSong::default()),
+        ..Default::default()
+    };
+
+    assert_some_eq_x!(both.get_cover_high(), "high.jpg");
+    assert_some_eq_x!(both.get_cover_low(), "low.jpg");
+    assert_some_eq_x!(only_high.get_cover_low(), "high.jpg");
+    assert_none!(neither.get_cover_high());
+    assert_none!(neither.get_cover_low());
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_song_playback_url_and_path_and_date() {
+    let song = Song {
+        song: Some(InnerSong {
+            playback_url: Some("http://stream.url".to_string()),
+            path: Some("/music/song.mp3".to_string()),
+            date: Some("2024-01-01".to_string()),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+    let empty_song = Song::default();
+
+    assert_some_eq_x!(song.get_playback_url(), "http://stream.url");
+    assert_some_eq_x!(song.get_path(), "/music/song.mp3");
+    assert_some_eq_x!(song.get_date(), "2024-01-01");
+    assert_none!(empty_song.get_playback_url());
+    assert_none!(empty_song.get_path());
+    assert_none!(empty_song.get_date());
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_song_lyrics_getter() {
+    let lyrics = Lyrics::default();
+    let song_with_lyrics = Song {
+        song: Some(InnerSong {
+            lyrics: Some(lyrics),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+    let song_without = Song::default();
+
+    assert_some!(song_with_lyrics.get_lyrics());
+    assert_none!(song_without.get_lyrics());
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_song_artists_string_formatting() {
+    let empty_artists_song = Song {
+        artists: vec![],
+        ..Default::default()
+    };
+    let multi_artists_song = Song {
+        artists: vec![
+            Artist {
+                artist_name: Some("Artist A".to_string()),
+                ..Default::default()
+            },
+            Artist {
+                artist_name: Some("Artist B".to_string()),
+                ..Default::default()
+            },
+        ],
+        ..Default::default()
+    };
+
+    assert_none!(empty_artists_song.get_artist_string());
+    assert_some_eq_x!(
+        multi_artists_song.get_artist_string().as_deref(),
+        "Artist A,Artist B"
+    );
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_song_album_string_none() {
+    let no_album_song = Song::default();
+
+    assert_none!(no_album_song.get_album_string());
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_song_invalid_type_fallback() {
+    let invalid_song = Song {
+        song: Some(InnerSong {
+            r#type: 9999,
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+    let inner_invalid = InnerSong {
+        r#type: 9999,
+        ..Default::default()
+    };
+
+    assert_eq!(invalid_song.get_type_or_default(), SongType::Local);
+    assert_eq!(inner_invalid.get_type_or_default(), SongType::Local);
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_song_negative_proto_duration_defaults_to_zero() {
+    let negative_duration_song = Song {
+        song: Some(InnerSong {
+            duration: Some(songs_proto::duration_proto::google::protobuf::Duration {
+                seconds: -10,
+                nanos: 0,
+            }),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    assert_eq!(
+        negative_duration_song.get_duration_or_default(),
+        Duration::ZERO
+    );
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_format_duration_live_trait() {
+    struct LiveSong;
+    impl SongsExt for LiveSong {
+        fn get_id(&self) -> Option<Cow<'_, str>> { None }
+        fn get_title(&self) -> Option<Cow<'_, str>> { None }
+        fn get_duration_or_default(&self) -> Duration { Duration::from_secs(u64::MAX) }
+        fn get_cover_high(&self) -> Option<Cow<'_, str>> { None }
+        fn get_cover_low(&self) -> Option<Cow<'_, str>> { None }
+        fn get_playback_url(&self) -> Option<Cow<'_, str>> { None }
+        fn get_type_or_default(&self) -> SongType { SongType::Local }
+        fn get_path(&self) -> Option<Cow<'_, str>> { None }
+        fn get_lyrics(&self) -> Option<&Lyrics> { None }
+        fn get_date(&self) -> Option<Cow<'_, str>> { None }
+        fn get_artist_string(&self) -> Option<String> { None }
+        fn get_album_string(&self) -> Option<Cow<'_, str>> { None }
+    }
+
+    let live = LiveSong;
+
+    assert_eq!(live.format_duration(), "Live");
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_search_result_ext_to_songs_proto() {
+    let requested = RequestedSearchResultResponse {
+        songs: vec![Song::default()],
+        albums: vec![Album::default()],
+        artists: vec![Artist::default()],
+        playlists: vec![Playlist::default()],
+    };
+
+    let converted = requested.to_songs_proto();
+
+    assert_len_eq_x!(converted.songs, 1);
+    assert_len_eq_x!(converted.albums, 1);
+    assert_len_eq_x!(converted.artists, 1);
+    assert_len_eq_x!(converted.playlists, 1);
+    assert!(converted.genres.is_empty());
 }

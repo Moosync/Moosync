@@ -142,14 +142,12 @@ export component LyricsView inherits HorizontalLayout {
 
                 VerticalLayout {
                     alignment: start;
-                    spacing: 0px;
                     padding-top: 40px;
                     padding-bottom: 40px;
 
                     for line[idx] in root.lyrics_lines: Rectangle {
                         height: 42px;
                         width: 100%;
-                        background: transparent;
 
                         Text {
                             width: 100%;

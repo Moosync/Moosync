@@ -91,7 +91,7 @@ pub fn get_all_static_preferences() -> Vec<ProtoPreferenceItem> {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn find_preference_item(
+pub(crate) fn find_preference_item(
     key: &str,
     state_manager: &'static StateManager,
 ) -> Option<ProtoPreferenceItem> {
@@ -124,7 +124,7 @@ fn find_preference_item(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn compute_list_value(
+pub(crate) fn compute_list_value(
     item: &ProtoPreferenceItem,
     value_string: String,
     value_list: Vec<String>,
@@ -151,7 +151,7 @@ fn compute_list_value(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn compute_updated_preference_value(
+pub(crate) fn compute_updated_preference_value(
     item: &ProtoPreferenceItem,
     value_string: String,
     value_bool: bool,

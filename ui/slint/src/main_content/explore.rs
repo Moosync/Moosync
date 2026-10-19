@@ -40,7 +40,7 @@ impl ExplorePageHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    async fn fetch_all_recommendations(
+    pub(crate) async fn fetch_all_recommendations(
         state_manager: &StateManager,
     ) -> Result<Vec<RecommendationItem>, UiError> {
         tracing::debug!("Fetching recommendations across all active providers");
@@ -92,6 +92,31 @@ impl ExplorePageHandler {
         }
         Ok(results)
     }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub(crate) fn render_recommendations(
+        main_window: &MainWindow,
+        state_manager: &StateManager,
+        recommendations: Vec<RecommendationItem>,
+    ) {
+        let mut list = Vec::new();
+        for (detail, cached_path, songs) in recommendations {
+            let icon = load_image(cached_path.as_deref().unwrap_or(""));
+            let song_models = songs
+                .into_iter()
+                .map(|s| (s, Some(&detail)).into())
+                .collect::<Vec<SongModel>>();
+            let mapped_songs = make_lazy_song_model(main_window, state_manager, song_models);
+            list.push(ProviderRecommendations {
+                provider_name: detail.name.into(),
+                provider_icon: icon,
+                songs: mapped_songs,
+            });
+        }
+        main_window
+            .global::<ExplorePageProps>()
+            .set_provider_recommendations(ModelRc::new(VecModel::from(list)));
+    }
 }
 
 impl PageHandler for ExplorePageHandler {
@@ -106,29 +131,11 @@ impl PageHandler for ExplorePageHandler {
                     Ok(recommendations) => {
                         let _ = slint::invoke_from_event_loop(move || {
                             if let Some(main_window) = main_window_weak.upgrade() {
-                                let mut list = Vec::new();
-                                for (detail, cached_path, songs) in recommendations {
-                                    let icon = load_image(cached_path.as_deref().unwrap_or(""));
-                                    let song_models = songs
-                                        .into_iter()
-                                        .map(|s| (s, Some(&detail)).into())
-                                        .collect::<Vec<SongModel>>();
-                                    let mapped_songs = make_lazy_song_model(
-                                        &main_window,
-                                        state_manager,
-                                        song_models,
-                                    );
-                                    list.push(ProviderRecommendations {
-                                        provider_name: detail.name.clone().into(),
-                                        provider_icon: icon,
-                                        songs: mapped_songs,
-                                    });
-                                }
-                                main_window
-                                    .global::<ExplorePageProps>()
-                                    .set_provider_recommendations(ModelRc::new(VecModel::from(
-                                        list,
-                                    )));
+                                Self::render_recommendations(
+                                    &main_window,
+                                    state_manager,
+                                    recommendations,
+                                );
                             }
                         });
                     }

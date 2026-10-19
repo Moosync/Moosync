@@ -21,7 +21,7 @@ use songs_proto::moosync::types::Playlist;
 use tracing_test::traced_test;
 
 use crate::{
-    MainWindow, PlaylistModel, PlaylistsPageProps,
+    ContextMenuCallbacks, MainWindow, PlaylistModel, PlaylistsPageProps,
     main_content::playlists::{PlaylistListProvider, PlaylistsPageHandler},
     pages::PageHandler,
     test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
@@ -137,4 +137,65 @@ async fn test_playlists_page_handler_on_hide(
             .row_count(),
         0
     );
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_playlists_page_handler_initialize_and_context_menu(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let main_window = Box::leak(Box::new(main_window));
+    let state_manager = Box::leak(Box::new(sm));
+    let handler = PlaylistsPageHandler::new(main_window, state_manager);
+    handler.initialize();
+
+    let playlist_model = PlaylistModel {
+        id: "p1".into(),
+        title: "Playlist 1".into(),
+        ..Default::default()
+    };
+    let models = ModelRc::new(VecModel::from(vec![playlist_model]));
+
+    let callbacks = main_window.global::<ContextMenuCallbacks>();
+    let items = callbacks.invoke_get_playlist_menu_items(models.clone());
+    assert!(items.row_count() > 0);
+
+    callbacks.invoke_playlist_action(models, "other_action".into());
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_playlists_page_handler_delete_action(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let main_window = Box::leak(Box::new(main_window));
+    let state_manager = Box::leak(Box::new(sm));
+    let playlist = Playlist {
+        playlist_name: "To Delete".into(),
+        ..Default::default()
+    };
+    let db = state_manager.get_database();
+    let id = db.create_playlist(playlist).unwrap();
+
+    PlaylistsPageHandler::handle_playlist_action(
+        main_window.as_weak(),
+        state_manager,
+        vec![id.clone()],
+        "delete_playlist".into(),
+    )
+    .await;
+
+    let local = PlaylistListProvider::get_local_playlists(state_manager)
+        .await
+        .unwrap();
+    assert!(local.iter().all(|p| p.playlist_id.as_deref() != Some(&id)));
 }

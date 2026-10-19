@@ -18,8 +18,12 @@ use assertables::assert_ok;
 use extensions_proto::moosync::types::PlayerState;
 use rstest::{fixture, rstest};
 use tracing_test::traced_test;
+use types::plugin::{Plugin, PluginContext};
 
-use crate::{MprisHolder, MprisPlayerDetails, context::MockMprisContext};
+use crate::{
+    MediaControlEvent, MprisHolder, MprisPlayerDetails, context::MockMprisContext,
+    error::MprisError,
+};
 
 #[fixture]
 #[tracing::instrument(level = "debug", skip_all)]
@@ -97,4 +101,68 @@ fn test_mpris_holder_set_position(mut mock_mpris_context: Box<MockMprisContext>)
     let result = holder.set_position(45.0);
 
     assert_ok!(result);
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_mpris_holder_event_channel() {
+    let mut mock = Box::new(MockMprisContext::new());
+    mock.expect_attach().returning(|tx| {
+        tx.send(MediaControlEvent::Play).unwrap();
+        tx.send(MediaControlEvent::Next).unwrap();
+        tx.send(MediaControlEvent::Pause).unwrap();
+        Ok(())
+    });
+
+    let holder = MprisHolder::new_with_context(mock).unwrap();
+    let rx = holder.event_rx.lock().unwrap();
+
+    assert_eq!(rx.recv().unwrap(), MediaControlEvent::Play);
+    assert_eq!(rx.recv().unwrap(), MediaControlEvent::Next);
+    assert_eq!(rx.recv().unwrap(), MediaControlEvent::Pause);
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_mpris_holder_attach_error() {
+    let mut mock = Box::new(MockMprisContext::new());
+    mock.expect_attach()
+        .returning(|_| Err(MprisError::AttachFailed("cannot attach".to_string())));
+
+    let res = MprisHolder::new_with_context(mock);
+    assert!(res.is_err());
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_mpris_holder_context_errors() {
+    let mut mock = Box::new(MockMprisContext::new());
+    mock.expect_attach().returning(|_| Ok(()));
+    mock.expect_set_metadata()
+        .returning(|_| Err(MprisError::SetMetadataFailed("failed".to_string())));
+    mock.expect_set_playback_state()
+        .returning(|_, _| Err(MprisError::SetPlaybackFailed("failed".to_string())));
+
+    let holder = MprisHolder::new_with_context(mock).unwrap();
+    assert!(holder.set_metadata(MprisPlayerDetails::default()).is_err());
+    assert!(holder.set_playback_state(PlayerState::Playing).is_err());
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_mpris_holder_new_and_plugin_init() {
+    let holder_res = MprisHolder::new();
+    assert!(holder_res.is_ok());
+
+    let ctx = PluginContext {
+        data_dir: std::env::temp_dir().join("moosync_test_data"),
+        cache_dir: std::env::temp_dir().join("moosync_test_cache"),
+        tmp_dir: std::env::temp_dir().join("moosync_test_tmp"),
+    };
+    let plugin = <MprisHolder as Plugin>::init(&ctx);
+    assert_ok!(plugin.set_playback_state(PlayerState::Paused));
 }

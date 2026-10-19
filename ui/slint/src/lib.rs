@@ -4,7 +4,9 @@ include!(concat!(env!("OUT_DIR"), "/app.rs"));
 
 use std::{path::PathBuf, thread::available_parallelism, time::Duration};
 
-use extensions_proto::moosync::types::player_event::Event as PlayerEvent;
+use extensions_proto::moosync::types::{
+    PlayerEvent as PlayerEventMessage, player_event::Event as PlayerEvent,
+};
 use player_proto::moosync::types::RepeatMode;
 use slint::{Image, Model, ModelRc, VecModel};
 use songs_proto::moosync::types::Song;
@@ -414,7 +416,7 @@ fn resolve_current_song_covers(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn update_player_event_props(player_props: &PlayerProps, event: &PlayerEvent) {
+pub(crate) fn update_player_event_props(player_props: &PlayerProps, event: &PlayerEvent) {
     match event {
         PlayerEvent::Play(_) => {
             player_props.set_playing(true);
@@ -431,13 +433,45 @@ fn update_player_event_props(player_props: &PlayerProps, event: &PlayerEvent) {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
+fn apply_current_song(
+    main_window_weak: slint::Weak<MainWindow>,
+    state_manager: &'static StateManager,
+    song: Option<Song>,
+) {
+    let _ = slint::invoke_from_event_loop(move || {
+        let Some(main_window) = main_window_weak.upgrade() else {
+            return;
+        };
+        let song_model = song
+            .map(SongModel::from)
+            .unwrap_or_else(|| SongModel::from(Song::default()));
+        main_window
+            .global::<PlayerProps>()
+            .set_current_song(song_model.clone());
+        resolve_current_song_covers(&main_window, state_manager, song_model);
+    });
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn apply_player_event(main_window_weak: slint::Weak<MainWindow>, event: PlayerEventMessage) {
+    let _ = slint::invoke_from_event_loop(move || {
+        let Some(main_window) = main_window_weak.upgrade() else {
+            return;
+        };
+        if let Some(ev) = &event.event {
+            let player_props = main_window.global::<PlayerProps>();
+            update_player_event_props(&player_props, ev);
+        }
+    });
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
 fn setup_player_listener(main_window: &'static MainWindow, state_manager: &'static StateManager) {
     let main_window_weak = main_window.as_weak();
     tokio::spawn(
         async move {
             let player_handler = state_manager.get_player_handler();
 
-            // Set initial repeat mode and current song
             let repeat_mode = player_handler.get_repeat_mode();
             let current_song = player_handler.get_current_song();
             let mw_weak_init = main_window_weak.clone();
@@ -445,29 +479,13 @@ fn setup_player_listener(main_window: &'static MainWindow, state_manager: &'stat
                 if let Some(main_window) = mw_weak_init.upgrade() {
                     let player_props = main_window.global::<PlayerProps>();
                     player_props.set_repeat_mode(repeat_mode as i32);
-                    if let Some(song) = current_song {
-                        let song_model = SongModel::from(song);
-                        player_props.set_current_song(song_model.clone());
-                        resolve_current_song_covers(&main_window, state_manager, song_model);
-                    }
                 }
             });
+            apply_current_song(main_window_weak.clone(), state_manager, current_song);
 
             let mw_weak_song = main_window_weak.clone();
             player_handler.on_song_changed.listen(move |song| {
-                let mw_weak = mw_weak_song.clone();
-                let _ = slint::invoke_from_event_loop(move || {
-                    if let Some(main_window) = mw_weak.upgrade() {
-                        let song_model = match song {
-                            Some(s) => SongModel::from(s),
-                            None => SongModel::from(Song::default()),
-                        };
-                        main_window
-                            .global::<PlayerProps>()
-                            .set_current_song(song_model.clone());
-                        resolve_current_song_covers(&main_window, state_manager, song_model);
-                    }
-                });
+                apply_current_song(mw_weak_song.clone(), state_manager, song);
             });
 
             let mw_weak_repeat = main_window_weak.clone();
@@ -484,16 +502,7 @@ fn setup_player_listener(main_window: &'static MainWindow, state_manager: &'stat
 
             let mw_weak_event = main_window_weak.clone();
             player_handler.on_player_event.listen(move |event| {
-                let event_cloned = event.clone();
-                let mw_weak = mw_weak_event.clone();
-                let _ = slint::invoke_from_event_loop(move || {
-                    if let Some(main_window) = mw_weak.upgrade() {
-                        if let Some(ev) = &event_cloned.event {
-                            let player_props = main_window.global::<PlayerProps>();
-                            update_player_event_props(&player_props, ev);
-                        }
-                    }
-                });
+                apply_player_event(mw_weak_event.clone(), event);
             });
         }
         .in_current_span(),

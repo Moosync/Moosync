@@ -473,7 +473,7 @@ impl TryFrom<&Extension> for Arc<ExtismContext> {
 
 impl ExtismContext {
     #[tracing::instrument(level = "debug", skip_all)]
-    fn get_allowed_paths(
+    pub(crate) fn get_allowed_paths(
         permissions: &ManifestPermissions,
         ext_cache_dir: &Path,
     ) -> HashMap<String, PathBuf> {

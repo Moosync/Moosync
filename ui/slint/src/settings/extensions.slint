@@ -136,9 +136,7 @@ component ExtensionsManifest inherits VerticalLayout {
                                 }
                             }
 
-                            if item.loading: Spinner {
-                                active: true;
-                            }
+                            if item.loading: Spinner { }
 
                             toggle_touch := TouchArea {
                                 width: Theme.toggleWidth;
@@ -151,8 +149,6 @@ component ExtensionsManifest inherits VerticalLayout {
                                 }
 
                                 Rectangle {
-                                    width: 100%;
-                                    height: 100%;
                                     border-radius: self.height / 2;
                                     background: item.is_installed ? (toggle_touch.has-hover ? Theme.accent.brighter(0.1) : Theme.accent) : (toggle_touch.has-hover ? Theme.textSecondary.brighter(0.1) : Theme.textSecondary);
 

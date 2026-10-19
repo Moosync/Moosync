@@ -54,6 +54,14 @@ impl SystemPageHandler {
     pub fn get_preferences() -> Vec<ProtoPreferenceItem> { clone_lazy_preferences(PREFERENCES) }
 
     #[tracing::instrument(level = "debug", skip_all)]
+    pub(crate) fn render_system(main_window: &MainWindow, items: Vec<ProtoPreferenceItem>) {
+        let slint_items: Vec<PreferenceItem> =
+            items.into_iter().map(PreferenceItem::from).collect();
+        let prefs_global = main_window.global::<AppPreferences>();
+        prefs_global.set_system_items(ModelRc::new(VecModel::from(slint_items)));
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
     pub async fn refresh_preferences(
         main_window_weak: slint::Weak<MainWindow>,
         state_manager: &'static StateManager,

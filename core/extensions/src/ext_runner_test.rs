@@ -222,4 +222,42 @@ async fn test_ext_runner_dynamic_extension_installation(runner_context: TestRunn
 
     assert!(Arc::ptr_eq(&ext1_arc_first, &ext1_arc_second));
     assert_eq!(ext2_arc.manifest.name, "ext.two");
+
+    runner.remove_extension("ext.one");
+    assert_len_eq_x!(&runner.get_installed_extensions(), 1);
+    assert!(runner.get_extension("ext.one").is_err());
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_ext_runner_missing_and_direct_manifests(runner_context: TestRunnerContext) {
+    let TestRunnerContext { runner, _temp_dir } = runner_context;
+    let ext_dir = _temp_dir.path().join("exts");
+
+    let manifest = extensions_proto::moosync::types::ExtensionManifest {
+        name: "direct.ext".to_string(),
+        display_name: "Direct Ext".to_string(),
+        version: "1.0.0".to_string(),
+        ..Default::default()
+    };
+    fs::write(
+        ext_dir.join("manifest.pb"),
+        prost::Message::encode_to_vec(&manifest),
+    )
+    .unwrap();
+
+    let invalid_dir = ext_dir.join("corrupt_sub");
+    fs::create_dir_all(&invalid_dir).unwrap();
+    fs::write(invalid_dir.join("manifest.pb"), b"corrupt bytes").unwrap();
+
+    let reply_handler = Arc::new(DummyReply);
+    runner.spawn_extensions(reply_handler);
+
+    let non_existent_runner = ExtensionHandlerInner::new(
+        _temp_dir.path().join("does_not_exist"),
+        _temp_dir.path().join("cache"),
+    );
+    let missing_installed = non_existent_runner.get_installed_extensions();
+    assert_is_empty!(&missing_installed);
 }

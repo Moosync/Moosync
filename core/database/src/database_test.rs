@@ -1683,3 +1683,74 @@ fn test_remove_songs_outside_directories(db_context: TestDbContext) {
     assert!(titles.contains(&"Stream".to_string()));
     assert!(!titles.contains(&"Outside".to_string()));
 }
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_get_entities_by_mbid_and_id(db_context: TestDbContext) {
+    let TestDbContext { db, .. } = db_context;
+
+    let mut song = create_test_song("MBID Song", "/music/mbid.mp3");
+    song.artists = vec![Artist {
+        artist_name: Some("MBID Artist".to_string()),
+        artist_mbid: Some("mbid-12345".to_string()),
+        ..Default::default()
+    }];
+    song.genre = vec![Genre {
+        genre_name: Some("MBID Genre".to_string()),
+        ..Default::default()
+    }];
+    let inserted = db.insert_songs(vec![song]).unwrap();
+    assert_len_eq_x!(&inserted, 1);
+
+    let entity_artist = db
+        .get_entity_by_options(GetEntityOptions {
+            artist: Some(Artist {
+                artist_mbid: Some("mbid-12345".to_string()),
+                ..Default::default()
+            }),
+            inclusive: Some(true),
+            ..Default::default()
+        })
+        .unwrap();
+    let artists_by_mbid = match entity_artist.result {
+        Some(EntityResultVariant::Artists(a)) => a.artists,
+        _ => panic!("expected artists"),
+    };
+    assert_len_eq_x!(&artists_by_mbid, 1);
+    assert_eq!(
+        artists_by_mbid[0].artist_name.as_deref(),
+        Some("MBID Artist")
+    );
+
+    let all_genres_res = db
+        .get_entity_by_options(GetEntityOptions {
+            genre: Some(Genre::default()),
+            inclusive: Some(true),
+            ..Default::default()
+        })
+        .unwrap();
+    let all_genres = match all_genres_res.result {
+        Some(EntityResultVariant::Genres(g)) => g.genres,
+        _ => panic!("expected genres"),
+    };
+    assert!(!all_genres.is_empty());
+    let genre_id = all_genres[0].genre_id.clone().unwrap();
+
+    let entity_genre = db
+        .get_entity_by_options(GetEntityOptions {
+            genre: Some(Genre {
+                genre_id: Some(genre_id.clone()),
+                ..Default::default()
+            }),
+            inclusive: Some(true),
+            ..Default::default()
+        })
+        .unwrap();
+    let genres_by_id = match entity_genre.result {
+        Some(EntityResultVariant::Genres(g)) => g.genres,
+        _ => panic!("expected genres"),
+    };
+    assert_len_eq_x!(&genres_by_id, 1);
+    assert_eq!(genres_by_id[0].genre_id.as_ref(), Some(&genre_id));
+}

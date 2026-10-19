@@ -16,13 +16,16 @@
 
 use std::time::Duration;
 
-use assertables::assert_ok_eq_x;
+use assertables::{assert_ok, assert_ok_eq_x};
 use extensions_proto::moosync::types::PlayerState;
 use rstest::{fixture, rstest};
 use tokio::sync::mpsc::unbounded_channel;
 use tracing_test::traced_test;
 
-use super::{AudioPlayerContext, DummyAudioPlayerContext};
+use super::{
+    AudioPlayerContext, DummyAudioPlayerContext, PersistContext, RodioPlayerContext,
+    file_persist::FilePersist,
+};
 use crate::source::ValidSrc;
 
 #[fixture]
@@ -72,4 +75,60 @@ fn test_dummy_audio_player_context_operations(dummy_player_context: DummyAudioPl
         PlayerState::Stopped
     );
     assert_ok_eq_x!(dummy_player_context.get_current_pos(), Duration::default());
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_file_persist_lifecycle() {
+    let tmp = tempdir::TempDir::new("test_file_persist").unwrap();
+    let persist = FilePersist::new(tmp.path().join("nested"));
+
+    let loaded_default = persist.load().unwrap();
+    assert_eq!(
+        loaded_default,
+        player_proto::moosync::types::PlayerData::default()
+    );
+
+    let data = player_proto::moosync::types::PlayerData {
+        current_idx: 3,
+        ..Default::default()
+    };
+    let persist_res = persist.persist(&data);
+    assert!(persist_res.is_ok());
+
+    let loaded_saved = persist.load().unwrap();
+    assert_eq!(loaded_saved.current_idx, 3);
+
+    std::fs::write(
+        tmp.path().join("nested").join("player_state.pb"),
+        b"corrupted bytes",
+    )
+    .unwrap();
+    let load_corrupt = persist.load();
+    assert!(load_corrupt.is_err());
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_rodio_player_context_operations() {
+    let ctx = RodioPlayerContext::default();
+    assert_ok!(ctx.play());
+    assert_ok!(ctx.pause());
+    assert_ok!(ctx.stop());
+    assert_ok!(ctx.set_volume(80));
+    assert_ok_eq_x!(ctx.get_volume(), 100);
+    assert_ok!(ctx.seek(Duration::from_secs(5)));
+    assert_ok_eq_x!(ctx.get_current_pos(), Duration::default());
+    assert_ok_eq_x!(ctx.get_player_state(), PlayerState::Stopped);
+
+    let tmp = tempdir::TempDir::new("test_rodio_can_play").unwrap();
+    let file_path = tmp.path().join("song.mp3");
+    std::fs::write(&file_path, b"dummy audio").unwrap();
+    assert!(ctx.can_play(&ValidSrc::Path(file_path)));
+    assert!(!ctx.can_play(&ValidSrc::Path(tmp.path().join("nonexistent.mp3"))));
+    assert!(ctx.can_play(&ValidSrc::new_url("https://example.com/stream.mp3")));
+    assert!(ctx.can_play(&ValidSrc::new_url("http://example.com/stream.mp3")));
+    assert!(!ctx.can_play(&ValidSrc::new_url("file:///test")));
 }

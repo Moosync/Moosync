@@ -21,8 +21,6 @@ export component CardView inherits VerticalLayout {
             height: parent.height;
             width: parent.width;
             source: Utils.load_image_or_default(root.cover-img, DefaultIconType.Entity);
-            horizontal-alignment: center;
-            vertical-alignment: center;
             image-fit: cover;
             image-rendering: pixelated;
         }
@@ -52,7 +50,6 @@ export component CardView inherits VerticalLayout {
             text: root.title;
             font-size: Theme.modelTitle;
             color: Theme.textPrimary;
-            horizontal-alignment: start;
             overflow: elide;
         }
     }

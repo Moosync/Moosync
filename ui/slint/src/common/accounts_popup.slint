@@ -16,7 +16,6 @@ export component AccountItemButton inherits Button {
     width: 100%;
     height: Theme.accountItemHeight;
     border-radius: Theme.accountItemBorderRadius;
-    accessible-role: button;
     accessible-label: !root.item.logged_in ? @tr("Login") : @tr("Logout");
 
     background: root.item.bg_color.alpha > 0 ? (
@@ -55,7 +54,6 @@ export component AccountItemButton inherits Button {
         Rectangle {
             width: Theme.iconSizeMd;
             height: Theme.iconSizeMd;
-            background: transparent;
         }
     }
 }

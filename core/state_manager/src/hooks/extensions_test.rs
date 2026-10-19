@@ -14,19 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{
-    sync::{
-        Arc,
-        atomic::{AtomicBool, Ordering},
-    },
-    time::Duration,
-};
-
 use assertables::assert_ok;
-use preferences::keys::EXTENSION_REGISTRIES;
-use preferences_proto::moosync::types::{
-    PreferenceItem, PreferenceValue, StringList, preference_value,
-};
 use rstest::{fixture, rstest};
 use tempdir::TempDir;
 use tracing_test::traced_test;
@@ -34,7 +22,7 @@ use types::plugin::PluginContext;
 
 use crate::{
     StateManager,
-    hooks::{Hook, extensions::ExtensionsHook, registries::ExtensionRegistriesHook},
+    hooks::{Hook, extensions::ExtensionsHook},
 };
 
 struct TestSmContext {
@@ -68,49 +56,16 @@ fn sm_context() -> TestSmContext {
 async fn test_extensions_hook_on_startup(sm_context: TestSmContext) {
     let TestSmContext { sm, .. } = sm_context;
     let hook = ExtensionsHook::new();
-    assert_ok!(hook.on_startup(&sm).await);
-}
+    let (tx, mut rx) = tokio::sync::mpsc::channel(1);
+    let _handle = sm
+        .get_extension_handler()
+        .on_extensions_updated
+        .listen(move |_| {
+            let _ = tx.try_send(());
+        });
 
-#[rstest]
-#[tokio::test]
-#[traced_test]
-#[tracing::instrument(level = "debug", skip_all)]
-async fn test_extension_registries_hook_on_startup(sm_context: TestSmContext) {
-    let TestSmContext { sm, .. } = sm_context;
-    let hook = ExtensionRegistriesHook::new();
-    assert_ok!(hook.on_startup(&sm).await);
-}
-
-#[rstest]
-#[tokio::test]
-#[traced_test]
-#[tracing::instrument(level = "debug", skip_all)]
-async fn test_extension_registries_hook_triggers_update_on_registry_change(
-    sm_context: TestSmContext,
-) {
-    let TestSmContext { sm, .. } = sm_context;
-    let hook = ExtensionRegistriesHook::new();
     assert_ok!(hook.on_startup(&sm).await);
 
-    let updated_flag = Arc::new(AtomicBool::new(false));
-    let ext = sm.get_extension_handler();
-    let flag_clone = updated_flag.clone();
-    let _cancel = ext.on_extensions_updated.listen(move |_| {
-        flag_clone.store(true, Ordering::SeqCst);
-    });
-
-    let pref = sm.get_preference_config();
-    pref.save(PreferenceItem {
-        id: EXTENSION_REGISTRIES.id.clone(),
-        value: Some(PreferenceValue {
-            value: Some(preference_value::Value::ListValue(StringList {
-                values: vec!["https://example.com/new_registry.json".to_string()],
-            })),
-        }),
-        ..EXTENSION_REGISTRIES.clone()
-    })
-    .unwrap();
-    tokio::time::sleep(Duration::from_millis(50)).await;
-
-    assert!(updated_flag.load(Ordering::SeqCst));
+    let received = tokio::time::timeout(std::time::Duration::from_millis(500), rx.recv()).await;
+    assert!(received.is_ok());
 }

@@ -53,7 +53,7 @@ impl AllSongsPageHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    async fn fetch_songs(state_manager: &StateManager) -> Result<Vec<Song>, UiError> {
+    pub(crate) async fn fetch_songs(state_manager: &StateManager) -> Result<Vec<Song>, UiError> {
         tracing::debug!("Fetching all songs from database");
         let database = state_manager.get_database();
         let songs = database.get_songs_by_options(GetSongOptions {
@@ -64,7 +64,11 @@ impl AllSongsPageHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn set_songs(main_window: &MainWindow, state_manager: &StateManager, songs: Vec<Song>) {
+    pub(crate) fn set_songs(
+        main_window: &MainWindow,
+        state_manager: &StateManager,
+        songs: Vec<Song>,
+    ) {
         let songs_view = songs.into_iter().map(Into::into).collect::<Vec<_>>();
         let model = make_lazy_song_model(main_window, state_manager, songs_view);
         main_window.global::<AllSongsPageProps>().set_songs(model);

@@ -16,11 +16,11 @@
 
 use preferences::keys::{MUSIC_PATHS, PreferenceItemExt};
 use rstest::rstest;
-use slint::ComponentHandle;
+use slint::{ComponentHandle, Model};
 use tracing_test::traced_test;
 
 use crate::{
-    MainWindow,
+    AppPreferences, MainWindow,
     pages::PageHandler,
     settings::{handle_preference_change, paths::PathsPageHandler},
     test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
@@ -86,4 +86,16 @@ async fn test_paths_page_handler_handle_change_music_paths(
     let config = sm.get_preference_config();
     let paths = config.load(&MUSIC_PATHS).value::<Vec<String>>().unwrap();
     assert!(paths.contains(&"/test/path".to_string()));
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_paths_page_handler_render_paths(main_window: MainWindow) {
+    let prefs = PathsPageHandler::get_preferences();
+
+    PathsPageHandler::render_paths(&main_window, prefs);
+
+    let items = main_window.global::<AppPreferences>().get_paths_items();
+    assert_eq!(items.row_count(), 7);
 }

@@ -49,7 +49,6 @@ export component SavePlaylistModal inherits Modal {
                 subtitle: "";
                 placeholder: @tr("e.g., My Queue Playlist");
                 value <=> root.playlist_name;
-                inputType: InputType.text;
             }
 
             TextInputGroup {
@@ -57,7 +56,6 @@ export component SavePlaylistModal inherits Modal {
                 subtitle: "";
                 placeholder: @tr("e.g., Chill vibes and favorites");
                 value <=> root.playlist_description;
-                inputType: InputType.text;
             }
 
             Rectangle {

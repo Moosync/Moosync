@@ -47,7 +47,6 @@ export component SaveThemeModal inherits Modal {
                 subtitle: @tr("A short, distinct name");
                 placeholder: @tr("e.g., Midnight Blue");
                 value <=> root.theme_name;
-                inputType: InputType.text;
             }
 
             TextInputGroup {
@@ -55,7 +54,6 @@ export component SaveThemeModal inherits Modal {
                 subtitle: @tr("Who created this theme?");
                 placeholder: @tr("Your name");
                 value <=> root.theme_author;
-                inputType: InputType.text;
             }
 
             TextInputGroup {
@@ -63,7 +61,6 @@ export component SaveThemeModal inherits Modal {
                 subtitle: @tr("A brief summary of the aesthetics");
                 placeholder: @tr("High contrast dark theme...");
                 value <=> root.theme_desc;
-                inputType: InputType.text;
             }
 
             HorizontalLayout {

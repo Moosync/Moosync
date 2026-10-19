@@ -230,3 +230,78 @@ fn test_decoder_with_decryption_key() {
     let decoder = FFMPEGDecoder::open(PATH_48K, Some(key), 48000);
     assert!(decoder.is_ok());
 }
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_decoder_source_properties_and_sample_assertions() {
+    let decoder =
+        FFMPEGDecoder::open(PATH_48K, None, 48000).expect("Failed to open test audio file");
+
+    let channels = decoder.channels();
+    let sample_rate = decoder.sample_rate();
+    let duration = decoder.total_duration();
+    let span_len = decoder.current_span_len();
+
+    assert_eq!(channels.get(), 2);
+    assert_eq!(sample_rate.get(), 48000);
+    assert!(duration.is_some());
+    assert!(span_len.is_none());
+
+    let samples: Vec<f32> = decoder.take(1000).collect();
+    assert_len_eq_x!(&samples, 1000);
+    assert!(samples.iter().all(|&s| (-1.0..=1.0).contains(&s)));
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_decoder_error_to_seek_error_conversion() {
+    let err = crate::rodio::decoder::DecoderError::AV(-1);
+    let seek_err: rodio::source::SeekError = err.into();
+
+    assert!(matches!(seek_err, rodio::source::SeekError::Other(_)));
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_decoder_fallback_sample_rate() {
+    let decoder = FFMPEGDecoder::open(PATH_48K, None, 0);
+    assert!(decoder.is_ok());
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_decoder_build_format_options() {
+    let opts =
+        FFMPEGDecoder::build_format_options("https://stream.example.com", Some("prefix:key123"));
+    assert!(opts.is_some());
+
+    let opts_local = FFMPEGDecoder::build_format_options("/local/path/song.mp3", None);
+    assert!(opts_local.is_none());
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_calculate_seek_timestamp_edge_cases() {
+    let zero_den = rsmpeg::ffi::AVRational { num: 1, den: 0 };
+    assert_eq!(
+        crate::rodio::decoder::calculate_seek_timestamp(Duration::from_secs(5), zero_den),
+        0
+    );
+
+    let zero_num = rsmpeg::ffi::AVRational { num: 0, den: 1000 };
+    assert_eq!(
+        crate::rodio::decoder::calculate_seek_timestamp(Duration::from_secs(5), zero_num),
+        0
+    );
+
+    let valid = rsmpeg::ffi::AVRational { num: 1, den: 1000 };
+    assert_eq!(
+        crate::rodio::decoder::calculate_seek_timestamp(Duration::from_secs(5), valid),
+        5000
+    );
+}

@@ -10,79 +10,48 @@ FN_RE = re.compile(r'^\s*(?:pub(?:\([^)]*\))?\s+)?(?:async\s+)?(?:const\s+)?fn\s
 # Regex to match async blocks / async closures (not async fn)
 ASYNC_BLOCK_RE = re.compile(r'\basync\b(?:\s+move)?(?:\s*\|[^|]*\|)?\s*\{')
 
-# Regex to match ignore directive with a non-empty reason
-# Example: // moosync::no_instrument(reason = "hot loop: called per audio sample")
-IGNORE_DIRECTIVE_RE = re.compile(r'^\s*//\s*moosync::no_instrument\s*\(\s*reason\s*=\s*["\']([^"\']+)["\']\s*\)')
+try:
+    from tools.instrument_common import is_valid_rs_file, get_all_rs_files, IGNORE_DIRECTIVE_RE
+except ImportError:
+    from instrument_common import is_valid_rs_file, get_all_rs_files, IGNORE_DIRECTIVE_RE
 
-def is_valid_rs_file(root, file):
-    if not file.endswith(".rs"):
-        return False
-    if "test" in file or "bench" in file or file == "build.rs":
-        return False
-    if "plugin_macro" in root or "theme_macro" in root or "benches" in root:
-        return False
-    return True
+def skip_line_comment(content, pos, length):
+    newline_pos = content.find('\n', pos)
+    return newline_pos if newline_pos != -1 else length
 
-def get_all_rs_files(project_root):
-    rs_files = []
-    search_dirs = [
-        os.path.join(project_root, "core"),
-        os.path.join(project_root, "ui", "slint", "src")
-    ]
-    for search_dir in search_dirs:
-        if not os.path.exists(search_dir):
-            continue
-        for root, _, files in os.walk(search_dir):
-            for file in files:
-                if is_valid_rs_file(root, file):
-                    rs_files.append(os.path.relpath(os.path.join(root, file), project_root))
-    return rs_files
+def skip_block_comment(content, pos, length):
+    end_pos = content.find('*/', pos)
+    return end_pos + 1 if end_pos != -1 else length
+
+def skip_quoted_literal(content, pos, length, quote_char):
+    pos += 1
+    while pos < length:
+        if content[pos] == '\\':
+            pos += 2
+        elif content[pos] == quote_char:
+            return pos
+        else:
+            pos += 1
+    return length
 
 def find_matching_brace(content, brace_pos, length):
     depth = 0
-    in_string = False
-    in_char = False
-    in_line_comment = False
-    in_block_comment = False
     pos = brace_pos
-
     while pos < length:
         ch = content[pos]
-        if in_line_comment:
-            if ch == '\n':
-                in_line_comment = False
-        elif in_block_comment:
-            if ch == '*' and pos + 1 < length and content[pos + 1] == '/':
-                in_block_comment = False
-                pos += 1
-        elif in_string:
-            if ch == '\\':
-                pos += 1
-            elif ch == '"':
-                in_string = False
-        elif in_char:
-            if ch == '\\':
-                pos += 1
-            elif ch == "'":
-                in_char = False
-        else:
-            if ch == '/' and pos + 1 < length:
-                if content[pos + 1] == '/':
-                    in_line_comment = True
-                    pos += 1
-                elif content[pos + 1] == '*':
-                    in_block_comment = True
-                    pos += 1
-            elif ch == '"':
-                in_string = True
-            elif ch == "'":
-                in_char = True
-            elif ch == '{':
-                depth += 1
-            elif ch == '}':
-                depth -= 1
-                if depth == 0:
-                    return pos
+        if ch == '/' and pos + 1 < length:
+            if content[pos + 1] == '/':
+                pos = skip_line_comment(content, pos + 2, length)
+            elif content[pos + 1] == '*':
+                pos = skip_block_comment(content, pos + 2, length)
+        elif ch in ('"', "'"):
+            pos = skip_quoted_literal(content, pos, length, ch)
+        elif ch == '{':
+            depth += 1
+        elif ch == '}':
+            depth -= 1
+            if depth == 0:
+                return pos
         pos += 1
     return -1
 
@@ -193,6 +162,42 @@ def has_function_body(lines, idx):
                 return True
     return True
 
+def should_skip_scope(line, scope_state):
+    striped = line.strip()
+    if "mod test" in striped or "mod tests" in striped:
+        scope_state["in_test"] = True
+    if striped.startswith(("pub trait ", "trait ")):
+        scope_state["in_trait"] = True
+
+    if "{" in line:
+        scope_state["braces"] += line.count("{")
+    if "}" in line:
+        scope_state["braces"] -= line.count("}")
+        if scope_state["braces"] <= 0:
+            scope_state["in_test"] = False
+            scope_state["in_trait"] = False
+            scope_state["braces"] = 0
+
+    return scope_state["in_test"] or scope_state["in_trait"]
+
+def check_function_instrumentation(lines, idx, line):
+    match = FN_RE.match(line)
+    if not match:
+        return None
+    fn_name = match.group(1)
+    if fn_name in ["main", "default", "from", "into", "try_from", "fmt", "clone", "drop"]:
+        return None
+
+    striped = line.strip()
+    ignored, instrumented, invalid_err = inspect_preceding_attributes(lines, idx, fn_name, striped)
+    if invalid_err:
+        return invalid_err
+    if ignored or instrumented:
+        return None
+    if has_function_body(lines, idx):
+        return (idx + 1, f"Function '{fn_name}'", striped, "Function is missing #[tracing::instrument]")
+    return None
+
 def check_file(filepath):
     if not os.path.exists(filepath):
         return []
@@ -202,53 +207,17 @@ def check_file(filepath):
 
     lines = content.splitlines()
     missing = []
-    in_test_mod = False
-    in_trait_def = False
-    brace_count = 0
+    scope_state = {"in_test": False, "in_trait": False, "braces": 0}
 
     for idx, line in enumerate(lines):
-        striped = line.strip()
-
-        if "mod test" in striped or "mod tests" in striped:
-            in_test_mod = True
-
-        if striped.startswith(("pub trait ", "trait ")):
-            in_trait_def = True
-
-        if "{" in line:
-            brace_count += line.count("{")
-        if "}" in line:
-            brace_count -= line.count("}")
-            if brace_count <= 0:
-                in_test_mod = False
-                in_trait_def = False
-                brace_count = 0
-
-        if in_test_mod or in_trait_def:
+        if should_skip_scope(line, scope_state):
             continue
+        err = check_function_instrumentation(lines, idx, line)
+        if err:
+            missing.append(err)
 
-        match = FN_RE.match(line)
-        if match:
-            fn_name = match.group(1)
-            if fn_name in ["main", "default", "from", "into", "try_from", "fmt", "clone", "drop"]:
-                continue
-
-            ignored, instrumented, invalid_err = inspect_preceding_attributes(lines, idx, fn_name, striped)
-            if invalid_err:
-                missing.append(invalid_err)
-                continue
-
-            if ignored or instrumented:
-                continue
-
-            if has_function_body(lines, idx):
-                missing.append((idx + 1, f"Function '{fn_name}'", striped, "Function is missing #[tracing::instrument]"))
-
-    async_errors = check_async_blocks(content, lines)
-    missing.extend(async_errors)
+    missing.extend(check_async_blocks(content, lines))
     missing.sort(key=lambda x: x[0])
-    return missing
-
     return missing
 
 def main():

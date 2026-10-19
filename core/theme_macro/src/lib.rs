@@ -1,6 +1,7 @@
 extern crate proc_macro;
 
 use proc_macro::TokenStream;
+use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 
 #[cfg(test)]
@@ -16,7 +17,11 @@ pub fn generate_theme_impl(input: TokenStream) -> TokenStream {
             path_str, e
         ),
     };
-    let properties = parse_slint_theme(&content);
+    generate_theme_impl_from_content(&content).into()
+}
+
+pub(crate) fn generate_theme_impl_from_content(content: &str) -> TokenStream2 {
+    let properties = parse_slint_theme(content);
 
     let mut get_arms = Vec::new();
     let mut set_arms = Vec::new();
@@ -181,7 +186,7 @@ pub fn generate_theme_impl(input: TokenStream) -> TokenStream {
         }
     };
 
-    expanded.into()
+    expanded
 }
 
 struct ThemeApplyInput {
@@ -224,12 +229,24 @@ pub fn generate_theme_apply(input: TokenStream) -> TokenStream {
             path_str, e
         ),
     };
-    let properties = parse_slint_theme(&content);
+    generate_theme_apply_from_content(
+        &content,
+        &input.theme_global,
+        &input.name,
+        &input.set_color,
+        &input.set_length,
+    )
+    .into()
+}
 
-    let theme_global = &input.theme_global;
-    let name = &input.name;
-    let set_color = &input.set_color;
-    let set_length = &input.set_length;
+pub(crate) fn generate_theme_apply_from_content(
+    content: &str,
+    theme_global: &syn::Expr,
+    name: &syn::Expr,
+    set_color: &syn::Expr,
+    set_length: &syn::Expr,
+) -> TokenStream2 {
+    let properties = parse_slint_theme(content);
 
     let mut arms = Vec::new();
     for (name, prop_type, _) in properties {
@@ -246,14 +263,12 @@ pub fn generate_theme_apply(input: TokenStream) -> TokenStream {
         }
     }
 
-    let expanded = quote! {
+    quote! {
         match #name {
             #(#arms)*
             _ => {}
         }
-    };
-
-    expanded.into()
+    }
 }
 
 #[proc_macro]
@@ -266,7 +281,11 @@ pub fn generate_theme_ui_helpers(input: TokenStream) -> TokenStream {
             path_str, e
         ),
     };
-    let properties = parse_slint_theme(&content);
+    generate_theme_ui_helpers_from_content(&content).into()
+}
+
+pub(crate) fn generate_theme_ui_helpers_from_content(content: &str) -> TokenStream2 {
+    let properties = parse_slint_theme(content);
 
     let mut constant_pushers = Vec::new();
 
@@ -311,7 +330,7 @@ pub fn generate_theme_ui_helpers(input: TokenStream) -> TokenStream {
         }
     }
 
-    let expanded = quote! {
+    quote! {
         #[tracing::instrument(level = "debug", skip_all)]
         pub fn update_theme_constants_ui(main_window: &crate::MainWindow, theme: &themes_proto::moosync::types::ThemeDetails) {
             let theme_item = theme.get_theme_item_or_default();
@@ -326,9 +345,7 @@ pub fn generate_theme_ui_helpers(input: TokenStream) -> TokenStream {
             }
             main_window.global::<crate::ThemesPageProps>().set_theme_constants(slint::ModelRc::new(model));
         }
-    };
-
-    expanded.into()
+    }
 }
 
 fn find_file_in_ancestors(mut dir: std::path::PathBuf, path_str: &str) -> Option<String> {
@@ -434,6 +451,23 @@ fn parse_slint_theme(content: &str) -> Vec<(String, String, String)> {
     properties
 }
 
+fn skip_line_comment<I: Iterator<Item = char>>(chars: &mut I) {
+    for next_c in chars.by_ref() {
+        if next_c == '\n' {
+            break;
+        }
+    }
+}
+
+fn skip_block_comment<I: Iterator<Item = char>>(chars: &mut std::iter::Peekable<I>) {
+    while let Some(next_c) = chars.next() {
+        if next_c == '*' && chars.peek() == Some(&'/') {
+            chars.next();
+            break;
+        }
+    }
+}
+
 fn strip_comments(content: &str) -> String {
     let mut result = String::new();
     let mut chars = content.chars().peekable();
@@ -441,20 +475,11 @@ fn strip_comments(content: &str) -> String {
     while let Some(c) = chars.next() {
         if c == '/' && chars.peek() == Some(&'/') {
             chars.next();
-            for next_c in chars.by_ref() {
-                if next_c == '\n' {
-                    result.push('\n');
-                    break;
-                }
-            }
+            skip_line_comment(&mut chars);
+            result.push('\n');
         } else if c == '/' && chars.peek() == Some(&'*') {
             chars.next();
-            while let Some(next_c) = chars.next() {
-                if next_c == '*' && chars.peek() == Some(&'/') {
-                    chars.next();
-                    break;
-                }
-            }
+            skip_block_comment(&mut chars);
         } else {
             result.push(c);
         }

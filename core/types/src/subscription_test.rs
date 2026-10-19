@@ -142,3 +142,36 @@ fn test_to_filter_keys_multiple() {
     assert_len_eq_x!(&keys, 3);
     assert_eq!(keys, vec![1, 2, 3]);
 }
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_subscriber_list_default() {
+    let list: SubscriberList<String> = SubscriberList::default();
+    let counter = Arc::new(Mutex::new(0));
+    let counter_clone = counter.clone();
+    let _handle = list.listen(move |_| {
+        *counter_clone.lock().unwrap() += 1;
+    });
+
+    list.emit("test".to_string());
+
+    assert_eq!(*counter.lock().unwrap(), 1);
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_subscriber_list_clone() {
+    let list: SubscriberList<String> = SubscriberList::new();
+    let cloned_list = list.clone();
+    let counter = Arc::new(Mutex::new(0));
+    let counter_clone = counter.clone();
+    let _handle = cloned_list.listen(move |_| {
+        *counter_clone.lock().unwrap() += 1;
+    });
+
+    list.emit("test".to_string());
+
+    assert_eq!(*counter.lock().unwrap(), 1);
+}

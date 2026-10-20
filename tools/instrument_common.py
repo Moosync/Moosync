@@ -2,7 +2,7 @@ import os
 import re
 
 FN_START_RE = re.compile(r'^(\s*)(?:pub(?:\([^)]*\))?\s+)?(?:async\s+)?(?:const\s+)?fn\s+(\w+)')
-IGNORE_DIRECTIVE_RE = re.compile(r'^\s*//\s*moosync::no_instrument\s*\(\s*reason\s*=\s*["\']([^"\']+)["\']\s*\)')
+IGNORE_DIRECTIVE_RE = re.compile(r'moosync::no_instrument\s*\(\s*reason\s*=\s*["\']([^"\']+)["\']\s*\)')
 
 def is_valid_rs_file(root, file):
     if not file.endswith(".rs"):

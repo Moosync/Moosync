@@ -414,23 +414,8 @@ impl Database {
         conn: &mut rusqlite::Connection,
     ) -> Result<Vec<Album>, DatabaseError> {
         let mut query = "SELECT album_id, album_name, album_artist, album_coverpath_high, album_song_count, year, album_coverpath_low FROM albums".to_string();
-        let mut clauses = Vec::new();
-        let mut params = Vec::new();
-
-        if let Some(ref v) = options.album_id {
-            clauses.push("album_id = ?".to_string());
-            params.push(v as &dyn rusqlite::ToSql);
-        }
-        if let Some(ref v) = options.album_name {
-            clauses.push("album_name LIKE ?".to_string());
-            params.push(v as &dyn rusqlite::ToSql);
-        }
-
-        if !clauses.is_empty() {
-            let joiner = if inclusive { " AND " } else { " OR " };
-            query.push_str(" WHERE ");
-            query.push_str(&clauses.join(joiner));
-        }
+        let (clauses, params) = build_album_filter(&options, "");
+        apply_where_clause(&mut query, &clauses, inclusive);
 
         trace!("Getting albums");
         let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
@@ -451,27 +436,8 @@ impl Database {
         conn: &mut rusqlite::Connection,
     ) -> Result<Vec<Artist>, DatabaseError> {
         let mut query = "SELECT artist_id, artist_mbid, artist_name, artist_coverpath, artist_song_count, sanitized_artist_name FROM artists".to_string();
-        let mut clauses = Vec::new();
-        let mut params = Vec::new();
-
-        if let Some(ref v) = options.artist_id {
-            clauses.push("artist_id = ?".to_string());
-            params.push(v as &dyn rusqlite::ToSql);
-        }
-        if let Some(ref v) = options.artist_name {
-            clauses.push("artist_name LIKE ?".to_string());
-            params.push(v as &dyn rusqlite::ToSql);
-        }
-        if let Some(ref v) = options.artist_mbid {
-            clauses.push("artist_mbid = ?".to_string());
-            params.push(v as &dyn rusqlite::ToSql);
-        }
-
-        if !clauses.is_empty() {
-            let joiner = if inclusive { " AND " } else { " OR " };
-            query.push_str(" WHERE ");
-            query.push_str(&clauses.join(joiner));
-        }
+        let (clauses, params) = build_artist_filter(&options, "");
+        apply_where_clause(&mut query, &clauses, inclusive);
 
         trace!("Fetching artists");
         let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
@@ -492,23 +458,8 @@ impl Database {
         conn: &mut rusqlite::Connection,
     ) -> Result<Vec<Genre>, DatabaseError> {
         let mut query = "SELECT genre_id, genre_name, genre_song_count FROM genres".to_string();
-        let mut clauses = Vec::new();
-        let mut params = Vec::new();
-
-        if let Some(ref v) = options.genre_id {
-            clauses.push("genre_id = ?".to_string());
-            params.push(v as &dyn rusqlite::ToSql);
-        }
-        if let Some(ref v) = options.genre_name {
-            clauses.push("genre_name LIKE ?".to_string());
-            params.push(v as &dyn rusqlite::ToSql);
-        }
-
-        if !clauses.is_empty() {
-            let joiner = if inclusive { " AND " } else { " OR " };
-            query.push_str(" WHERE ");
-            query.push_str(&clauses.join(joiner));
-        }
+        let (clauses, params) = build_genre_filter(&options, "");
+        apply_where_clause(&mut query, &clauses, inclusive);
 
         trace!("Fetching genres");
         let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
@@ -529,27 +480,8 @@ impl Database {
         conn: &mut rusqlite::Connection,
     ) -> Result<Vec<Playlist>, DatabaseError> {
         let mut query = "SELECT playlist_id, playlist_name, playlist_coverpath, playlist_song_count, playlist_desc, playlist_path, extension, icon, library_item FROM playlists".to_string();
-        let mut clauses = Vec::new();
-        let mut params = Vec::new();
-
-        if let Some(ref v) = options.playlist_id {
-            clauses.push("playlist_id = ?".to_string());
-            params.push(v as &dyn rusqlite::ToSql);
-        }
-        if !options.playlist_name.is_empty() {
-            clauses.push("playlist_name LIKE ?".to_string());
-            params.push(&options.playlist_name as &dyn rusqlite::ToSql);
-        }
-        if let Some(ref v) = options.playlist_path {
-            clauses.push("playlist_path LIKE ?".to_string());
-            params.push(v as &dyn rusqlite::ToSql);
-        }
-
-        if !clauses.is_empty() {
-            let joiner = if inclusive { " AND " } else { " OR " };
-            query.push_str(" WHERE ");
-            query.push_str(&clauses.join(joiner));
-        }
+        let (clauses, params) = build_playlist_filter(&options, "");
+        apply_where_clause(&mut query, &clauses, inclusive);
 
         trace!("Fetching playlists");
         let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
@@ -2032,6 +1964,111 @@ fn insert_bulk_bridge_entries(
         tx.execute(&query, &*params).map_err(DatabaseError::Query)?;
     }
     Ok(())
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn apply_where_clause(query: &mut String, clauses: &[String], inclusive: bool) {
+    if !clauses.is_empty() {
+        let joiner = if inclusive { " AND " } else { " OR " };
+        query.push_str(" WHERE ");
+        query.push_str(&clauses.join(joiner));
+    }
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn build_album_filter<'a>(
+    options: &'a Album,
+    prefix: &str,
+) -> (Vec<String>, Vec<&'a dyn rusqlite::ToSql>) {
+    let mut clauses = Vec::new();
+    let mut params = Vec::new();
+    if let Some(ref v) = options.album_id {
+        clauses.push(format!("{prefix}album_id = ?"));
+        params.push(v as &dyn rusqlite::ToSql);
+    }
+    if let Some(ref v) = options.album_name {
+        clauses.push(format!("{prefix}album_name LIKE ?"));
+        params.push(v as &dyn rusqlite::ToSql);
+    }
+    (clauses, params)
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn build_artist_filter<'a>(
+    options: &'a Artist,
+    prefix: &str,
+) -> (Vec<String>, Vec<&'a dyn rusqlite::ToSql>) {
+    let mut clauses = Vec::new();
+    let mut params = Vec::new();
+    if let Some(ref v) = options.artist_id {
+        clauses.push(format!("{prefix}artist_id = ?"));
+        params.push(v as &dyn rusqlite::ToSql);
+    }
+    if let Some(ref v) = options.artist_name {
+        clauses.push(format!("{prefix}artist_name LIKE ?"));
+        params.push(v as &dyn rusqlite::ToSql);
+    }
+    if let Some(ref v) = options.artist_mbid {
+        clauses.push(format!("{prefix}artist_mbid = ?"));
+        params.push(v as &dyn rusqlite::ToSql);
+    }
+    (clauses, params)
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn build_genre_filter<'a>(
+    options: &'a Genre,
+    prefix: &str,
+) -> (Vec<String>, Vec<&'a dyn rusqlite::ToSql>) {
+    let mut clauses = Vec::new();
+    let mut params = Vec::new();
+    if let Some(ref v) = options.genre_id {
+        clauses.push(format!("{prefix}genre_id = ?"));
+        params.push(v as &dyn rusqlite::ToSql);
+    }
+    if let Some(ref v) = options.genre_name {
+        clauses.push(format!("{prefix}genre_name LIKE ?"));
+        params.push(v as &dyn rusqlite::ToSql);
+    }
+    (clauses, params)
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn build_playlist_filter<'a>(
+    options: &'a Playlist,
+    prefix: &str,
+) -> (Vec<String>, Vec<&'a dyn rusqlite::ToSql>) {
+    let mut clauses = Vec::new();
+    let mut params = Vec::new();
+    if let Some(ref v) = options.playlist_id {
+        clauses.push(format!("{prefix}playlist_id = ?"));
+        params.push(v as &dyn rusqlite::ToSql);
+    }
+    if !options.playlist_name.is_empty() {
+        clauses.push(format!("{prefix}playlist_name LIKE ?"));
+        params.push(&options.playlist_name as &dyn rusqlite::ToSql);
+    }
+    if let Some(ref v) = options.playlist_path {
+        clauses.push(format!("{prefix}playlist_path LIKE ?"));
+        params.push(v as &dyn rusqlite::ToSql);
+    }
+    (clauses, params)
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn query_inner_songs(
+    conn: &mut rusqlite::Connection,
+    query: &str,
+    params: &[&dyn rusqlite::ToSql],
+) -> Result<Vec<InnerSong>, DatabaseError> {
+    let mut stmt = conn.prepare(query).map_err(DatabaseError::Query)?;
+    let rows = stmt
+        .query_map(params, map_row_to_inner_song)
+        .map_err(DatabaseError::Query)?;
+    let songs = rows
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(DatabaseError::Query)?;
+    Ok(songs)
 }
 
 impl Plugin for Database {

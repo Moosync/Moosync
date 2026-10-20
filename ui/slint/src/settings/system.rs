@@ -55,10 +55,8 @@ impl SystemPageHandler {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub(crate) fn render_system(main_window: &MainWindow, items: Vec<ProtoPreferenceItem>) {
-        let slint_items: Vec<PreferenceItem> =
-            items.into_iter().map(PreferenceItem::from).collect();
         let prefs_global = main_window.global::<AppPreferences>();
-        prefs_global.set_system_items(ModelRc::new(VecModel::from(slint_items)));
+        prefs_global.set_system_items(to_preference_model(items));
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

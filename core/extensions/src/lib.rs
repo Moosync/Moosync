@@ -220,21 +220,6 @@ impl ExtensionHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub(crate) fn get_extension_version(
-        &self,
-        ext_path: PathBuf,
-    ) -> Result<String, ExtensionError> {
-        let manifest_path = ext_path.join("manifest.pb");
-        if manifest_path.exists() {
-            let package_manifest = ExtensionManifest::decode(&fs::read(manifest_path)?[..])?;
-
-            return Ok(package_manifest.version);
-        }
-
-        Err(ExtensionError::NoExtensionFound)
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_extension(&self, package_name: &str) -> Result<Arc<Extension>, ExtensionError> {
         self.inner.get_extension(package_name)
     }

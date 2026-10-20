@@ -7,6 +7,7 @@ use tracing_test::traced_test;
 use crate::{
     AlbumContentPageProps, ExtensionProviderItem, MainWindow, SongModel,
     error::UiError,
+    main_content::album_content::AlbumSongProvider,
     test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
     utils::{
         EntityContentCoordinator, EntitySongProvider, ExtensionPaginationManager, IntoVec,
@@ -27,31 +28,22 @@ impl EntitySongProvider for MockEntitySongProvider {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_songs(main_window: &MainWindow) -> Vec<SongModel> {
-        main_window
-            .global::<AlbumContentPageProps>()
-            .get_songs()
-            .into_vec()
+        AlbumSongProvider::get_songs(main_window)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn set_songs(main_window: &MainWindow, model: ModelRc<SongModel>) {
-        main_window
-            .global::<AlbumContentPageProps>()
-            .set_songs(model);
+        AlbumSongProvider::set_songs(main_window, model);
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_extensions(main_window: &MainWindow) -> ModelRc<ExtensionProviderItem> {
-        main_window
-            .global::<AlbumContentPageProps>()
-            .get_extension_providers()
+        AlbumSongProvider::get_extensions(main_window)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn set_extensions(main_window: &MainWindow, extensions: ModelRc<ExtensionProviderItem>) {
-        main_window
-            .global::<AlbumContentPageProps>()
-            .set_extension_providers(extensions);
+        AlbumSongProvider::set_extensions(main_window, extensions);
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

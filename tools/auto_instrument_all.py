@@ -1,21 +1,11 @@
 import os
 
 try:
-    from tools.instrument_common import FN_START_RE, IGNORE_DIRECTIVE_RE, get_all_rs_files
+    from tools.instrument_common import FN_START_RE, IGNORE_DIRECTIVE_RE, transform_rs_files
 except ImportError:
-    from instrument_common import FN_START_RE, IGNORE_DIRECTIVE_RE, get_all_rs_files
+    from instrument_common import FN_START_RE, IGNORE_DIRECTIVE_RE, transform_rs_files
 
-project_root = os.getcwd()
-files_to_instrument = get_all_rs_files(project_root)
-
-for rel_path in files_to_instrument:
-    path = os.path.join(project_root, rel_path)
-    if not os.path.exists(path):
-        continue
-    
-    with open(path, "r") as f:
-        lines = f.readlines()
-        
+def instrument_file(lines):
     new_lines = []
     idx = 0
     while idx < len(lines):
@@ -64,7 +54,7 @@ for rel_path in files_to_instrument:
 
             joined_comments = " ".join(reversed(comment_lines))
             if "moosync::no_instrument" in joined_comments:
-                directive_match = re.search(r'moosync::no_instrument\s*\(\s*reason\s*=\s*["\']([^"\']+)["\']\s*\)', joined_comments)
+                directive_match = IGNORE_DIRECTIVE_RE.search(joined_comments)
                 if directive_match and directive_match.group(1).strip():
                     is_ignored = True
 
@@ -118,7 +108,8 @@ for rel_path in files_to_instrument:
         new_lines.append(line)
         idx += 1
         
-    with open(path, "w") as f:
-        f.writelines(new_lines)
+    return new_lines
 
-print("All functions in all rs files instrumented with skip_all.")
+if __name__ == "__main__":
+    transform_rs_files(os.getcwd(), instrument_file)
+    print("All functions in all rs files instrumented with skip_all.")

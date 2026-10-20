@@ -37,10 +37,15 @@ impl Hook for PlayerHook {
                 let song = song.clone();
                 Box::new(Box::pin(
                     async move {
+                        tracing::debug!("Resolving playback details for song: {:?}", song);
                         let extension_handler = state_manager.get_extension_handler();
                         let extensions = extension_handler
                             .get_extensions_with_scope(ExtensionProviderScope::PlaybackDetails)
                             .await;
+                        tracing::debug!(
+                            "Found {} extensions with PlaybackDetails scope",
+                            extensions.len()
+                        );
                         let song_ref = &song;
                         let mut stream = extensions.with(|ext| async move {
                             ext.playback_details_requested(PlaybackDetailsRequestedRequest {

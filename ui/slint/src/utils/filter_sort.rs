@@ -95,5 +95,6 @@ pub fn filter_and_sort_songs(
         item_height,
         item_width,
         cache_dir,
+        false,
     ))
 }

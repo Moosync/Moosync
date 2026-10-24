@@ -6,8 +6,8 @@ use tracing_test::traced_test;
 use wiremock::{Mock, MockServer, ResponseTemplate, matchers::method};
 
 use super::{
-    find_cached_or_local_image, find_cached_or_local_path, load_image, load_image_opt,
-    resolve_extension_icon, resolve_image,
+    find_cached_low_path, find_cached_or_local_image, find_cached_or_local_path, load_image,
+    resolve_extension_icon, resolve_image, resolve_image_buffer,
 };
 
 #[fixture]
@@ -151,9 +151,8 @@ async fn test_resolve_image_network(temp_dir_fixture: TempDir) {
 #[rstest]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_load_image_and_opt(temp_dir_fixture: TempDir) {
+fn test_load_image(temp_dir_fixture: TempDir) {
     assert_eq!(load_image("").size().width, 0);
-    assert_none!(load_image_opt(""));
 
     let png_bytes = [
         0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44,
@@ -166,7 +165,6 @@ fn test_load_image_and_opt(temp_dir_fixture: TempDir) {
     std::fs::write(&local_file, png_bytes).unwrap();
 
     assert_eq!(load_image(&local_file).size().width, 1);
-    assert_eq!(load_image_opt(&local_file).unwrap().size().width, 1);
 }
 
 #[rstest]
@@ -195,4 +193,128 @@ fn test_resolve_extension_icon(temp_dir_fixture: TempDir) {
 
     let fallback_icon = resolve_extension_icon(None, Some(local_file.to_str().unwrap()));
     assert_eq!(fallback_icon.size().width, 1);
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_slint_pixel_buffer() {
+    fn assert_send<T: Send>() {}
+    assert_send::<slint::SharedPixelBuffer<slint::Rgba8Pixel>>();
+    let mut buffer = slint::SharedPixelBuffer::<slint::Rgba8Pixel>::new(2, 2);
+    let bytes = [255u8; 16];
+    buffer.make_mut_bytes().copy_from_slice(&bytes);
+    let img = slint::Image::from_rgba8(buffer);
+    assert_eq!(img.size().width, 2);
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_resolve_image_buffer_nonexistent(temp_dir_fixture: TempDir) {
+    let res = resolve_image_buffer("/non/existent/path.png", temp_dir_fixture.path(), false).await;
+
+    assert_none!(res);
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_resolve_image_buffer_local(temp_dir_fixture: TempDir) {
+    let png_bytes = [
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44,
+        0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1f,
+        0x15, 0xc4, 0x89, 0x00, 0x00, 0x00, 0x0a, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x63, 0x00,
+        0x01, 0x00, 0x00, 0x05, 0x00, 0x01, 0x0d, 0x0a, 0x2d, 0xb4, 0x00, 0x00, 0x00, 0x00, 0x49,
+        0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
+    ];
+    let local_file = temp_dir_fixture.path().join("local.png");
+    std::fs::write(&local_file, png_bytes).unwrap();
+
+    let res =
+        resolve_image_buffer(local_file.to_str().unwrap(), temp_dir_fixture.path(), false).await;
+
+    assert_some!(res.as_ref());
+    assert_eq!(res.unwrap().width(), 1);
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_resolve_image_buffer_network_and_disk_cache(temp_dir_fixture: TempDir) {
+    let server = MockServer::start().await;
+    let png_bytes = [
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44,
+        0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1f,
+        0x15, 0xc4, 0x89, 0x00, 0x00, 0x00, 0x0a, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x63, 0x00,
+        0x01, 0x00, 0x00, 0x05, 0x00, 0x01, 0x0d, 0x0a, 0x2d, 0xb4, 0x00, 0x00, 0x00, 0x00, 0x49,
+        0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
+    ];
+
+    Mock::given(method("GET"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(png_bytes.to_vec()))
+        .mount(&server)
+        .await;
+
+    let image_url = format!("{}/remote.png", server.uri());
+    let res = resolve_image_buffer(&image_url, temp_dir_fixture.path(), false).await;
+
+    assert_some!(res.as_ref());
+    assert_eq!(res.unwrap().width(), 1);
+
+    let mut low_cached = None;
+    for _ in 0..50 {
+        if let Some(path) = find_cached_low_path(&image_url, temp_dir_fixture.path()) {
+            low_cached = Some(path);
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+    }
+    assert_some!(low_cached);
+
+    let cached_res = resolve_image_buffer(&image_url, temp_dir_fixture.path(), false).await;
+    assert_some!(cached_res.as_ref());
+    assert_eq!(cached_res.unwrap().width(), 1);
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_resolve_image_buffer_high_res(temp_dir_fixture: TempDir) {
+    let server = MockServer::start().await;
+    let img = image::RgbaImage::new(1000, 1000);
+    let mut cursor = std::io::Cursor::new(Vec::new());
+    image::DynamicImage::ImageRgba8(img)
+        .write_to(&mut cursor, image::ImageFormat::Png)
+        .unwrap();
+    let png_bytes = cursor.into_inner();
+
+    Mock::given(method("GET"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(png_bytes))
+        .mount(&server)
+        .await;
+
+    let image_url = format!("{}/large.png", server.uri());
+    let high_res_buffer = resolve_image_buffer(&image_url, temp_dir_fixture.path(), true).await;
+
+    assert_some!(high_res_buffer.as_ref());
+    assert_eq!(high_res_buffer.unwrap().width(), 800);
+
+    let mut low_cached = None;
+    for _ in 0..50 {
+        if let Some(path) = find_cached_low_path(&image_url, temp_dir_fixture.path()) {
+            low_cached = Some(path);
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+    }
+    assert_some!(low_cached);
+
+    let low_res_buffer = resolve_image_buffer(&image_url, temp_dir_fixture.path(), false).await;
+    assert_some!(low_res_buffer.as_ref());
+    assert_eq!(low_res_buffer.unwrap().width(), 80);
 }

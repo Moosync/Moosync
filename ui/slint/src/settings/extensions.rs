@@ -85,6 +85,7 @@ impl ExtensionsPageHandler {
                 theme.get_extensionListItemHeight() as usize,
                 theme.get_extensionListItemWidth() as usize,
                 cache_dir,
+                false,
             )));
     }
 

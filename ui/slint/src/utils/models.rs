@@ -563,6 +563,7 @@ pub fn create_search_result(
             theme.get_cardHeight() as usize,
             theme.get_cardWidth() as usize,
             cache_dir.to_path_buf(),
+            true,
         )),
         artists: ModelRc::new(LazySongVecModel::new(
             res.artists
@@ -572,12 +573,14 @@ pub fn create_search_result(
             theme.get_cardHeight() as usize,
             theme.get_cardWidth() as usize,
             cache_dir.to_path_buf(),
+            true,
         )),
         genres: ModelRc::new(LazySongVecModel::new(
             res.genres.into_iter().map(GenreModel::from).collect(),
             theme.get_cardHeight() as usize,
             theme.get_cardWidth() as usize,
             cache_dir.to_path_buf(),
+            true,
         )),
         playlists: ModelRc::new(LazySongVecModel::new(
             res.playlists
@@ -587,12 +590,14 @@ pub fn create_search_result(
             theme.get_cardHeight() as usize,
             theme.get_cardWidth() as usize,
             cache_dir.to_path_buf(),
+            true,
         )),
         songs: ModelRc::new(LazySongVecModel::new(
             res.songs.into_iter().map(|s| (s, detail).into()).collect(),
             theme.get_songListItemHeight() as usize,
             theme.get_songListItemWidth() as usize,
             cache_dir.to_path_buf(),
+            false,
         )),
         extension: extension.into(),
         extension_icon,

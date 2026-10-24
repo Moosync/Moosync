@@ -9,7 +9,7 @@ use slint::{ComponentHandle, Image, Model, ModelNotify, ModelRc, ModelTracker, S
 use state_manager::StateManager;
 use tracing::{Instrument, trace};
 
-use super::{load_image, resolve_image};
+use super::resolve_image_buffer;
 use crate::{
     AlbumModel, ArtistModel, ExtensionItem, GenreModel, MainWindow, PlaylistModel, SongModel,
     Theme, WINDOW_EVENTS,
@@ -28,6 +28,7 @@ pub fn make_lazy_song_model(
         theme.get_songListItemHeight() as usize,
         theme.get_songListItemWidth() as usize,
         cache_dir,
+        false,
     ))
 }
 
@@ -44,6 +45,7 @@ pub fn make_lazy_card_model<T: LazyModel + 'static>(
         theme.get_cardHeight() as usize,
         theme.get_cardWidth() as usize,
         cache_dir,
+        true,
     ))
 }
 
@@ -61,11 +63,18 @@ pub struct LazySongVecModel<T: LazyModel> {
     prefetch_count: Rc<Cell<usize>>,
     allocated_rows: RefCell<VecDeque<usize>>,
     cache_dir: PathBuf,
+    high_res: bool,
 }
 
 impl<T: LazyModel + 'static> LazySongVecModel<T> {
     #[tracing::instrument(level = "trace", skip_all)]
-    pub fn new(array: Vec<T>, item_height: usize, item_width: usize, cache_dir: PathBuf) -> Self {
+    pub fn new(
+        array: Vec<T>,
+        item_height: usize,
+        item_width: usize,
+        cache_dir: PathBuf,
+        high_res: bool,
+    ) -> Self {
         let notify = Rc::new(ModelNotify::default());
         let max_items = Rc::new(Cell::new(1));
         let max_items_clone = Rc::downgrade(&max_items);
@@ -109,6 +118,7 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
             max_items,
             allocated_rows: RefCell::new(VecDeque::new()),
             cache_dir,
+            high_res,
         }
     }
 
@@ -149,23 +159,24 @@ impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {
         let array = self.array.clone();
         let cache_dir = self.cache_dir.clone();
         let notify = self.notify.clone();
+        let high_res = self.high_res;
 
         let _ = slint::spawn_local(
             async move {
                 trace!("Fetching image for row {}; cover_url: {}", row, cover_url);
-                let img_path =
-                    tokio::spawn(async move { resolve_image(&cover_url, &cache_dir).await })
-                        .await
-                        .unwrap_or_default();
-                trace!("Image fetched for row {}: {:?}", row, img_path);
-                if let Some(image_path) = img_path {
-                    let image = load_image(&image_path);
-                    trace!(
-                        "Image loaded for row {}: {} (size: {:?})",
-                        row,
-                        image_path.display(),
-                        image.size()
-                    );
+                let pixel_buffer = tokio::spawn(async move {
+                    resolve_image_buffer(&cover_url, &cache_dir, high_res).await
+                })
+                .await
+                .unwrap_or_default();
+                trace!(
+                    "Image fetched for row {}: {:?}",
+                    row,
+                    pixel_buffer.is_some()
+                );
+                if let Some(buffer) = pixel_buffer {
+                    let image = Image::from_rgba8(buffer);
+                    trace!("Image loaded for row {}: (size: {:?})", row, image.size());
 
                     {
                         array.borrow_mut()[row].set_cover(image);

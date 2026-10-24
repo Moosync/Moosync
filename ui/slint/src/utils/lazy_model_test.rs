@@ -27,8 +27,13 @@ fn test_lazy_song_vec_model_row_count_and_data(temp_dir_fixture: TempDir) {
         ..Default::default()
     }
     .into();
-    let lazy_model =
-        LazySongVecModel::new(vec![album], 100, 100, temp_dir_fixture.path().to_path_buf());
+    let lazy_model = LazySongVecModel::new(
+        vec![album],
+        100,
+        100,
+        temp_dir_fixture.path().to_path_buf(),
+        false,
+    );
 
     let item = lazy_model.row_data(0);
 
@@ -58,6 +63,7 @@ fn test_lazy_model_set_row_data_and_tracker(temp_dir_fixture: TempDir) {
         100,
         100,
         temp_dir_fixture.path().to_path_buf(),
+        true,
     );
 
     lazy_model.set_row_data(0, album2);

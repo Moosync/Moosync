@@ -7,6 +7,13 @@
 // (at your option) any later version.
 //
 
+use std::{
+    collections::HashMap,
+    mem,
+    sync::{Arc, Mutex},
+    time::Duration,
+};
+
 use preferences::keys::{ACTIVE_THEME_ID, PreferenceItemExt};
 use preferences_proto::moosync::types::{PreferenceValue, preference_value};
 use slint::ComponentHandle;
@@ -259,42 +266,6 @@ impl ThemesPageHandler {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn spawn_debounce_worker(
-    state_manager: &'static StateManager,
-    main_window_weak: slint::Weak<MainWindow>,
-    mut rx: tokio::sync::mpsc::UnboundedReceiver<(String, String)>,
-) {
-    tokio::spawn(
-        async move {
-            let mut pending_changes = std::collections::HashMap::new();
-            loop {
-                let timeout = tokio::time::sleep(std::time::Duration::from_millis(150));
-                tokio::pin!(timeout);
-
-                tokio::select! {
-                    maybe_msg = rx.recv() => {
-                        if let Some((name, val)) = maybe_msg {
-                            pending_changes.insert(name, val);
-                        } else {
-                            if !pending_changes.is_empty() {
-                                ThemesPageHandler::flush_changes(state_manager, &main_window_weak, &mut pending_changes);
-                            }
-                            break;
-                        }
-                    }
-                    _ = &mut timeout => {
-                        if !pending_changes.is_empty() {
-                            ThemesPageHandler::flush_changes(state_manager, &main_window_weak, &mut pending_changes);
-                        }
-                    }
-                }
-            }
-        }
-        .in_current_span(),
-    );
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
 fn listen_active_theme_preference(
     state_manager: &'static StateManager,
     main_window_weak: slint::Weak<MainWindow>,
@@ -423,14 +394,17 @@ fn setup_select_preset_theme(main_window: &MainWindow, state_manager: &'static S
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn setup_theme_constant_changed(
-    main_window: &MainWindow,
-    tx: tokio::sync::mpsc::UnboundedSender<(String, String)>,
-) {
+fn setup_theme_constant_changed(main_window: &MainWindow, state_manager: &'static StateManager) {
+    let debounce_state = Arc::new(Mutex::new((
+        HashMap::<String, String>::new(),
+        Option::<tokio::task::JoinHandle<()>>::None,
+    )));
+
     main_window
         .global::<crate::AppCallbacks>()
         .on_theme_constant_changed({
             let main_window_weak = main_window.as_weak();
+            let debounce_state = debounce_state.clone();
             move |constant_name, value| {
                 let constant_name = constant_name.to_string();
                 let value = value.to_string();
@@ -445,7 +419,32 @@ fn setup_theme_constant_changed(
                     ThemesPageHandler::apply_single_constant(&theme_global, &constant_name, &value);
                 }
 
-                let _ = tx.send((constant_name, value));
+                let mut guard = debounce_state.lock().unwrap();
+                guard.0.insert(constant_name, value);
+                if let Some(handle) = guard.1.take() {
+                    handle.abort();
+                }
+
+                let main_window_weak = main_window_weak.clone();
+                let debounce_state_clone = debounce_state.clone();
+                guard.1 = Some(tokio::spawn(
+                    async move {
+                        tokio::time::sleep(Duration::from_millis(150)).await;
+                        let mut pending = {
+                            let mut guard = debounce_state_clone.lock().unwrap();
+                            guard.1 = None;
+                            mem::take(&mut guard.0)
+                        };
+                        if !pending.is_empty() {
+                            ThemesPageHandler::flush_changes(
+                                state_manager,
+                                &main_window_weak,
+                                &mut pending,
+                            );
+                        }
+                    }
+                    .in_current_span(),
+                ));
             }
         });
 }
@@ -594,13 +593,11 @@ fn listen_theme_holder_changed(
 impl PageHandler for ThemesPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     fn initialize(&self) {
-        let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<(String, String)>();
         let main_window_weak = self.main_window.as_weak();
 
-        spawn_debounce_worker(self.state_manager, main_window_weak.clone(), rx);
         listen_active_theme_preference(self.state_manager, main_window_weak.clone());
         setup_select_preset_theme(self.main_window, self.state_manager);
-        setup_theme_constant_changed(self.main_window, tx);
+        setup_theme_constant_changed(self.main_window, self.state_manager);
         setup_save_custom_theme(self.main_window, self.state_manager);
         listen_theme_holder_changed(self.state_manager, main_window_weak);
     }

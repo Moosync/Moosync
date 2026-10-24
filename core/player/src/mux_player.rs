@@ -16,7 +16,7 @@
 
 use std::{
     sync::{
-        RwLock,
+        Arc, RwLock,
         atomic::{AtomicUsize, Ordering},
     },
     time::Duration,
@@ -34,7 +34,7 @@ use types::subscription::SubscriberList;
 use crate::{
     context::AudioPlayerContext,
     error::PlayerError,
-    source::{SourceResolver, SourceResolverFn, ValidSrc, get_valid_src},
+    source::{SourceResolver, SourceResolverHolder, ValidSrc, get_valid_src},
 };
 
 pub struct MuxPlayer {
@@ -42,7 +42,7 @@ pub struct MuxPlayer {
     active_idx: AtomicUsize,
     events_tx: RwLock<UnboundedSender<PlayerEvent>>,
     pub on_ended_callback: SubscriberList<()>,
-    source_resolver: SourceResolver,
+    source_resolver: SourceResolverHolder,
 }
 
 impl MuxPlayer {
@@ -73,7 +73,7 @@ impl MuxPlayer {
             active_idx: AtomicUsize::new(0),
             events_tx: RwLock::new(events_tx),
             on_ended_callback,
-            source_resolver: SourceResolver::new(),
+            source_resolver: SourceResolverHolder::new(),
         }
     }
 
@@ -98,7 +98,9 @@ impl MuxPlayer {
     pub fn can_play(&self, src: ValidSrc) -> bool { self.active_player().can_play(&src) }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn set_resolver(&self, f: SourceResolverFn) { self.source_resolver.set_resolver(f); }
+    pub fn set_resolver(&self, resolver: Arc<dyn SourceResolver>) {
+        self.source_resolver.set_resolver(resolver);
+    }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub(crate) fn create_new_events_tx(&self) -> UnboundedSender<PlayerEvent> {

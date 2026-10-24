@@ -20,6 +20,7 @@ use std::{
 };
 
 use assertables::{assert_is_empty, assert_len_eq_x, assert_none, assert_some_eq_x};
+use async_trait::async_trait;
 use extensions_proto::moosync::types::PlayerState;
 use player_proto::moosync::types::PlayerData;
 use rstest::{fixture, rstest};
@@ -31,7 +32,7 @@ use crate::{
     PlayerHandler, RepeatMode,
     context::{AudioPlayerContext, DummyAudioPlayerContext, DummyPersistContext, PersistContext},
     error::PlayerError,
-    source::ValidSrc,
+    source::{SourceResolver, ValidSrc},
 };
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -891,15 +892,29 @@ async fn test_player_handler_new_dummy_and_methods() {
     handler.set_volume(75);
     handler.seek(std::time::Duration::from_secs(10));
 
-    handler.set_resolver(Box::new(|_song| {
-        Box::new(Box::pin(std::future::ready(Ok(
-            extensions_proto::moosync::types::PlaybackDetailsRequestedResponse {
-                url: "https://example.com/audio.mp3".to_string(),
-                duration: None,
-                decryption_key: None,
-            },
-        ))))
-    }));
+    struct MockDummyResolver;
+
+    #[async_trait]
+    impl SourceResolver for MockDummyResolver {
+        #[tracing::instrument(level = "debug", skip_all)]
+        async fn resolve(
+            &self,
+            _song: &Song,
+        ) -> Result<
+            extensions_proto::moosync::types::PlaybackDetailsRequestedResponse,
+            Box<dyn std::error::Error + Send + Sync>,
+        > {
+            Ok(
+                extensions_proto::moosync::types::PlaybackDetailsRequestedResponse {
+                    url: "https://example.com/audio.mp3".to_string(),
+                    duration: None,
+                    decryption_key: None,
+                },
+            )
+        }
+    }
+
+    handler.set_resolver(Arc::new(MockDummyResolver));
 }
 
 #[tokio::test]
@@ -997,4 +1012,45 @@ async fn test_player_handler_plugin_init() {
     assert_eq!(ph.get_volume(), 100);
     assert_eq!(ph.get_current_idx(), 0);
     tokio::time::sleep(Duration::from_millis(50)).await;
+}
+
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_player_handler_timer_lifecycle() {
+    let tmp = tempdir::TempDir::new("test_player_timer_lifecycle").unwrap();
+    let ctx = PluginContext {
+        data_dir: tmp.path().to_path_buf(),
+        cache_dir: tmp.path().join("cache"),
+        tmp_dir: tmp.path().join("tmp"),
+    };
+    let ph = <PlayerHandler as Plugin>::init(&ctx);
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+    ph.on_player_event.listen(move |event| {
+        let _ = tx.send(event);
+    });
+
+    let song = create_mock_song("test_song", "Test Song");
+    ph.play_now(vec![song]).await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    let _ = ph.pause();
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    let mut received_play = false;
+    let mut received_pause = false;
+    while let Ok(ev) = rx.try_recv() {
+        if let Some(event) = ev.event {
+            match event {
+                extensions_proto::moosync::types::player_event::Event::Play(_) => {
+                    received_play = true
+                }
+                extensions_proto::moosync::types::player_event::Event::Pause(_) => {
+                    received_pause = true
+                }
+                _ => {}
+            }
+        }
+    }
+    assert!(received_play);
+    assert!(received_pause);
 }

@@ -14,9 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{fs, path::PathBuf};
+use std::{error::Error, fs, path::PathBuf, sync::Arc};
 
 use assertables::{assert_err, assert_matches, assert_ok};
+use async_trait::async_trait;
 use extensions_proto::moosync::types::PlaybackDetailsRequestedResponse;
 use rstest::{fixture, rstest};
 use songs_proto::moosync::types::{InnerSong, Song};
@@ -25,7 +26,7 @@ use tracing_test::traced_test;
 
 use crate::{
     error::PlayerError,
-    source::{SourceResolver, ValidSrc, get_valid_src},
+    source::{SourceResolver, SourceResolverHolder, ValidSrc, get_valid_src},
 };
 
 #[fixture]
@@ -108,11 +109,28 @@ fn test_get_valid_src_error_when_none_present() {
     assert_matches!(valid_src.unwrap_err(), PlayerError::NoSrcFound(_));
 }
 
+struct MockResolver;
+
+#[async_trait]
+impl SourceResolver for MockResolver {
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn resolve(
+        &self,
+        _song: &Song,
+    ) -> Result<PlaybackDetailsRequestedResponse, Box<dyn Error + Send + Sync>> {
+        Ok(PlaybackDetailsRequestedResponse {
+            url: "https://resolved.stream/123".to_string(),
+            duration: None,
+            decryption_key: Some("0123456789abcdef0123456789abcdef".to_string()),
+        })
+    }
+}
+
 #[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_source_resolver_resolve() {
-    let resolver = SourceResolver::new();
+    let resolver = SourceResolverHolder::new();
     let song = Song {
         song: Some(InnerSong {
             id: Some("123".to_string()),
@@ -123,15 +141,7 @@ async fn test_source_resolver_resolve() {
 
     assert_err!(resolver.resolve(&song).await.as_ref());
 
-    resolver.set_resolver(Box::new(|_s| {
-        Box::new(Box::pin(std::future::ready(Ok(
-            PlaybackDetailsRequestedResponse {
-                url: "https://resolved.stream/123".to_string(),
-                duration: None,
-                decryption_key: Some("0123456789abcdef0123456789abcdef".to_string()),
-            },
-        ))))
-    }));
+    resolver.set_resolver(Arc::new(MockResolver));
     let res = resolver.resolve(&song).await;
     assert_ok!(res.as_ref());
     let resp = res.unwrap();

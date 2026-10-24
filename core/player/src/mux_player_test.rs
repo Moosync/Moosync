@@ -14,10 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::time::Duration;
+use std::{error::Error, sync::Arc, time::Duration};
 
 use assertables::{assert_err, assert_ok};
-use extensions_proto::moosync::types::PlayerState;
+use async_trait::async_trait;
+use extensions_proto::moosync::types::{PlaybackDetailsRequestedResponse, PlayerState};
 use rstest::{fixture, rstest};
 use songs_proto::moosync::types::{InnerSong, Song};
 use tracing_test::traced_test;
@@ -27,7 +28,7 @@ use crate::{
     context::DummyAudioPlayerContext,
     mux_player::MuxPlayer,
     rodio::{get_cpal_default_sample_rate, get_system_sample_rate},
-    source::ValidSrc,
+    source::{SourceResolver, ValidSrc},
 };
 
 #[fixture]
@@ -205,15 +206,24 @@ async fn test_mux_player_source_resolver() {
         vec![Box::new(DummyAudioPlayerContext::new())],
     );
 
-    mux.set_resolver(Box::new(|_song| {
-        Box::new(Box::pin(std::future::ready(Ok(
-            extensions_proto::moosync::types::PlaybackDetailsRequestedResponse {
+    struct MockMuxResolver;
+
+    #[async_trait]
+    impl SourceResolver for MockMuxResolver {
+        #[tracing::instrument(level = "debug", skip_all)]
+        async fn resolve(
+            &self,
+            _song: &Song,
+        ) -> Result<PlaybackDetailsRequestedResponse, Box<dyn Error + Send + Sync>> {
+            Ok(PlaybackDetailsRequestedResponse {
                 url: "https://resolved.example.com/stream.mp3".to_string(),
                 duration: None,
                 decryption_key: None,
-            },
-        ))))
-    }));
+            })
+        }
+    }
+
+    mux.set_resolver(Arc::new(MockMuxResolver));
 
     let stream_song = Song {
         song: Some(InnerSong {

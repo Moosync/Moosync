@@ -1,5 +1,12 @@
-use std::{borrow::Cow, error::Error, fmt::Display, path::PathBuf};
+use std::{
+    borrow::Cow,
+    error::Error,
+    fmt::Display,
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
 
+use async_trait::async_trait;
 use extensions_proto::moosync::types::PlaybackDetailsRequestedResponse;
 use songs_proto::moosync::types::Song;
 use types::prelude::SongsExt;
@@ -73,31 +80,28 @@ pub(crate) fn get_valid_src(song: &'_ Song) -> Result<ValidSrc<'_>, PlayerError>
     Err(PlayerError::NoSrcFound(Box::new(song.clone())))
 }
 
-pub type SourceResolverFn = Box<
-    dyn Fn(
-            &Song,
-        ) -> Box<
-            dyn Future<
-                    Output = Result<PlaybackDetailsRequestedResponse, Box<dyn Error + Send + Sync>>,
-                > + Send
-                + Unpin,
-        > + Send
-        + Sync,
->;
-pub(crate) struct SourceResolver {
-    resolver: std::sync::Mutex<Option<SourceResolverFn>>,
+#[async_trait]
+pub trait SourceResolver: Send + Sync {
+    async fn resolve(
+        &self,
+        song: &Song,
+    ) -> Result<PlaybackDetailsRequestedResponse, Box<dyn Error + Send + Sync>>;
 }
 
-impl SourceResolver {
+pub(crate) struct SourceResolverHolder {
+    resolver: Mutex<Option<Arc<dyn SourceResolver>>>,
+}
+
+impl SourceResolverHolder {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn new() -> Self {
         Self {
-            resolver: std::sync::Mutex::new(None),
+            resolver: Mutex::new(None),
         }
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn set_resolver(&self, resolver: SourceResolverFn) {
+    pub fn set_resolver(&self, resolver: Arc<dyn SourceResolver>) {
         let mut r = self.resolver.lock().unwrap();
         *r = Some(resolver);
     }
@@ -107,17 +111,17 @@ impl SourceResolver {
         &self,
         song: &Song,
     ) -> Result<PlaybackDetailsRequestedResponse, PlayerError> {
-        let resp_fut = {
+        let resolver = {
             let resolver_lock = self.resolver.lock().unwrap();
             let Some(ref resolver) = *resolver_lock else {
                 return Err(PlayerError::PlaybackUrlResolutionFailed(
                     "Resolver not set".to_string(),
                 ));
             };
-            tracing::debug!("Resolving playback details for song: {:?}", song);
-            resolver(song)
+            resolver.clone()
         };
-        resp_fut.await.map_err(|e| {
+        tracing::debug!("Resolving playback details for song: {:?}", song);
+        resolver.resolve(song).await.map_err(|e| {
             PlayerError::PlaybackUrlResolutionFailed(format!("Resolver failed: {}", e))
         })
     }

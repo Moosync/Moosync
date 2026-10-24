@@ -34,7 +34,10 @@ mod source_test;
 
 use std::{
     path::PathBuf,
-    sync::{Arc, RwLock},
+    sync::{
+        Arc, RwLock,
+        atomic::{AtomicBool, Ordering},
+    },
     time::Duration,
 };
 
@@ -46,6 +49,7 @@ pub use mux_player::MuxPlayer;
 pub use player_data_ext::PlayerDataExt;
 use player_proto::moosync::types::{PlayerData, RepeatMode};
 use songs_proto::moosync::types::Song;
+pub use source::SourceResolver;
 use tokio::{
     sync::mpsc::{UnboundedSender, unbounded_channel},
     time::interval,
@@ -60,7 +64,6 @@ use types::{
 use crate::{
     context::{PersistContext, file_persist::FilePersist},
     error::PlayerError,
-    source::SourceResolverFn,
 };
 
 pub struct PlayerHandler {
@@ -267,6 +270,7 @@ impl PlayerHandler {
     pub async fn next(&self) {
         if self.player_data.read().unwrap().song_queue.is_empty() {
             let _ = self.player.stop();
+            self.trigger_player_event(Event::Pause(true));
             return;
         }
         self.player_data.write().unwrap().advance_index();
@@ -397,7 +401,9 @@ impl PlayerHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn set_resolver(&self, f: SourceResolverFn) { self.player.set_resolver(f); }
+    pub fn set_resolver(&self, resolver: Arc<dyn SourceResolver>) {
+        self.player.set_resolver(resolver);
+    }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn trigger_queue_changed(&self) {
@@ -430,6 +436,7 @@ impl PlayerHandler {
         let current = self.current_song();
         if current.is_none() {
             let _ = self.player.stop();
+            self.trigger_player_event(Event::Pause(true));
         }
 
         if let Some(song) = current.as_ref()
@@ -464,20 +471,33 @@ impl Plugin for PlayerHandler {
             .in_current_span(),
         );
 
+        let is_running = Arc::new(AtomicBool::new(false));
         let ph_clone_timer = ph.clone();
-        tokio::spawn(
-            async move {
-                let mut interval = interval(Duration::from_secs(1));
-                loop {
-                    interval.tick().await;
-                    if let Ok(pos) = ph_clone_timer.player.get_current_pos() {
-                        ph_clone_timer
-                            .trigger_player_event(Event::TimeUpdate(core_to_proto_duration(pos)));
+        ph.on_player_event.listen(move |event| {
+            if let Some(Event::Play(_)) = event.event
+                && !is_running.swap(true, Ordering::SeqCst)
+            {
+                let ph_timer = ph_clone_timer.clone();
+                let is_running = is_running.clone();
+                tokio::spawn(
+                    async move {
+                        let mut interval = interval(Duration::from_secs(1));
+                        // Tick elapsed position updates every second while playing; exits naturally
+                        // on pause or stop.
+                        while ph_timer.player.get_player_state() == PlayerState::Playing {
+                            interval.tick().await;
+                            if let Ok(pos) = ph_timer.player.get_current_pos() {
+                                ph_timer.trigger_player_event(Event::TimeUpdate(
+                                    core_to_proto_duration(pos),
+                                ));
+                            }
+                        }
+                        is_running.store(false, Ordering::SeqCst);
                     }
-                }
+                    .in_current_span(),
+                );
             }
-            .in_current_span(),
-        );
+        });
 
         ph
     }

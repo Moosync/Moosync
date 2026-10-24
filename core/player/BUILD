@@ -47,6 +47,7 @@ rust_library(
     link_deps = ["//external/ffmpeg"],
     proc_macro_deps = [
         "//core/plugin_macro",
+        "@crates//:async-trait",
     ],
     rustc_env = {
         "FFMPEG_INCLUDE_DIR": "$(execpath //external/ffmpeg:gen_dir)/include",

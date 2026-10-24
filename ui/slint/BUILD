@@ -324,6 +324,7 @@ rust_library(
         "//conditions:default": [
             "@crates//:rfd",
             "@crates//:sysuri",
+            "@crates//:tracing-tracy",
         ],
     }),
 )

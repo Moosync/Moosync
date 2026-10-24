@@ -14,6 +14,8 @@ use state_manager::StateManager;
 use tokio::runtime::Builder;
 use tracing::{Instrument, debug, trace};
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt};
+#[cfg(not(target_os = "android"))]
+use tracing_tracy::TracyLayer;
 use types::prelude::format_duration;
 
 use crate::{
@@ -659,6 +661,7 @@ fn setup_tracing() {
             .with(env_filter)
             .with(layer)
             .with(log_layer)
+            .with(TracyLayer::default())
     };
 
     #[cfg(target_os = "android")]

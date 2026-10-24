@@ -1,5 +1,5 @@
 {
-  "checksum": "871fe1630263aefb46948a4e1e881954e95f202a2ebdb82371b573b619e19b85",
+  "checksum": "e8b8ec8365d41b4e8cfaba8b13d2cdaac0b8bae03905cadcf72f6a4dd3c46b86",
   "crates": {
     "ab_glyph 0.2.32": {
       "name": "ab_glyph",
@@ -19045,6 +19045,122 @@
       ],
       "license_file": null
     },
+    "generator 0.8.11": {
+      "name": "generator",
+      "version": "0.8.11",
+      "package_url": "https://github.com/Xudong-Huang/generator-rs.git",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/generator/0.8.11/download",
+          "sha256": "1be81b31c9ce4caf7f3178eeb90662bb1864d3ad363ec6bdada3201adff19c37"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "generator",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "generator",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "cfg-if 1.0.4",
+              "target": "cfg_if"
+            },
+            {
+              "id": "log 0.4.34",
+              "target": "log"
+            }
+          ],
+          "selects": {
+            "cfg(unix)": [
+              {
+                "id": "libc 0.2.189",
+                "target": "libc"
+              }
+            ],
+            "cfg(windows)": [
+              {
+                "id": "windows-link 0.2.1",
+                "target": "windows_link"
+              },
+              {
+                "id": "windows-result 0.4.1",
+                "target": "windows_result"
+              }
+            ]
+          }
+        },
+        "extra_deps": {
+          "common": [
+            ":build_script_build"
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "0.8.11"
+      },
+      "build_script_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "compile_data_glob_excludes": [
+          "**/*.rs"
+        ],
+        "data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "cc 1.4.4",
+              "target": "cc"
+            }
+          ],
+          "selects": {}
+        },
+        "proc_macro_deps": {
+          "common": [
+            {
+              "id": "rustversion 1.0.23",
+              "target": "rustversion"
+            }
+          ],
+          "selects": {}
+        }
+      },
+      "license": "MIT/Apache-2.0",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "LICENSE-APACHE"
+    },
     "generic-array 0.14.7": {
       "name": "generic-array",
       "version": "0.14.7",
@@ -32520,6 +32636,69 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
+    "loom 0.7.2": {
+      "name": "loom",
+      "version": "0.7.2",
+      "package_url": "https://github.com/tokio-rs/loom",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/loom/0.7.2/download",
+          "sha256": "419e0dc8046cb947daa77eb95ae174acfbddb7673b4151f56d1eed8e93fbfaca"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "loom",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "loom",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "cfg-if 1.0.4",
+              "target": "cfg_if"
+            },
+            {
+              "id": "generator 0.8.11",
+              "target": "generator"
+            },
+            {
+              "id": "scoped-tls 1.0.1",
+              "target": "scoped_tls"
+            },
+            {
+              "id": "tracing 0.1.44",
+              "target": "tracing"
+            },
+            {
+              "id": "tracing-subscriber 0.3.23",
+              "target": "tracing_subscriber"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "version": "0.7.2"
+      },
+      "license": "MIT",
+      "license_ids": [
+        "MIT"
+      ],
+      "license_file": "LICENSE"
+    },
     "loop9 0.1.5": {
       "name": "loop9",
       "version": "0.1.5",
@@ -34695,6 +34874,10 @@
             {
               "id": "tracing-test 0.2.6",
               "target": "tracing_test"
+            },
+            {
+              "id": "tracing-tracy 0.12.0",
+              "target": "tracing_tracy"
             },
             {
               "id": "url 2.5.8",
@@ -61889,6 +62072,255 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
+    "tracing-tracy 0.12.0": {
+      "name": "tracing-tracy",
+      "version": "0.12.0",
+      "package_url": "https://github.com/nagisa/rust_tracy_client",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/tracing-tracy/0.12.0/download",
+          "sha256": "0b326790213b869d948a5d1ea56472ed5b20c7cefde07684ee35d6b7a980fef1"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "tracing_tracy",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "tracing_tracy",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": {
+          "common": [
+            "broadcast",
+            "callstack-inlines",
+            "code-transfer",
+            "context-switch-tracing",
+            "crash-handler",
+            "default",
+            "enable",
+            "sampling",
+            "system-tracing",
+            "wait-stacks"
+          ],
+          "selects": {}
+        },
+        "deps": {
+          "common": [
+            {
+              "id": "tracing-core 0.1.36",
+              "target": "tracing_core"
+            },
+            {
+              "id": "tracing-subscriber 0.3.23",
+              "target": "tracing_subscriber"
+            },
+            {
+              "id": "tracy-client 0.19.0",
+              "target": "tracy_client",
+              "alias": "client"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "0.12.0"
+      },
+      "license": "MIT/Apache-2.0",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "LICENSE-APACHE"
+    },
+    "tracy-client 0.19.0": {
+      "name": "tracy-client",
+      "version": "0.19.0",
+      "package_url": "https://github.com/nagisa/rust_tracy_client",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/tracy-client/0.19.0/download",
+          "sha256": "d93fd676d8946eaeaff4881d26d2240a8d106fcaccbd47cb9f1389e3561ba490"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "tracy_client",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "tracy_client",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": {
+          "common": [
+            "broadcast",
+            "callstack-inlines",
+            "code-transfer",
+            "context-switch-tracing",
+            "crash-handler",
+            "enable",
+            "sampling",
+            "system-tracing",
+            "wait-stacks"
+          ],
+          "selects": {}
+        },
+        "deps": {
+          "common": [
+            {
+              "id": "once_cell 1.21.4",
+              "target": "once_cell"
+            },
+            {
+              "id": "tracy-client-sys 0.30.1",
+              "target": "tracy_client_sys",
+              "alias": "sys"
+            }
+          ],
+          "selects": {
+            "cfg(loom)": [
+              {
+                "id": "loom 0.7.2",
+                "target": "loom"
+              }
+            ]
+          }
+        },
+        "edition": "2021",
+        "version": "0.19.0"
+      },
+      "license": "MIT/Apache-2.0",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "LICENSE-APACHE"
+    },
+    "tracy-client-sys 0.30.1": {
+      "name": "tracy-client-sys",
+      "version": "0.30.1",
+      "package_url": "https://github.com/nagisa/rust_tracy_client",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/tracy-client-sys/0.30.1/download",
+          "sha256": "08f4b6d2481c5e266e9def4c10e1680dbdfdd69523ed555a83d6675953a2785e"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "tracy_client_sys",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "tracy_client_sys",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": {
+          "common": [
+            "broadcast",
+            "callstack-inlines",
+            "code-transfer",
+            "context-switch-tracing",
+            "crash-handler",
+            "enable",
+            "sampling",
+            "system-tracing",
+            "wait-stacks"
+          ],
+          "selects": {}
+        },
+        "deps": {
+          "common": [],
+          "selects": {
+            "cfg(windows)": [
+              {
+                "id": "windows-targets 0.53.5",
+                "target": "windows_targets"
+              }
+            ]
+          }
+        },
+        "extra_deps": {
+          "common": [
+            ":build_script_build"
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "0.30.1"
+      },
+      "build_script_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "compile_data_glob_excludes": [
+          "**/*.rs"
+        ],
+        "data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "cc 1.4.4",
+              "target": "cc"
+            }
+          ],
+          "selects": {}
+        }
+      },
+      "license": "(MIT OR Apache-2.0) AND BSD-3-Clause",
+      "license_ids": [
+        "Apache-2.0",
+        "BSD-3-Clause",
+        "MIT"
+      ],
+      "license_file": "LICENSE-APACHE"
+    },
     "try-lock 0.2.5": {
       "name": "try-lock",
       "version": "0.2.5",
@@ -78344,6 +78776,7 @@
       "x86_64-unknown-linux-gnu"
     ],
     "cfg(fuzzing)": [],
+    "cfg(loom)": [],
     "cfg(not(all(target_arch = \"arm\", target_os = \"none\")))": [
       "aarch64-apple-darwin",
       "aarch64-linux-android",
@@ -78591,6 +79024,7 @@
     "tracing-appender 0.2.5",
     "tracing-subscriber 0.3.23",
     "tracing-test 0.2.6",
+    "tracing-tracy 0.12.0",
     "url 2.5.8",
     "uuid 1.25.0",
     "vergen 9.0.6",

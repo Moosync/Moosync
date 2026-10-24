@@ -10,7 +10,7 @@ use crate::{
     main_content::album_content::AlbumSongProvider,
     test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
     utils::{
-        EntityContentCoordinator, EntitySongProvider, ExtensionPaginationManager, IntoVec,
+        EntityContentCoordinator, EntitySongProvider, ExtensionPaginationManager,
         fetch_scope_providers, map_songs_to_models, update_provider_list_enabled,
     },
 };

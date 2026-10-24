@@ -440,6 +440,11 @@ fn apply_current_song(
     state_manager: &'static StateManager,
     song: Option<Song>,
 ) {
+    let active_idx = if song.is_some() {
+        state_manager.get_player_handler().get_current_idx() as i32
+    } else {
+        -1
+    };
     let _ = slint::invoke_from_event_loop(move || {
         let Some(main_window) = main_window_weak.upgrade() else {
             return;
@@ -450,6 +455,9 @@ fn apply_current_song(
         main_window
             .global::<PlayerProps>()
             .set_current_song(song_model.clone());
+        main_window
+            .global::<QueuePageProps>()
+            .set_active_idx(active_idx);
         resolve_current_song_covers(&main_window, state_manager, song_model);
     });
 }

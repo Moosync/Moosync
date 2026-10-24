@@ -141,7 +141,7 @@ component QueueListItem inherits Rectangle {
 
 export component QueuePage inherits Rectangle {
     in property <QueuePages> page-type: QueuePages.Queue;
-    in-out property <int> active-idx: -1;
+    in-out property <int> active-idx <=> QueuePageProps.active-idx;
 
     in-out property <int> drag-source-idx: -1;
     in-out property <int> drag-target-idx: -1;
@@ -290,7 +290,7 @@ export component QueuePage inherits Rectangle {
                             song: mapped-song;
                             item-idx: idx;
                             model-idx: mapped-idx;
-                            is-active: PlayerProps.current_song.id == mapped-song.id;
+                            is-active: mapped-idx == QueuePageProps.active-idx;
                             is-ghost: mapped-idx == root.drag-source-idx && idx == root.drag-target-idx;
                             drag-source-idx <=> root.drag-source-idx;
                             drag-target-idx <=> root.drag-target-idx;

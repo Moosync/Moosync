@@ -43,10 +43,14 @@ impl QueuePageHandler {
     fn register_ui_callbacks(&self) {
         let state_manager = self.state_manager;
 
+        let mw_weak_play = self.main_window.as_weak();
         self.main_window
             .global::<AppCallbacks>()
             .on_play_queue_index(move |idx| {
                 tracing::debug!("Queue action: play_queue_index({})", idx);
+                if let Some(main_window) = mw_weak_play.upgrade() {
+                    main_window.global::<QueuePageProps>().set_active_idx(idx);
+                }
                 tokio::spawn(
                     async move {
                         let player_handler = state_manager.get_player_handler();
@@ -157,6 +161,11 @@ impl QueuePageHandler {
                 let player_handler = state_manager.get_player_handler();
                 let queue = player_handler.get_queue().to_vec();
                 let current_song = player_handler.get_current_song();
+                let active_idx = if current_song.is_some() {
+                    player_handler.get_current_idx() as i32
+                } else {
+                    -1
+                };
                 let cache_dir = state_manager.get_cache_dir();
                 let blurred_path = Self::resolve_blurred_cover(current_song.as_ref(), &cache_dir);
 
@@ -164,6 +173,9 @@ impl QueuePageHandler {
                 let _ = slint::invoke_from_event_loop(move || {
                     if let Some(main_window) = mw_weak_ui.upgrade() {
                         Self::update_ui_queue(&main_window, state_manager, queue);
+                        main_window
+                            .global::<QueuePageProps>()
+                            .set_active_idx(active_idx);
                         Self::update_ui_blurred_cover(&main_window, &blurred_path);
                     }
                 });
@@ -204,9 +216,15 @@ impl QueuePageHandler {
                 // Song changed listener to update blurred cover background and lyrics
                 let mw_weak_song = main_window_weak.clone();
                 let cache_dir_events = cache_dir.clone();
+                let player_handler_song = state_manager.get_player_handler();
                 let ch_song = player_handler.on_song_changed.listen(move |song| {
                     let mw_weak = mw_weak_song.clone();
                     let cache_dir = cache_dir_events.clone();
+                    let active_idx = if song.is_some() {
+                        player_handler_song.get_current_idx() as i32
+                    } else {
+                        -1
+                    };
 
                     Self::fetch_and_update_lyrics(state_manager, mw_weak.clone(), song.clone());
 
@@ -217,6 +235,9 @@ impl QueuePageHandler {
 
                             let _ = slint::invoke_from_event_loop(move || {
                                 if let Some(main_window) = mw_weak.upgrade() {
+                                    main_window
+                                        .global::<QueuePageProps>()
+                                        .set_active_idx(active_idx);
                                     Self::update_ui_blurred_cover(&main_window, &blurred_path);
                                 }
                             });
@@ -227,11 +248,20 @@ impl QueuePageHandler {
                 handles.push(ch_song);
 
                 let mw_weak_queue = main_window_weak.clone();
+                let player_handler_queue = state_manager.get_player_handler();
                 let ch_queue = player_handler.on_queue_updated.listen(move |queue| {
                     let mw_weak = mw_weak_queue.clone();
+                    let active_idx = if player_handler_queue.get_current_song().is_some() {
+                        player_handler_queue.get_current_idx() as i32
+                    } else {
+                        -1
+                    };
                     let _ = slint::invoke_from_event_loop(move || {
                         if let Some(main_window) = mw_weak.upgrade() {
                             Self::update_ui_queue(&main_window, state_manager, queue);
+                            main_window
+                                .global::<QueuePageProps>()
+                                .set_active_idx(active_idx);
                         }
                     });
                 });
@@ -403,6 +433,9 @@ impl QueuePageHandler {
                 .set_queue(slint::ModelRc::default());
             self.main_window
                 .global::<QueuePageProps>()
+                .set_active_idx(-1);
+            self.main_window
+                .global::<QueuePageProps>()
                 .set_blurred_cover(Image::default());
         }
     }
@@ -457,6 +490,7 @@ impl PageHandler for QueuePageHandler {
                         main_window
                             .global::<QueuePageProps>()
                             .set_queue(slint::ModelRc::default());
+                        main_window.global::<QueuePageProps>().set_active_idx(-1);
                         main_window
                             .global::<QueuePageProps>()
                             .set_blurred_cover(Image::default());

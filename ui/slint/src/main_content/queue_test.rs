@@ -411,4 +411,44 @@ async fn test_queue_page_handler_on_show_and_hide(
 
     let props = main_window.global::<QueuePageProps>();
     assert_eq!(props.get_queue().row_count(), 0);
+    assert_eq!(props.get_active_idx(), -1);
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_queue_duplicate_song_active_index(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let song = Song {
+        song: Some(InnerSong {
+            id: Some("dup_song".into()),
+            title: Some("Duplicate Song".into()),
+            path: Some("/music/dup.mp3".into()),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+    {
+        let ph = sm.get_player_handler();
+        ph.add_to_queue(vec![song.clone(), song.clone(), song])
+            .await;
+    }
+
+    let main_window = Box::leak(Box::new(main_window));
+    let state_manager = Box::leak(Box::new(sm.clone()));
+    let handler = QueuePageHandler::new(main_window, state_manager);
+    handler.initialize();
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_play_queue_index(2);
+    tokio::time::sleep(Duration::from_millis(50)).await;
+
+    let ph = sm.get_player_handler();
+    assert_eq!(ph.get_current_idx(), 2);
+    assert_eq!(main_window.global::<QueuePageProps>().get_active_idx(), 2);
 }

@@ -20,6 +20,7 @@ export global AppProps {
 
 export global QueuePageProps {
     in-out property <[SongModel]> queue: Constants.testSongs;
+    in-out property <int> active_idx: -1;
     in-out property <image> blurred-cover;
     in-out property <bool> show_queue: false;
     in-out property <bool> show_lyrics: false;

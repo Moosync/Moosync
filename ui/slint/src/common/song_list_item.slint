@@ -7,8 +7,33 @@ import {
 } from "../callbacks.slint";
 import { ContextMenu } from "context_menu.slint";
 import { IconButton } from "icon_button.slint";
-import { Utils, DefaultIconType } from "../utils.slint";
+import {
+    SongItemThumbnail,
+    SongItemInfo,
+    SongItemTitle,
+    SongItemExtensionIcon,
+    SongArtistsList,
+    SongItemTitleRow,
+    SongThumbnail,
+    SongTitle,
+    SongExtensionIcon,
+    SongArtistList,
+    SongInfo,
+} from "song_item_components.slint";
 
+export {
+    SongItemThumbnail,
+    SongItemInfo,
+    SongItemTitle,
+    SongItemExtensionIcon,
+    SongArtistsList,
+    SongItemTitleRow,
+    SongThumbnail,
+    SongTitle,
+    SongExtensionIcon,
+    SongArtistList,
+    SongInfo,
+}
 export component SongListItem inherits Rectangle {
     in property <SongModel> song: Constants.defaultSong;
 
@@ -34,75 +59,21 @@ export component SongListItem inherits Rectangle {
         padding: Theme.paddingXs;
         padding-right: Theme.paddingLg;
 
-        Rectangle {
-            width: Theme.songListItemThumbnailSize;
-            height: Theme.songListItemThumbnailSize;
-            border-radius: Theme.borderRadiusMd;
-            background: Theme.secondary;
-            border-width: Theme.borderWidth;
-            border-color: Theme.textPrimary.with-alpha(0.06);
-            clip: true;
-
-            Image {
-                width: parent.width;
-                height: parent.height;
-                source: Utils.load_image_or_default(song.coverPathLow, DefaultIconType.Song);
-                image-fit: cover;
-            }
-
-            touch := TouchArea {
-                clicked => {
-                    AppCallbacks.play-song(song);
-                }
-            }
-
-            Rectangle {
-                visible: touch.has-hover;
-                background: rgba(0, 0, 0, 0.6);
-                Image {
-                    source: @image-url("../icons/play.svg");
-                }
+        SongItemThumbnail {
+            song: root.song;
+            show_play_overlay: true;
+            play_clicked => {
+                AppCallbacks.play-song(root.song);
             }
         }
 
         HorizontalLayout {
             horizontal-stretch: 1;
             alignment: start;
+            padding-left: Theme.paddingLg;
 
-            VerticalLayout {
-                alignment: center;
-                spacing: Theme.spacingTiny;
-                padding-left: Theme.paddingLg;
-
-                HorizontalLayout {
-                    spacing: Theme.spacingXs;
-                    alignment: start;
-                    Text {
-                        accessible-role: none;
-                        text: song.title;
-                        color: Theme.textPrimary; // Text Primary
-                        font-size: Theme.body;
-                        font-weight: 600;
-                        overflow: elide;
-                    }
-
-                    if song.extension != "": Image {
-                        width: Theme.iconSizeSm;
-                        source: Utils.load_image_or_default(song.extension_icon, DefaultIconType.Extension);
-                    }
-                }
-
-                HorizontalLayout {
-                    for artist[i] in song.artists: HorizontalLayout {
-                        Text {
-                            accessible-role: none;
-                            text: (i > 0 ? ", " : "") + artist.title;
-                            color: Theme.textSecondary;
-                            font-size: Theme.caption;
-                            overflow: elide;
-                        }
-                    }
-                }
+            SongItemInfo {
+                song: root.song;
             }
         }
 

@@ -1,0 +1,125 @@
+import { SongModel, ArtistModel } from "../types/song_view.slint";
+import { Constants, Theme } from "../constants.slint";
+import { Utils, DefaultIconType } from "../utils.slint";
+
+export component SongItemThumbnail inherits Rectangle {
+    in property <SongModel> song: Constants.defaultSong;
+    in property <length> thumbnail_size: Theme.songListItemThumbnailSize;
+    in property <bool> show_play_overlay: true;
+    callback play_clicked();
+
+    width: root.thumbnail_size;
+    height: root.thumbnail_size;
+    border-radius: Theme.borderRadiusMd;
+    background: Theme.secondary;
+    border-width: Theme.borderWidth;
+    border-color: Theme.textPrimary.with-alpha(0.06);
+    clip: true;
+
+    Image {
+        width: parent.width;
+        height: parent.height;
+        source: Utils.load_image_or_default(root.song.coverPathLow, DefaultIconType.Song);
+        image-fit: cover;
+    }
+
+    touch := TouchArea {
+        enabled: root.show_play_overlay;
+        clicked => {
+            root.play_clicked();
+        }
+    }
+
+    Rectangle {
+        visible: root.show_play_overlay && touch.has-hover;
+        background: rgba(0, 0, 0, 0.6);
+        Image {
+            source: @image-url("../icons/play.svg");
+        }
+    }
+}
+
+export component SongItemTitle inherits Text {
+    in property <string> title: "";
+
+    text: root.title;
+    accessible-role: none;
+    accessible-label: "";
+    color: Theme.textPrimary;
+    font-size: Theme.body;
+    font-weight: 600;
+    overflow: elide;
+}
+
+export component SongItemExtensionIcon inherits Image {
+    in property <SongModel> song;
+    in property <string> extension: root.song.extension;
+    in property <image> extension_icon: root.song.extension_icon;
+
+    width: Theme.iconSizeSm;
+    source: Utils.load_image_or_default(root.extension_icon, DefaultIconType.Extension);
+}
+
+export component SongArtistsList inherits HorizontalLayout {
+    in property <SongModel> song;
+    in property <[ArtistModel]> artists: root.song.artists;
+    in property <color> text_color: Theme.textSecondary;
+    in property <length> font_size: Theme.caption;
+
+    alignment: start;
+
+    for artist[i] in root.artists: HorizontalLayout {
+        Text {
+            accessible-role: none;
+            accessible-label: "";
+            text: (i > 0 ? ", " : "") + artist.title;
+            color: root.text_color;
+            font-size: root.font_size;
+            overflow: elide;
+        }
+    }
+}
+
+export component SongItemTitleRow inherits HorizontalLayout {
+    in property <SongModel> song: Constants.defaultSong;
+    in property <color> title_color: Theme.textPrimary;
+
+    spacing: Theme.spacingXs;
+    alignment: start;
+
+    SongItemTitle {
+        title: root.song.title;
+        color: root.title_color;
+    }
+
+    if root.song.extension != "": SongItemExtensionIcon {
+        song: root.song;
+    }
+}
+
+export component SongItemInfo inherits VerticalLayout {
+    in property <SongModel> song: Constants.defaultSong;
+    in property <color> title_color: Theme.textPrimary;
+
+    alignment: center;
+    spacing: Theme.spacingTiny;
+
+    SongItemTitleRow {
+        song: root.song;
+        title_color: root.title_color;
+    }
+
+    SongArtistsList {
+        song: root.song;
+    }
+}
+
+export component SongThumbnail inherits SongItemThumbnail { }
+
+export component SongTitle inherits SongItemTitle { }
+
+export component SongExtensionIcon inherits SongItemExtensionIcon { }
+
+export component SongArtistList inherits SongArtistsList { }
+
+export component SongInfo inherits SongItemInfo { }

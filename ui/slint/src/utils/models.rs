@@ -552,10 +552,12 @@ pub fn create_search_result(
     res: ProtoSearchResult,
     detail: Option<&ExtensionDetail>,
     has_account: bool,
+    loading: bool,
     theme: &Theme<'_>,
     cache_dir: &Path,
 ) -> SearchResult {
     let extension = detail.map(|d| d.package_name.as_str()).unwrap_or_default();
+    let extension_name = detail.map(|d| d.name.as_str()).unwrap_or_default();
     let extension_icon = resolve_extension_icon(detail, None);
     SearchResult {
         albums: ModelRc::new(LazySongVecModel::new(
@@ -600,8 +602,10 @@ pub fn create_search_result(
             false,
         )),
         extension: extension.into(),
+        extension_name: extension_name.into(),
         extension_icon,
         has_account,
+        loading,
     }
 }
 

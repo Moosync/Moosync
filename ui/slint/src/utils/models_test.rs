@@ -471,15 +471,33 @@ fn test_to_search_result(main_window: MainWindow) {
     };
     let tmp = TempDir::new("moosync_search_utils_test").unwrap();
 
-    let result = create_search_result(proto_res, None, false, &theme, tmp.path());
+    let result = create_search_result(proto_res, None, false, false, &theme, tmp.path());
 
     assert_eq!(result.extension, "");
+    assert_eq!(result.extension_name, "");
     assert!(!result.has_account);
+    assert!(!result.loading);
     assert_eq!(result.songs.row_count(), 1);
     assert_eq!(result.albums.row_count(), 1);
     assert_eq!(result.artists.row_count(), 1);
     assert_eq!(result.playlists.row_count(), 1);
     assert_eq!(result.genres.row_count(), 1);
+
+    let detail = ExtensionDetail {
+        name: "Test Extension Display Name".to_string(),
+        package_name: "test.ext.package".to_string(),
+        ..Default::default()
+    };
+    let ext_result = create_search_result(
+        ProtoSearchResult::default(),
+        Some(&detail),
+        false,
+        false,
+        &theme,
+        tmp.path(),
+    );
+    assert_eq!(ext_result.extension, "test.ext.package");
+    assert_eq!(ext_result.extension_name, "Test Extension Display Name");
 }
 
 #[test]

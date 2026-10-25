@@ -534,6 +534,60 @@ async fn do_search_network_covers_ui_hang(
     );
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_search_extension_pills_appear_immediately(
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) {
+    let _ext = ExtensionFixture::new(state_manager).await;
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::Search);
+    let navigated =
+        wait_until(|| main_window.global::<AppProps>().get_active_page() == Pages::Search).await;
+    assert!(navigated);
+
+    let pills_appear = wait_until(|| {
+        let results = main_window
+            .global::<SearchPageProps>()
+            .get_provider_results();
+        results.row_count() == 2
+            && results.row_data(0).is_some_and(|r| r.extension.is_empty())
+            && results.row_data(1).is_some_and(|r| {
+                r.extension == "rs.sample" && r.extension_name == "Sample Extension" && !r.loading
+            })
+    })
+    .await;
+    assert!(pills_appear);
+
+    let display_name_pill_found = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Sample Extension").count() == 1
+    })
+    .await;
+    assert!(display_name_pill_found);
+    assert_eq!(
+        ElementHandle::find_by_accessible_label(main_window, "rs.sample").count(),
+        0
+    );
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_search_term_changed("Test".into());
+
+    let searched = wait_until(|| {
+        let results = main_window
+            .global::<SearchPageProps>()
+            .get_provider_results();
+        results.row_count() == 2
+            && results
+                .iter()
+                .any(|r| r.extension == "rs.sample" && !r.loading && r.songs.row_count() == 2)
+    })
+    .await;
+    assert!(searched);
+}
+
 integration_test!(
     test_search_songs => do_search_category_songs,
     test_search_albums => do_search_category_albums,
@@ -543,4 +597,5 @@ integration_test!(
     test_search_not_logged_in_message => do_search_not_logged_in_message,
     test_search_no_results_tooltip => do_search_no_results_tooltip,
     test_search_network_covers_ui_hang => do_search_network_covers_ui_hang,
+    test_search_extension_pills_appear_immediately => do_search_extension_pills_appear_immediately,
 );

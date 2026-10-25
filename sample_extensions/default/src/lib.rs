@@ -7,16 +7,16 @@ use std::{
 
 use moosync_edk::{
     AddToPlaylistRequest, Album, Artist, ContextMenuActionRequest, ContextMenuReturnType,
-    CustomRequest, ExtensionAccountDetail, ExtensionProviderScope, InnerSong, LyricLine, Lyrics,
-    OauthCallbackRequest, PerformAccountLoginRequest, PlaybackDetailsRequestedRequest,
-    PlayerStateChangedRequest, Playlist, PlaylistAddedRequest, PlaylistRemovedRequest,
-    PreferenceChangedRequest, PreferenceData, RequestedAlbumSongsRequest,
-    RequestedArtistSongsRequest, RequestedLyricsRequest, RequestedPlaylistContextMenuRequest,
-    RequestedPlaylistFromUrlRequest, RequestedPlaylistSongsRequest, RequestedPlaylistsRequest,
-    RequestedRecommendationsRequest, RequestedSearchResultRequest, RequestedSongContextMenuRequest,
-    RequestedSongFromIdRequest, RequestedSongFromUrlRequest, ScrobbleRequest, SearchResult,
-    SeekedRequest, Song, SongAddedRequest, SongChangedRequest, SongQueueChangedRequest,
-    SongRemovedRequest, VolumeChangedRequest,
+    CustomRequest, ExtensionAccountDetail, InnerSong, LyricLine, Lyrics, OauthCallbackRequest,
+    PerformAccountLoginRequest, PlaybackDetailsRequestedRequest, PlayerStateChangedRequest,
+    Playlist, PlaylistAddedRequest, PlaylistRemovedRequest, PreferenceChangedRequest,
+    PreferenceData, RequestedAlbumSongsRequest, RequestedArtistSongsRequest,
+    RequestedLyricsRequest, RequestedPlaylistContextMenuRequest, RequestedPlaylistFromUrlRequest,
+    RequestedPlaylistSongsRequest, RequestedPlaylistsRequest, RequestedRecommendationsRequest,
+    RequestedSearchResultRequest, RequestedSongContextMenuRequest, RequestedSongFromIdRequest,
+    RequestedSongFromUrlRequest, ScrobbleRequest, SearchResult, SeekedRequest, Song,
+    SongAddedRequest, SongChangedRequest, SongQueueChangedRequest, SongRemovedRequest,
+    VolumeChangedRequest,
     api::{
         self, Accounts, ContextMenu, CustomRequestReturnType, DatabaseEvents, Extension,
         PlaybackDetailsReturnType, PlayerEvents, PreferenceEvents, Provider,
@@ -219,18 +219,6 @@ fn get_paginated_sample_songs(
 }
 
 impl Provider for SampleExtension {
-    fn get_provider_scopes(&self) -> api::MoosyncResult<Vec<ExtensionProviderScope>> {
-        Ok(vec![
-            ExtensionProviderScope::Accounts,
-            ExtensionProviderScope::Search,
-            ExtensionProviderScope::Playlists,
-            ExtensionProviderScope::PlaylistSongs,
-            ExtensionProviderScope::ArtistSongs,
-            ExtensionProviderScope::AlbumSongs,
-            ExtensionProviderScope::Lyrics,
-        ])
-    }
-
     fn get_playlists(&self, _req: RequestedPlaylistsRequest) -> api::MoosyncResult<Vec<Playlist>> {
         info!("get_playlists called");
         Ok(vec![

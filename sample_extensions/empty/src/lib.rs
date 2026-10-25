@@ -3,16 +3,16 @@
 use std::time::Duration;
 
 use moosync_edk::{
-    ContextMenuActionRequest, ContextMenuReturnType, CustomRequest, ExtensionAccountDetail,
-    ExtensionProviderScope, Lyrics, OauthCallbackRequest, PerformAccountLoginRequest,
-    PlaybackDetailsRequestedRequest, PlayerStateChangedRequest, Playlist, PlaylistAddedRequest,
-    PlaylistRemovedRequest, PreferenceChangedRequest, RequestedAlbumSongsRequest,
-    RequestedArtistSongsRequest, RequestedLyricsRequest, RequestedPlaylistContextMenuRequest,
-    RequestedPlaylistFromUrlRequest, RequestedPlaylistSongsRequest, RequestedPlaylistsRequest,
-    RequestedRecommendationsRequest, RequestedSearchResultRequest, RequestedSongContextMenuRequest,
-    RequestedSongFromIdRequest, RequestedSongFromUrlRequest, ScrobbleRequest, SearchResult,
-    SeekedRequest, Song, SongAddedRequest, SongChangedRequest, SongQueueChangedRequest,
-    SongRemovedRequest, VolumeChangedRequest,
+    ContextMenuActionRequest, ContextMenuReturnType, CustomRequest, ExtensionAccountDetail, Lyrics,
+    OauthCallbackRequest, PerformAccountLoginRequest, PlaybackDetailsRequestedRequest,
+    PlayerStateChangedRequest, Playlist, PlaylistAddedRequest, PlaylistRemovedRequest,
+    PreferenceChangedRequest, RequestedAlbumSongsRequest, RequestedArtistSongsRequest,
+    RequestedLyricsRequest, RequestedPlaylistContextMenuRequest, RequestedPlaylistFromUrlRequest,
+    RequestedPlaylistSongsRequest, RequestedPlaylistsRequest, RequestedRecommendationsRequest,
+    RequestedSearchResultRequest, RequestedSongContextMenuRequest, RequestedSongFromIdRequest,
+    RequestedSongFromUrlRequest, ScrobbleRequest, SearchResult, SeekedRequest, Song,
+    SongAddedRequest, SongChangedRequest, SongQueueChangedRequest, SongRemovedRequest,
+    VolumeChangedRequest,
     api::{
         self, Accounts, ContextMenu, CustomRequestReturnType, DatabaseEvents, Extension,
         PlaybackDetailsReturnType, PlayerEvents, PreferenceEvents, Provider,
@@ -100,18 +100,6 @@ fn empty_songs_with_page_token() -> SongsWithPageTokenReturnType {
 }
 
 impl Provider for EmptySampleExtension {
-    fn get_provider_scopes(&self) -> api::MoosyncResult<Vec<ExtensionProviderScope>> {
-        Ok(vec![
-            ExtensionProviderScope::Accounts,
-            ExtensionProviderScope::Search,
-            ExtensionProviderScope::Playlists,
-            ExtensionProviderScope::PlaylistSongs,
-            ExtensionProviderScope::ArtistSongs,
-            ExtensionProviderScope::AlbumSongs,
-            ExtensionProviderScope::Lyrics,
-        ])
-    }
-
     fn get_playlists(&self, _req: RequestedPlaylistsRequest) -> api::MoosyncResult<Vec<Playlist>> {
         info!("get_playlists called: empty");
         Ok(vec![])

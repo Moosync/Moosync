@@ -435,8 +435,10 @@ export global Constants {
     out property <[SearchResult]> testSearchResults: [
         {
             extension: "",
+            extension_name: "",
             extension_icon: @image-url("icons/folder.svg"),
             has_account: false,
+            loading: false,
             songs: Constants.testSongs,
             albums: Constants.testAlbums,
             artists: Constants.testArtists,
@@ -445,8 +447,10 @@ export global Constants {
         },
         {
             extension: "Spotify",
+            extension_name: "Spotify",
             extension_icon: @image-url("icons/explore.svg"),
             has_account: true,
+            loading: false,
             songs: Constants.testSongs,
             albums: Constants.testAlbums,
             artists: Constants.testArtists,
@@ -455,8 +459,10 @@ export global Constants {
         },
         {
             extension: "YouTube Music",
+            extension_name: "YouTube Music",
             extension_icon: @image-url("icons/extensions.svg"),
             has_account: true,
+            loading: false,
             songs: Constants.testSongs,
             albums: Constants.testAlbums,
             artists: Constants.testArtists,

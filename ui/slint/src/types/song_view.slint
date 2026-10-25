@@ -96,8 +96,10 @@ export struct SearchResult {
     playlists: [PlaylistModel],
     genres: [GenreModel],
     extension: string,
+    extension_name: string,
     extension_icon: image,
     has_account: bool,
+    loading: bool,
 }
 
 export struct ProviderRecommendations {

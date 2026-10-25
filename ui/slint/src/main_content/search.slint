@@ -14,6 +14,7 @@ import { Button } from "../common/button.slint";
 import { Utils, DefaultIconType } from "../utils.slint";
 import { AccountsProps } from "../common/accounts_popup.slint";
 import { StatusTooltip } from "../common/status_tooltip.slint";
+import { Spinner } from "../common/spinner.slint";
 
 export struct Provider {
     name: string,
@@ -25,6 +26,7 @@ export component ProviderItem inherits Button {
     in property <Provider> provider;
     in property <bool> active: false;
 
+    text: root.provider.name;
     has_custom_layout: true;
     background: root.has_hover ? Theme.secondary.brighter(0.1) : transparent;
     border-radius: Theme.borderRadiusMd;
@@ -47,6 +49,7 @@ export component ProviderItem inherits Button {
             }
 
             Text {
+                accessible-role: none;
                 text: root.provider.name;
                 color: root.active ? Theme.accent : Theme.textPrimary;
                 font-size: Theme.subtitle;
@@ -93,7 +96,7 @@ export component SearchPage inherits Rectangle {
         FlexboxLayout {
             for prov[idx] in SearchPageProps.provider_results: ProviderItem {
                 provider: {
-                    name: prov.extension == "" ? @tr("Local") : prov.extension,
+                    name: prov.extension == "" ? @tr("Local") : (prov.extension_name != "" ? prov.extension_name : prov.extension),
                     icon: prov.extension_icon,
                     is_local: prov.extension == ""
                 };
@@ -154,10 +157,15 @@ export component SearchPage inherits Rectangle {
                 res_container.current_res.playlists.length == 0 &&
                 res_container.current_res.genres.length == 0;
 
+            if (res_container.current_res.loading): Spinner {
+                width: 32px;
+                height: 32px;
+            }
+
             SongListView {
                 songs: res_container.current_res.songs;
-                opacity: root.active_tab == 0 ? 1.0 : 0.0;
-                visible: self.opacity > 0.01;
+                opacity: (!res_container.current_res.loading && root.active_tab == 0) ? 1.0 : 0.0;
+                visible: !res_container.current_res.loading && self.opacity > 0.01;
                 animate opacity {
                     duration: 200ms;
                     easing: ease-in-out;
@@ -171,8 +179,8 @@ export component SearchPage inherits Rectangle {
                 item_cover(idx) => { res_container.current_res.albums[idx].coverPath }
                 item_extension(idx) => { res_container.current_res.albums[idx].extension }
                 item_extension_icon(idx) => { res_container.current_res.albums[idx].extension_icon }
-                opacity: root.active_tab == 1 ? 1.0 : 0.0;
-                visible: self.opacity > 0.01;
+                opacity: (!res_container.current_res.loading && root.active_tab == 1) ? 1.0 : 0.0;
+                visible: !res_container.current_res.loading && self.opacity > 0.01;
                 animate opacity {
                     duration: 200ms;
                     easing: ease-in-out;
@@ -186,8 +194,8 @@ export component SearchPage inherits Rectangle {
                 item_cover(idx) => { res_container.current_res.artists[idx].coverPath }
                 item_extension(idx) => { res_container.current_res.artists[idx].extension }
                 item_extension_icon(idx) => { res_container.current_res.artists[idx].extension_icon }
-                opacity: root.active_tab == 2 ? 1.0 : 0.0;
-                visible: self.opacity > 0.01;
+                opacity: (!res_container.current_res.loading && root.active_tab == 2) ? 1.0 : 0.0;
+                visible: !res_container.current_res.loading && self.opacity > 0.01;
                 animate opacity {
                     duration: 200ms;
                     easing: ease-in-out;
@@ -201,8 +209,8 @@ export component SearchPage inherits Rectangle {
                 item_cover(idx) => { res_container.current_res.playlists[idx].coverPath }
                 item_extension(idx) => { res_container.current_res.playlists[idx].extension }
                 item_extension_icon(idx) => { res_container.current_res.playlists[idx].extension_icon }
-                opacity: root.active_tab == 3 ? 1.0 : 0.0;
-                visible: self.opacity > 0.01;
+                opacity: (!res_container.current_res.loading && root.active_tab == 3) ? 1.0 : 0.0;
+                visible: !res_container.current_res.loading && self.opacity > 0.01;
                 animate opacity {
                     duration: 200ms;
                     easing: ease-in-out;
@@ -214,8 +222,8 @@ export component SearchPage inherits Rectangle {
                 total_items: res_container.current_res.genres.length;
                 item_title(idx) => { res_container.current_res.genres[idx].title }
                 item_cover(idx) => { res_container.current_res.genres[idx].coverPath }
-                opacity: root.active_tab == 4 ? 1.0 : 0.0;
-                visible: self.opacity > 0.01;
+                opacity: (!res_container.current_res.loading && root.active_tab == 4) ? 1.0 : 0.0;
+                visible: !res_container.current_res.loading && self.opacity > 0.01;
                 animate opacity {
                     duration: 200ms;
                     easing: ease-in-out;
@@ -223,14 +231,14 @@ export component SearchPage inherits Rectangle {
             }
 
             for account in AccountsProps.accounts: Rectangle {
-                visible: res_container.has_no_results && !account.logged_in && account.package_name == res_container.current_res.extension;
+                visible: !res_container.current_res.loading && SearchPageProps.search_query != "" && res_container.has_no_results && !account.logged_in && account.package_name == res_container.current_res.extension;
 
                 if (self.visible): StatusTooltip {
                     text: @tr("Not logged in");
                 }
             }
 
-            if (SearchPageProps.provider_results.length > 0 && res_container.has_no_results && !res_container.current_res.has_account): StatusTooltip {
+            if (SearchPageProps.provider_results.length > 0 && !res_container.current_res.loading && SearchPageProps.search_query != "" && res_container.has_no_results && !res_container.current_res.has_account): StatusTooltip {
                 text: @tr("No results found");
             }
         }

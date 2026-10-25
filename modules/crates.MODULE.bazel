@@ -83,6 +83,12 @@ crates.annotation_select(
 crates.annotation_select(
     crate = "windows_x86_64_gnu",
     triples = ["x86_64-pc-windows-gnu"],
+    version = "0.48.5",
+    deps = ["@@//:libwindows_0_48_5"],
+)
+crates.annotation_select(
+    crate = "windows_x86_64_gnu",
+    triples = ["x86_64-pc-windows-gnu"],
     version = "0.52.6",
     deps = ["@@//:libwindows_0_52_0"],
 )
@@ -135,6 +141,7 @@ use_repo(
     "crates",
     "crates__winapi-x86_64-pc-windows-gnu-0.4.0",
     "crates__windows_x86_64_gnu-0.42.2",
+    "crates__windows_x86_64_gnu-0.48.5",
     "crates__windows_x86_64_gnu-0.52.6",
     "crates__windows_x86_64_gnu-0.53.1",
 )

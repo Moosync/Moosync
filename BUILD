@@ -124,6 +124,12 @@ cc_library(
 )
 
 cc_library(
+    name = "libwindows_0_48_5",
+    srcs = ["@crates__windows_x86_64_gnu-0.48.5//:lib/libwindows.0.48.5.a"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
     name = "libwindows_0_52_0",
     srcs = ["@crates__windows_x86_64_gnu-0.52.6//:lib/libwindows.0.52.0.a"],
     visibility = ["//visibility:public"],

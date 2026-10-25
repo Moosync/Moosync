@@ -1,5 +1,5 @@
 {
-  "checksum": "e8b8ec8365d41b4e8cfaba8b13d2cdaac0b8bae03905cadcf72f6a4dd3c46b86",
+  "checksum": "ddb1ef0233a6ed73bbaa64b400ec0a6cfb8bb87c621d76ecf0f88d7a5520dc80",
   "crates": {
     "ab_glyph 0.2.32": {
       "name": "ab_glyph",
@@ -73703,7 +73703,11 @@
           "common": [
             ":build_script_build"
           ],
-          "selects": {}
+          "selects": {
+            "x86_64-pc-windows-gnu": [
+              "@@//:libwindows_0_48_5"
+            ]
+          }
         },
         "edition": "2018",
         "version": "0.48.5"

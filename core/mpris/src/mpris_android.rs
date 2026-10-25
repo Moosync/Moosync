@@ -38,6 +38,7 @@ use crate::{
 /// `MoosyncService` static methods via JNI to update the notification and
 /// MediaSession. Media button events come back through the `nativeOnXxx`
 /// `#[no_mangle]` extern functions below.
+#[derive(Debug)]
 pub struct AndroidMprisContext {
     context: AndroidJNIContext,
 }

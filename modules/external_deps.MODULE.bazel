@@ -151,6 +151,7 @@ toolchain(
     patch_cmds = [
         "cp x86_64-w64-mingw32/lib/libunwind.a x86_64-w64-mingw32/lib/libgcc.a",
         "cp x86_64-w64-mingw32/lib/libunwind.a x86_64-w64-mingw32/lib/libgcc_eh.a",
+        "printf 'CREATE x86_64-w64-mingw32/lib/libstdc++.a\\nADDLIB x86_64-w64-mingw32/lib/libc++.a\\nADDLIB x86_64-w64-mingw32/lib/libc++abi.a\\nSAVE\\nEND\\n' | bin/llvm-ar -M",
     ],
     sha256 = "9d191203f9768ead60662d3ae53cdf28e0a28b1e6d44b7f329b9202cb2add337",
     strip_prefix = "llvm-mingw-20260602-ucrt-ubuntu-22.04-x86_64",

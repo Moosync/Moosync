@@ -305,5 +305,26 @@ impl ReplyHandler for StateReplyHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
+    fn get_cache(&self, package_name: &str, key: &str) -> Result<Option<Vec<u8>>, ExtensionError> {
+        let db = self.state_manager.get_database();
+        db.get_extension_cache(package_name, key)
+            .map_err(|e| ExtensionError::Cache(e.to_string()))
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn set_cache(
+        &self,
+        package_name: &str,
+        key: &str,
+        data: Vec<u8>,
+        ttl_seconds: u64,
+    ) -> Result<bool, ExtensionError> {
+        let db = self.state_manager.get_database();
+        db.set_extension_cache(package_name, key, &data, ttl_seconds)
+            .map_err(|e| ExtensionError::Cache(e.to_string()))?;
+        Ok(true)
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
     fn get_runtime_handle(&self) -> Option<Handle> { Some(self.runtime.clone()) }
 }

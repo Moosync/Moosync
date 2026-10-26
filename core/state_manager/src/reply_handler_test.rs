@@ -500,3 +500,67 @@ async fn test_reply_handler_register_and_unregister_user_preference(
     .unwrap();
     assert!(unreg_res.is_err());
 }
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_reply_handler_set_and_get_cache(reply_context: TestReplyContext) {
+    let TestReplyContext { handler, .. } = reply_context;
+    let handler = std::sync::Arc::new(handler);
+
+    let expiry = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+        + 3600;
+
+    let set_res = tokio::task::spawn_blocking({
+        let handler = handler.clone();
+        move || handler.set_cache("test_ext", "key1", b"cache_val".to_vec(), expiry)
+    })
+    .await
+    .unwrap();
+    assert_ok!(set_res);
+
+    let get_res = tokio::task::spawn_blocking({
+        let handler = handler.clone();
+        move || handler.get_cache("test_ext", "key1")
+    })
+    .await
+    .unwrap();
+    assert_ok!(&get_res);
+    assert_eq!(get_res.unwrap(), Some(b"cache_val".to_vec()));
+
+    let miss_res =
+        tokio::task::spawn_blocking(move || handler.get_cache("test_ext", "nonexistent"))
+            .await
+            .unwrap();
+    assert_ok!(&miss_res);
+    assert_eq!(miss_res.unwrap(), None);
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_reply_handler_cache_expiry(reply_context: TestReplyContext) {
+    let TestReplyContext { handler, .. } = reply_context;
+    let handler = std::sync::Arc::new(handler);
+
+    let set_res = tokio::task::spawn_blocking({
+        let handler = handler.clone();
+        move || handler.set_cache("test_ext", "expired_key", b"old_val".to_vec(), 0)
+    })
+    .await
+    .unwrap();
+    assert_ok!(set_res);
+
+    tokio::time::sleep(std::time::Duration::from_millis(1100)).await;
+
+    let get_res = tokio::task::spawn_blocking(move || handler.get_cache("test_ext", "expired_key"))
+        .await
+        .unwrap();
+    assert_ok!(&get_res);
+    assert_eq!(get_res.unwrap(), None);
+}

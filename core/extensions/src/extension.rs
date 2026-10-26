@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     fs,
     path::PathBuf,
-    sync::{Arc, OnceLock, RwLock},
+    sync::{Arc, Mutex, OnceLock, RwLock},
 };
 
 use extensions_proto::moosync::types::{
@@ -34,6 +34,7 @@ use tokio::sync::watch;
 
 use crate::{
     ReplyHandler,
+    cache::ExtensionMemoryCache,
     context::{ExtensionContext, ExtismContext},
     errors::ExtensionError,
     sanitize::Sanitize,
@@ -87,6 +88,7 @@ pub struct Extension {
     extension_path: PathBuf,
     pub(crate) reply_handler: Arc<dyn ReplyHandler>,
     pub(crate) error: Arc<OnceLock<String>>,
+    pub(crate) memory_cache: Arc<Mutex<ExtensionMemoryCache>>,
 }
 
 impl Extension {
@@ -133,6 +135,7 @@ impl Extension {
             extension_path: extension_dir,
             reply_handler,
             error: Arc::new(OnceLock::new()),
+            memory_cache: Arc::new(Mutex::new(ExtensionMemoryCache::default())),
         };
 
         ext.spawn_extension();

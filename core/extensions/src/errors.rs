@@ -72,4 +72,7 @@ pub enum ExtensionError {
 
     #[error("Extension update failed: {0}")]
     UpdateFailed(String),
+
+    #[error("Cache error: {0}")]
+    Cache(String),
 }

@@ -45,6 +45,8 @@ rust_test(
 rust_library(
     name = "extensions",
     srcs = [
+        "src/cache.rs",
+        "src/cache_test.rs",
         "src/context/extism_context.rs",
         "src/context/extism_context_test.rs",
         "src/context/mod.rs",
@@ -84,6 +86,7 @@ rust_library(
         "@crates//:fs_extra",
         "@crates//:futures",
         "@crates//:interprocess",
+        "@crates//:lru",
         "@crates//:prost",
         "@crates//:regex",
         "@crates//:reqwest",

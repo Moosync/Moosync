@@ -72,6 +72,9 @@ impl Database {
             PRAGMA busy_timeout = 250;          -- sleep if the database is busy
         ").expect("Failed to set DB options");
 
+        db.init_cache_table()
+            .expect("Failed to initialize cache table");
+
         info!("Created DB instance");
         db
     }
@@ -230,7 +233,8 @@ impl Database {
         insert_new_artists(&conn, &unique_artists, &mut artist_ids)?;
         insert_new_genres(&conn, &unique_genres, &mut genre_ids)?;
 
-        // 4. Fetch existing song IDs for paths that already exist in the database
+        // 4. Fetch existing song IDs for paths that already exist in the
+        //    database
         let existing_song_ids = fetch_existing_song_ids(&conn, songs)?;
 
         // 5. Update the incoming songs slice with matched or new IDs

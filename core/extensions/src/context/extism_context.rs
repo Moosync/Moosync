@@ -53,11 +53,14 @@ use crate::{
 static ENV_VAR_REGEX: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\{([A-Z_][A-Z0-9_]*)\}").unwrap());
 
+use crate::cache::ExtensionMemoryCache;
+
 const HANDLE_EXTENSION_COMMAND: &str = "handle_extension_command";
 
 struct MainCommandUserData {
     package_name: String,
     reply_handler: Arc<dyn ReplyHandler>,
+    memory_cache: Arc<Mutex<ExtensionMemoryCache>>,
 }
 
 struct SocketUserData {
@@ -73,9 +76,9 @@ struct HttpUserData {
 
 host_fn!(send_main_command(user_data: MainCommandUserData; command_wrapper: Prost<MainCommand>) {
     let user_data_arc = user_data.get()?;
-    let (package_name, reply_handler) = {
+    let (package_name, reply_handler, memory_cache) = {
         let data = user_data_arc.lock().unwrap();
-        (data.package_name.clone(), data.reply_handler.clone())
+        (data.package_name.clone(), data.reply_handler.clone(), data.memory_cache.clone())
     };
 
     let mut command = command_wrapper.0;
@@ -91,7 +94,7 @@ host_fn!(send_main_command(user_data: MainCommandUserData; command_wrapper: Pros
     let runtime_handle = reply_handler.get_runtime_handle();
     let _runtime_guard = runtime_handle.as_ref().map(|h| h.enter());
     let response = match command.command {
-        Some(cmd) => cmd.dispatch(reply_handler.as_ref(), &package_name),
+        Some(cmd) => cmd.dispatch(reply_handler.as_ref(), &package_name, &memory_cache),
         None => Err(ExtensionError::MissingCommand),
     };
 
@@ -417,6 +420,7 @@ impl TryFrom<&Extension> for Arc<ExtismContext> {
         let (user_data, sock_data, http_data) = ExtismContext::get_user_data(
             package_name.clone(),
             ext.reply_handler.clone(),
+            ext.memory_cache.clone(),
             plugin_manifest.allowed_paths.clone(),
             manifest.permissions.as_ref().map(|p| p.hosts.clone()),
         );
@@ -509,6 +513,7 @@ impl ExtismContext {
     fn get_user_data(
         package_name: String,
         reply_handler: Arc<dyn ReplyHandler>,
+        memory_cache: Arc<Mutex<ExtensionMemoryCache>>,
         allowed_paths: Option<BTreeMap<String, PathBuf>>,
         allowed_hosts: Option<Vec<String>>,
     ) -> (
@@ -520,6 +525,7 @@ impl ExtismContext {
         let user_data = UserData::new(MainCommandUserData {
             package_name,
             reply_handler,
+            memory_cache,
         });
 
         let sock_data = UserData::new(SocketUserData {

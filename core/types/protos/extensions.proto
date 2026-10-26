@@ -334,6 +334,8 @@ message MainCommand {
     UnregisterUserPreferenceRequest unregister_user_preference = 21;
     ExtensionsUpdatedRequest extensions_updated = 22;
     GetAppVersionRequest get_app_version = 23;
+    GetCacheRequest get_cache = 24;
+    SetCacheRequest set_cache = 25;
   }
 }
 
@@ -363,7 +365,27 @@ message MainCommandResponse {
     ExtensionsUpdatedResponse extensions_updated = 22;
     GetAppVersionResponse get_app_version = 23;
     Error error = 24;
+    GetCacheResponse get_cache = 25;
+    SetCacheResponse set_cache = 26;
   }
+}
+
+message GetCacheRequest {
+  string key = 1;
+}
+
+message GetCacheResponse {
+  optional bytes data = 1;
+}
+
+message SetCacheRequest {
+  string key = 1;
+  bytes data = 2;
+  optional uint64 ttl_seconds = 3;
+}
+
+message SetCacheResponse {
+  bool success = 1;
 }
 
 message GetSongRequest {

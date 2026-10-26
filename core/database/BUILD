@@ -12,6 +12,8 @@ filegroup(
 rust_library(
     name = "database",
     srcs = [
+        "src/cache.rs",
+        "src/cache_test.rs",
         "src/database.rs",
         "src/database_test.rs",
         "src/error.rs",

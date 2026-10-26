@@ -199,6 +199,24 @@ impl ReplyHandler for TestReplyHandler {
     fn get_app_version(&self, _package_name: &str) -> Result<String, ExtensionError> {
         Ok("".to_string())
     }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_cache(
+        &self,
+        _package_name: &str,
+        _key: &str,
+    ) -> Result<Option<Vec<u8>>, ExtensionError> {
+        Ok(None)
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn set_cache(
+        &self,
+        _package_name: &str,
+        _key: &str,
+        _data: Vec<u8>,
+        _ttl_seconds: u64,
+    ) -> Result<bool, ExtensionError> {
+        Ok(true)
+    }
 }
 
 #[test]

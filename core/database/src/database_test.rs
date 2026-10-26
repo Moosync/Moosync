@@ -932,8 +932,8 @@ fn test_files_not_in_db(db_context: TestDbContext) {
     let res = db.files_not_in_db(files).unwrap();
     assert!(res.is_empty());
 
-    // Path matches but size differs -> treated as modified / not in DB with this
-    // size
+    // Path matches but size differs -> treated as modified / not in DB with
+    // this size
     let files_mismatch = vec![(PathBuf::from("/path/to/song1.mp3"), 100.0)];
     let res_mismatch = db.files_not_in_db(files_mismatch).unwrap();
     assert_len_eq_x!(&res_mismatch, 1);

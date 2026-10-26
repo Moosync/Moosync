@@ -35,11 +35,14 @@ pub use crate::{
     extension::{Extension, ExtensionGroupExt},
 };
 
+pub mod cache;
+#[cfg(test)]
+mod cache_test;
 mod context;
 pub use context::ReplyHandler;
 mod errors;
 mod ext_runner;
-mod extension;
+pub mod extension;
 pub mod models;
 mod remote;
 pub use remote::{DEFAULT_EXTENSION_REGISTRY, RemoteExtensions};

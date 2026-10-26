@@ -14,23 +14,23 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::Mutex};
 
 use extensions_proto::moosync::types::{
     AddPlaylistResponse, AddSongsResponse, AddToPlaylistResponse, ExtensionAccountDetail,
     ExtensionCommand, ExtensionCommandResponse, ExtensionsUpdatedResponse, GetAppVersionResponse,
-    GetCurrentSongResponse, GetEntityResponse, GetPlayerStateResponse, GetPreferenceResponse,
-    GetQueueResponse, GetSecureResponse, GetSongResponse, GetTimeResponse, GetVolumeResponse,
-    OpenExternalUrlResponse, PreferenceData, QueueState, RegisterOauthResponse,
-    RegisterUserPreferenceResponse, RemoveSongResponse, SetAccountResponse, SetPreferenceResponse,
-    SetSecureResponse, UnregisterUserPreferenceResponse, UpdateSongResponse, main_command,
-    main_command_response,
+    GetCacheResponse, GetCurrentSongResponse, GetEntityResponse, GetPlayerStateResponse,
+    GetPreferenceResponse, GetQueueResponse, GetSecureResponse, GetSongResponse, GetTimeResponse,
+    GetVolumeResponse, OpenExternalUrlResponse, PreferenceData, QueueState, RegisterOauthResponse,
+    RegisterUserPreferenceResponse, RemoveSongResponse, SetAccountResponse, SetCacheResponse,
+    SetPreferenceResponse, SetSecureResponse, UnregisterUserPreferenceResponse, UpdateSongResponse,
+    main_command, main_command_response,
 };
 pub use extism_context::ExtismContext;
 use preferences_proto::moosync::types::PreferenceItem;
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
 
-use crate::errors::ExtensionError;
+use crate::{cache::ExtensionMemoryCache, errors::ExtensionError};
 
 pub trait ReplyHandler: Send + Sync + 'static {
     fn get_song(
@@ -107,6 +107,14 @@ pub trait ReplyHandler: Send + Sync + 'static {
     ) -> Result<bool, ExtensionError>;
     fn extensions_updated(&self, _package_name: &str) -> Result<(), ExtensionError>;
     fn get_app_version(&self, _package_name: &str) -> Result<String, ExtensionError>;
+    fn get_cache(&self, package_name: &str, key: &str) -> Result<Option<Vec<u8>>, ExtensionError>;
+    fn set_cache(
+        &self,
+        package_name: &str,
+        key: &str,
+        data: Vec<u8>,
+        ttl_seconds: u64,
+    ) -> Result<bool, ExtensionError>;
     fn get_runtime_handle(&self) -> Option<tokio::runtime::Handle> { None }
 }
 
@@ -115,6 +123,7 @@ pub(crate) trait DispatchCommand {
         self,
         reply_handler: &dyn ReplyHandler,
         package_name: &str,
+        memory_cache: &Mutex<ExtensionMemoryCache>,
     ) -> Result<main_command_response::Response, ExtensionError>;
 }
 
@@ -124,6 +133,7 @@ impl DispatchCommand for main_command::Command {
         self,
         reply_handler: &dyn ReplyHandler,
         package_name: &str,
+        memory_cache: &Mutex<ExtensionMemoryCache>,
     ) -> Result<main_command_response::Response, ExtensionError> {
         match self {
             main_command::Command::GetSong(req) => reply_handler
@@ -297,6 +307,46 @@ impl DispatchCommand for main_command::Command {
                         version,
                     })
                 })
+            }
+            main_command::Command::GetCache(req) => {
+                if let Some(cached_data) = memory_cache.lock().unwrap().get(&req.key) {
+                    return Ok(main_command_response::Response::GetCache(
+                        GetCacheResponse {
+                            data: Some(cached_data),
+                        },
+                    ));
+                }
+
+                match reply_handler.get_cache(package_name, &req.key) {
+                    Ok(Some(data)) => {
+                        memory_cache
+                            .lock()
+                            .unwrap()
+                            .put(req.key, data.clone(), 7 * 24 * 3600);
+                        Ok(main_command_response::Response::GetCache(
+                            GetCacheResponse { data: Some(data) },
+                        ))
+                    }
+                    Ok(None) => Ok(main_command_response::Response::GetCache(
+                        GetCacheResponse { data: None },
+                    )),
+                    Err(e) => Err(e),
+                }
+            }
+            main_command::Command::SetCache(req) => {
+                let ttl_seconds = match req.ttl_seconds {
+                    Some(0) | None => 7 * 24 * 3600,
+                    Some(t) => t,
+                };
+                memory_cache
+                    .lock()
+                    .unwrap()
+                    .put(req.key.clone(), req.data.clone(), ttl_seconds);
+                reply_handler
+                    .set_cache(package_name, &req.key, req.data, ttl_seconds)
+                    .map(|success| {
+                        main_command_response::Response::SetCache(SetCacheResponse { success })
+                    })
             }
         }
     }

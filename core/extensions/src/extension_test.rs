@@ -141,6 +141,12 @@ impl ReplyHandler for DummyReply {
     fn extensions_updated(&self, _: &str) -> Result<(), ExtensionError> { Ok(()) }
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_app_version(&self, _: &str) -> Result<String, ExtensionError> { Ok("1.0.0".to_string()) }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_cache(&self, _: &str, _: &str) -> Result<Option<Vec<u8>>, ExtensionError> { Ok(None) }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn set_cache(&self, _: &str, _: &str, _: Vec<u8>, _: u64) -> Result<bool, ExtensionError> {
+        Ok(true)
+    }
 }
 
 struct TestExtContext {

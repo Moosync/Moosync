@@ -19,6 +19,18 @@ If the user has Jujutsu (`jj`) installed on their system, prefer using `.agents/
 | **moosync**         | Project structure — crate boundaries, UI layout, plugin system, platform-specific code patterns.  | Adding new features; understanding where to put new code. See `.agents/skills/moosync/SKILL.md`.          |
 | **instrumentation** | Tracing instrumentation rules and validation tools.                                               | Any function changes or additions requiring observability. See `.agents/skills/instrumentation/SKILL.md`. |
 | **tests**           | Unit and smoke testing rules, 3-section test layout, and hermetic execution.                      | Writing or refactoring tests. See `.agents/skills/tests/SKILL.md`.                                        |
+| **problem-solving** | Bug replication, TDD bug fixing, and minimal diff troubleshooting.                                | Investigating bugs, fixing regressions, or reproducing unexpected behaviors. See `.agents/skills/problem-solving/SKILL.md`. |
+
+---
+
+### Problem Solving Guidance
+
+Always activate and follow the **problem-solving** skill (`.agents/skills/problem-solving/SKILL.md`) whenever diagnosing, reproducing, or fixing an issue, bug, or regression:
+- **Reproduce First with Tests**: Always replicate the issue with an automated test (unit or integration test, whichever is simpler) before modifying code.
+- **Preserve Existing Tests**: Never alter the behavior, setup, or assertions of existing tests to make a fix pass.
+- **TDD Bug Fixing**: Write the failing test first, then fix the code without altering the new test's behavior or expectations.
+- **Minimal Diffs**: Keep changes minimal and surgical. Avoid large, speculative refactors or touching unrelated code.
+- **Prune Dead Code**: Immediately delete any code rendered unused by changes. No backwards compatibility is needed unless explicitly requested.
 
 ---
 
@@ -26,6 +38,7 @@ If the user has Jujutsu (`jj`) installed on their system, prefer using `.agents/
 
 ### Mandatory rules
 
+- When fixing bugs or solving problems, follow `.agents/skills/problem-solving/SKILL.md`: reproduce with a test first, keep existing tests intact, ensure diffs are minimal, and delete unused code.
 - Donot try to manually format files while editing. If Bazel skips a test, thats because nothing was changed. You can ignore that test.
 - If you want to format a file, use bazel run //tools:format
 - Never add comments to tests unless performing an obscure action that is unrelated to the test or too complicated to understand in layman terms.

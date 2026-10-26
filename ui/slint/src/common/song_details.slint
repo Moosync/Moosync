@@ -2,6 +2,7 @@ import { SongModel, CoverHelper } from "../types/song_view.slint";
 import { Theme } from "../constants.slint";
 import { WindowInfo } from "../window_info.slint";
 import { ScrollView } from "std-widgets.slint";
+import { Utils, DefaultIconType } from "../utils.slint";
 
 export component SongDetails inherits HorizontalLayout {
 
@@ -13,8 +14,11 @@ export component SongDetails inherits HorizontalLayout {
         extension-icon: @image-url("../icons/song_default.svg"),
     };
 
-    // High res cover image needs to be dynamically fetched
-    property <image> cover-image: song.coverPathHigh.width > 0 ? song.coverPathHigh : (song.id != "" ? CoverHelper.fetch_cover_high(song) : @image-url("../icons/song_default.svg"));
+    // High res cover image needs to be dynamically fetched with default fallback
+    property <image> cover-image: Utils.load_image_or_default(
+        song.coverPathHigh.width > 0 ? song.coverPathHigh : (song.id != "" ? CoverHelper.fetch_cover_high(song) : song.coverPathLow),
+        DefaultIconType.Song,
+    );
 
     alignment: start;
     spacing: Theme.spacingMd;

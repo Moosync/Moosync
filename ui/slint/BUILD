@@ -267,6 +267,7 @@ cargo_build_script(
         "locales/**/*.po",
         "src/**/*.slint",
         "src/**/*.svg",
+        "src/**/*.png",
     ]),
     deps = ["@crates//:slint-build"],
 )
@@ -278,6 +279,7 @@ rust_library(
         "locales/**/*.po",
         "src/**/*.slint",
         "src/**/*.svg",
+        "src/**/*.png",
     ]),
     crate_name = "slint_app",
     edition = "2021",

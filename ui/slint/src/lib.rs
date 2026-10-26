@@ -8,6 +8,7 @@ use extensions_proto::moosync::types::{
     PlayerEvent as PlayerEventMessage, player_event::Event as PlayerEvent,
 };
 use player_proto::moosync::types::RepeatMode;
+use preferences::keys::{MINIMIZE_TO_TRAY, PreferenceItemExt};
 use slint::{Image, Model, ModelRc, VecModel};
 use songs_proto::moosync::types::Song;
 use state_manager::StateManager;
@@ -87,6 +88,9 @@ pub fn run() {
 
     setup_ui(main_window, state_manager);
 
+    #[cfg(not(target_os = "android"))]
+    setup_tray(main_window, state_manager);
+
     runtime.block_on(
         async {
             state_manager.setup().await;
@@ -119,6 +123,48 @@ fn setup_resize(main_window: &MainWindow) {
     main_window.global::<AppCallbacks>().on_resize(move || {
         if let Some(main_window) = main_window_weak.upgrade() {
             WINDOW_EVENTS.with(|we| we.trigger_resize(main_window.window()));
+        }
+    });
+}
+
+#[cfg(not(target_os = "android"))]
+#[tracing::instrument(level = "debug", skip_all)]
+fn setup_tray(main_window: &'static MainWindow, state_manager: &'static StateManager) {
+    let tray = match AppTray::new() {
+        Ok(t) => Box::leak(Box::new(t)),
+        Err(e) => {
+            tracing::error!("Failed to initialize system tray: {:?}", e);
+            return;
+        }
+    };
+
+    let mw_weak = main_window.as_weak();
+    tray.on_show_window(move || {
+        if let Some(mw) = mw_weak.upgrade() {
+            let _ = mw.show();
+        }
+    });
+
+    tray.on_quit(move || {
+        let _ = slint::quit_event_loop();
+    });
+
+    let mw_weak = main_window.as_weak();
+    main_window.window().on_close_requested(move || {
+        let minimize_to_tray = state_manager
+            .get_preference_config()
+            .load(&MINIMIZE_TO_TRAY)
+            .value::<bool>()
+            .unwrap_or(false);
+
+        if minimize_to_tray {
+            if let Some(mw) = mw_weak.upgrade() {
+                let _ = mw.hide();
+            }
+            slint::CloseRequestResponse::HideWindow
+        } else {
+            let _ = slint::quit_event_loop();
+            slint::CloseRequestResponse::HideWindow
         }
     });
 }

@@ -1,0 +1,27 @@
+export component AppTray inherits SystemTrayIcon {
+    icon: @image-url("icons/tray.png");
+    tooltip: "Moosync";
+
+    callback show_window();
+    callback quit();
+
+    clicked => {
+        root.show_window();
+    }
+
+    Menu {
+        MenuItem {
+            title: @tr("Show Moosync");
+            activated => {
+                root.show_window();
+            }
+        }
+
+        MenuItem {
+            title: @tr("Quit");
+            activated => {
+                root.quit();
+            }
+        }
+    }
+}

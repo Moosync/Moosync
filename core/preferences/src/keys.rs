@@ -296,6 +296,7 @@ define_preferences! {
         type: DropdownGroup,
         title: "Language",
         subtitle: "Application display language",
+        default_string: "en_US",
         options: [
             ("af_ZA", "Afrikaans"),
             ("ar_SA", "العربية"),

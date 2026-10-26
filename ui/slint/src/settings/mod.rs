@@ -15,7 +15,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use extensions_proto::moosync::types::{PreferenceArgs, PreferenceChangedRequest};
-use preferences::keys::PreferenceItemExt;
+use preferences::keys::{I18N_LANGUAGE, PreferenceItemExt};
 use preferences_proto::moosync::types::PreferenceItem as ProtoPreferenceItem;
 #[cfg(not(target_os = "android"))]
 use rfd::FileDialog;
@@ -242,6 +242,10 @@ pub async fn handle_preference_change(
         return;
     };
 
+    if key == I18N_LANGUAGE.id {
+        let _ = slint::select_bundled_translation(&value_string);
+    }
+
     let val =
         compute_updated_preference_value(&item, value_string, value_bool, value_number, value_list);
     item.value = Some(preferences_proto::moosync::types::PreferenceValue { value: Some(val) });
@@ -258,6 +262,13 @@ pub async fn handle_preference_change(
 
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn setup_settings(main_window: &'static MainWindow, state_manager: &'static StateManager) {
+    let initial_lang = state_manager
+        .get_preference_config()
+        .load(&I18N_LANGUAGE)
+        .value::<String>()
+        .unwrap_or_else(|| "en_US".to_string());
+    let _ = slint::select_bundled_translation(&initial_lang);
+
     let paths_handler = PathsPageHandler::new(main_window, state_manager);
     let system_handler = SystemPageHandler::new(main_window, state_manager);
     let extensions_handler = ExtensionsPageHandler::new(main_window, state_manager);

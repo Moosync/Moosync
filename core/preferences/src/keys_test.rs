@@ -100,6 +100,7 @@ fn test_preference_constants_definitions() {
         PreferenceType::DropdownGroup as i32
     );
     assert_eq!(I18N_LANGUAGE.options.len(), 31);
+    assert_eq!(I18N_LANGUAGE.value::<String>(), Some("en_US".to_string()));
 
     assert_eq!(ACTIVE_THEME_ID.id, "active_theme_id");
     assert_eq!(

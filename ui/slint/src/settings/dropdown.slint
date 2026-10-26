@@ -8,6 +8,7 @@ export component DropdownGroup inherits VerticalLayout {
     in property <string> subtitle: root.preference.subtitle;
     in property <[PreferenceOption]> options: root.preference.options;
     in-out property <string> current_value: root.preference.value_string;
+    property <string> selected_id: root.current_value != "" ? root.current_value : "en_US";
     callback changed(string);
 
     spacing: Theme.spacingMd;
@@ -45,7 +46,7 @@ export component DropdownGroup inherits VerticalLayout {
                 padding-right: Theme.paddingMd;
 
                 for option in root.options: HorizontalLayout {
-                    if option.id == root.current_value || (root.current_value == "" && option.id == root.options[0].id): Text {
+                    if option.id == root.selected_id || (root.current_value == "" && option.id == root.options[0].id): Text {
                         text: option.label != "" ? option.label : option.id;
                         vertical-alignment: center;
                         horizontal-stretch: 1;
@@ -106,7 +107,7 @@ export component DropdownGroup inherits VerticalLayout {
                                     width: 3px;
                                     height: 14px;
                                     border-radius: 4px;
-                                    background: (root.current_value == option.id || root.current_value == option.label) ? Theme.accent : transparent;
+                                    background: (root.selected_id == option.id || root.selected_id == option.label) ? Theme.accent : transparent;
 
                                     animate background { duration: 150ms; }
                                 }

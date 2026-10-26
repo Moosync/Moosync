@@ -7,6 +7,7 @@ use extensions_proto::moosync::types::{
 };
 use futures::StreamExt;
 use player::{PlayerHandler, SourceResolver, error::PlayerError};
+use preferences::keys::{CLEAR_QUEUE, PreferenceItemExt};
 use songs_proto::moosync::types::Song;
 use tracing::{Instrument, error};
 
@@ -82,6 +83,25 @@ impl Hook for PlayerHook {
             state_manager: state_manager.clone(),
         }));
 
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn on_exit(
+        &self,
+        state_manager: &StateManager,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let preferences = state_manager.get_preference_config();
+        let should_clear = preferences
+            .load(&CLEAR_QUEUE)
+            .value::<bool>()
+            .unwrap_or(false);
+        if should_clear {
+            let player_handler = state_manager.plugins.get::<PlayerHandler>();
+            // Call twice to also clear the current song
+            player_handler.clear_queue().await;
+            player_handler.clear_queue().await;
+        }
         Ok(())
     }
 }

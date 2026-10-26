@@ -16,6 +16,8 @@
 
 use assertables::assert_ok;
 use player::PlayerHandler;
+use preferences::keys::CLEAR_QUEUE;
+use preferences_proto::moosync::types::{PreferenceItem, PreferenceValue, preference_value};
 use rstest::{fixture, rstest};
 use songs_proto::moosync::types::{InnerSong, Song, SongType};
 use tempdir::TempDir;
@@ -79,4 +81,92 @@ async fn test_player_hook_on_startup(sm_context: TestSmContext) {
         current_song.unwrap().song.as_ref().unwrap().id.as_deref(),
         Some("hook_test_song")
     );
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_player_hook_on_exit_clear_queue_enabled(sm_context: TestSmContext) {
+    let TestSmContext { sm, .. } = sm_context;
+    let hook = PlayerHook::new();
+    let preference_config = sm.get_preference_config();
+    let player_handler = sm.plugins.get::<PlayerHandler>();
+
+    preference_config
+        .save(PreferenceItem {
+            id: CLEAR_QUEUE.id.clone(),
+            value: Some(PreferenceValue {
+                value: Some(preference_value::Value::BoolValue(true)),
+            }),
+            ..CLEAR_QUEUE.clone()
+        })
+        .unwrap();
+
+    let test_song_1 = Song {
+        song: Some(InnerSong {
+            id: Some("song_1".to_string()),
+            title: Some("Title 1".to_string()),
+            path: Some("/test/1.mp3".to_string()),
+            r#type: SongType::Local.into(),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+    let test_song_2 = Song {
+        song: Some(InnerSong {
+            id: Some("song_2".to_string()),
+            title: Some("Title 2".to_string()),
+            path: Some("/test/2.mp3".to_string()),
+            r#type: SongType::Local.into(),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+    player_handler
+        .add_to_queue(vec![test_song_1, test_song_2])
+        .await;
+    assert_eq!(player_handler.get_queue().len(), 2);
+
+    assert_ok!(hook.on_exit(&sm).await);
+
+    assert!(player_handler.get_queue().is_empty());
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_player_hook_on_exit_clear_queue_disabled(sm_context: TestSmContext) {
+    let TestSmContext { sm, .. } = sm_context;
+    let hook = PlayerHook::new();
+    let preference_config = sm.get_preference_config();
+    let player_handler = sm.plugins.get::<PlayerHandler>();
+
+    preference_config
+        .save(PreferenceItem {
+            id: CLEAR_QUEUE.id.clone(),
+            value: Some(PreferenceValue {
+                value: Some(preference_value::Value::BoolValue(false)),
+            }),
+            ..CLEAR_QUEUE.clone()
+        })
+        .unwrap();
+
+    let test_song = Song {
+        song: Some(InnerSong {
+            id: Some("song_1".to_string()),
+            title: Some("Title 1".to_string()),
+            path: Some("/test/1.mp3".to_string()),
+            r#type: SongType::Local.into(),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+    player_handler.add_to_queue(vec![test_song]).await;
+    assert_eq!(player_handler.get_queue().len(), 1);
+
+    assert_ok!(hook.on_exit(&sm).await);
+
+    assert_eq!(player_handler.get_queue().len(), 1);
 }

@@ -413,8 +413,8 @@ impl Source for FFMPEGDecoder {
     }
 
     #[inline]
-    // moosync::no_instrument(reason = "trivial getter called frequently on audio
-    // rendering thread")
+    // moosync::no_instrument(reason = "trivial getter called frequently on
+    // audio rendering thread")
     fn current_span_len(&self) -> Option<usize> { None }
 
     #[tracing::instrument(level = "debug", skip_all)]

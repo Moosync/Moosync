@@ -1,7 +1,7 @@
 import { Theme } from "../constants.slint";
 import { BottomBarCallbacks } from "../callbacks.slint";
 import { Button } from "../common/button.slint";
-import { PlayerProps } from "../props.slint";
+import { PlayerProps } from "playback_props.slint";
 
 export component PlaybackButton inherits Button {
     in property <image> icon_source;
@@ -15,7 +15,7 @@ export component PlaybackButton inherits Button {
     background: root.has_hover ? Theme.textPrimary.with-alpha(0.05) : transparent;
 
     property <color> current_color: active ? Theme.accent : (root.has_hover ? Theme.textPrimary : Theme.textSecondary);
-    animate current_color { duration: 150ms; }
+    animate current_color { duration: Theme.durationFast; }
 
     Rectangle {
         width: Theme.playbackControlsIconSize;

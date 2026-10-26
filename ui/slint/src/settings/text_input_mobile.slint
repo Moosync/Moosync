@@ -1,0 +1,85 @@
+import { Theme } from "../constants_mobile.slint";
+import { PreferenceItem } from "preferences.slint";
+import { AppCallbacks, UtilCallbacks } from "../callbacks.slint";
+
+export component TextInputGroupMobile inherits Rectangle {
+    in property <PreferenceItem> preference;
+    in property <string> title: root.preference.title;
+    in property <string> subtitle: root.preference.subtitle;
+    in property <string> placeholder: root.preference.placeholder;
+    in property <string> validation: root.preference.validation;
+    in property <InputType> inputType;
+
+    in-out property <string> value: root.preference.value_string;
+    property <bool> is_valid: root.validation == "" || UtilCallbacks.validate_input(root.value, root.validation);
+    callback edited(string);
+
+    VerticalLayout {
+        spacing: Theme.spacingXs;
+        alignment: start;
+
+        VerticalLayout {
+            spacing: Theme.borderWidthLg;
+            Text {
+                text: root.title;
+                font-size: Theme.body;
+                font-weight: 600;
+                color: Theme.textPrimary;
+            }
+
+            if (root.subtitle != ""): Text {
+                text: root.subtitle;
+                font-size: Theme.caption;
+                color: Theme.textSecondary;
+            }
+        }
+
+        Rectangle {
+            height: Theme.size4Xl;
+            border-radius: Theme.borderRadiusMd;
+            border-color: !root.is_valid ? Theme.danger : (text_input.has-focus ? Theme.accent : Theme.divider);
+            border-width: Theme.borderWidth;
+            background: Theme.tertiary;
+
+            HorizontalLayout {
+                padding-left: Theme.paddingSm;
+                padding-right: Theme.paddingSm;
+
+                Rectangle {
+                    horizontal-stretch: 1;
+                    clip: true;
+
+                    if (text_input.text == "" && root.placeholder != ""): Text {
+                        text: root.placeholder;
+                        color: Theme.textSecondary;
+                        font-size: Theme.body;
+                        vertical-alignment: center;
+                    }
+
+                    text_input := TextInput {
+                        width: 100%;
+                        height: 100%;
+                        text <=> root.value;
+                        color: Theme.textPrimary;
+                        font-size: Theme.body;
+                        input-type: root.inputType;
+                        vertical-alignment: center;
+
+                        edited => {
+                            if (root.is_valid && root.preference.id != "") {
+                                AppCallbacks.preference_changed({
+                                    id: root.preference.id,
+                                    value_string: self.text,
+                                    value_bool: false,
+                                    value_number: 0.0,
+                                    value_list: []
+                                });
+                            }
+                            root.edited(self.text);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

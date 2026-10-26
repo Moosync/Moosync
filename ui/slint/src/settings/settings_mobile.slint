@@ -1,0 +1,187 @@
+import {
+    SettingsPages,
+    Theme,
+} from "../constants_mobile.slint";
+import { SettingsPageWrapperMobile } from "../common/page_wrapper_mobile.slint";
+import { PathsPageMobile } from "paths_mobile.slint";
+import { SystemPageMobile } from "system_mobile.slint";
+import { ExtensionsPageMobile } from "extensions_mobile.slint";
+import { ThemesPageMobile } from "themes_mobile.slint";
+import { AppCallbacks } from "../callbacks.slint";
+import { SaveThemeModalMobile } from "../common/save_theme_modal_mobile.slint";
+import { SaveThemeState } from "../common/save_theme_modal_props.slint";
+import {
+    ExtensionDetailsModalMobile,
+} from "../common/extension_details_modal_mobile.slint";
+import {
+    ExtensionDetailsState,
+} from "../common/extension_details_modal_props.slint";
+import { IconButton } from "../common/icon_button_mobile.slint";
+import { SettingsState } from "settings_props.slint";
+import { SidebarButtonMobile } from "../sidebar/sidebar_button_mobile.slint";
+
+export component SettingsMobile inherits Rectangle {
+    callback close();
+
+    in-out property <SettingsPages> active_page <=> SettingsState.active_page;
+
+    width: 100%;
+    height: 100%;
+    background: Theme.primary;
+
+    VerticalLayout {
+        width: 100%;
+        height: 100%;
+        padding-top: Theme.mobileTopBarPaddingTop;
+
+        // Top App Bar
+        Rectangle {
+            height: Theme.mobileHeaderHeight;
+            background: Theme.primary;
+
+            Rectangle {
+                y: parent.height - Theme.borderWidth;
+                height: Theme.borderWidth;
+                background: Theme.divider;
+            }
+
+            HorizontalLayout {
+                padding-left: Theme.paddingSm;
+                padding-right: Theme.paddingMd;
+                spacing: Theme.spacingMd;
+
+                VerticalLayout {
+                    alignment: center;
+                    IconButton {
+                        accessible-label: @tr("Back");
+                        icon_source: @image-url("../icons/nav_button.svg");
+                        icon_size: Theme.playbackControlsIconSize;
+                        width: Theme.searchBarHeight;
+                        height: Theme.searchBarHeight;
+                        clicked => {
+                            root.close();
+                        }
+                    }
+                }
+
+                Text {
+                    text: root.active_page == SettingsPages.Paths ? @tr("Paths") :
+                        root.active_page == SettingsPages.System ? @tr("System") :
+                        root.active_page == SettingsPages.Extensions ? @tr("Extensions") :
+                        @tr("Themes");
+                    font-size: Theme.modelTitle;
+                    font-weight: 700;
+                    color: Theme.textPrimary;
+                    vertical-alignment: center;
+                    horizontal-stretch: 1;
+                }
+            }
+        }
+
+        // Body Content
+        Rectangle {
+            vertical-stretch: 1;
+            clip: true;
+
+            SettingsPageWrapperMobile {
+                active-page <=> root.active_page;
+                page-type: SettingsPages.Paths;
+
+                PathsPageMobile { }
+            }
+
+            SettingsPageWrapperMobile {
+                active-page <=> root.active_page;
+                page-type: SettingsPages.System;
+
+                SystemPageMobile { }
+            }
+
+            SettingsPageWrapperMobile {
+                active-page <=> root.active_page;
+                page-type: SettingsPages.Extensions;
+
+                ExtensionsPageMobile { }
+            }
+
+            SettingsPageWrapperMobile {
+                active-page <=> root.active_page;
+                page-type: SettingsPages.Themes;
+
+                ThemesPageMobile { }
+            }
+        }
+
+        // Settings Bottom Navigation Bar
+        Rectangle {
+            height: Theme.mobileBottomNavHeight;
+            background: Theme.secondary;
+
+            Rectangle {
+                y: 0px;
+                height: Theme.borderWidth;
+                width: 100%;
+                background: Theme.divider;
+            }
+
+            HorizontalLayout {
+                width: 100%;
+                height: 100%;
+                padding-bottom: Theme.mobileBottomNavButtonPaddingBottom;
+                alignment: space-around;
+
+                SidebarButtonMobile {
+                    text: @tr("Paths");
+                    icon: @image-url("../icons/paths.svg");
+                    accessible-label: @tr("Paths Settings");
+                    active: root.active_page == SettingsPages.Paths;
+                    clicked => {
+                        root.active_page = SettingsPages.Paths;
+                    }
+                }
+
+                SidebarButtonMobile {
+                    text: @tr("System");
+                    icon: @image-url("../icons/system.svg");
+                    accessible-label: @tr("System Settings");
+                    active: root.active_page == SettingsPages.System;
+                    clicked => {
+                        root.active_page = SettingsPages.System;
+                    }
+                }
+
+                SidebarButtonMobile {
+                    text: @tr("Extensions");
+                    icon: @image-url("../icons/extensions.svg");
+                    accessible-label: @tr("Extensions Settings");
+                    active: root.active_page == SettingsPages.Extensions;
+                    clicked => {
+                        root.active_page = SettingsPages.Extensions;
+                    }
+                }
+
+                SidebarButtonMobile {
+                    text: @tr("Themes");
+                    icon: @image-url("../icons/themes.svg");
+                    accessible-label: @tr("Themes Settings");
+                    active: root.active_page == SettingsPages.Themes;
+                    clicked => {
+                        root.active_page = SettingsPages.Themes;
+                    }
+                }
+            }
+        }
+    }
+
+    if SaveThemeState.show_modal: SaveThemeModalMobile {
+        close => {
+            SaveThemeState.show_modal = false;
+        }
+    }
+
+    if ExtensionDetailsState.show_modal: ExtensionDetailsModalMobile {
+        close => {
+            ExtensionDetailsState.show_modal = false;
+        }
+    }
+}

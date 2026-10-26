@@ -10,27 +10,14 @@ import { SystemPage } from "system.slint";
 import { ExtensionsPage } from "extensions.slint";
 import { ThemesPage } from "themes.slint";
 import { AppCallbacks } from "../callbacks.slint";
+import { SaveThemeModal } from "../common/save_theme_modal.slint";
+import { SaveThemeState } from "../common/save_theme_modal_props.slint";
+import { ExtensionDetailsModal } from "../common/extension_details_modal.slint";
 import {
-    SaveThemeModal,
-    SaveThemeState,
-} from "../common/save_theme_modal.slint";
-import {
-    ExtensionDetailsModal,
     ExtensionDetailsState,
-} from "../common/extension_details_modal.slint";
+} from "../common/extension_details_modal_props.slint";
 import { IconButton } from "../common/icon_button.slint";
-
-export global SettingsState {
-    in-out property <bool> show_settings: false;
-    in-out property <SettingsPages> active_page: SettingsPages.Paths;
-
-    changed show_settings => {
-        AppCallbacks.settings-toggled(self.show_settings);
-    }
-    changed active_page => {
-        AppCallbacks.settings-active-page-changed(self.active_page);
-    }
-}
+import { SettingsState } from "settings_props.slint";
 
 export component Settings inherits Modal {
     modalSize: ModalSize.Xl;

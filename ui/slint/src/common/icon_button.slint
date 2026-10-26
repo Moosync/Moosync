@@ -8,7 +8,7 @@ export component IconButton inherits Button {
     in property <length> icon_height: root.icon_size;
     in property <bool> active: false;
     in property <color> icon_color: active ? Theme.accent : (root.has_hover ? Theme.textPrimary : Theme.textSecondary);
-    in property <angle> icon_rotation: 0deg;
+    in property <angle> icon_rotation: Theme.angle0;
 
     has_custom_layout: true;
     width: Theme.topbarIconSize;
@@ -29,7 +29,7 @@ export component IconButton inherits Button {
                 transform-rotation: root.icon_rotation;
 
                 animate transform-rotation {
-                    duration: 200ms;
+                    duration: Theme.durationNormal;
                     easing: ease-in-out;
                 }
             }

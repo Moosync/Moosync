@@ -1,4 +1,5 @@
 load("@rules_android//rules:rules.bzl", "android_binary")
+load("@rules_cc//cc:defs.bzl", "cc_import")
 load("@rules_kotlin//kotlin:android.bzl", "kt_android_library")
 
 package(default_visibility = ["//visibility:public"])
@@ -7,6 +8,15 @@ kt_android_library(
     name = "moosync_kt",
     srcs = glob(["src/**/*.kt"]),
     custom_package = "app.moosync.android",
+)
+
+cc_import(
+    name = "libcxx_shared",
+    shared_library = select({
+        "@platforms//cpu:x86_64": "@androidndk//toolchains/llvm/prebuilt/linux-x86_64/sysroot:usr/lib/x86_64-linux-android/libc++_shared.so",
+        "@platforms//cpu:aarch64": "@androidndk//toolchains/llvm/prebuilt/linux-x86_64/sysroot:usr/lib/aarch64-linux-android/libc++_shared.so",
+        "//conditions:default": "@androidndk//toolchains/llvm/prebuilt/linux-x86_64/sysroot:usr/lib/x86_64-linux-android/libc++_shared.so",
+    }),
 )
 
 # android_binary packages the Slint shared library into an APK.
@@ -19,7 +29,16 @@ android_binary(
     manifest = "AndroidManifest.xml",
     resource_files = glob(["res/**"]),
     deps = [
+        ":libcxx_shared",
         ":moosync_kt",
         "//ui/slint:slint_app_android",
+    ],
+)
+
+sh_binary(
+    name = "run_emulator",
+    srcs = ["run_emulator.sh"],
+    data = [
+        ":moosync_apk",
     ],
 )

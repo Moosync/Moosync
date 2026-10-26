@@ -10,8 +10,9 @@ import { ScrollView, Slider } from "std-widgets.slint";
 import { NumberInputGroup } from "number_input.slint";
 import { ButtonGroup, ButtonItem } from "button_group.slint";
 import { AppCallbacks } from "../callbacks.slint";
-import { SaveThemeState } from "../common/save_theme_modal.slint";
+import { SaveThemeState } from "../common/save_theme_modal_props.slint";
 import { SettingsPageLayout } from "settings_page_layout.slint";
+import { ThemesPageProps } from "themes_props.slint";
 
 
 component FullColorPicker inherits VerticalLayout {
@@ -87,8 +88,8 @@ component FullColorPicker inherits VerticalLayout {
 
         // 2D Saturation-Value box
         Rectangle {
-            width: 180px;
-            height: 180px;
+            width: Theme.menuWidth;
+            height: Theme.menuWidth;
 
             // Base active Hue color
             Rectangle {
@@ -97,27 +98,27 @@ component FullColorPicker inherits VerticalLayout {
             }
             // Saturation gradient (white -> transparent)
             Rectangle {
-                background: @linear-gradient(90deg, #ffffff, transparent);
+                background: @linear-gradient(Theme.angle90, #ffffff, transparent);
                 border-radius: Theme.borderRadiusLg;
             }
             // Value gradient (transparent -> black)
             Rectangle {
-                background: @linear-gradient(180deg, transparent, #000000);
+                background: @linear-gradient(Theme.angle180, transparent, #000000);
                 border-radius: Theme.borderRadiusLg;
             }
 
             // Interaction TouchArea
             sv_touch := TouchArea {
                 clicked => {
-                    root.hsv_s = Math.max(0.0, Math.min(1.0, (self.mouse-x / 1px) / (self.width / 1px)));
-                    root.hsv_v = Math.max(0.0, Math.min(1.0, 1.0 - ((self.mouse-y / 1px) / (self.height / 1px))));
+                    root.hsv_s = Math.max(0.0, Math.min(1.0, (self.mouse-x / Theme.unitLength) / (self.width / Theme.unitLength)));
+                    root.hsv_v = Math.max(0.0, Math.min(1.0, 1.0 - ((self.mouse-y / Theme.unitLength) / (self.height / Theme.unitLength))));
                     let new_rgb = root.hsv_to_rgb(root.hsv_h, root.hsv_s, root.hsv_v);
                     root.changed({ r: new_rgb.r, g: new_rgb.g, b: new_rgb.b, a: root.value.a });
                 }
                 moved => {
                     if (self.pressed) {
-                        root.hsv_s = Math.max(0.0, Math.min(1.0, (self.mouse-x / 1px) / (self.width / 1px)));
-                        root.hsv_v = Math.max(0.0, Math.min(1.0, 1.0 - ((self.mouse-y / 1px) / (self.height / 1px))));
+                        root.hsv_s = Math.max(0.0, Math.min(1.0, (self.mouse-x / Theme.unitLength) / (self.width / Theme.unitLength)));
+                        root.hsv_v = Math.max(0.0, Math.min(1.0, 1.0 - ((self.mouse-y / Theme.unitLength) / (self.height / Theme.unitLength))));
                         let new_rgb = root.hsv_to_rgb(root.hsv_h, root.hsv_s, root.hsv_v);
                         root.changed({ r: new_rgb.r, g: new_rgb.g, b: new_rgb.b, a: root.value.a });
                     }
@@ -126,43 +127,43 @@ component FullColorPicker inherits VerticalLayout {
 
             // Handle circle selector
             Rectangle {
-                x: root.hsv_s * parent.width - 10px;
-                y: (1.0 - root.hsv_v) * parent.height - 10px;
-                width: 20px;
-                height: 20px;
-                border-radius: 10px;
-                border-width: 3px;
+                x: root.hsv_s * parent.width - Theme.extraSmall;
+                y: (1.0 - root.hsv_v) * parent.height - Theme.extraSmall;
+                width: Theme.sizeLg;
+                height: Theme.sizeLg;
+                border-radius: Theme.extraSmall;
+                border-width: Theme.borderWidthXxl;
                 border-color: #ffffff;
 
                 Rectangle {
-                    border-radius: 10px;
-                    border-width: 1px;
-                    border-color: #000000.transparentize(50%);
+                    border-radius: Theme.extraSmall;
+                    border-width: Theme.borderWidth;
+                    border-color: #000000.transparentize(Theme.percent50);
                 }
             }
         }
 
         // Vertical Hue slider
         Rectangle {
-            width: 24px;
-            height: 180px;
+            width: Theme.sizeXl;
+            height: Theme.menuWidth;
 
             // Hue spectrum background
             Rectangle {
-                border-radius: 12px;
-                background: @linear-gradient(180deg, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%);
+                border-radius: Theme.sizeSm;
+                background: @linear-gradient(Theme.angle180, #ff0000 0%, #ffff00 Theme.percent17, #00ff00 Theme.percent33, #00ffff Theme.percent50, #0000ff Theme.percent67, #ff00ff Theme.percent83, #ff0000 100%);
             }
 
             // Interaction TouchArea
             hue_touch := TouchArea {
                 clicked => {
-                    root.hsv_h = Math.max(0.0, Math.min(360.0, ((self.mouse-y / 1px) / (self.height / 1px)) * 360.0));
+                    root.hsv_h = Math.max(0.0, Math.min(360.0, ((self.mouse-y / Theme.unitLength) / (self.height / Theme.unitLength)) * 360.0));
                     let new_rgb = root.hsv_to_rgb(root.hsv_h, root.hsv_s, root.hsv_v);
                     root.changed({ r: new_rgb.r, g: new_rgb.g, b: new_rgb.b, a: root.value.a });
                 }
                 moved => {
                     if (self.pressed) {
-                        root.hsv_h = Math.max(0.0, Math.min(360.0, ((self.mouse-y / 1px) / (self.height / 1px)) * 360.0));
+                        root.hsv_h = Math.max(0.0, Math.min(360.0, ((self.mouse-y / Theme.unitLength) / (self.height / Theme.unitLength)) * 360.0));
                         let new_rgb = root.hsv_to_rgb(root.hsv_h, root.hsv_s, root.hsv_v);
                         root.changed({ r: new_rgb.r, g: new_rgb.g, b: new_rgb.b, a: root.value.a });
                     }
@@ -171,18 +172,18 @@ component FullColorPicker inherits VerticalLayout {
 
             // Handle circle selector
             Rectangle {
-                x: parent.width / 2 - 10px;
-                y: (root.hsv_h / 360.0) * parent.height - 10px;
-                width: 20px;
-                height: 20px;
-                border-radius: 10px;
-                border-width: 3px;
+                x: parent.width / 2 - Theme.extraSmall;
+                y: (root.hsv_h / 360.0) * parent.height - Theme.extraSmall;
+                width: Theme.sizeLg;
+                height: Theme.sizeLg;
+                border-radius: Theme.extraSmall;
+                border-width: Theme.borderWidthXxl;
                 border-color: #ffffff;
 
                 Rectangle {
-                    border-radius: 10px;
-                    border-width: 1px;
-                    border-color: #000000.transparentize(50%);
+                    border-radius: Theme.extraSmall;
+                    border-width: Theme.borderWidth;
+                    border-color: #000000.transparentize(Theme.percent50);
                 }
             }
         }
@@ -200,20 +201,20 @@ component FullColorPicker inherits VerticalLayout {
                 color: Theme.textSecondary;
                 font-size: Theme.caption;
                 vertical-alignment: center;
-                width: 50px;
+                width: Theme.size3Xl;
             }
 
             opacity_touch := TouchArea {
-                height: 20px;
+                height: Theme.sizeLg;
                 horizontal-stretch: 1;
 
                 clicked => {
-                    root.local_alpha = Math.max(0.0, Math.min(1.0, (self.mouse-x / 1px) / (self.width / 1px)));
+                    root.local_alpha = Math.max(0.0, Math.min(1.0, (self.mouse-x / Theme.unitLength) / (self.width / Theme.unitLength)));
                     root.changed({ r: root.value.r, g: root.value.g, b: root.value.b, a: root.local_alpha });
                 }
                 moved => {
                     if (self.pressed) {
-                        root.local_alpha = Math.max(0.0, Math.min(1.0, (self.mouse-x / 1px) / (self.width / 1px)));
+                        root.local_alpha = Math.max(0.0, Math.min(1.0, (self.mouse-x / Theme.unitLength) / (self.width / Theme.unitLength)));
                         root.changed({ r: root.value.r, g: root.value.g, b: root.value.b, a: root.local_alpha });
                     }
                 }
@@ -221,10 +222,10 @@ component FullColorPicker inherits VerticalLayout {
                 // Custom slider track and handle
                 Rectangle {
                     width: 100%;
-                    height: 6px;
+                    height: Theme.borderRadiusMd;
                     y: (parent.height - self.height) / 2;
                     background: Theme.divider;
-                    border-radius: 3px;
+                    border-radius: Theme.borderWidthXxl;
 
                     // Filled track
                     Rectangle {
@@ -232,18 +233,18 @@ component FullColorPicker inherits VerticalLayout {
                         width: parent.width * root.local_alpha;
                         height: 100%;
                         background: Theme.accent;
-                        border-radius: 3px;
+                        border-radius: Theme.borderWidthXxl;
                     }
 
                     // Handle thumb
                     Rectangle {
-                        x: root.local_alpha * parent.width - 8px;
+                        x: root.local_alpha * parent.width - Theme.sizeXs;
                         y: (parent.height - self.height) / 2;
-                        width: 16px;
-                        height: 16px;
-                        border-radius: 8px;
+                        width: Theme.sizeMd;
+                        height: Theme.sizeMd;
+                        border-radius: Theme.borderRadiusLg;
                         background: Theme.textPrimary;
-                        border-width: 1px;
+                        border-width: Theme.borderWidth;
                         border-color: Theme.textSecondary;
                     }
                 }
@@ -253,7 +254,7 @@ component FullColorPicker inherits VerticalLayout {
                 text: "\{round(root.local_alpha * 100)}%";
                 color: Theme.textPrimary;
                 vertical-alignment: center;
-                width: 35px;
+                width: Theme.dropdownHeight;
                 horizontal-alignment: right;
                 font-size: Theme.caption;
             }
@@ -261,7 +262,7 @@ component FullColorPicker inherits VerticalLayout {
     }
 }
 
-component ColorTabCard inherits Rectangle {
+export component ColorTabCard inherits Rectangle {
     in property <string> title;
     in property <string> desc;
     in property <RgbaColor> active-val;
@@ -274,13 +275,14 @@ component ColorTabCard inherits Rectangle {
     border-width: Theme.borderWidth;
     border-color: Theme.divider;
 
-    TouchArea {
-        clicked => {
-            root.expanded = !root.expanded;
-        }
-        VerticalLayout {
-            padding: Theme.paddingLg;
-            spacing: Theme.spacingMd;
+    VerticalLayout {
+        padding: Theme.paddingLg;
+        spacing: Theme.spacingMd;
+
+        TouchArea {
+            clicked => {
+                root.expanded = !root.expanded;
+            }
 
             HorizontalLayout {
                 spacing: Theme.spacingMd;
@@ -308,28 +310,28 @@ component ColorTabCard inherits Rectangle {
                     alignment: center;
 
                     Rectangle {
-                        width: 80px;
-                        height: 40px;
-                        border-radius: 12px;
+                        width: Theme.size6Xl;
+                        height: Theme.size3Xl;
+                        border-radius: Theme.sizeSm;
                         background: rgba(root.active-val.r, root.active-val.g, root.active-val.b, root.active-val.a);
-                        border-width: 1px;
-                        border-color: Theme.textSecondary.transparentize(50%);
+                        border-width: Theme.borderWidth;
+                        border-color: Theme.textSecondary.transparentize(Theme.percent50);
                     }
                 }
             }
+        }
 
-            if root.expanded: VerticalLayout {
-                spacing: Theme.spacingMd;
-                Rectangle {
-                    height: 1px;
-                    background: Theme.textSecondary.transparentize(80%);
-                }
+        if root.expanded: VerticalLayout {
+            spacing: Theme.spacingMd;
+            Rectangle {
+                height: Theme.borderWidth;
+                background: Theme.textSecondary.transparentize(Theme.percent80);
+            }
 
-                FullColorPicker {
-                    value: root.active-val;
-                    changed(val) => {
-                        root.changed(val);
-                    }
+            FullColorPicker {
+                value: root.active-val;
+                changed(val) => {
+                    root.changed(val);
                 }
             }
         }
@@ -346,8 +348,8 @@ export component ThemeCard inherits TouchArea {
     Rectangle {
         border-radius: Theme.borderRadiusXl;
         background: Theme.secondary;
-        border-width: root.is-active ? 2px : 1px;
-        border-color: root.is-active ? rgba(config.accent_color.r, config.accent_color.g, config.accent_color.b, 1.0) : (root.has-hover ? Theme.textSecondary : Theme.textSecondary.transparentize(50%));
+        border-width: root.is-active ? Theme.borderWidthLg : Theme.borderWidth;
+        border-color: root.is-active ? rgba(config.accent_color.r, config.accent_color.g, config.accent_color.b, 1.0) : (root.has-hover ? Theme.textSecondary : Theme.textSecondary.transparentize(Theme.percent50));
 
         VerticalLayout {
             padding: Theme.paddingMd;
@@ -357,36 +359,36 @@ export component ThemeCard inherits TouchArea {
                 height: Theme.themeCardPreviewHeight;
                 border-radius: Theme.borderRadiusLg;
                 background: rgba(config.preview_bg.r, config.preview_bg.g, config.preview_bg.b, config.preview_bg.a);
-                border-width: 1px;
-                border-color: Theme.textSecondary.transparentize(50%);
+                border-width: Theme.borderWidth;
+                border-color: Theme.textSecondary.transparentize(Theme.percent50);
                 clip: true;
 
                 VerticalLayout {
-                    padding: 12px;
+                    padding: Theme.extensionItemPaddingY;
                     alignment: space-between;
                     Rectangle {
-                        width: 30%;
-                        height: 8px;
-                        border-radius: 4px;
+                        width: Theme.percent30;
+                        height: Theme.sizeXs;
+                        border-radius: Theme.borderRadiusSm;
                         background: rgba(config.accent_color.r, config.accent_color.g, config.accent_color.b, config.accent_color.a);
                     }
 
                     HorizontalLayout {
-                        spacing: 8px;
+                        spacing: Theme.spacingXs;
                         Rectangle {
-                            width: 24px;
-                            height: 24px;
-                            border-radius: 6px;
+                            width: Theme.sizeXl;
+                            height: Theme.sizeXl;
+                            border-radius: Theme.borderRadiusMd;
                             background: rgba(config.secondary_color.r, config.secondary_color.g, config.secondary_color.b, config.secondary_color.a);
                         }
 
                         VerticalLayout {
-                            spacing: 4px;
+                            spacing: Theme.spacingXxs;
                             alignment: center;
                             Rectangle {
                                 width: 100%;
-                                height: 6px;
-                                border-radius: 3px;
+                                height: Theme.borderRadiusMd;
+                                border-radius: Theme.borderWidthXxl;
                                 background: rgba(config.primary_color.r, config.primary_color.g, config.primary_color.b, config.primary_color.a);
                             }
                         }
@@ -413,12 +415,6 @@ export component ThemeCard inherits TouchArea {
             }
         }
     }
-}
-
-export global ThemesPageProps {
-    in-out property <string> active_theme_id;
-    in-out property <[ThemeConfig]> available_themes;
-    in-out property <[ThemeConstant]> theme_constants;
 }
 
 export component ThemesPage inherits SettingsPageLayout {
@@ -459,7 +455,7 @@ export component ThemesPage inherits SettingsPageLayout {
             }
 
             ScrollView {
-                height: Theme.themeCardPreviewHeight + 100px;
+                height: Theme.themeCardPreviewHeight + Theme.size6Xl;
                 HorizontalLayout {
                     spacing: Theme.spacingMd;
                     padding-bottom: Theme.paddingLg;
@@ -509,7 +505,7 @@ export component ThemesPage inherits SettingsPageLayout {
                         Rectangle {
                             border-radius: Theme.quickAccentSwatchSize / 2;
                             background: rgba(swatch.r, swatch.g, swatch.b, swatch.a);
-                            border-width: root.active-accent.r == swatch.r && root.active-accent.g == swatch.g ? 2px : 0px;
+                            border-width: root.active-accent.r == swatch.r && root.active-accent.g == swatch.g ? Theme.borderWidthLg : 0px;
                             border-color: Theme.textPrimary;
                         }
                     }
@@ -554,8 +550,8 @@ export component ThemesPage inherits SettingsPageLayout {
                         Text {
                             text: root.advanced-expanded ? "▲" : "▼";
                             color: accordion_touch.has-hover ? Theme.accent : Theme.textSecondary;
-                            font-size: 14px;
-                            animate color { duration: 150ms; }
+                            font-size: Theme.subtitle;
+                            animate color { duration: Theme.durationFast; }
                         }
                     }
                 }

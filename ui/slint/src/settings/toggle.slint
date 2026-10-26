@@ -66,7 +66,7 @@ export component ToggleGroup inherits Rectangle {
                         ? (touch.has-hover ? Theme.accent.brighter(0.1) : Theme.accent)
                         : (touch.has-hover ? Theme.textSecondary.brighter(0.1) : Theme.textSecondary);
 
-                    animate background { duration: 150ms; }
+                    animate background { duration: Theme.durationFast; }
 
                     thumb := Rectangle {
                         width: Theme.toggleThumbSize;
@@ -75,10 +75,10 @@ export component ToggleGroup inherits Rectangle {
                         background: Theme.textPrimary;
                         y: (parent.height - self.height) / 2;
 
-                        x: root.checked ? (Theme.toggleWidth - self.width - 2px) : 2px;
+                        x: root.checked ? (Theme.toggleWidth - self.width - Theme.borderWidthLg) : Theme.borderWidthLg;
 
                         animate x {
-                            duration: 150ms;
+                            duration: Theme.durationFast;
                             easing: cubic-bezier(0.25, 0.8, 0.25, 1);
                         }
                     }

@@ -9,8 +9,15 @@ import { PreferenceItem } from "preferences.slint";
 import { PreferenceList } from "preference_list.slint";
 import { Spinner } from "../common/spinner.slint";
 import { IconButton } from "../common/icon_button.slint";
-import { ExtensionDetailsState } from "../common/extension_details_modal.slint";
+import {
+    ExtensionDetailsState,
+} from "../common/extension_details_modal_props.slint";
 import { SettingsPageLayout } from "settings_page_layout.slint";
+import {
+    ExtensionPreferenceGroup,
+    ExtensionsPreferenceProps,
+    ExtensionsPageProps,
+} from "extensions_props.slint";
 
 component ExtensionsManifest inherits VerticalLayout {
     in property <[ExtensionItem]> extensions;
@@ -153,7 +160,7 @@ component ExtensionsManifest inherits VerticalLayout {
                                     border-radius: self.height / 2;
                                     background: item.is_installed ? (toggle_touch.has-hover ? Theme.accent.brighter(0.1) : Theme.accent) : (toggle_touch.has-hover ? Theme.textSecondary.brighter(0.1) : Theme.textSecondary);
 
-                                    animate background { duration: 150ms; }
+                                    animate background { duration: Theme.durationFast; }
 
                                     thumb := Rectangle {
                                         width: Theme.toggleThumbSize;
@@ -165,7 +172,7 @@ component ExtensionsManifest inherits VerticalLayout {
                                         x: item.is_installed ? (Theme.toggleWidth - self.width - Theme.spacingTiny) : Theme.spacingTiny;
 
                                         animate x {
-                                            duration: 150ms;
+                                            duration: Theme.durationFast;
                                             easing: cubic-bezier(0.25, 0.8, 0.25, 1);
                                         }
                                     }
@@ -177,22 +184,6 @@ component ExtensionsManifest inherits VerticalLayout {
             }
         }
     }
-}
-
-export struct ExtensionPreferenceGroup {
-    package_name: string,
-    display_name: string,
-    preferences: [PreferenceItem],
-}
-
-export global ExtensionsPreferenceProps {
-    in-out property <[PreferenceItem]> static_preferences: [];
-    in-out property <[ExtensionPreferenceGroup]> extension_preferences: [];
-}
-
-export global ExtensionsPageProps {
-    in-out property <[ExtensionItem]> extensions: Constants.testExtensions;
-    in-out property <bool> has_updates: false;
 }
 
 export component ExtensionsPage inherits SettingsPageLayout {

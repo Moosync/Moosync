@@ -5,7 +5,7 @@ export { MenuItem }
 export component PopupMenu inherits Rectangle {
     in property <[MenuItem]> items;
     in property <length> menu-width: 0px;
-    in property <length> menu-min-width: 140px;
+    in property <length> menu-min-width: Theme.size7Xl;
     in property <color> menu-background: Theme.secondary;
     in property <length> menu-border-radius: Theme.borderRadiusLg;
 
@@ -33,7 +33,7 @@ export component PopupMenu inherits Rectangle {
                 spacing: Theme.spacingTiny;
 
                 for item[index] in root.items: item-touch := TouchArea {
-                    height: item.is-divider ? 1px : 32px;
+                    height: item.is-divider ? Theme.borderWidth : Theme.sizeXxl;
                     clicked => {
                         if (!item.is-divider) {
                             root.selected(item.id);
@@ -42,7 +42,7 @@ export component PopupMenu inherits Rectangle {
                     }
 
                     if (item.is-divider): Rectangle {
-                        height: 1px;
+                        height: Theme.borderWidth;
                         background: Theme.textSecondary.with-alpha(0.2);
                     }
 
@@ -50,7 +50,7 @@ export component PopupMenu inherits Rectangle {
                         border-radius: Theme.borderRadiusMd;
                         background: item-touch.has-hover ? Theme.textPrimary.with-alpha(0.1) : transparent;
 
-                        animate background { duration: 100ms; }
+                        animate background { duration: Theme.durationFastest; }
 
                         HorizontalLayout {
                             padding-left: Theme.paddingMd;
@@ -76,18 +76,18 @@ export component PopupMenu inherits Rectangle {
                                 vertical-alignment: center;
                                 horizontal-alignment: left;
                                 color: item.is-danger ? #ff5555 : (item.is-selected ? Theme.accent : (item-touch.has-hover ? Theme.textPrimary : Theme.textPrimary.with-alpha(0.85)));
-                                animate color { duration: 100ms; }
+                                animate color { duration: Theme.durationFastest; }
                             }
 
                             // Selection indicator on the right
                             if (item.is-selected): VerticalLayout {
                                 alignment: center;
                                 Rectangle {
-                                    width: 3px;
-                                    height: 14px;
-                                    border-radius: 2px;
+                                    width: Theme.borderWidthXxl;
+                                    height: Theme.subtitle;
+                                    border-radius: Theme.borderWidthLg;
                                     background: Theme.accent;
-                                    animate background { duration: 150ms; }
+                                    animate background { duration: Theme.durationFast; }
                                 }
                             }
                         }

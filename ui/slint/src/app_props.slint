@@ -1,0 +1,10 @@
+import { Pages } from "constants.slint";
+import { AppCallbacks } from "callbacks.slint";
+
+export global AppProps {
+    in-out property <Pages> active_page: Pages.AllSongs;
+
+    changed active_page => {
+        AppCallbacks.active_page_changed(self.active_page);
+    }
+}

@@ -1,0 +1,286 @@
+export {
+    Constants,
+    Pages,
+    SettingsPages,
+    QueuePages,
+    VolumeScale,
+    RgbaColor,
+    ThemeConfig,
+    ThemeConstant,
+} from "constants.slint";
+
+export global Theme {
+    // Colors
+    in-out property <color> primary: #212121;
+    in-out property <color> secondary: #282828;
+    in-out property <color> tertiary: #151515;
+    in-out property <color> textPrimary: #ffffff;
+    in-out property <color> textSecondary: #565656;
+    in-out property <color> textInverse: #000000;
+    in-out property <color> accent: #65cb88;
+    in-out property <color> danger: #e55353;
+    in-out property <color> divider: rgba(0, 0, 0, 0.0);
+
+    // Degrees
+    in-out property <angle> angle0: 0deg;
+    in-out property <angle> angle90: 90deg;
+    in-out property <angle> angle180: 180deg;
+    in-out property <angle> angle270: 270deg;
+    in-out property <angle> angle360: 360deg;
+
+    // Percentages
+    in-out property <percent> percent17: 17%;
+    in-out property <percent> percent25: 25%;
+    in-out property <percent> percent30: 30%;
+    in-out property <percent> percent33: 33%;
+    in-out property <percent> percent40: 40%;
+    in-out property <percent> percent50: 50%;
+    in-out property <percent> percent60: 60%;
+    in-out property <percent> percent67: 67%;
+    in-out property <percent> percent75: 75%;
+    in-out property <percent> percent80: 80%;
+    in-out property <percent> percent83: 83%;
+
+    // Durations
+    in-out property <duration> zeroDuration: 0ms;
+    in-out property <duration> durationFastest: 100ms;
+    in-out property <duration> durationFast: 150ms;
+    in-out property <duration> durationNormal: 200ms;
+    in-out property <duration> durationMedium: 250ms;
+    in-out property <duration> durationSlow: 300ms;
+    in-out property <duration> durationLong: 1000ms;
+
+    // Breakpoints
+    in-out property <length> breakpointSm: 600px;
+    in-out property <length> breakpointMd: 900px;
+    in-out property <length> breakpointLg: 1200px;
+
+    // Border Widths
+    in-out property <length> borderWidthSm: 0.5px;
+    in-out property <length> borderWidthMd: 1.5px;
+    in-out property <length> borderWidthLg: 2px;
+    in-out property <length> borderWidthXl: 2.5px;
+    in-out property <length> borderWidthXxl: 3px;
+
+    // Standard Sizes
+    in-out property <length> unitLength: 1px;
+    in-out property <length> sizeTiny: 2px;
+    in-out property <length> sizeXxs: 4px;
+    in-out property <length> sizeXs: 8px;
+    in-out property <length> sizeSm: 12px;
+    in-out property <length> sizeMd: 16px;
+    in-out property <length> sizeLg: 20px;
+    in-out property <length> sizeXl: 24px;
+    in-out property <length> sizeXL: 24px;
+    in-out property <length> sizeXxl: 32px;
+    in-out property <length> sizeXXL: 32px;
+    in-out property <length> size3Xl: 40px;
+    in-out property <length> size4Xl: 48px;
+    in-out property <length> size5Xl: 64px;
+    in-out property <length> size6Xl: 80px;
+    in-out property <length> size7Xl: 120px;
+    in-out property <length> size8Xl: 160px;
+    in-out property <length> size9Xl: 200px;
+    in-out property <length> overlayOffset: 2000px;
+    in-out property <length> overlaySize: 4000px;
+    in-out property <length> colorPickerSize: 180px;
+    in-out property <length> menuWidth: 180px;
+    in-out property <length> modalWidth: 650px;
+    in-out property <length> contextMenuMaxHeight: 650px;
+    in-out property <length> borderRadiusFull: 9999px;
+    in-out property <length> paddingXl: 24px;
+    in-out property <length> paddingXxs: 4px;
+    in-out property <length> mobileQueueDragHandleHeight: 52px;
+    in-out property <length> mobileCoverDragTop: 105px;
+    in-out property <length> mobileCoverDragBottomOffset: 315px;
+    in-out property <length> mobileSheetDismissThreshold: 60px;
+    in-out property <length> mobileDragThreshold: 10px;
+
+    // Font Sizes
+    in-out property <length> pageHeader: 28px;
+    in-out property <length> modelTitle: 16px;
+    in-out property <length> subtitle: 14px;
+    in-out property <length> body: 13px;
+    in-out property <length> caption: 11px;
+    in-out property <length> extraSmall: 10px;
+
+    // Spacing
+    in-out property <length> spacingXxl: 30px;
+    in-out property <length> spacingXl: 20px;
+    in-out property <length> spacingLg: 16px;
+    in-out property <length> spacingMd: 12px;
+    in-out property <length> spacingSm: 10px;
+    in-out property <length> spacingXs: 8px;
+    in-out property <length> spacingXxs: 4px;
+    in-out property <length> spacingTiny: 2px;
+
+    // Paddings
+    in-out property <length> paddingLg: 16px;
+    in-out property <length> paddingMd: 14px;
+    in-out property <length> paddingSm: 10px;
+    in-out property <length> paddingXs: 8px;
+
+    // Border Radius
+    in-out property <length> borderRadiusXl: 16px;
+    in-out property <length> borderRadiusLg: 8px;
+    in-out property <length> borderRadiusMd: 6px;
+    in-out property <length> borderRadiusSm: 1.5px;
+
+    // Border
+    in-out property <length> borderWidth: 1px;
+
+    // Icon Sizes
+    in-out property <length> iconSizeXl: 24px;
+    in-out property <length> iconSizeLg: 20px;
+    in-out property <length> iconSizeMd: 16px;
+    in-out property <length> iconSizeSm: 13px;
+
+    // Component Dimensions (Desktop Compatible)
+    in-out property <length> cardWidth: 150px;
+    in-out property <length> cardHeight: 200px;
+    in-out property <length> sidebarWidth: 261px;
+    in-out property <length> sidebarCollapsedWidth: 64px;
+    in-out property <length> bottombarHeight: 60px;
+    in-out property <length> topbarHeight: 48px;
+    in-out property <length> sidebarButtonHeight: 48px;
+    in-out property <length> sidebarHeaderHeight: 48px;
+    in-out property <length> pillButtonHeight: 32px;
+    in-out property <length> songListItemHeight: 64px;
+    in-out property <length> songListItemWidth: 0px;
+    in-out property <length> extensionListItemHeight: 80px;
+    in-out property <length> extensionListItemWidth: 0px;
+    in-out property <length> extensionsListHeight: 230px;
+    in-out property <length> extensionIconSize: 36px;
+    in-out property <length> extensionItemPaddingX: 15px;
+    in-out property <length> extensionItemPaddingY: 12px;
+    in-out property <length> trackInfoThumbnailSize: 44px;
+    in-out property <length> songListItemThumbnailSize: 44px;
+    in-out property <length> songDetailsThumbnailSize: 280px;
+    in-out property <length> exploreThumbnailSize: 180px;
+    in-out property <length> playbackControlsIconSize: 20px;
+    in-out property <length> playbackButtonSize: 44px;
+    in-out property <length> navButtonSize: 36px;
+    in-out property <length> topbarIconSize: 32px;
+    in-out property <length> sidebarHeaderToggleSize: 32px;
+    in-out property <length> searchBarHeight: 44px;
+    in-out property <length> playbackSliderTrackHeight: 4px;
+    in-out property <length> volumeSliderTrackHeight: 4px;
+    in-out property <length> sliderThumbSize: 14px;
+    in-out property <length> sliderThumbHoverSize: 16px;
+    in-out property <length> bottombarProgressBarHeight: 14px;
+    in-out property <length> volumeControlProgressBarHeight: 14px;
+    in-out property <length> trackInfoWidth: 240px;
+    in-out property <length> volumeSliderWidth: 100px;
+
+    // Settings
+    in-out property <length> settingsSidebarWidth: 200px;
+    in-out property <length> settingsCloseButtonSize: 24px;
+
+    // Settings Component Details
+    in-out property <length> dropdownHeight: 44px;
+    in-out property <length> dropdownOptionHeight: 36px;
+    in-out property <length> numberInputHeight: 44px;
+    in-out property <length> numberInputWidth: 150px;
+    in-out property <length> textInputHeight: 44px;
+    in-out property <length> fileInputHeight: 44px;
+    in-out property <length> rgbaSwatchWidth: 60px;
+    in-out property <length> rgbaSwatchHeight: 44px;
+    in-out property <length> rgbaPopupWidth: 260px;
+    in-out property <length> themeCardWidth: 200px;
+    in-out property <length> themeCardPreviewHeight: 100px;
+    in-out property <length> quickAccentSwatchSize: 36px;
+    in-out property <length> advancedAccordionHeaderHeight: 44px;
+    in-out property <length> themeSavePopupWidth: 320px;
+    in-out property <length> toggleWidth: 48px;
+    in-out property <length> toggleHeight: 28px;
+    in-out property <length> toggleThumbSize: 22px;
+    in-out property <length> radioOptionHeight: 36px;
+    in-out property <length> radioOptionCircleSize: 18px;
+
+    // Accounts Popup
+    in-out property <length> accountsPopupWidth: 220px;
+    in-out property <length> accountItemHeight: 40px;
+    in-out property <length> accountItemBorderRadius: 20px;
+    in-out property <length> accountItemPaddingX: 32px;
+
+    // Modal Backdrop & Padding
+    in-out property <color> modalBackdrop: rgba(0, 0, 0, 0.5);
+    in-out property <length> modalPadding: 20px;
+
+    // Modal Sizes
+    in-out property <length> modalWidthXl: 800px;
+    in-out property <length> modalHeightXl: 800px;
+    in-out property <length> modalWidthLg: 600px;
+    in-out property <length> modalHeightLg: 600px;
+    in-out property <length> modalWidthMd: 400px;
+    in-out property <length> modalHeightMd: 400px;
+    in-out property <length> modalWidthSm: 200px;
+    in-out property <length> modalHeightSm: 200px;
+
+    // Modal Buttons & Confirmation Popup
+    in-out property <length> modalActionButtonWidth: 80px;
+    in-out property <length> modalActionButtonHeight: 36px;
+    in-out property <length> buttonMinWidth: 100px;
+    in-out property <length> confirmModalWidth: 300px;
+    in-out property <length> confirmModalHeight: 160px;
+
+    // Mobile UI Specific Dimensions
+    in-out property <length> mobileBottomNavHeight: 72px;
+    in-out property <length> mobileMiniPlayerHeight: 60px;
+    in-out property <length> mobileDockingSpacerHeight: 132px;
+    in-out property <length> mobileMiniPlayerProgressHeight: 2px;
+    in-out property <length> mobilePlayPauseButtonSize: 44px;
+    in-out property <length> mobilePlayPauseIconSize: 24px;
+    in-out property <length> mobileTopBarHeight: 48px;
+    in-out property <length> mobileTopBarPaddingTop: 36px;
+    in-out property <length> mobileHeaderHeight: 56px;
+    in-out property <length> mobileSearchBarHeight: 44px;
+    in-out property <length> mobileCardWidth: 150px;
+    in-out property <length> mobileCardHeight: 200px;
+    in-out property <length> mobileSongListItemHeight: 64px;
+    in-out property <length> mobileQueueListItemHeight: 64px;
+    in-out property <length> mobileThumbnailSize: 48px;
+    in-out property <length> mobileThumbnailSizeSm: 40px;
+    in-out property <length> mobileThumbnailSizeLg: 280px;
+    in-out property <length> mobileBottomNavPillWidth: 64px;
+    in-out property <length> mobileBottomNavPillHeight: 32px;
+    in-out property <length> mobileBottomNavIconSize: 24px;
+    in-out property <length> mobileBottomSheetIndicatorWidth: 32px;
+    in-out property <length> mobileBottomSheetIndicatorHeight: 4px;
+    in-out property <length> mobileBottomSheetRadius: 24px;
+    in-out property <length> mobileDropdownHeight: 44px;
+    in-out property <length> mobileInputHeight: 44px;
+    in-out property <length> mobileToggleWidth: 48px;
+    in-out property <length> mobileToggleHeight: 28px;
+    in-out property <length> mobileToggleThumbSize: 22px;
+    in-out property <length> mobileModalWidth: 320px;
+    in-out property <length> mobileModalHeight: 400px;
+    in-out property <length> mobileModalWidthLg: 360px;
+    in-out property <length> mobileModalHeightLg: 500px;
+    in-out property <length> mobileConfirmModalWidth: 300px;
+    in-out property <length> mobileConfirmModalHeight: 180px;
+    in-out property <length> mobileButtonHeight: 44px;
+    in-out property <length> mobilePillButtonHeight: 36px;
+    in-out property <length> mobilePlaybackSliderTrackHeight: 4px;
+    in-out property <length> mobilePlaybackSliderThumbSize: 14px;
+    in-out property <length> mobileVolumeSliderWidth: 120px;
+    in-out property <length> mobileVolumeSliderHeight: 36px;
+    in-out property <length> mobileBottomNavButtonWidth: 56px;
+    in-out property <length> mobileBottomNavButtonHeight: 32px;
+    in-out property <length> mobileBottomNavButtonRadius: 16px;
+    in-out property <length> mobileBottomNavButtonPaddingBottom: 12px;
+    in-out property <length> mobileNavIconSize: 22px;
+    in-out property <length> mobileFabSize: 64px;
+    in-out property <length> mobileFabRadius: 32px;
+    in-out property <length> mobileIconButtonSize: 36px;
+    in-out property <length> mobileButtonSize: 44px;
+    in-out property <length> mobileButtonSizeLg: 48px;
+    in-out property <length> mobileIconSizeLg: 26px;
+    in-out property <length> mobileLyricsActiveFontSize: 22px;
+    in-out property <length> mobileLyricsInactiveFontSize: 18px;
+    in-out property <length> mobileSliderHeight: 24px;
+    in-out property <length> mobileSearchBarIconSize: 20px;
+    in-out property <length> mobileSearchFilterHeight: 36px;
+    in-out property <length> mobileSearchFilterRadius: 18px;
+    in-out property <length> mobileSearchFilterIconSize: 18px;
+}

@@ -3,9 +3,7 @@ import { ProviderRecommendations, SongModel } from "../types/song_view.slint";
 import { ProviderItem, Provider } from "./search.slint";
 import { SongListView } from "../common/song_list_view.slint";
 
-export global ExplorePageProps {
-    in-out property <[ProviderRecommendations]> provider-recommendations;
-}
+import { ExplorePageProps } from "explore_props.slint";
 
 export component ExplorePage inherits Rectangle {
     property <int> selected-provider: 0;

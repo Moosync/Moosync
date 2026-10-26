@@ -1,0 +1,43 @@
+import { Theme } from "../constants_mobile.slint";
+import { PathSelectorMobile } from "path_selector_mobile.slint";
+import { SingleFileInputMobile } from "single_file_input_mobile.slint";
+import { NumberInputGroupMobile } from "number_input_mobile.slint";
+import { TextInputGroupMobile } from "text_input_mobile.slint";
+import { ToggleGroupMobile } from "toggle_mobile.slint";
+import { RadioGroupMobile } from "radio_group_mobile.slint";
+import { DropdownGroupMobile } from "dropdown_mobile.slint";
+import { TextArrayInputMobile } from "text_array_input_mobile.slint";
+import { PreferenceGroupMobile } from "preference_group_mobile.slint";
+import { PreferenceItem, PreferenceType } from "preferences.slint";
+
+export component PreferenceListMobile inherits VerticalLayout {
+    in property <[PreferenceItem]> items;
+    spacing: Theme.spacingLg;
+
+    for item in root.items: PreferenceGroupMobile {
+        if item.pref_type == PreferenceType.PathSelector: PathSelectorMobile {
+            preference: item;
+        }
+        if item.pref_type == PreferenceType.SingleFileInput: SingleFileInputMobile {
+            preference: item;
+        }
+        if item.pref_type == PreferenceType.NumberInputGroup: NumberInputGroupMobile {
+            preference: item;
+        }
+        if item.pref_type == PreferenceType.TextInputGroup: TextInputGroupMobile {
+            preference: item;
+        }
+        if item.pref_type == PreferenceType.ToggleGroup: ToggleGroupMobile {
+            preference: item;
+        }
+        if item.pref_type == PreferenceType.RadioGroup: RadioGroupMobile {
+            preference: item;
+        }
+        if item.pref_type == PreferenceType.DropdownGroup: DropdownGroupMobile {
+            preference: item;
+        }
+        if item.pref_type == PreferenceType.TextArrayInput: TextArrayInputMobile {
+            preference: item;
+        }
+    }
+}

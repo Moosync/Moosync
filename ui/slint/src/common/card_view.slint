@@ -34,10 +34,10 @@ export component CardView inherits VerticalLayout {
             border-radius: self.width / 2;
 
             Image {
-                width: parent.width - 4px;
-                height: parent.height - 4px;
-                x: 2px;
-                y: 2px;
+                width: parent.width - Theme.sizeXxs;
+                height: parent.height - Theme.sizeXxs;
+                x: Theme.borderWidthLg;
+                y: Theme.borderWidthLg;
                 source: Utils.load_image_or_default(root.extension_icon, DefaultIconType.Extension);
             }
         }

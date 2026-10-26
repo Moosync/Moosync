@@ -14,8 +14,9 @@ import { SongDetails } from "../common/song_details.slint";
 import { LyricsView } from "lyrics_view.slint";
 import { ContextMenu } from "../common/context_menu.slint";
 import { Utils, DefaultIconType } from "../utils.slint";
-import { SavePlaylistState } from "../common/save_playlist_modal.slint";
-import { PlayerProps, QueuePageProps } from "../props.slint";
+import { SavePlaylistState } from "../common/save_playlist_modal_props.slint";
+import { QueuePageProps } from "queue_props.slint";
+import { PlayerProps } from "../bottombar/playback_props.slint";
 import {
     SongItemThumbnail,
     SongItemInfo,
@@ -29,14 +30,14 @@ component QueueListItem inherits Rectangle {
     in property <bool> is-ghost: false;
     in-out property <int> drag-source-idx: -1;
     in-out property <int> drag-target-idx: -1;
-    in-out property <length> drag-mouse-y: -1px;
+    in-out property <length> drag-mouse-y: -Theme.borderWidth;
     in property <length> list-viewport-y: 0px;
     callback clicked();
     callback remove-clicked();
 
     accessible-role: list-item;
     accessible-label: root.song.title;
-    height: 60px + Theme.paddingSm;
+    height: Theme.songListItemHeight + Theme.paddingSm;
 
     DragArea {
         width: 100%;
@@ -54,7 +55,7 @@ component QueueListItem inherits Rectangle {
                     root.drag-source-idx = AppCallbacks.transfer-to-string(event.data).to-float();
                     root.drag-target-idx = root.item-idx;
                     // Computes y coordinate of mouse relative to visible list viewport
-                    root.drag-mouse-y = root.item-idx * (60px + Theme.paddingSm) + event.position.y + root.list-viewport-y;
+                    root.drag-mouse-y = root.item-idx * (Theme.songListItemHeight + Theme.paddingSm) + event.position.y + root.list-viewport-y;
                     return DragAction.move;
                 }
                 return DragAction.none;
@@ -64,7 +65,7 @@ component QueueListItem inherits Rectangle {
                 AppCallbacks.move-queue-item(AppCallbacks.transfer-to-string(event.data), root.item-idx);
                 root.drag-source-idx = -1;
                 root.drag-target-idx = -1;
-                root.drag-mouse-y = -1px;
+                root.drag-mouse-y = -Theme.borderWidth;
                 return event.proposed-action;
             }
 
@@ -73,10 +74,10 @@ component QueueListItem inherits Rectangle {
                 height: 100%;
 
                 Rectangle {
-                    height: 60px;
+                    height: Theme.songListItemHeight;
                     background: root.is-ghost ? Theme.accent.transparentize(0.9) : (context_menu.has-hover ? rgba(255, 255, 255, 0.05) : transparent);
                     border-radius: Theme.borderRadiusMd;
-                    border-width: root.is-ghost ? 1px : 0px;
+                    border-width: root.is-ghost ? Theme.borderWidth : 0px;
                     border-color: root.is-ghost ? Theme.accent.transparentize(0.7) : transparent;
                     opacity: root.is-ghost ? 0.4 : 1.0;
 
@@ -86,7 +87,7 @@ component QueueListItem inherits Rectangle {
                             if (event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel) {
                                 root.drag-source-idx = -1;
                                 root.drag-target-idx = -1;
-                                root.drag-mouse-y = -1px;
+                                root.drag-mouse-y = -Theme.borderWidth;
                             }
                         }
                         clicked => { root.clicked(); }
@@ -147,7 +148,7 @@ export component QueuePage inherits Rectangle {
 
     in-out property <int> drag-source-idx: -1;
     in-out property <int> drag-target-idx: -1;
-    in-out property <length> drag-mouse-y: -1px;
+    in-out property <length> drag-mouse-y: -Theme.borderWidth;
 
     property <[SongModel]> queue-alias <=> QueuePageProps.queue;
 
@@ -155,21 +156,21 @@ export component QueuePage inherits Rectangle {
     changed queue-alias => {
         root.drag-source-idx = -1;
         root.drag-target-idx = -1;
-        root.drag-mouse-y = -1px;
+        root.drag-mouse-y = -Theme.borderWidth;
     }
 
     // Scroll the viewport and update the active drop target index dynamically when drag-mouse-y changes.
     changed drag-mouse-y => {
         if (root.drag-source-idx != -1 && root.drag-mouse-y >= 0px) {
-            // Scroll up near the top boundary (top 50px)
-            if (root.drag-mouse-y < 50px) {
-                list-view.viewport-y = Math.min(0px, list-view.viewport-y + (50px - root.drag-mouse-y) * 0.5);
-                root.drag-target-idx = Math.max(0, Math.min(QueuePageProps.queue.length - 1, (root.drag-mouse-y - list-view.viewport-y) / (60px + Theme.paddingSm)));
+            // Scroll up near the top boundary (top Theme.size3Xl)
+            if (root.drag-mouse-y < Theme.size3Xl) {
+                list-view.viewport-y = Math.min(0px, list-view.viewport-y + (Theme.size3Xl - root.drag-mouse-y) * 0.5);
+                root.drag-target-idx = Math.max(0, Math.min(QueuePageProps.queue.length - 1, (root.drag-mouse-y - list-view.viewport-y) / (Theme.songListItemHeight + Theme.paddingSm)));
             }
-            // Scroll down near the bottom boundary (bottom 50px)
-            if (root.drag-mouse-y > list-view.height - 50px) {
-                list-view.viewport-y = Math.max(-(list-view.viewport-height - list-view.height), list-view.viewport-y - (root.drag-mouse-y - (list-view.height - 50px)) * 0.5);
-                root.drag-target-idx = Math.max(0, Math.min(QueuePageProps.queue.length - 1, (root.drag-mouse-y - list-view.viewport-y) / (60px + Theme.paddingSm)));
+            // Scroll down near the bottom boundary (bottom Theme.size3Xl)
+            if (root.drag-mouse-y > list-view.height - Theme.size3Xl) {
+                list-view.viewport-y = Math.max(-(list-view.viewport-height - list-view.height), list-view.viewport-y - (root.drag-mouse-y - (list-view.height - Theme.size3Xl)) * 0.5);
+                root.drag-target-idx = Math.max(0, Math.min(QueuePageProps.queue.length - 1, (root.drag-mouse-y - list-view.viewport-y) / (Theme.songListItemHeight + Theme.paddingSm)));
             }
         }
     }

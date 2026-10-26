@@ -3,12 +3,8 @@ import { SongModel, ArtistModel } from "../types/song_view.slint";
 import { ExtensionProviderItem } from "../types/extension_view.slint";
 import { Constants } from "../constants.slint";
 import { AppCallbacks } from "../callbacks.slint";
-import { ArtistsPageProps } from "./artists.slint";
-
-export global ArtistContentPageProps {
-    in-out property <[SongModel]> songs: Constants.testSongs;
-    in-out property <[ExtensionProviderItem]> extension_providers: [];
-}
+import { ArtistsPageProps } from "artists_props.slint";
+import { ArtistContentPageProps } from "artist_content_props.slint";
 
 export component ArtistContent inherits Rectangle {
     SongsPageLayout {

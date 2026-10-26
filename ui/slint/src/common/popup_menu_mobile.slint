@@ -1,0 +1,178 @@
+import { Theme } from "../constants_mobile.slint";
+import { WindowInfo } from "../window_info.slint";
+import { MenuItem } from "../types/song_view.slint";
+
+export { MenuItem }
+export component PopupMenuMobile inherits Rectangle {
+    in property <[MenuItem]> items;
+    in property <length> menu-width: 0px;
+    in property <length> menu-min-width: Theme.size7Xl;
+    in property <color> menu-background: Theme.secondary;
+    in property <length> menu-border-radius: Theme.borderRadiusLg;
+
+    callback selected(string);
+    callback item-clicked(string, int);
+
+    property <bool> is_open: false;
+    property <length> drag_offset: 0px;
+    property <bool> is_dragging: false;
+    property <duration> open_start_time: Theme.zeroDuration;
+    property <float> open_progress: Math.min(1.0, Math.max(0.0, (animation-tick() - root.open_start_time) / Theme.durationMedium));
+    property <float> ease_progress: 1.0 - (1.0 - root.open_progress) * (1.0 - root.open_progress);
+    property <length> sheet_height: Math.min(WindowInfo.window-height, (root.items.length * Theme.mobileButtonSize) + Theme.mobileHeaderHeight + Theme.sizeXl);
+    property <length> resting_y: parent.height - (root.sheet_height * root.ease_progress);
+    property <length> current_y: Math.max(0px, Math.min(parent.height, root.resting_y + root.drag_offset));
+    property <length> current_height: Math.max(0px, parent.height - root.current_y);
+
+    public function show() {
+        root.drag_offset = 0px;
+        root.is_dragging = false;
+        root.open_start_time = animation-tick();
+        root.is_open = true;
+        popup.show();
+    }
+
+    public function hide() {
+        root.is_open = false;
+        popup.close();
+    }
+
+    width: 0px;
+    height: 0px;
+
+    popup := PopupWindow {
+        x: -root.absolute-position.x;
+        y: -root.absolute-position.y;
+        width: WindowInfo.window-width;
+        height: WindowInfo.window-height;
+
+        // Scrim backdrop with fade animation
+        Rectangle {
+            background: Theme.modalBackdrop;
+            opacity: root.ease_progress;
+
+            TouchArea {
+                width: 100%;
+                height: 100%;
+                clicked => {
+                    root.hide();
+                }
+            }
+        }
+
+        popup_sheet := Rectangle {
+            height: root.current_height;
+            y: root.current_y;
+            width: 100%;
+            background: root.menu-background;
+            border-top-left-radius: Theme.borderRadiusXl;
+            border-top-right-radius: Theme.borderRadiusXl;
+            clip: true;
+
+            VerticalLayout {
+                padding: Theme.paddingMd;
+                spacing: Theme.borderWidthLg;
+
+                // Visual drag handle
+                HorizontalLayout {
+                    height: Theme.sizeXl;
+                    alignment: center;
+                    Rectangle {
+                        y: (parent.height - Theme.sizeXxs) / 2;
+                        width: Theme.searchBarHeight;
+                        height: Theme.sizeXxs;
+                        border-radius: Theme.borderWidthLg;
+                        background: Theme.textSecondary.with-alpha(0.4);
+                    }
+                }
+
+                for item[index] in root.items: item-touch := TouchArea {
+                    height: item.is-divider ? Theme.borderWidth : Theme.size3Xl;
+                    clicked => {
+                        if (!item.is-divider) {
+                            root.hide();
+                            root.selected(item.id);
+                            root.item-clicked(item.id, index);
+                        }
+                    }
+
+                    if (item.is-divider): Rectangle {
+                        height: Theme.borderWidth;
+                        background: Theme.textSecondary.with-alpha(0.2);
+                    }
+
+                    if (!item.is-divider): Rectangle {
+                        border-radius: Theme.borderRadiusMd;
+                        background: item.is-selected ? Theme.accent.with-alpha(0.12) : (item-touch.has-hover ? Theme.textPrimary.with-alpha(0.08) : transparent);
+
+                        HorizontalLayout {
+                            padding-left: Theme.paddingMd;
+                            padding-right: Theme.paddingMd;
+                            spacing: Theme.spacingMd;
+                            alignment: space-between;
+
+                            HorizontalLayout {
+                                spacing: Theme.spacingSm;
+                                alignment: start;
+
+                                if (item.icon.width > 0): VerticalLayout {
+                                    alignment: center;
+                                    Image {
+                                        width: Theme.sizeLg;
+                                        height: Theme.sizeLg;
+                                        source: item.icon;
+                                        colorize: item.is-danger ? #ff5555 : (item.is-selected ? Theme.accent : Theme.textPrimary);
+                                    }
+                                }
+
+                                Text {
+                                    text: item.title;
+                                    font-size: Theme.body;
+                                    font-weight: item.is-selected ? 700 : 500;
+                                    vertical-alignment: center;
+                                    color: item.is-danger ? #ff5555 : (item.is-selected ? Theme.accent : Theme.textPrimary);
+                                }
+                            }
+
+                            if (item.is-selected): VerticalLayout {
+                                alignment: center;
+                                Rectangle {
+                                    width: Theme.borderWidthXxl;
+                                    height: Theme.sizeMd;
+                                    border-radius: Theme.borderWidthMd;
+                                    background: Theme.accent;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Dynamic drag touch area tracking top of sheet
+        if root.is_open: TouchArea {
+            x: 0px;
+            y: root.current_y;
+            width: 100%;
+            height: Theme.songListItemHeight;
+
+            pointer-event(event) => {
+                if (event.kind == PointerEventKind.down) {
+                    root.is_dragging = true;
+                } else if (event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel) {
+                    root.is_dragging = false;
+                    if (root.drag_offset > Theme.mobileSheetDismissThreshold) {
+                        root.hide();
+                    }
+                    root.drag_offset = 0px;
+                }
+            }
+
+            moved => {
+                if (self.pressed) {
+                    root.drag_offset = self.mouse-y - self.pressed-y;
+                }
+            }
+        }
+    }
+}

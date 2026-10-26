@@ -1,0 +1,70 @@
+import { Theme } from "../constants_mobile.slint";
+
+export { ButtonMobile as Button }
+export component ButtonMobile inherits Rectangle {
+    in property <string> text;
+    in property <image> icon;
+    in property <bool> enabled: true;
+    in property <bool> has_custom_layout: false;
+    in property <MouseCursor> mouse_cursor: pointer;
+    in property <length> font_size: Theme.caption;
+    in property <length> padding_h: Theme.paddingMd;
+    out property <bool> has_hover: touch.has-hover;
+    out property <bool> pressed: touch.pressed;
+
+    callback clicked();
+
+    accessible-role: button;
+    accessible-label: root.text;
+    horizontal-stretch: 0;
+    border-radius: Theme.borderRadiusMd;
+    height: Theme.mobileButtonHeight;
+    background: root.text != "" || root.icon.width > 0 ? (
+        root.pressed ? Theme.accent.darker(0.15) : (root.has_hover ? Theme.accent.darker(0.08) : Theme.accent)) : (
+        !root.enabled ? transparent : (root.pressed ? Theme.textPrimary.with-alpha(0.08) : (root.has_hover ? Theme.textPrimary.with-alpha(0.04) : transparent)));
+
+    animate background {
+        duration: Theme.durationFast;
+        easing: ease-out;
+    }
+    animate opacity {
+        duration: Theme.durationFast;
+        easing: ease-out;
+    }
+
+    content_layout := HorizontalLayout {
+        visible: !root.has_custom_layout && (root.text != "" || root.icon.width > 0);
+        alignment: center;
+        padding-right: root.padding_h;
+        padding-left: root.padding_h;
+        spacing: Theme.spacingXs;
+
+        if (root.icon.width > 0): VerticalLayout {
+            alignment: center;
+            Image {
+                source: root.icon;
+                colorize: Theme.textInverse;
+                width: Theme.sizeXs;
+                height: Theme.sizeXs;
+            }
+        }
+
+        if (root.text != ""): Text {
+            accessible-role: none;
+            vertical-alignment: center;
+            text: root.text;
+            color: Theme.textInverse;
+            font-size: root.font_size;
+        }
+    }
+
+    @children
+
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: root.enabled ? root.mouse_cursor : default;
+        clicked => {
+            root.clicked();
+        }
+    }
+}

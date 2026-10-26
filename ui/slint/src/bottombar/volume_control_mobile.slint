@@ -1,0 +1,87 @@
+import { Theme } from "../constants_mobile.slint";
+import { BottomBarCallbacks } from "../callbacks.slint";
+import { IconButton } from "../common/icon_button_mobile.slint";
+import { VolumeScale } from "volume_control.slint";
+
+export { VolumeScale }
+export component VolumeControlMobile inherits Rectangle {
+    in-out property <float> volume: 70;
+    in property <VolumeScale> scale: VolumeScale.Logarithmic;
+    property <float> previous-volume: 70;
+
+    changed volume => {
+        BottomBarCallbacks.set-volume(volume);
+    }
+
+    height: Theme.size4Xl;
+
+    HorizontalLayout {
+        spacing: Theme.spacingMd;
+        alignment: center;
+
+        IconButton {
+            accessible-label: root.volume > 0 ? @tr("Mute") : @tr("Unmute");
+            icon_source: root.volume == 0 ? @image-url("../icons/volume_mute.svg") : @image-url("../icons/volume.svg");
+            icon_size: Theme.iconSizeXl;
+            width: Theme.mobileButtonSize;
+            height: Theme.mobileButtonSize;
+            clicked => {
+                if (root.volume > 0) {
+                    root.previous-volume = root.volume;
+                    root.volume = 0;
+                } else {
+                    root.volume = root.previous-volume > 0 ? root.previous-volume : 70;
+                }
+            }
+        }
+
+        // Slider track
+        Rectangle {
+            horizontal-stretch: 1;
+            height: Theme.sizeXl;
+
+            slider-touch := TouchArea {
+                width: 100%;
+                height: 100%;
+                moved => {
+                    if (self.pressed) {
+                        let pos = Math.max(0.0, Math.min(1.0, self.mouse-x / parent.width));
+                        root.volume = Math.round(pos * 100);
+                    }
+                }
+                clicked => {
+                    let pos = Math.max(0.0, Math.min(1.0, self.mouse-x / parent.width));
+                    root.volume = Math.round(pos * 100);
+                }
+            }
+
+            Rectangle {
+                y: (parent.height - Theme.sizeXxs) / 2;
+                height: Theme.sizeXxs;
+                width: 100%;
+                background: Theme.divider;
+                border-radius: Theme.borderWidthLg;
+            }
+
+            Rectangle {
+                x: 0px;
+                y: (parent.height - Theme.sizeXxs) / 2;
+                width: parent.width * (root.volume / 100);
+                height: Theme.sizeXxs;
+                background: Theme.accent;
+                border-radius: Theme.borderWidthLg;
+            }
+
+            Rectangle {
+                x: (parent.width * (root.volume / 100)) - Theme.sizeXs;
+                y: (parent.height - Theme.sizeMd) / 2;
+                width: Theme.sizeMd;
+                height: Theme.sizeMd;
+                border-radius: Theme.borderRadiusLg;
+                background: Theme.textPrimary;
+                border-width: Theme.borderWidthLg;
+                border-color: Theme.accent;
+            }
+        }
+    }
+}

@@ -1,0 +1,70 @@
+import { SongModel, CoverHelper } from "../types/song_view.slint";
+import { Theme } from "../constants_mobile.slint";
+import { Utils, DefaultIconType } from "../utils.slint";
+import { SongArtistsList } from "song_item_components_mobile.slint";
+
+export component SongDetailsMobile inherits VerticalLayout {
+    in property <SongModel> song: {
+        id: "",
+        title: "",
+        coverPathHigh: @image-url("../icons/song_default.svg"),
+        coverPathLow: @image-url("../icons/song_default.svg"),
+        extension-icon: @image-url("../icons/song_default.svg"),
+    };
+
+    property <image> cover-image: Utils.load_image_or_default(
+        song.coverPathHigh.width > 0 ? song.coverPathHigh : (song.id != "" ? CoverHelper.fetch_cover_high(song) : song.coverPathLow),
+        DefaultIconType.Song,
+    );
+
+    alignment: center;
+    spacing: Theme.spacingLg;
+
+    // Album Artwork Container
+    HorizontalLayout {
+        alignment: center;
+
+        Rectangle {
+            width: Math.min(parent.width - Theme.paddingLg * 2, Theme.mobileModalWidth);
+            height: self.width;
+            border-radius: Theme.borderRadiusXl;
+            clip: true;
+            background: Theme.tertiary;
+
+            Image {
+                width: 100%;
+                height: 100%;
+                source: root.cover-image;
+                image-fit: cover;
+            }
+        }
+    }
+
+    // Title and Artist
+    VerticalLayout {
+        alignment: center;
+        spacing: Theme.spacingXs;
+        padding-left: Theme.paddingLg;
+        padding-right: Theme.paddingLg;
+
+        Text {
+            text: root.song.title != "" ? root.song.title : @tr("No song playing");
+            font-size: Theme.modelTitle;
+            font-weight: 700;
+            color: Theme.textPrimary;
+            horizontal-alignment: center;
+            overflow: elide;
+        }
+
+        HorizontalLayout {
+            alignment: center;
+            SongArtistsList {
+                artists: root.song.artists;
+                font_size: Theme.subtitle;
+                text_color: Theme.textSecondary;
+            }
+        }
+    }
+
+    @children
+}

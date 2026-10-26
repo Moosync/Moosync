@@ -1,0 +1,18 @@
+import { GenreModel } from "../types/song_view.slint";
+import { GridPageLayoutMobile } from "../common/grid_page_layout_mobile.slint";
+import { Pages } from "../constants_mobile.slint";
+import { AppProps } from "../app_props.slint";
+import { GenresPageProps } from "genres_props.slint";
+
+export component GenresPageMobile inherits Rectangle {
+    GridPageLayoutMobile {
+        title: @tr("Genres");
+        total_items: GenresPageProps.genres.length;
+        item_title(idx) => { GenresPageProps.genres[idx].title }
+        item_cover(idx) => { GenresPageProps.genres[idx].coverPath }
+        item_clicked(idx) => {
+            GenresPageProps.selected-genre = GenresPageProps.genres[idx];
+            AppProps.active_page = Pages.GenreContent;
+        }
+    }
+}

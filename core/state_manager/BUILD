@@ -19,6 +19,8 @@ rust_library(
         "src/hooks/extensions_test.rs",
         "src/hooks/mod.rs",
         "src/hooks/mod_test.rs",
+        "src/hooks/mpris.rs",
+        "src/hooks/mpris_test.rs",
         "src/hooks/player.rs",
         "src/hooks/player_test.rs",
         "src/hooks/registries.rs",

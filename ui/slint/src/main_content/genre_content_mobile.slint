@@ -1,0 +1,19 @@
+import {
+    SongsPageLayoutMobile,
+} from "../common/songs_page_layout_mobile.slint";
+import { SongModel, GenreModel } from "../types/song_view.slint";
+import { GenresPageProps } from "./genres_props.slint";
+import { GenreContentPageProps } from "./genre_content_props.slint";
+
+export component GenreContentMobile inherits Rectangle {
+    SongsPageLayoutMobile {
+        songs <=> GenreContentPageProps.songs;
+        default-song: {
+            id: "",
+            title: GenresPageProps.selected-genre.title,
+            coverPathHigh: GenresPageProps.selected-genre.coverPath,
+            coverPathLow: GenresPageProps.selected-genre.coverPath,
+            extension-icon: @image-url("../icons/song_default.svg"),
+        };
+    }
+}

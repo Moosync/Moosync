@@ -43,7 +43,7 @@ export component TextInputGroup inherits Rectangle {
             height: Theme.textInputHeight;
             border-radius: Theme.borderRadiusXl;
             border-color: !root.is_valid ? Theme.danger : (text_input.has-focus ? Theme.accent : Theme.textSecondary);
-            border-width: 1px;
+            border-width: Theme.borderWidth;
             clip: true;
 
             HorizontalLayout {

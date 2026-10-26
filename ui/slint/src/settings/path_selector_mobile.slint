@@ -1,0 +1,110 @@
+import { Theme } from "../constants_mobile.slint";
+import { PreferenceItem } from "preferences.slint";
+import { AppCallbacks } from "../callbacks.slint";
+import { PillButton } from "../common/pill_button_mobile.slint";
+import { IconButton } from "../common/icon_button_mobile.slint";
+
+export component PathSelectorMobile inherits VerticalLayout {
+    in property <PreferenceItem> preference;
+    in property <string> title: root.preference.title;
+    in property <string> subtitle: root.preference.subtitle;
+    in property <[string]> items: root.preference.value_list;
+
+    spacing: Theme.spacingMd;
+
+    VerticalLayout {
+        spacing: Theme.spacingTiny;
+
+        Text {
+            text: root.title;
+            font-size: Theme.modelTitle;
+            color: Theme.textPrimary;
+        }
+
+        if root.subtitle != "": Text {
+            text: root.subtitle;
+            font-size: Theme.caption;
+            wrap: word-wrap;
+            color: Theme.textSecondary;
+        }
+    }
+
+    HorizontalLayout {
+        alignment: start;
+
+        PillButton {
+            text: @tr("Add folder");
+            icon: @image-url("../icons/plus.svg");
+            height: Theme.mobileButtonSize;
+            clicked => {
+                let chosen = AppCallbacks.open_directory_picker();
+                if (chosen != "") {
+                    if (root.preference.id != "") {
+                        AppCallbacks.preference_changed({
+                            id: root.preference.id,
+                            value_string: chosen,
+                            value_bool: false,
+                            value_number: 0.0,
+                            value_list: []
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    VerticalLayout {
+        spacing: Theme.spacingSm;
+
+        for item in root.items: Rectangle {
+            min-height: Theme.mobileQueueDragHandleHeight;
+            border-radius: Theme.borderRadiusLg;
+            border-width: Theme.borderWidth;
+            border-color: Theme.textSecondary.transparentize(Theme.percent60);
+            background: Theme.secondary.transparentize(Theme.percent50);
+
+            HorizontalLayout {
+                padding-top: Theme.paddingSm;
+                padding-bottom: Theme.paddingSm;
+                padding-left: Theme.paddingMd;
+                padding-right: Theme.paddingSm;
+                spacing: Theme.spacingMd;
+
+                Image {
+                    width: Theme.mobileLyricsActiveFontSize;
+                    height: Theme.mobileLyricsActiveFontSize;
+                    source: @image-url("../icons/folder_hollow.svg");
+                    colorize: Theme.textPrimary;
+                    vertical-alignment: center;
+                }
+
+                Text {
+                    text: item;
+                    horizontal-stretch: 1;
+                    vertical-alignment: center;
+                    color: Theme.textPrimary;
+                    font-size: Theme.body;
+                    overflow: elide;
+                }
+
+                IconButton {
+                    icon_source: @image-url("../icons/cross.svg");
+                    icon_size: Theme.sizeSm;
+                    width: Theme.mobileButtonSize;
+                    height: Theme.mobileButtonSize;
+                    clicked => {
+                        if (root.preference.id != "") {
+                            AppCallbacks.preference_changed({
+                                id: root.preference.id,
+                                value_string: item,
+                                value_bool: false,
+                                value_number: 0.0,
+                                value_list: []
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

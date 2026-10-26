@@ -4,9 +4,7 @@ import { Utils, DefaultIconType } from "../utils.slint";
 import { Button } from "button.slint";
 import { AppCallbacks } from "../callbacks.slint";
 
-export global AccountsProps {
-    in-out property <[AccountItem]> accounts;
-}
+import { AccountsProps } from "accounts_props.slint";
 
 export component AccountItemButton inherits Button {
     in property <AccountItem> item;

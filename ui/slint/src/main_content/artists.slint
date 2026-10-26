@@ -1,12 +1,9 @@
 import { ArtistModel } from "../types/song_view.slint";
 import { GridPageLayout } from "../common/grid_page_layout.slint";
 import { Constants, Pages } from "../constants.slint";
-import { AppProps } from "../props.slint";
+import { AppProps } from "../app_props.slint";
 
-export global ArtistsPageProps {
-    in-out property <[ArtistModel]> artists: Constants.testArtists;
-    in-out property <ArtistModel> selected-artist;
-}
+import { ArtistsPageProps } from "artists_props.slint";
 
 export component ArtistsPage inherits Rectangle {
     GridPageLayout {

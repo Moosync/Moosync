@@ -1,0 +1,128 @@
+import { Theme } from "../constants_mobile.slint";
+import { AccountItem } from "../types/extension_view.slint";
+import { AppCallbacks } from "../callbacks.slint";
+import { AccountItemButton } from "accounts_popup.slint";
+import { AccountsProps } from "accounts_props.slint";
+import { IconButton } from "icon_button_mobile.slint";
+import { PillButton } from "pill_button_mobile.slint";
+import { SettingsState } from "../settings/settings_props.slint";
+
+export component AccountsPopupMobile inherits Rectangle {
+    callback close();
+
+    width: 100%;
+    height: 100%;
+    background: Theme.primary;
+
+    VerticalLayout {
+        padding-top: Theme.mobileTopBarPaddingTop;
+        padding-left: Theme.paddingMd;
+        padding-right: Theme.paddingMd;
+        padding-bottom: Theme.paddingMd;
+        spacing: Theme.spacingLg;
+
+        // Top App Bar with back navigation
+        HorizontalLayout {
+            spacing: Theme.spacingSm;
+            alignment: start;
+
+            IconButton {
+                accessible-label: @tr("Back");
+                icon_source: @image-url("../icons/nav_button.svg");
+                icon_size: Theme.playbackControlsIconSize;
+                width: Theme.searchBarHeight;
+                height: Theme.searchBarHeight;
+                clicked => {
+                    root.close();
+                }
+            }
+
+            Text {
+                text: @tr("Accounts");
+                font-size: Theme.modelTitle;
+                font-weight: 700;
+                color: Theme.textPrimary;
+                vertical-alignment: center;
+            }
+        }
+
+        // Accounts list container
+        Rectangle {
+            vertical-stretch: 1;
+            background: Theme.secondary;
+            border-radius: Theme.borderRadiusXl;
+            clip: true;
+
+            VerticalLayout {
+                padding: Theme.paddingMd;
+                spacing: Theme.spacingMd;
+                alignment: start;
+
+                if (AccountsProps.accounts.length == 0): Rectangle {
+                    height: Theme.mobileVolumeSliderWidth;
+                    Text {
+                        text: @tr("No accounts configured");
+                        color: Theme.textSecondary;
+                        font-size: Theme.body;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
+
+                for item in AccountsProps.accounts: AccountItemButton {
+                    item: item;
+                    clicked => {
+                        if (item.logged_in) {
+                            AppCallbacks.account_logout(item.package_name, item.id);
+                        } else {
+                            AppCallbacks.account_login(item.package_name, item.id);
+                        }
+                        root.close();
+                    }
+                }
+            }
+        }
+
+        // Google-style Settings pill at bottom
+        HorizontalLayout {
+            alignment: center;
+            padding-bottom: Theme.paddingMd;
+
+            PillButton {
+                has_custom_layout: true;
+                background: Theme.secondary;
+                border-width: Theme.borderWidth;
+                border-color: Theme.divider;
+                clicked => {
+                    root.close();
+                    SettingsState.show_settings = true;
+                }
+
+                HorizontalLayout {
+                    padding-left: Theme.paddingLg;
+                    padding-right: Theme.paddingLg;
+                    spacing: Theme.spacingSm;
+                    alignment: center;
+
+                    VerticalLayout {
+                        alignment: center;
+                        Image {
+                            width: Theme.playbackControlsIconSize;
+                            height: Theme.playbackControlsIconSize;
+                            source: @image-url("../icons/settings.svg");
+                            colorize: Theme.textPrimary;
+                        }
+                    }
+
+                    Text {
+                        text: @tr("Settings");
+                        font-size: Theme.body;
+                        font-weight: 600;
+                        color: Theme.textPrimary;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+    }
+}

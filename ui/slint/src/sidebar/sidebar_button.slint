@@ -12,7 +12,7 @@ export component SidebarButton inherits Button {
 
     property <color> current_color: active ? Theme.accent : (root.has_hover ? Theme.textPrimary : Theme.textSecondary);
     animate current_color {
-        duration: 150ms;
+        duration: Theme.durationFast;
         easing: ease-out;
     }
 
@@ -25,7 +25,7 @@ export component SidebarButton inherits Button {
         colorize: current_color;
 
         animate x {
-            duration: 150ms;
+            duration: Theme.durationFast;
             easing: ease-out;
         }
     }
@@ -52,7 +52,7 @@ export component SidebarButton inherits Button {
         border-radius: Theme.borderRadiusSm;
 
         animate height {
-            duration: 200ms;
+            duration: Theme.durationNormal;
             easing: ease-out;
         }
     }

@@ -1,0 +1,55 @@
+import { Theme } from "../constants_mobile.slint";
+import { PlayerProps } from "playback_props.slint";
+import { QueuePageProps } from "../main_content/queue_props.slint";
+import { AppCallbacks, BottomBarCallbacks } from "../callbacks.slint";
+import { IconButton } from "../common/icon_button_mobile.slint";
+import { TrackInfoMobile } from "track_info_mobile.slint";
+
+export component BottomBarMobile inherits Rectangle {
+
+    height: Theme.mobileMiniPlayerHeight;
+    background: Theme.secondary;
+    border-radius: Theme.borderRadiusMd;
+    clip: true;
+
+    // Progress bar line at top
+    Rectangle {
+        y: 0px;
+        x: 0px;
+        height: Theme.mobileMiniPlayerProgressHeight;
+        width: 100%;
+        background: Theme.textSecondary.with-alpha(0.25);
+    }
+
+    Rectangle {
+        y: 0px;
+        x: 0px;
+        height: Theme.mobileMiniPlayerProgressHeight;
+        width: parent.width * Math.min(1.0, Math.max(0.0, PlayerProps.current_duration / Math.max(PlayerProps.current_song.duration-s, 1)));
+        background: Theme.accent;
+    }
+
+    HorizontalLayout {
+        padding-left: Theme.paddingMd;
+        padding-right: Theme.paddingMd;
+        spacing: Theme.spacingMd;
+
+        TrackInfoMobile {
+            horizontal-stretch: 1;
+        }
+
+        VerticalLayout {
+            alignment: center;
+            IconButton {
+                accessible-label: PlayerProps.playing ? @tr("Pause") : @tr("Play");
+                icon_source: PlayerProps.playing ? @image-url("../icons/playback_pause.svg") : @image-url("../icons/playback_play.svg");
+                icon_size: Theme.mobilePlayPauseIconSize;
+                width: Theme.mobilePlayPauseButtonSize;
+                height: Theme.mobilePlayPauseButtonSize;
+                clicked => {
+                    BottomBarCallbacks.play-pause-clicked();
+                }
+            }
+        }
+    }
+}

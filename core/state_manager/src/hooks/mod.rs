@@ -5,6 +5,7 @@ use async_trait::async_trait;
 use crate::StateManager;
 
 pub mod extensions;
+pub mod mpris;
 pub mod player;
 pub mod registries;
 pub mod scanner;
@@ -13,6 +14,8 @@ pub mod scanner;
 mod extensions_test;
 #[cfg(test)]
 mod mod_test;
+#[cfg(test)]
+mod mpris_test;
 #[cfg(test)]
 mod player_test;
 #[cfg(test)]

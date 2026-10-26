@@ -4,9 +4,7 @@ import { Modal, ModalSize } from "modal.slint";
 import { TextInputGroup } from "../settings/text_input.slint";
 import { ButtonGroup } from "../settings/button_group.slint";
 
-export global SaveThemeState {
-    in-out property <bool> show_modal: false;
-}
+import { SaveThemeState } from "save_theme_modal_props.slint";
 
 export component SaveThemeModal inherits Modal {
     in-out property <string> theme_name: "";

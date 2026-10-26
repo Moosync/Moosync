@@ -1,11 +1,8 @@
 import { SongsPageLayout } from "../common/songs_page_layout.slint";
 import { SongModel, GenreModel } from "../types/song_view.slint";
 import { Constants } from "../constants.slint";
-import { GenresPageProps } from "./genres.slint";
-
-export global GenreContentPageProps {
-    in-out property <[SongModel]> songs: Constants.testSongs;
-}
+import { GenresPageProps } from "genres_props.slint";
+import { GenreContentPageProps } from "genre_content_props.slint";
 
 export component GenreContent inherits Rectangle {
     SongsPageLayout {

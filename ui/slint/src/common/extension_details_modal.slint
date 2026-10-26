@@ -6,10 +6,7 @@ import { PreferenceGroup } from "../settings/preference_group.slint";
 import { Button } from "button.slint";
 import { ExtensionItem, ProviderScope } from "../types/extension_view.slint";
 
-export global ExtensionDetailsState {
-    in-out property <bool> show_modal: false;
-    in-out property <ExtensionItem> item;
-}
+import { ExtensionDetailsState } from "extension_details_modal_props.slint";
 
 export component ExtensionDetailsModal inherits Modal {
     in property <ExtensionItem> item: ExtensionDetailsState.item;

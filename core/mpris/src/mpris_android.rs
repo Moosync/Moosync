@@ -18,15 +18,14 @@ use std::{sync::mpsc::Sender, time::Duration};
 
 use extensions_proto::moosync::types::PlayerState;
 use jni::{
-    AttachGuard,
+    Env, jni_sig, jni_str,
     objects::{JClass, JObject, JString, JValue},
 };
+use songs_proto::moosync::types::Song;
 use tracing::{debug, info, warn};
-use types::android::AndroidJNIContext;
+use types::{SongsExt, android::AndroidJNIContext};
 
-use crate::{
-    MediaControlEvent, MediaPosition, MprisPlayerDetails, context::MprisContext, error::MprisError,
-};
+use crate::{MediaControlEvent, MediaPosition, context::MprisContext, error::MprisError};
 
 // ─────────────────────────────────────────────────────────────────────── //
 //  AndroidMprisContext                                                     //
@@ -43,6 +42,12 @@ pub struct AndroidMprisContext {
     context: AndroidJNIContext,
 }
 
+impl From<jni::errors::Error> for MprisError {
+    fn from(err: jni::errors::Error) -> Self {
+        MprisError::InitFailed(format!("JNI error: {err:?}"))
+    }
+}
+
 impl AndroidMprisContext {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(android_context: AndroidJNIContext) -> Self {
@@ -51,136 +56,40 @@ impl AndroidMprisContext {
         }
     }
 
-    /// Attach the current Rust thread to the JVM.
+    /// Attach the current Rust thread to the JVM and execute callback.
     #[tracing::instrument(level = "debug", skip_all)]
-    fn jni_attach(&self) -> Result<AttachGuard<'_>, MprisError> {
-        self.context
-            .jvm
-            .attach_current_thread()
-            .map_err(|e| MprisError::InitFailed(format!("JNI attach failed: {e:?}")))
+    fn with_env<F, T>(&self, f: F) -> Result<T, MprisError>
+    where
+        F: FnOnce(&mut Env) -> Result<T, MprisError>,
+    {
+        self.context.jvm.attach_current_thread(f)
     }
 
     /// Start the foreground `MoosyncService` from the stored Activity context.
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn start_service(&self) -> Result<(), MprisError> {
-        let mut guard = self.jni_attach()?;
-        let env = &mut *guard;
-
-        let activity = self.context.activity.as_obj();
-
-        let intent_class = env
-            .find_class("android/content/Intent")
-            .map_err(|e| MprisError::InitFailed(format!("find_class: {e:?}")))?;
-        let service_class =
-            unsafe { JClass::from_raw(self.context.service_class.as_obj().as_raw()) };
-
-        let intent = env
-            .new_object(
-                &intent_class,
-                "(Landroid/content/Context;Ljava/lang/Class;)V",
-                &[JValue::Object(activity), JValue::Object(&service_class)],
-            )
-            .map_err(|e| MprisError::InitFailed(format!("new Intent: {e:?}")))?;
-
-        env.call_method(
-            activity,
-            "startForegroundService",
-            "(Landroid/content/Intent;)Landroid/content/ComponentName;",
-            &[JValue::Object(&intent)],
-        )
-        .map_err(|e| MprisError::InitFailed(format!("startForegroundService: {e:?}")))?;
-
-        debug!("MoosyncService started");
-        Ok(())
+        self.with_env(|env| start_foreground_service(env, &self.context))
     }
 }
 
 impl MprisContext for AndroidMprisContext {
     /// Called by `MprisHolder::new_with_context`.
-    ///
-    /// Leaks a `Box<Sender<MediaControlEvent>>` to get a stable pointer that
-    /// Kotlin/Java stores as a `Long` and passes back into the native
-    /// callbacks.
     #[tracing::instrument(level = "debug", skip_all)]
     fn attach(&mut self, sender: Sender<MediaControlEvent>) -> Result<(), MprisError> {
-        // Leak the sender — it lives for the app lifetime.
         let ptr = Box::into_raw(Box::new(sender)) as i64;
-
-        let mut guard = self.jni_attach()?;
-        let env = &mut *guard;
-        let service_class =
-            unsafe { JClass::from_raw(self.context.service_class.as_obj().as_raw()) };
-
-        env.call_static_method(
-            &service_class,
-            "registerNativeCallback",
-            "(J)V",
-            &[JValue::Long(ptr)],
-        )
-        .map_err(|e| MprisError::AttachFailed(format!("registerNativeCallback: {e:?}")))?;
-
-        // Start the service (creates the notification).
-        drop(guard);
+        self.with_env(|env| register_callback(env, &self.context, ptr))?;
         self.start_service()
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn set_metadata(&mut self, metadata: MprisPlayerDetails) -> Result<(), MprisError> {
-        let mut guard = self.jni_attach()?;
-        let env = &mut *guard;
-        let service_class =
-            unsafe { JClass::from_raw(self.context.service_class.as_obj().as_raw()) };
-
-        let title = new_nullable_jstring(env, metadata.title.as_deref())?;
-        let artist = new_nullable_jstring(env, metadata.artist_name.as_deref())?;
-        let album = new_nullable_jstring(env, metadata.album_name.as_deref())?;
-        let thumb = new_nullable_jstring(env, metadata.thumbnail.as_deref())?;
-        let duration_ms = metadata.duration.map(|d| (d * 1000.0) as i64).unwrap_or(0);
-
-        let null_obj = JObject::null();
-        let title_obj = title.as_ref().map(|s| s.as_ref()).unwrap_or(&null_obj);
-        let artist_obj = artist.as_ref().map(|s| s.as_ref()).unwrap_or(&null_obj);
-        let album_obj = album.as_ref().map(|s| s.as_ref()).unwrap_or(&null_obj);
-        let thumb_obj = thumb.as_ref().map(|s| s.as_ref()).unwrap_or(&null_obj);
-
-        env.call_static_method(
-            &service_class,
-            "updateMetadata",
-            "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;JLjava/lang/String;)V",
-            &[
-                JValue::Object(title_obj),
-                JValue::Object(artist_obj),
-                JValue::Object(album_obj),
-                JValue::Long(duration_ms),
-                JValue::Object(thumb_obj),
-            ],
-        )
-        .map_err(|e| MprisError::SetMetadataFailed(format!("updateMetadata JNI: {e:?}")))?;
-
-        Ok(())
+    fn set_metadata(&mut self, song: &Song) -> Result<(), MprisError> {
+        self.with_env(|env| update_metadata(env, &self.context, song))
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn set_playback_state(&mut self, state: PlayerState, duration: u64) -> Result<(), MprisError> {
         let is_playing = state == PlayerState::Playing;
-
-        let mut guard = self.jni_attach()?;
-        let env = &mut *guard;
-        let service_class =
-            unsafe { JClass::from_raw(self.context.service_class.as_obj().as_raw()) };
-
-        env.call_static_method(
-            &service_class,
-            "updatePlayerState",
-            "(ZJ)V",
-            &[
-                JValue::Bool(is_playing as u8),
-                JValue::Long(duration as i64),
-            ],
-        )
-        .map_err(|e| MprisError::SetPlaybackFailed(format!("updatePlayerState JNI: {e:?}")))?;
-
-        Ok(())
+        self.with_env(|env| update_player_state(env, &self.context, is_playing, duration))
     }
 }
 
@@ -189,8 +98,125 @@ impl MprisContext for AndroidMprisContext {
 // ─────────────────────────────────────────────────────────────────────── //
 
 #[tracing::instrument(level = "debug", skip_all)]
+fn start_foreground_service(env: &mut Env, context: &AndroidJNIContext) -> Result<(), MprisError> {
+    let activity = context.activity.as_obj();
+    let intent_class = env
+        .find_class(jni_str!("android/content/Intent"))
+        .map_err(|e| MprisError::InitFailed(format!("find_class: {e:?}")))?;
+    let service_class =
+        unsafe { JClass::from_raw(env, context.service_class.as_obj().as_raw().cast()) };
+
+    let intent = env
+        .new_object(
+            &intent_class,
+            jni_sig!("(Landroid/content/Context;Ljava/lang/Class;)V"),
+            &[JValue::Object(activity), JValue::Object(&service_class)],
+        )
+        .map_err(|e| MprisError::InitFailed(format!("new Intent: {e:?}")))?;
+
+    env.call_method(
+        activity,
+        jni_str!("startForegroundService"),
+        jni_sig!("(Landroid/content/Intent;)Landroid/content/ComponentName;"),
+        &[JValue::Object(&intent)],
+    )
+    .map_err(|e| MprisError::InitFailed(format!("startForegroundService: {e:?}")))?;
+
+    debug!("MoosyncService started");
+    Ok(())
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn register_callback(
+    env: &mut Env,
+    context: &AndroidJNIContext,
+    ptr: i64,
+) -> Result<(), MprisError> {
+    let service_class =
+        unsafe { JClass::from_raw(env, context.service_class.as_obj().as_raw().cast()) };
+
+    env.call_static_method(
+        &service_class,
+        jni_str!("registerNativeCallback"),
+        jni_sig!("(J)V"),
+        &[JValue::Long(ptr)],
+    )
+    .map_err(|e| MprisError::AttachFailed(format!("registerNativeCallback: {e:?}")))?;
+
+    Ok(())
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn update_metadata(
+    env: &mut Env,
+    context: &AndroidJNIContext,
+    song: &Song,
+) -> Result<(), MprisError> {
+    let service_class =
+        unsafe { JClass::from_raw(env, context.service_class.as_obj().as_raw().cast()) };
+
+    let title_str = song.get_title();
+    let artist_str = song.get_artist_string();
+    let album_str = song.get_album_string();
+    let thumb_str = song.get_cover_high().or_else(|| song.get_cover_low());
+    let duration_ms = song.get_duration_or_default().as_millis() as i64;
+
+    let title = new_nullable_jstring(env, title_str.as_deref())?;
+    let artist = new_nullable_jstring(env, artist_str.as_deref())?;
+    let album = new_nullable_jstring(env, album_str.as_deref())?;
+    let thumb = new_nullable_jstring(env, thumb_str.as_deref())?;
+
+    let null_obj = JObject::null();
+    let title_obj = title.as_ref().map(|s| s.as_ref()).unwrap_or(&null_obj);
+    let artist_obj = artist.as_ref().map(|s| s.as_ref()).unwrap_or(&null_obj);
+    let album_obj = album.as_ref().map(|s| s.as_ref()).unwrap_or(&null_obj);
+    let thumb_obj = thumb.as_ref().map(|s| s.as_ref()).unwrap_or(&null_obj);
+
+    env.call_static_method(
+        &service_class,
+        jni_str!("updateMetadata"),
+        jni_sig!("(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;JLjava/lang/String;)V"),
+        &[
+            JValue::Object(title_obj),
+            JValue::Object(artist_obj),
+            JValue::Object(album_obj),
+            JValue::Long(duration_ms),
+            JValue::Object(thumb_obj),
+        ],
+    )
+    .map_err(|e| MprisError::SetMetadataFailed(format!("updateMetadata JNI: {e:?}")))?;
+
+    Ok(())
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn update_player_state(
+    env: &mut Env,
+    context: &AndroidJNIContext,
+    is_playing: bool,
+    duration: u64,
+) -> Result<(), MprisError> {
+    let service_class =
+        unsafe { JClass::from_raw(env, context.service_class.as_obj().as_raw().cast()) };
+
+    env.call_static_method(
+        &service_class,
+        jni_str!("updatePlayerState"),
+        jni_sig!("(ZJ)V"),
+        &[JValue::Bool(is_playing), JValue::Long(duration as i64)],
+    )
+    .map_err(|e| MprisError::SetPlaybackFailed(format!("updatePlayerState JNI: {e:?}")))?;
+
+    Ok(())
+}
+
+// ─────────────────────────────────────────────────────────────────────── //
+//  Helpers                                                                 //
+// ─────────────────────────────────────────────────────────────────────── //
+
+#[tracing::instrument(level = "debug", skip_all)]
 fn new_nullable_jstring<'a>(
-    env: &mut jni::JNIEnv<'a>,
+    env: &mut Env<'a>,
     s: Option<&str>,
 ) -> Result<Option<JString<'a>>, MprisError> {
     match s {
@@ -237,12 +263,12 @@ fn log_to_android(msg: &str) {
 #[unsafe(no_mangle)]
 #[allow(non_snake_case)]
 pub unsafe extern "C" fn Java_app_moosync_android_services_MoosyncService_nativeOnPlay(
-    mut env: jni::JNIEnv,
+    _env: jni::EnvUnowned,
     _obj: JObject,
     callback_ptr: i64,
 ) {
     unsafe {
-        dispatch_event(&mut env, callback_ptr, MediaControlEvent::Play);
+        dispatch_event(callback_ptr, MediaControlEvent::Play);
     }
 }
 
@@ -250,12 +276,12 @@ pub unsafe extern "C" fn Java_app_moosync_android_services_MoosyncService_native
 #[unsafe(no_mangle)]
 #[allow(non_snake_case)]
 pub unsafe extern "C" fn Java_app_moosync_android_services_MoosyncService_nativeOnPause(
-    mut env: jni::JNIEnv,
+    _env: jni::EnvUnowned,
     _obj: JObject,
     callback_ptr: i64,
 ) {
     unsafe {
-        dispatch_event(&mut env, callback_ptr, MediaControlEvent::Pause);
+        dispatch_event(callback_ptr, MediaControlEvent::Pause);
     }
 }
 
@@ -263,12 +289,12 @@ pub unsafe extern "C" fn Java_app_moosync_android_services_MoosyncService_native
 #[unsafe(no_mangle)]
 #[allow(non_snake_case)]
 pub unsafe extern "C" fn Java_app_moosync_android_services_MoosyncService_nativeOnStop(
-    mut env: jni::JNIEnv,
+    _env: jni::EnvUnowned,
     _obj: JObject,
     callback_ptr: i64,
 ) {
     unsafe {
-        dispatch_event(&mut env, callback_ptr, MediaControlEvent::Stop);
+        dispatch_event(callback_ptr, MediaControlEvent::Stop);
     }
 }
 
@@ -276,14 +302,13 @@ pub unsafe extern "C" fn Java_app_moosync_android_services_MoosyncService_native
 #[unsafe(no_mangle)]
 #[allow(non_snake_case)]
 pub unsafe extern "C" fn Java_app_moosync_android_services_MoosyncService_nativeOnSeekTo(
-    mut env: jni::JNIEnv,
+    _env: jni::EnvUnowned,
     _obj: JObject,
     callback_ptr: i64,
     pos_ms: i64,
 ) {
     unsafe {
         dispatch_event(
-            &mut env,
             callback_ptr,
             MediaControlEvent::SetPosition(MediaPosition(Duration::from_millis(
                 pos_ms.max(0) as u64
@@ -296,12 +321,12 @@ pub unsafe extern "C" fn Java_app_moosync_android_services_MoosyncService_native
 #[unsafe(no_mangle)]
 #[allow(non_snake_case)]
 pub unsafe extern "C" fn Java_app_moosync_android_services_MoosyncService_nativeOnSkipToNext(
-    mut env: jni::JNIEnv,
+    _env: jni::EnvUnowned,
     _obj: JObject,
     callback_ptr: i64,
 ) {
     unsafe {
-        dispatch_event(&mut env, callback_ptr, MediaControlEvent::Next);
+        dispatch_event(callback_ptr, MediaControlEvent::Next);
     }
 }
 
@@ -309,17 +334,17 @@ pub unsafe extern "C" fn Java_app_moosync_android_services_MoosyncService_native
 #[unsafe(no_mangle)]
 #[allow(non_snake_case)]
 pub unsafe extern "C" fn Java_app_moosync_android_services_MoosyncService_nativeOnSkipToPrevious(
-    mut env: jni::JNIEnv,
+    _env: jni::EnvUnowned,
     _obj: JObject,
     callback_ptr: i64,
 ) {
     unsafe {
-        dispatch_event(&mut env, callback_ptr, MediaControlEvent::Previous);
+        dispatch_event(callback_ptr, MediaControlEvent::Previous);
     }
 }
 
 /// # Safety: `ptr` must be a valid `*const Sender<MediaControlEvent>` or 0.
-unsafe fn dispatch_event(_env: &mut jni::JNIEnv, ptr: i64, event: MediaControlEvent) {
+unsafe fn dispatch_event(ptr: i64, event: MediaControlEvent) {
     let log_msg = format!(
         "dispatch_event: JNI received media control event: {:?}",
         event

@@ -8,6 +8,7 @@ use extensions_proto::moosync::types::{
     PlayerEvent as PlayerEventMessage, player_event::Event as PlayerEvent,
 };
 use player_proto::moosync::types::RepeatMode;
+#[cfg(not(target_os = "android"))]
 use preferences::keys::{MINIMIZE_TO_TRAY, PreferenceItemExt};
 use slint::{Image, Model, ModelRc, VecModel};
 use songs_proto::moosync::types::Song;
@@ -31,6 +32,7 @@ pub mod error;
 mod main_content;
 mod pages;
 mod settings;
+#[cfg(not(target_os = "android"))]
 pub mod test_utils;
 pub mod utils;
 mod window_info;
@@ -53,9 +55,7 @@ static ANDROID_APP: std::sync::OnceLock<slint::android::AndroidApp> = std::sync:
 fn android_main(app: slint::android::AndroidApp) {
     slint::android::init(app.clone()).unwrap();
     ANDROID_APP.set(app).expect("failed to set ANDROID_APP");
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    let _guard = rt.enter();
-    rt.block_on(run());
+    run();
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -115,6 +115,9 @@ pub fn run() {
         }
         .in_current_span(),
     );
+
+    #[cfg(target_os = "android")]
+    std::process::exit(0);
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -730,58 +733,54 @@ fn setup_android() -> types::android::AndroidJNIContext {
     let app = ANDROID_APP.get().expect("ANDROID_APP not initialized");
 
     // Safety: vm_as_ptr() returns the raw *mut JavaVM for this process.
-    let vm =
-        unsafe { jni::JavaVM::from_raw(app.vm_as_ptr().cast()) }.expect("failed to get JavaVM");
+    let vm = unsafe { jni::JavaVM::from_raw(app.vm_as_ptr().cast()) };
 
-    let (activity, service_class) = {
-        let mut env = vm.attach_current_thread().expect("JNI attach");
+    let (activity, service_class) = vm
+        .attach_current_thread(|env| {
+            let act_ptr = app.activity_as_ptr() as jni::sys::jobject;
+            let act_obj = unsafe { jni::objects::JObject::from_raw(env, act_ptr) };
+            let activity_ref = env.new_global_ref(act_obj)?;
 
-        let act_ptr = app.activity_as_ptr() as jni::sys::jobject;
-        let act_obj = unsafe { jni::objects::JObject::from_raw(act_ptr) };
-        let activity_ref = env.new_global_ref(act_obj).expect("new_global_ref");
+            // Load Class via Activity's ClassLoader to avoid
+            // ClassNotFoundException on native threads
+            let class_obj = env
+                .call_method(
+                    &activity_ref,
+                    jni::jni_str!("getClass"),
+                    jni::jni_sig!("()Ljava/lang/Class;"),
+                    &[],
+                )?
+                .l()?;
 
-        // Load Class via Activity's ClassLoader to avoid ClassNotFoundException on
-        // native threads
-        let class_obj = env
-            .call_method(&activity_ref, "getClass", "()Ljava/lang/Class;", &[])
-            .expect("getClass failed")
-            .l()
-            .expect("getClass returned null/non-object");
+            let class_loader = env
+                .call_method(
+                    &class_obj,
+                    jni::jni_str!("getClassLoader"),
+                    jni::jni_sig!("()Ljava/lang/ClassLoader;"),
+                    &[],
+                )?
+                .l()?;
 
-        let class_loader = env
-            .call_method(
-                &class_obj,
-                "getClassLoader",
-                "()Ljava/lang/ClassLoader;",
-                &[],
-            )
-            .expect("getClassLoader failed")
-            .l()
-            .expect("getClassLoader returned null/non-object");
+            let class_name_jstr = env.new_string("app.moosync.android.services.MoosyncService")?;
 
-        let class_name_jstr = env
-            .new_string("app.moosync.android.services.MoosyncService")
-            .expect("new_string failed");
+            let cls_obj = env
+                .call_method(
+                    &class_loader,
+                    jni::jni_str!("loadClass"),
+                    jni::jni_sig!("(Ljava/lang/String;)Ljava/lang/Class;"),
+                    &[jni::objects::JValue::Object(&class_name_jstr)],
+                )?
+                .l()?;
 
-        let cls_obj = env
-            .call_method(
-                &class_loader,
-                "loadClass",
-                "(Ljava/lang/String;)Ljava/lang/Class;",
-                &[jni::objects::JValue::Object(&class_name_jstr)],
-            )
-            .expect("loadClass MoosyncService failed")
-            .l()
-            .expect("loadClass returned null/non-class");
+            let service_class_ref = env.new_global_ref(cls_obj)?;
 
-        let service_class_ref = env.new_global_ref(cls_obj).expect("new_global_ref");
-
-        (activity_ref, service_class_ref)
-    };
+            Ok::<_, jni::errors::Error>((activity_ref, service_class_ref))
+        })
+        .expect("JNI setup_android failed");
 
     types::android::AndroidJNIContext {
         jvm: std::sync::Arc::new(vm),
-        activity,
-        service_class,
+        activity: std::sync::Arc::new(activity),
+        service_class: std::sync::Arc::new(service_class),
     }
 }

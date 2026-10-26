@@ -1,7 +1,9 @@
 import { Sidebar, SidebarItem } from "sidebar/sidebar.slint";
-import { TopBar, TopBarProps } from "topbar/top_bar.slint";
+import { TopBar } from "topbar/top_bar.slint";
+import { TopBarProps } from "topbar/top_bar_props.slint";
 import { BottomBar } from "bottombar/bottom_bar.slint";
-import { AllSongs, AllSongsPageProps } from "main_content/all_songs.slint";
+import { AllSongs } from "main_content/all_songs.slint";
+import { AllSongsPageProps } from "main_content/all_songs_props.slint";
 import { WindowInfo } from "window_info.slint";
 import {
     SongModel,
@@ -16,32 +18,31 @@ import {
     SongSortCriterion,
 } from "types/song_view.slint";
 import { MenuItem, PopupMenu } from "common/popup_menu.slint";
-import { AlbumsPage, AlbumsPageProps } from "main_content/albums.slint";
-import { ArtistsPage, ArtistsPageProps } from "main_content/artists.slint";
-import {
-    PlaylistsPage,
-    PlaylistsPageProps,
-} from "main_content/playlists.slint";
-import { GenresPage, GenresPageProps } from "main_content/genres.slint";
-import { ExplorePage, ExplorePageProps } from "main_content/explore.slint";
-import { SearchPage, SearchPageProps } from "main_content/search.slint";
+import { AlbumsPage } from "main_content/albums.slint";
+import { AlbumsPageProps } from "main_content/albums_props.slint";
+import { ArtistsPage } from "main_content/artists.slint";
+import { ArtistsPageProps } from "main_content/artists_props.slint";
+import { PlaylistsPage } from "main_content/playlists.slint";
+import { PlaylistsPageProps } from "main_content/playlists_props.slint";
+import { GenresPage } from "main_content/genres.slint";
+import { GenresPageProps } from "main_content/genres_props.slint";
+import { ExplorePage } from "main_content/explore.slint";
+import { ExplorePageProps } from "main_content/explore_props.slint";
+import { SearchPage } from "main_content/search.slint";
+import { SearchPageProps } from "main_content/search_props.slint";
 import { QueuePage } from "main_content/queue_page.slint";
+import { PlaylistContent } from "main_content/playlist_content.slint";
 import {
-    PlaylistContent,
     PlaylistContentPageProps,
-} from "main_content/playlist_content.slint";
+} from "main_content/playlist_content_props.slint";
+import { AlbumContent } from "main_content/album_content.slint";
+import { AlbumContentPageProps } from "main_content/album_content_props.slint";
+import { ArtistContent } from "main_content/artist_content.slint";
 import {
-    AlbumContent,
-    AlbumContentPageProps,
-} from "main_content/album_content.slint";
-import {
-    ArtistContent,
     ArtistContentPageProps,
-} from "main_content/artist_content.slint";
-import {
-    GenreContent,
-    GenreContentPageProps,
-} from "main_content/genre_content.slint";
+} from "main_content/artist_content_props.slint";
+import { GenreContent } from "main_content/genre_content.slint";
+import { GenreContentPageProps } from "main_content/genre_content_props.slint";
 import {
     Pages,
     SettingsPages,
@@ -60,15 +61,15 @@ import {
     PreferenceChange,
     SortDecision,
 } from "callbacks.slint";
-import { Settings, SettingsState } from "settings/settings.slint";
-import {
-    SavePlaylistModal,
-    SavePlaylistState,
-} from "common/save_playlist_modal.slint";
-import { SaveThemeModal, SaveThemeState } from "common/save_theme_modal.slint";
+import { Settings } from "settings/settings.slint";
+import { SettingsState } from "settings/settings_props.slint";
+import { SavePlaylistModal } from "common/save_playlist_modal.slint";
+import { SavePlaylistState } from "common/save_playlist_modal_props.slint";
+import { SaveThemeModal } from "common/save_theme_modal.slint";
+import { SaveThemeState } from "common/save_theme_modal_props.slint";
 import { PageWrapper } from "common/page_wrapper.slint";
 import { ContextMenuItem, ContextMenuItems } from "types/context_menu.slint";
-import { AccountsProps } from "common/accounts_popup.slint";
+import { AccountsProps } from "common/accounts_props.slint";
 import {
     Preferences,
     AppPreferences,
@@ -86,15 +87,18 @@ import {
     ExtensionsPageProps,
     ExtensionsPreferenceProps,
     ExtensionPreferenceGroup,
-} from "settings/extensions.slint";
-import { ThemesPageProps } from "settings/themes.slint";
+} from "settings/extensions_props.slint";
+import { ThemesPageProps } from "settings/themes_props.slint";
 import { Utils, DefaultIconType } from "utils.slint";
-import { OAuthModal, OAuthState } from "common/oauth_modal.slint";
+import { OAuthModal } from "common/oauth_modal.slint";
+import { OAuthState } from "common/oauth_modal_props.slint";
+import { ExtensionDetailsModal } from "common/extension_details_modal.slint";
 import {
-    ExtensionDetailsModal,
     ExtensionDetailsState,
-} from "common/extension_details_modal.slint";
-import { PlayerProps, AppProps, QueuePageProps } from "props.slint";
+} from "common/extension_details_modal_props.slint";
+import { PlayerProps } from "bottombar/playback_props.slint";
+import { AppProps } from "app_props.slint";
+import { QueuePageProps } from "main_content/queue_props.slint";
 
 export {
     PlayerProps,
@@ -162,18 +166,18 @@ export {
     ContextMenuItems,
     AccountsProps,
 }
-export { AppTray }from "tray.slint";
+export { AppTray } from "tray.slint";
 export component MainWindow inherits Window {
     title: "moosync";
     background: Theme.primary; // Sampled Topbar/Main background
 
     changed width => {
         WindowInfo.window-width = self.width;
-        if (self.width < 600px) {
+        if (self.width < Theme.breakpointSm) {
             WindowInfo.window-size = WindowInfo.sm;
-        } else if (self.width < 900px) {
+        } else if (self.width < Theme.breakpointMd) {
             WindowInfo.window-size = WindowInfo.md;
-        } else if (self.width < 1200px) {
+        } else if (self.width < Theme.breakpointLg) {
             WindowInfo.window-size = WindowInfo.lg;
         } else {
             WindowInfo.window-size = WindowInfo.xl;
@@ -298,7 +302,7 @@ export component MainWindow inherits Window {
                 height: 100%;
 
                 animate y {
-                    duration: 250ms;
+                    duration: Theme.durationMedium;
                     easing: ease-in-out;
                 }
             }

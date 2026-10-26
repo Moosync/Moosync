@@ -213,7 +213,8 @@ impl QueuePageHandler {
                 let cache_dir = state_manager.get_cache_dir();
                 let mut handles = Vec::new();
 
-                // Song changed listener to update blurred cover background and lyrics
+                // Song changed listener to update blurred cover background and
+                // lyrics
                 let mw_weak_song = main_window_weak.clone();
                 let cache_dir_events = cache_dir.clone();
                 let player_handler_song = state_manager.get_player_handler();

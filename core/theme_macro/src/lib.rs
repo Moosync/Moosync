@@ -25,24 +25,9 @@ pub(crate) fn generate_theme_impl_from_content(content: &str) -> TokenStream2 {
 
     let mut get_arms = Vec::new();
     let mut set_arms = Vec::new();
-    let mut key_inserts = Vec::new();
-    let mut default_setters = Vec::new();
 
-    // The 8 proto fields of ThemeItem:
-    // primary, secondary, tertiary, text_primary, text_secondary, text_inverse,
-    // accent, divider
-    for (name, _prop_type, default_val) in properties {
+    for (name, _prop_type, _default_val) in &properties {
         let name_str = name.as_str();
-
-        // Add to keys
-        key_inserts.push(quote! {
-            keys.insert(#name_str.to_string());
-        });
-
-        // Add to get_default_theme_item
-        default_setters.push(quote! {
-            item.set_constant(#name_str, #default_val.into());
-        });
 
         // Setup proto fields or constants map
         match name_str {
@@ -141,6 +126,32 @@ pub(crate) fn generate_theme_impl_from_content(content: &str) -> TokenStream2 {
         }
     }
 
+    let mut key_inserts = Vec::new();
+    let mut default_setters = Vec::new();
+    for (name, _prop_type, default_val) in &properties {
+        let name_str = name.as_str();
+        key_inserts.push(quote! {
+            keys.insert(#name_str.to_string());
+        });
+        default_setters.push(quote! {
+            item.set_constant(#name_str, #default_val.into());
+        });
+    }
+
+    let get_all_keys_body = quote! {
+        let mut keys = std::collections::HashSet::new();
+        #(#key_inserts)*
+        for k in self.constants.keys() {
+            keys.insert(k.clone());
+        }
+        keys
+    };
+    let default_theme_item_body = quote! {
+        let mut item = ThemeItem::default();
+        #(#default_setters)*
+        item
+    };
+
     let expanded = quote! {
         pub trait ThemeItemExt {
             fn get_constant(&self, key: &str) -> Option<String>;
@@ -169,20 +180,13 @@ pub(crate) fn generate_theme_impl_from_content(content: &str) -> TokenStream2 {
 
             #[tracing::instrument(level = "debug", skip_all)]
             fn get_all_keys(&self) -> std::collections::HashSet<String> {
-                let mut keys = std::collections::HashSet::new();
-                #(#key_inserts)*
-                for k in self.constants.keys() {
-                    keys.insert(k.clone());
-                }
-                keys
+                #get_all_keys_body
             }
         }
 
         #[tracing::instrument(level = "debug", skip_all)]
         pub fn get_default_theme_item() -> ThemeItem {
-            let mut item = ThemeItem::default();
-            #(#default_setters)*
-            item
+            #default_theme_item_body
         }
     };
 
@@ -285,10 +289,28 @@ pub fn generate_theme_ui_helpers(input: TokenStream) -> TokenStream {
 }
 
 pub(crate) fn generate_theme_ui_helpers_from_content(content: &str) -> TokenStream2 {
-    let properties = parse_slint_theme(content);
+    let constant_pushers = build_constant_pushers(&parse_slint_theme(content));
 
+    quote! {
+        #[tracing::instrument(level = "debug", skip_all)]
+        pub fn update_theme_constants_ui(main_window: &crate::MainWindow, theme: &themes_proto::moosync::types::ThemeDetails) {
+            let theme_item = theme.get_theme_item_or_default();
+            let default_item = types::prelude::get_default_theme_item();
+            let mut constants_vec = Vec::new();
+
+            #(#constant_pushers)*
+
+            let model = slint::VecModel::default();
+            for c in constants_vec {
+                model.push(c);
+            }
+            main_window.global::<crate::ThemesPageProps>().set_theme_constants(slint::ModelRc::new(model));
+        }
+    }
+}
+
+fn build_constant_pushers(properties: &[(String, String, String)]) -> Vec<TokenStream2> {
     let mut constant_pushers = Vec::new();
-
     for (name, prop_type, _) in properties {
         let name_str = name.as_str();
         if prop_type == "color" {
@@ -329,23 +351,7 @@ pub(crate) fn generate_theme_ui_helpers_from_content(content: &str) -> TokenStre
             });
         }
     }
-
-    quote! {
-        #[tracing::instrument(level = "debug", skip_all)]
-        pub fn update_theme_constants_ui(main_window: &crate::MainWindow, theme: &themes_proto::moosync::types::ThemeDetails) {
-            let theme_item = theme.get_theme_item_or_default();
-            let default_item = types::prelude::get_default_theme_item();
-            let mut constants_vec = Vec::new();
-
-            #(#constant_pushers)*
-
-            let model = slint::VecModel::default();
-            for c in constants_vec {
-                model.push(c);
-            }
-            main_window.global::<crate::ThemesPageProps>().set_theme_constants(slint::ModelRc::new(model));
-        }
-    }
+    constant_pushers
 }
 
 fn find_file_in_ancestors(mut dir: std::path::PathBuf, path_str: &str) -> Option<String> {

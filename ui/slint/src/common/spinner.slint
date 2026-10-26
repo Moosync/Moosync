@@ -10,6 +10,6 @@ export component Spinner inherits Rectangle {
         height: 100%;
         source: @image-url("../icons/spinner.svg");
         colorize: Theme.accent;
-        transform-rotation: root.active ? (animation-tick() * 360deg / 1s) : 0deg;
+        transform-rotation: root.active ? (animation-tick() * Theme.angle360 / 1s) : Theme.angle0;
     }
 }

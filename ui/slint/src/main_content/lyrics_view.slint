@@ -1,7 +1,8 @@
 import { LyricLineModel } from "../types/song_view.slint";
 import { Theme } from "../constants.slint";
 import { WindowInfo } from "../window_info.slint";
-import { QueuePageProps, PlayerProps } from "../props.slint";
+import { QueuePageProps } from "queue_props.slint";
+import { PlayerProps } from "../bottombar/playback_props.slint";
 import { AppCallbacks } from "../callbacks.slint";
 import { ListView, ScrollView } from "std-widgets.slint";
 import { TextButton } from "../common/text_button.slint";
@@ -66,14 +67,14 @@ export component LyricsView inherits HorizontalLayout {
                 if (root.has_lyrics): Rectangle {
                     background: Theme.accent.transparentize(0.85);
                     border-radius: Theme.borderRadiusSm;
-                    border-width: 1px;
+                    border-width: Theme.borderWidth;
                     border-color: Theme.accent.transparentize(0.5);
                     clip: true;
-                    height: 20px;
+                    height: Theme.sizeLg;
 
                     HorizontalLayout {
-                        padding-left: 6px;
-                        padding-right: 6px;
+                        padding-left: Theme.borderRadiusMd;
+                        padding-right: Theme.borderRadiusMd;
                         alignment: center;
 
                         Text {
@@ -125,21 +126,21 @@ export component LyricsView inherits HorizontalLayout {
                 width: 100%;
                 height: 100%;
                 viewport-y: (root.active_index >= 0)
-                    ? Math.min(0px, -root.active_index * 42px + (self.height / 2) - 21px)
+                    ? Math.min(0px, -root.active_index * Theme.size3Xl + (self.height / 2) - Theme.sizeLg)
                     : 0px;
 
                 animate viewport-y {
-                    duration: 250ms;
+                    duration: Theme.durationMedium;
                     easing: ease-out;
                 }
 
                 VerticalLayout {
                     alignment: start;
-                    padding-top: 40px;
-                    padding-bottom: 40px;
+                    padding-top: Theme.size3Xl;
+                    padding-bottom: Theme.size3Xl;
 
                     for line[idx] in root.lyrics_lines: Rectangle {
-                        height: 42px;
+                        height: Theme.size3Xl;
                         width: 100%;
 
                         Text {
@@ -154,7 +155,7 @@ export component LyricsView inherits HorizontalLayout {
                             overflow: elide;
 
                             animate opacity {
-                                duration: 250ms;
+                                duration: Theme.durationMedium;
                                 easing: ease-in-out;
                             }
                         }

@@ -1,0 +1,116 @@
+import { Theme, Pages } from "../constants_mobile.slint";
+import { IconButton } from "../common/icon_button_mobile.slint";
+import { AppCallbacks } from "../callbacks.slint";
+import { AppProps } from "../app_props.slint";
+import { AccountsProps } from "../common/accounts_props.slint";
+import { SearchPageProps } from "../main_content/search_props.slint";
+import { SearchBarMobile } from "search_bar_mobile.slint";
+
+export component TopBarMobile inherits Rectangle {
+    property <bool> is_search_open: false;
+
+    height: Theme.mobileHeaderHeight;
+    background: Theme.primary;
+
+    Rectangle {
+        y: parent.height - Theme.borderWidth;
+        height: Theme.borderWidth;
+        background: Theme.divider;
+    }
+
+    // Default action buttons
+    HorizontalLayout {
+        x: 0px;
+        y: 0px;
+        width: 100%;
+        height: 100%;
+        padding-left: Theme.paddingMd;
+        padding-right: Theme.paddingMd;
+        spacing: Theme.spacingSm;
+        opacity: root.is_search_open ? 0.0 : 1.0;
+        visible: self.opacity > 0.01;
+
+        animate opacity {
+            duration: Theme.durationFast;
+            easing: ease-in-out;
+        }
+
+        // Spacer to push action buttons to the right
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+
+        // Search Quick Action
+        VerticalLayout {
+            alignment: center;
+            IconButton {
+                accessible-label: @tr("Search");
+                icon_source: @image-url("../icons/search.svg");
+                icon_size: Theme.iconSizeLg;
+                width: Theme.mobileIconButtonSize;
+                height: Theme.mobileIconButtonSize;
+                clicked => {
+                    root.is_search_open = true;
+                }
+            }
+        }
+
+        // Accounts Action
+        VerticalLayout {
+            alignment: center;
+            IconButton {
+                accessible-label: @tr("Accounts");
+                icon_source: @image-url("../icons/profile.svg");
+                icon_size: Theme.iconSizeLg;
+                width: Theme.mobileIconButtonSize;
+                height: Theme.mobileIconButtonSize;
+                clicked => {
+                    AccountsProps.show_accounts = true;
+                }
+            }
+        }
+    }
+
+    // Animated inline Search Bar
+    HorizontalLayout {
+        x: root.is_search_open ? 0px : parent.width;
+        y: 0px;
+        width: 100%;
+        height: 100%;
+        padding-left: Theme.paddingSm;
+        padding-right: Theme.paddingLg;
+        spacing: Theme.spacingSm;
+        opacity: root.is_search_open ? 1.0 : 0.0;
+
+        animate x, opacity {
+            duration: Theme.durationNormal;
+            easing: ease-out;
+        }
+
+        VerticalLayout {
+            alignment: center;
+            IconButton {
+                accessible-label: @tr("Close Search");
+                icon_source: @image-url("../icons/nav_button.svg");
+                icon_size: Theme.mobileSearchFilterIconSize;
+                width: Theme.mobileIconButtonSize;
+                height: Theme.mobileIconButtonSize;
+                clicked => {
+                    root.is_search_open = false;
+                }
+            }
+        }
+
+        VerticalLayout {
+            alignment: center;
+            horizontal-stretch: 1;
+
+            SearchBarMobile {
+                text <=> SearchPageProps.search_query;
+                accepted(text) => {
+                    AppProps.active_page = Pages.Search;
+                }
+            }
+        }
+    }
+}

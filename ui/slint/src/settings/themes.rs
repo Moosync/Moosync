@@ -28,7 +28,10 @@ use crate::{
     utils::{parse_color, parse_length},
 };
 
+#[cfg(not(target_os = "android"))]
 theme_macro::generate_theme_ui_helpers!("ui/slint/src/constants.slint");
+#[cfg(target_os = "android")]
+theme_macro::generate_theme_ui_helpers!("ui/slint/src/constants_mobile.slint");
 
 pub struct ThemesPageHandler {
     main_window: &'static MainWindow,
@@ -165,8 +168,17 @@ impl ThemesPageHandler {
             }
         };
 
+        #[cfg(not(target_os = "android"))]
         theme_macro::generate_theme_apply!(
             "ui/slint/src/constants.slint",
+            theme_global,
+            name,
+            set_color,
+            set_length
+        );
+        #[cfg(target_os = "android")]
+        theme_macro::generate_theme_apply!(
+            "ui/slint/src/constants_mobile.slint",
             theme_global,
             name,
             set_color,

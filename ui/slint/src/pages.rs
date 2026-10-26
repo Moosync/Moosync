@@ -148,7 +148,34 @@ impl NavigationManager {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
+    fn close_any_modal(main_window: &crate::MainWindow) -> bool {
+        let save_playlist = main_window.global::<crate::SavePlaylistState>();
+        let save_theme = main_window.global::<crate::SaveThemeState>();
+        let oauth = main_window.global::<crate::OAuthState>();
+        let ext_details = main_window.global::<crate::ExtensionDetailsState>();
+        let settings = main_window.global::<crate::SettingsState>();
+
+        let any_open = save_playlist.get_show_modal()
+            || save_theme.get_show_modal()
+            || oauth.get_show_oauth_modal()
+            || ext_details.get_show_modal()
+            || settings.get_show_settings();
+
+        save_playlist.set_show_modal(false);
+        save_theme.set_show_modal(false);
+        oauth.set_show_oauth_modal(false);
+        ext_details.set_show_modal(false);
+        settings.set_show_settings(false);
+
+        any_open
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn go_back(&mut self, main_window: &crate::MainWindow) -> bool {
+        if Self::close_any_modal(main_window) {
+            return true;
+        }
+
         if self.settings_open {
             if self.settings_history.go_back().is_some() {
                 return true;

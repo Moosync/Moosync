@@ -1,0 +1,68 @@
+import { SidebarButtonMobile } from "sidebar_button_mobile.slint";
+import { Pages, SettingsPages, Theme } from "../constants_mobile.slint";
+import { AppProps } from "../app_props.slint";
+import { SidebarItem, SettingsSidebarItem } from "sidebar.slint";
+
+export { SidebarItem, SettingsSidebarItem }
+export component SidebarMobile inherits Rectangle {
+    height: Theme.mobileBottomNavHeight;
+    background: Theme.secondary;
+
+    // Top border divider
+    Rectangle {
+        y: 0px;
+        height: Theme.borderWidth;
+        width: 100%;
+        background: Theme.divider;
+    }
+
+    in property <[SidebarItem]> items: [
+        {
+            text: @tr("Songs"),
+            icon: @image-url("../icons/songs.svg"),
+            page: Pages.AllSongs,
+            accessible_label: @tr("Bottom Bar Songs")
+        },
+        {
+            text: @tr("Playlists"),
+            icon: @image-url("../icons/playlists.svg"),
+            page: Pages.Playlists,
+            accessible_label: @tr("Bottom Bar Playlists")
+        },
+        {
+            text: @tr("Artists"),
+            icon: @image-url("../icons/artists.svg"),
+            page: Pages.Artists,
+            accessible_label: @tr("Bottom Bar Artists")
+        },
+        {
+            text: @tr("Albums"),
+            icon: @image-url("../icons/albums.svg"),
+            page: Pages.Albums,
+            accessible_label: @tr("Bottom Bar Albums")
+        },
+        {
+            text: @tr("Explore"),
+            icon: @image-url("../icons/explore.svg"),
+            page: Pages.Explore,
+            accessible_label: @tr("Bottom Bar Explore")
+        },
+    ];
+
+    HorizontalLayout {
+        width: 100%;
+        height: 100%;
+        padding-bottom: Theme.mobileBottomNavButtonPaddingBottom;
+        alignment: space-around;
+
+        for item in root.items: SidebarButtonMobile {
+            text: item.text;
+            icon: item.icon;
+            accessible-label: item.accessible_label != "" ? item.accessible_label : item.text;
+            active: AppProps.active_page == item.page;
+            clicked => {
+                AppProps.active_page = item.page;
+            }
+        }
+    }
+}

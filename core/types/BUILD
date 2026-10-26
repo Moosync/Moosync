@@ -10,7 +10,6 @@ rust_library(
         "src/errors/mod.rs",
         "src/lib.rs",
         "src/lib_test.rs",
-        "src/mpris/mod.rs",
         "src/plugin.rs",
         "src/plugin_test.rs",
         "src/preferences.rs",
@@ -26,6 +25,7 @@ rust_library(
     ],
     compile_data = [
         "//ui/slint:src/constants.slint",
+        "//ui/slint:src/constants_mobile.slint",
     ],
     proc_macro_deps = [
         "@crates//:async-trait",

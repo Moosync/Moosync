@@ -1,0 +1,28 @@
+import {
+    SongsPageLayoutMobile,
+} from "../common/songs_page_layout_mobile.slint";
+import { SongModel, AlbumModel } from "../types/song_view.slint";
+import { ExtensionProviderItem } from "../types/extension_view.slint";
+import { AppCallbacks } from "../callbacks.slint";
+import { AlbumsPageProps } from "albums_props.slint";
+import { AlbumContentPageProps } from "album_content_props.slint";
+
+export component AlbumContentMobile inherits Rectangle {
+    SongsPageLayoutMobile {
+        songs <=> AlbumContentPageProps.songs;
+        extension_providers <=> AlbumContentPageProps.extension_providers;
+        provider_toggled(id, enabled) => {
+            AppCallbacks.toggle_album_content_extension(id, enabled);
+        }
+        load_more => {
+            AppCallbacks.load_more_album_content();
+        }
+        default-song: {
+            id: "",
+            title: AlbumsPageProps.selected-album.title,
+            coverPathHigh: AlbumsPageProps.selected-album.coverPath,
+            coverPathLow: AlbumsPageProps.selected-album.coverPath,
+            extension-icon: @image-url("../icons/song_default.svg"),
+        };
+    }
+}

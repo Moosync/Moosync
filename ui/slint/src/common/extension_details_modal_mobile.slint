@@ -1,0 +1,142 @@
+import { Theme } from "../constants_mobile.slint";
+import { IconButtonMobile } from "icon_button_mobile.slint";
+import { ScrollView } from "std-widgets.slint";
+import { ExtensionItem, ProviderScope } from "../types/extension_view.slint";
+import { ExtensionDetailsState } from "extension_details_modal_props.slint";
+
+export component ExtensionDetailsModalMobile inherits Rectangle {
+    in property <ExtensionItem> item: ExtensionDetailsState.item;
+    callback close();
+
+    width: 100%;
+    height: 100%;
+    background: Theme.primary;
+
+    pure function scope_to_display_string(scope: ProviderScope) -> string {
+        if scope == ProviderScope.search { return @tr("Search"); }
+        if scope == ProviderScope.playlists { return @tr("Playlists"); }
+        if scope == ProviderScope.playlist_songs { return @tr("Playlist Songs"); }
+        if scope == ProviderScope.artist_songs { return @tr("Artist Songs"); }
+        if scope == ProviderScope.album_songs { return @tr("Album Songs"); }
+        if scope == ProviderScope.recommendations { return @tr("Recommendations"); }
+        if scope == ProviderScope.scrobble { return @tr("Scrobble"); }
+        if scope == ProviderScope.playlist_from_url { return @tr("Playlist From URL"); }
+        if scope == ProviderScope.song_from_url { return @tr("Song From URL"); }
+        if scope == ProviderScope.playback_details { return @tr("Playback Details"); }
+        if scope == ProviderScope.lyrics { return @tr("Lyrics"); }
+        if scope == ProviderScope.song_context_menu { return @tr("Song Context Menu"); }
+        if scope == ProviderScope.playlist_context_menu { return @tr("Playlist Context Menu"); }
+        if scope == ProviderScope.accounts { return @tr("Accounts"); }
+        if scope == ProviderScope.database_song_events { return @tr("Database Song Events"); }
+        if scope == ProviderScope.database_playlist_events { return @tr("Database Playlist Events"); }
+        if scope == ProviderScope.player_ui_events { return @tr("Player UI Events"); }
+        if scope == ProviderScope.player_data_events { return @tr("Player Data Events"); }
+        return @tr("Provider");
+    }
+
+    VerticalLayout {
+        padding-top: Theme.mobileTopBarPaddingTop;
+        padding-left: Theme.paddingMd;
+        padding-right: Theme.paddingMd;
+        padding-bottom: Theme.paddingMd;
+        spacing: Theme.spacingLg;
+
+        // Top App Bar with back navigation
+        HorizontalLayout {
+            spacing: Theme.spacingSm;
+            alignment: start;
+
+            IconButtonMobile {
+                accessible-label: @tr("Back");
+                icon_source: @image-url("../icons/nav_button.svg");
+                icon_size: Theme.playbackControlsIconSize;
+                width: Theme.searchBarHeight;
+                height: Theme.searchBarHeight;
+                clicked => { root.close(); }
+            }
+
+            Rectangle {
+                width: Theme.mobileButtonSize;
+                height: Theme.mobileButtonSize;
+                border-radius: Theme.borderRadiusMd;
+                clip: true;
+                Image {
+                    width: 100%;
+                    height: 100%;
+                    source: root.item.icon.width > 0 ? root.item.icon : @image-url("../icons/extensions.svg");
+                    image-fit: contain;
+                }
+            }
+
+            VerticalLayout {
+                horizontal-stretch: 1;
+                alignment: center;
+                Text {
+                    text: root.item.name;
+                    font-size: Theme.modelTitle;
+                    font-weight: 700;
+                    color: Theme.textPrimary;
+                }
+
+                Text {
+                    text: "v" + root.item.version + (root.item.author != "" ? (" • " + root.item.author) : "");
+                    font-size: Theme.caption;
+                    color: Theme.textSecondary;
+                }
+            }
+        }
+
+        // Details Container
+        Rectangle {
+            vertical-stretch: 1;
+            background: Theme.secondary;
+            border-radius: Theme.borderRadiusXl;
+            clip: true;
+
+            ScrollView {
+                padding: Theme.paddingMd;
+
+                VerticalLayout {
+                    spacing: Theme.spacingMd;
+                    alignment: start;
+
+                    if root.item.description != "": Text {
+                        text: root.item.description;
+                        font-size: Theme.body;
+                        color: Theme.textPrimary;
+                        wrap: word-wrap;
+                    }
+
+                    // Provider scopes
+                    if root.item.scopes.length > 0: VerticalLayout {
+                        spacing: Theme.spacingSm;
+                        Text {
+                            text: @tr("Capabilities");
+                            font-size: Theme.caption;
+                            font-weight: 700;
+                            color: Theme.textSecondary;
+                        }
+
+                        for scope in root.item.scopes: HorizontalLayout {
+                            spacing: Theme.spacingSm;
+                            alignment: start;
+                            Rectangle {
+                                width: Theme.borderRadiusMd;
+                                height: Theme.borderRadiusMd;
+                                border-radius: Theme.borderWidthXxl;
+                                background: Theme.accent;
+                                y: Theme.sizeXs;
+                            }
+
+                            Text {
+                                text: root.scope_to_display_string(scope);
+                                font-size: Theme.body;
+                                color: Theme.textPrimary;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

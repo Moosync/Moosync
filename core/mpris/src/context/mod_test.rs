@@ -19,10 +19,11 @@ use std::{sync::mpsc, time::Duration};
 use assertables::assert_ok;
 use extensions_proto::moosync::types::PlayerState;
 use rstest::rstest;
+use songs_proto::moosync::types::{Album, Artist, InnerSong, Song};
 use tracing_test::traced_test;
 
 use crate::{
-    MediaControlEvent, MediaPosition, MprisPlayerDetails, SeekDirection,
+    MediaControlEvent, MediaPosition, SeekDirection,
     context::{DummyContext, MprisContext, from_souvlaki_event},
 };
 
@@ -87,7 +88,7 @@ fn test_dummy_context_operations() {
     let (tx, _rx) = mpsc::channel();
 
     assert_ok!(dummy.attach(tx));
-    assert_ok!(dummy.set_metadata(MprisPlayerDetails::default()));
+    assert_ok!(dummy.set_metadata(&Song::default()));
     assert_ok!(dummy.set_playback_state(PlayerState::Playing, 12000));
 }
 
@@ -102,15 +103,23 @@ fn test_souvlaki_mpris_context_operations() {
         let (tx, _rx) = mpsc::channel();
         let _ = ctx.attach(tx);
 
-        let metadata = MprisPlayerDetails {
-            title: Some("Song".into()),
-            artist_name: Some("Artist".into()),
-            album_name: Some("Album".into()),
-            thumbnail: Some("http://example.com/cover.jpg".into()),
-            duration: Some(180.0),
+        let song = Song {
+            song: Some(InnerSong {
+                title: Some("Song".into()),
+                song_cover_path_high: Some("http://example.com/cover.jpg".into()),
+                ..Default::default()
+            }),
+            artists: vec![Artist {
+                artist_name: Some("Artist".into()),
+                ..Default::default()
+            }],
+            album: Some(Album {
+                album_name: Some("Album".into()),
+                ..Default::default()
+            }),
             ..Default::default()
         };
-        let _ = ctx.set_metadata(metadata);
+        let _ = ctx.set_metadata(&song);
         let _ = ctx.set_playback_state(PlayerState::Playing, 5000);
         let _ = ctx.set_playback_state(PlayerState::Paused, 5000);
         let _ = ctx.set_playback_state(PlayerState::Stopped, 0);

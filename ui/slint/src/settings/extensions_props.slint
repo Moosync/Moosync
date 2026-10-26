@@ -1,0 +1,19 @@
+import { ExtensionItem } from "../types/extension_view.slint";
+import { PreferenceItem } from "preferences.slint";
+import { Constants } from "../constants.slint";
+
+export struct ExtensionPreferenceGroup {
+    package_name: string,
+    display_name: string,
+    preferences: [PreferenceItem],
+}
+
+export global ExtensionsPreferenceProps {
+    in-out property <[PreferenceItem]> static_preferences: [];
+    in-out property <[ExtensionPreferenceGroup]> extension_preferences: [];
+}
+
+export global ExtensionsPageProps {
+    in-out property <[ExtensionItem]> extensions: Constants.testExtensions;
+    in-out property <bool> has_updates: false;
+}

@@ -1,0 +1,29 @@
+import { Theme } from "../constants_mobile.slint";
+import { ScrollView } from "std-widgets.slint";
+import { IconButton } from "../common/icon_button_mobile.slint";
+import { ScrollActivity } from "../common/scroll_activity_mobile.slint";
+
+export component SettingsPageLayoutMobile inherits VerticalLayout {
+    in property <string> title;
+    callback back_clicked();
+
+    height: 100%;
+    spacing: Theme.spacingMd;
+
+    scroll_activity := ScrollActivity {
+        position: scroll_view.content-y;
+    }
+
+    scroll_view := ScrollView {
+        vertical-stretch: 1;
+        horizontal-scrollbar-policy: always-off;
+        vertical-scrollbar-policy: scroll_activity.active ? as-needed : always-off;
+        VerticalLayout {
+            spacing: Theme.spacingLg;
+            padding-left: Theme.paddingMd;
+            padding-right: Theme.paddingMd;
+            padding-bottom: Theme.paddingLg;
+            @children
+        }
+    }
+}

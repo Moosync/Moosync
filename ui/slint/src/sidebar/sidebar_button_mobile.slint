@@ -1,0 +1,70 @@
+import { Theme } from "../constants_mobile.slint";
+
+export component SidebarButtonMobile inherits Rectangle {
+    in property <bool> active: false;
+    in property <image> icon;
+    in property <string> text;
+    callback clicked();
+
+    accessible-role: button;
+    accessible-label: root.text;
+
+    TouchArea {
+        width: 100%;
+        height: 100%;
+        clicked => {
+            root.clicked();
+        }
+    }
+
+    VerticalLayout {
+        alignment: center;
+        spacing: Theme.spacingXxs;
+
+        // Active indicator pill with icon
+        HorizontalLayout {
+            alignment: center;
+
+            Rectangle {
+                width: Theme.mobileBottomNavButtonWidth;
+                height: Theme.mobileBottomNavButtonHeight;
+                border-radius: Theme.mobileBottomNavButtonRadius;
+                background: root.active ? Theme.accent.with-alpha(0.2) : transparent;
+
+                animate background {
+                    duration: Theme.durationNormal;
+                    easing: ease-in-out;
+                }
+
+                Image {
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    width: Theme.mobileNavIconSize;
+                    height: Theme.mobileNavIconSize;
+                    source: root.icon;
+                    colorize: root.active ? Theme.accent : Theme.textSecondary;
+                    image-fit: contain;
+
+                    animate colorize {
+                        duration: Theme.durationNormal;
+                        easing: ease-in-out;
+                    }
+                }
+            }
+        }
+
+        // Label
+        Text {
+            text: root.text;
+            font-size: Theme.caption;
+            font-weight: 500;
+            color: root.active ? Theme.accent : Theme.textSecondary;
+            horizontal-alignment: center;
+
+            animate color {
+                duration: Theme.durationNormal;
+                easing: ease-in-out;
+            }
+        }
+    }
+}

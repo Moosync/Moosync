@@ -412,7 +412,8 @@ fn bench_db_ops(c: &mut Criterion) {
 
     update_group.finish();
 
-    // Group for Database Writes (using setup/cleanup batches to avoid side-effects)
+    // Group for Database Writes (using setup/cleanup batches to avoid
+    // side-effects)
     let mut write_group = c.benchmark_group("database_writes");
     write_group.measurement_time(Duration::from_secs(1));
     write_group.sample_size(10);

@@ -1,0 +1,51 @@
+import { Theme } from "../constants_mobile.slint";
+import { SongModel, CoverHelper } from "../types/song_view.slint";
+import { PlayerProps } from "playback_props.slint";
+import { SongArtistsList } from "../common/song_item_components_mobile.slint";
+
+export component TrackInfoMobile inherits Rectangle {
+    property <SongModel> current_song: PlayerProps.current_song;
+
+    HorizontalLayout {
+        spacing: Theme.spacingMd;
+
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: Theme.trackInfoThumbnailSize;
+                height: Theme.trackInfoThumbnailSize;
+                border-radius: Theme.borderRadiusSm;
+                background: Theme.secondary;
+                clip: true;
+
+                Image {
+                    width: 100%;
+                    height: 100%;
+                    source: root.current_song.coverPathLow.width > 0 ? root.current_song.coverPathLow : (root.current_song.id != "" ? CoverHelper.fetch_cover_low(root.current_song) : @image-url("../icons/song_default.svg"));
+                    image-fit: cover;
+                }
+            }
+        }
+
+        VerticalLayout {
+            alignment: center;
+            horizontal-stretch: 1;
+            spacing: Theme.spacingTiny;
+
+            Text {
+                text: root.current_song.title != "" ? root.current_song.title : @tr("No song playing");
+                color: Theme.textPrimary;
+                font-size: Theme.body;
+                font-weight: 600;
+                overflow: elide;
+                vertical-alignment: center;
+            }
+
+            SongArtistsList {
+                artists: root.current_song.artists;
+                font_size: Theme.caption;
+                text_color: Theme.textSecondary;
+            }
+        }
+    }
+}

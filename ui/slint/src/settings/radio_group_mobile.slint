@@ -1,0 +1,128 @@
+import { Theme } from "../constants_mobile.slint";
+import { PreferenceItem, PreferenceOption } from "preferences.slint";
+import { AppCallbacks } from "../callbacks.slint";
+
+export component RadioOptionMobile inherits Rectangle {
+    in property <string> text;
+    in property <string> subtitle;
+    in property <string> option_id;
+    in property <bool> enabled: true;
+    in property <bool> checked: false;
+    out property <bool> has_hover: touch.has-hover;
+    out property <bool> pressed: touch.pressed;
+
+    callback clicked();
+
+    min-height: Theme.mobileQueueDragHandleHeight;
+    border-radius: Theme.borderRadiusMd;
+    background: root.pressed ? Theme.secondary.transparentize(Theme.percent50) : transparent;
+
+    touch := TouchArea {
+        enabled: root.enabled;
+        clicked => {
+            root.clicked();
+        }
+    }
+
+    HorizontalLayout {
+        padding-top: Theme.paddingSm;
+        padding-bottom: Theme.paddingSm;
+        padding-left: Theme.paddingSm;
+        padding-right: Theme.paddingSm;
+        spacing: Theme.spacingMd;
+        alignment: start;
+
+        VerticalLayout {
+            alignment: center;
+
+            indicator := Rectangle {
+                width: Theme.sizeXl;
+                height: Theme.sizeXl;
+                border-radius: Theme.sizeSm;
+                border-width: Theme.borderWidthLg;
+                border-color: root.checked ? Theme.accent : Theme.textSecondary;
+                animate border-color { duration: Theme.durationFast; }
+
+                Rectangle {
+                    width: Theme.sizeSm;
+                    height: Theme.sizeSm;
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    border-radius: Theme.borderRadiusMd;
+                    background: Theme.accent;
+                    opacity: root.checked ? 1 : 0;
+                    animate opacity { duration: Theme.durationFast; }
+                }
+            }
+        }
+
+        VerticalLayout {
+            alignment: center;
+            spacing: Theme.spacingTiny;
+            horizontal-stretch: 1;
+
+            if (root.text != ""): Text {
+                vertical-alignment: center;
+                text: root.text;
+                font-size: Theme.body;
+                color: Theme.textPrimary;
+            }
+
+            if (root.subtitle != ""): Text {
+                text: root.subtitle;
+                font-size: Theme.caption;
+                color: Theme.textSecondary;
+                wrap: word-wrap;
+            }
+        }
+    }
+}
+
+export component RadioGroupMobile inherits VerticalLayout {
+    in property <PreferenceItem> preference;
+    in-out property <string> selected_id: root.preference.value_string;
+    callback changed(string);
+
+    spacing: Theme.spacingSm;
+    alignment: start;
+
+    VerticalLayout {
+        spacing: Theme.spacingTiny;
+
+        Text {
+            text: root.preference.title;
+            font-size: Theme.modelTitle;
+            color: Theme.textPrimary;
+        }
+
+        if (root.preference.subtitle != ""): Text {
+            text: root.preference.subtitle;
+            font-size: Theme.caption;
+            wrap: word-wrap;
+            color: Theme.textSecondary;
+        }
+    }
+
+    VerticalLayout {
+        spacing: Theme.spacingTiny;
+
+        for option in root.preference.options: RadioOptionMobile {
+            text: option.label;
+            option_id: option.id;
+            checked: root.selected_id == option.id;
+            clicked => {
+                root.selected_id = option.id;
+                if (root.preference.id != "") {
+                    AppCallbacks.preference_changed({
+                        id: root.preference.id,
+                        value_string: option.id,
+                        value_bool: false,
+                        value_number: 0.0,
+                        value_list: []
+                    });
+                }
+                root.changed(option.id);
+            }
+        }
+    }
+}

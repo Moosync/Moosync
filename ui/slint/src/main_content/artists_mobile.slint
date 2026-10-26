@@ -1,0 +1,20 @@
+import { ArtistModel } from "../types/song_view.slint";
+import { GridPageLayoutMobile } from "../common/grid_page_layout_mobile.slint";
+import { Pages } from "../constants_mobile.slint";
+import { AppProps } from "../app_props.slint";
+import { ArtistsPageProps } from "artists_props.slint";
+
+export component ArtistsPageMobile inherits Rectangle {
+    GridPageLayoutMobile {
+        title: @tr("Artists");
+        total_items: ArtistsPageProps.artists.length;
+        item_title(idx) => { ArtistsPageProps.artists[idx].title }
+        item_cover(idx) => { ArtistsPageProps.artists[idx].coverPath }
+        item_extension(idx) => { ArtistsPageProps.artists[idx].extension }
+        item_extension_icon(idx) => { ArtistsPageProps.artists[idx].extension_icon }
+        item_clicked(idx) => {
+            ArtistsPageProps.selected-artist = ArtistsPageProps.artists[idx];
+            AppProps.active_page = Pages.ArtistContent;
+        }
+    }
+}

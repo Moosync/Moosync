@@ -8,9 +8,9 @@ import { AppCallbacks } from "../callbacks.slint";
 import { IconButton } from "icon_button.slint";
 
 export component SongActionButton inherits IconButton {
-    width: 32px;
-    height: 32px;
-    icon_size: 20px;
+    width: Theme.sizeXxl;
+    height: Theme.sizeXxl;
+    icon_size: Theme.iconSizeLg;
     background: root.has_hover ? Theme.secondary : transparent;
     icon_color: root.has_hover ? Theme.accent.brighter(0.2) : Theme.accent;
 }

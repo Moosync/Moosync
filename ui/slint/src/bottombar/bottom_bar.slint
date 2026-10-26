@@ -4,7 +4,7 @@ import { PlaybackControls } from "playback_controls.slint";
 import { VolumeControl } from "volume_control.slint";
 import { Theme } from "../constants.slint";
 import { IconButton } from "../common/icon_button.slint";
-import { QueuePageProps } from "../props.slint";
+import { QueuePageProps } from "../main_content/queue_props.slint";
 import { AppCallbacks } from "../callbacks.slint";
 
 export component BottomBar inherits Rectangle {
@@ -61,7 +61,7 @@ export component BottomBar inherits Rectangle {
                         icon_source: @image-url("../icons/chevron.svg");
                         icon_width: Theme.playbackControlsIconSize;
                         icon_height: Theme.playbackControlsIconSize;
-                        icon_rotation: QueuePageProps.show_queue ? 180deg : 0deg;
+                        icon_rotation: QueuePageProps.show_queue ? Theme.angle180 : Theme.angle0;
                         width: Theme.playbackButtonSize;
                         height: Theme.playbackButtonSize;
                         border-radius: Theme.playbackButtonSize / 2;

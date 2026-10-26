@@ -39,7 +39,7 @@ export component DropdownGroup inherits VerticalLayout {
         Rectangle {
             border-radius: Theme.borderRadiusXl;
             border-color: touch.has-hover ? Theme.accent : Theme.textSecondary;
-            border-width: 1px;
+            border-width: Theme.borderWidth;
 
             HorizontalLayout {
                 padding-left: Theme.paddingMd;
@@ -58,7 +58,7 @@ export component DropdownGroup inherits VerticalLayout {
                     alignment: center;
                     Text {
                         text: "▼";
-                        font-size: 10px;
+                        font-size: Theme.extraSmall;
                         color: Theme.textPrimary;
                     }
                 }
@@ -67,12 +67,12 @@ export component DropdownGroup inherits VerticalLayout {
 
         popup := PopupWindow {
             x: 0px;
-            y: touch.height + 4px;
+            y: touch.height + Theme.sizeXxs;
             width: touch.width;
 
             Rectangle {
                 border-radius: Theme.borderRadiusXl;
-                border-width: 1px;
+                border-width: Theme.borderWidth;
                 border-color: Theme.textSecondary;
                 background: Theme.secondary;
 
@@ -105,12 +105,12 @@ export component DropdownGroup inherits VerticalLayout {
                             VerticalLayout {
                                 alignment: center;
                                 Rectangle {
-                                    width: 3px;
-                                    height: 14px;
-                                    border-radius: 4px;
+                                    width: Theme.borderWidthXxl;
+                                    height: Theme.subtitle;
+                                    border-radius: Theme.borderRadiusSm;
                                     background: (root.selected_id == option.id || root.selected_id == option.label) ? Theme.accent : transparent;
 
-                                    animate background { duration: 150ms; }
+                                    animate background { duration: Theme.durationFast; }
                                 }
                             }
 
@@ -119,7 +119,7 @@ export component DropdownGroup inherits VerticalLayout {
                                 vertical-alignment: center;
                                 color: option_touch.has-hover ? Theme.accent : Theme.textPrimary;
 
-                                animate color { duration: 150ms; }
+                                animate color { duration: Theme.durationFast; }
                             }
                         }
                     }

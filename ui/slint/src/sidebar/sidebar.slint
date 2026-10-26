@@ -2,7 +2,7 @@ import { SidebarHeader } from "sidebar_header.slint";
 import { SidebarButton } from "sidebar_button.slint";
 import { Pages, SettingsPages, Theme } from "../constants.slint";
 import { WindowInfo } from "../window_info.slint";
-import { AppProps } from "../props.slint";
+import { AppProps } from "../app_props.slint";
 
 export struct SidebarItem { text: string, icon: image, page: Pages, accessible_label: string }
 export struct SettingsSidebarItem { text: string, icon: image, page: SettingsPages, accessible_label: string }
@@ -12,10 +12,10 @@ component SidebarBase inherits Rectangle {
     in-out property <bool> collapsed: false;
 
     width: root.collapsed ? Theme.sidebarCollapsedWidth : sidebar_width;
-    background: @linear-gradient(180deg, Theme.secondary 0%, Theme.primary 100%);
+    background: @linear-gradient(Theme.angle180, Theme.secondary 0%, Theme.primary 100%);
 
     animate width {
-        duration: 200ms;
+        duration: Theme.durationNormal;
         easing: ease-in-out;
     }
 

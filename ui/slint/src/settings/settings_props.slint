@@ -1,0 +1,14 @@
+import { SettingsPages } from "../constants.slint";
+import { AppCallbacks } from "../callbacks.slint";
+
+export global SettingsState {
+    in-out property <bool> show_settings: false;
+    in-out property <SettingsPages> active_page: SettingsPages.Paths;
+
+    changed show_settings => {
+        AppCallbacks.settings-toggled(self.show_settings);
+    }
+    changed active_page => {
+        AppCallbacks.settings-active-page-changed(self.active_page);
+    }
+}

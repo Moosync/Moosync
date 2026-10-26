@@ -44,7 +44,7 @@ export component PageWrapper inherits Rectangle {
     width: 100%;
     height: 100%;
 
-    property <length> slide-x: (active-page == page-type) ? 0px : (page-index(active-page) > page-index(page-type) ? -100px : 100px);
+    property <length> slide-x: (active-page == page-type) ? 0px : (page-index(active-page) > page-index(page-type) ? -Theme.size6Xl : Theme.size6Xl);
 
     animate opacity {
         duration: Constants.page-transition-duration;
@@ -92,7 +92,7 @@ export component SettingsPageWrapper inherits Rectangle {
     width: 100%;
     height: 100%;
 
-    property <length> slide-x: (active-page == page-type) ? 0px : (page-index(active-page) > page-index(page-type) ? -100px : 100px);
+    property <length> slide-x: (active-page == page-type) ? 0px : (page-index(active-page) > page-index(page-type) ? -Theme.size6Xl : Theme.size6Xl);
 
     animate opacity {
         duration: Constants.page-transition-duration;

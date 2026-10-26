@@ -1,0 +1,7 @@
+import { ArtistModel } from "../types/song_view.slint";
+import { Constants } from "../constants.slint";
+
+export global ArtistsPageProps {
+    in-out property <[ArtistModel]> artists: Constants.testArtists;
+    in-out property <ArtistModel> selected-artist;
+}

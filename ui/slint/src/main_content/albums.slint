@@ -1,12 +1,9 @@
 import { AlbumModel } from "../types/song_view.slint";
 import { GridPageLayout } from "../common/grid_page_layout.slint";
 import { Constants, Pages } from "../constants.slint";
-import { AppProps } from "../props.slint";
+import { AppProps } from "../app_props.slint";
 
-export global AlbumsPageProps {
-    in-out property <[AlbumModel]> albums: Constants.testAlbums;
-    in-out property <AlbumModel> selected-album;
-}
+import { AlbumsPageProps } from "albums_props.slint";
 
 export component AlbumsPage inherits Rectangle {
     GridPageLayout {

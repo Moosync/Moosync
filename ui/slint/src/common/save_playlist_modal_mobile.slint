@@ -1,0 +1,131 @@
+import { Theme } from "../constants_mobile.slint";
+import { AppCallbacks } from "../callbacks.slint";
+import { ButtonMobile } from "button_mobile.slint";
+import { IconButtonMobile } from "icon_button_mobile.slint";
+import { SavePlaylistState } from "save_playlist_modal_props.slint";
+
+export component SavePlaylistModalMobile inherits Rectangle {
+    in-out property <string> playlist_name: "";
+    in-out property <string> playlist_description: "";
+    callback close();
+
+    width: 100%;
+    height: 100%;
+    background: Theme.primary;
+
+    VerticalLayout {
+        padding-top: Theme.mobileTopBarPaddingTop;
+        padding-left: Theme.paddingMd;
+        padding-right: Theme.paddingMd;
+        padding-bottom: Theme.paddingMd;
+        spacing: Theme.spacingLg;
+
+        // Top App Bar with back navigation
+        HorizontalLayout {
+            spacing: Theme.spacingSm;
+            alignment: start;
+
+            IconButtonMobile {
+                accessible-label: @tr("Back");
+                icon_source: @image-url("../icons/nav_button.svg");
+                icon_size: Theme.playbackControlsIconSize;
+                width: Theme.searchBarHeight;
+                height: Theme.searchBarHeight;
+                clicked => {
+                    root.close();
+                }
+            }
+
+            Text {
+                text: @tr("Save as Playlist");
+                font-size: Theme.modelTitle;
+                font-weight: 700;
+                color: Theme.textPrimary;
+                vertical-alignment: center;
+            }
+        }
+
+        // Form Card Container
+        Rectangle {
+            vertical-stretch: 1;
+            background: Theme.secondary;
+            border-radius: Theme.borderRadiusXl;
+            clip: true;
+
+            VerticalLayout {
+                padding: Theme.paddingMd;
+                spacing: Theme.spacingMd;
+                alignment: start;
+
+                VerticalLayout {
+                    spacing: Theme.spacingXs;
+                    Text {
+                        text: @tr("Playlist Name");
+                        font-size: Theme.caption;
+                        color: Theme.textSecondary;
+                    }
+
+                    Rectangle {
+                        height: Theme.mobileInputHeight;
+                        background: Theme.tertiary;
+                        border-radius: Theme.borderRadiusMd;
+                        HorizontalLayout {
+                            padding-left: Theme.paddingSm;
+                            padding-right: Theme.paddingSm;
+                            TextInput {
+                                text <=> root.playlist_name;
+                                font-size: Theme.body;
+                                color: Theme.textPrimary;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+                }
+
+                VerticalLayout {
+                    spacing: Theme.spacingXs;
+                    Text {
+                        text: @tr("Description");
+                        font-size: Theme.caption;
+                        color: Theme.textSecondary;
+                    }
+
+                    Rectangle {
+                        height: Theme.mobileInputHeight;
+                        background: Theme.tertiary;
+                        border-radius: Theme.borderRadiusMd;
+                        HorizontalLayout {
+                            padding-left: Theme.paddingSm;
+                            padding-right: Theme.paddingSm;
+                            TextInput {
+                                text <=> root.playlist_description;
+                                font-size: Theme.body;
+                                color: Theme.textPrimary;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Save Button at bottom
+        HorizontalLayout {
+            alignment: center;
+            padding-bottom: Theme.paddingMd;
+
+            ButtonMobile {
+                text: @tr("Save");
+                width: 100%;
+                clicked => {
+                    if (root.playlist_name != "") {
+                        AppCallbacks.save_queue_as_playlist(root.playlist_name, root.playlist_description);
+                        root.playlist_name = "";
+                        root.playlist_description = "";
+                    }
+                    root.close();
+                }
+            }
+        }
+    }
+}

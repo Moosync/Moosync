@@ -1,0 +1,14 @@
+import { SearchResult } from "../types/song_view.slint";
+import { Constants } from "../constants.slint";
+import { AppCallbacks } from "../callbacks.slint";
+
+export global SearchPageProps {
+    in-out property <string> search_query: "";
+    in-out property <[SearchResult]> provider_results: Constants.testSearchResults;
+    in-out property <int> active_tab: 0;
+    in-out property <int> selected_provider: 0;
+
+    changed search_query => {
+        AppCallbacks.search_term_changed(self.search_query);
+    }
+}

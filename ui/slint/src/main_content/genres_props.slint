@@ -1,0 +1,7 @@
+import { GenreModel } from "../types/song_view.slint";
+import { Constants } from "../constants.slint";
+
+export global GenresPageProps {
+    in-out property <[GenreModel]> genres: Constants.testGenres;
+    in-out property <GenreModel> selected-genre;
+}

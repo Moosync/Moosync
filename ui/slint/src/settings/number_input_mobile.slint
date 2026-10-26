@@ -1,0 +1,87 @@
+import { Theme } from "../constants_mobile.slint";
+import { PreferenceItem } from "preferences.slint";
+import { AppCallbacks, UtilCallbacks } from "../callbacks.slint";
+
+export component NumberInputGroupMobile inherits HorizontalLayout {
+    in property <PreferenceItem> preference;
+    in property <string> title: root.preference.title;
+    in property <string> subtitle: root.preference.subtitle;
+    in property <string> unit: "";
+    in property <string> validation: root.preference.validation;
+
+    in property <float> min: -99999999.0;
+    in property <float> max: 99999999.0;
+
+    in-out property <float> value: root.preference.value_number;
+    property <bool> is_valid: root.validation == "" || UtilCallbacks.validate_input(root.value + "", root.validation);
+    callback edited(float);
+
+    spacing: Theme.spacingMd;
+    alignment: center;
+
+    VerticalLayout {
+        horizontal-stretch: 1;
+        alignment: center;
+        spacing: Theme.borderWidthLg;
+
+        Text {
+            text: root.title;
+            font-size: Theme.body;
+            font-weight: 600;
+            color: Theme.textPrimary;
+        }
+
+        if (root.subtitle != ""): Text {
+            text: root.subtitle;
+            font-size: Theme.caption;
+            color: Theme.textSecondary;
+            wrap: word-wrap;
+        }
+    }
+
+    Rectangle {
+        height: Theme.mobileButtonSize;
+        width: Theme.size6Xl;
+        border-radius: Theme.borderRadiusMd;
+        border-color: !root.is_valid ? Theme.danger : (text_input.has-focus ? Theme.accent : Theme.divider);
+        border-width: Theme.borderWidth;
+        background: Theme.tertiary;
+
+        HorizontalLayout {
+            padding-left: Theme.paddingSm;
+            padding-right: Theme.paddingSm;
+            spacing: Theme.spacingXxs;
+
+            text_input := TextInput {
+                horizontal-stretch: 1;
+                text: root.value;
+                input-type: number;
+                vertical-alignment: center;
+                color: Theme.textPrimary;
+                font-size: Theme.body;
+
+                edited => {
+                    let num = self.text.to-float();
+                    root.value = num;
+                    if (root.is_valid && root.preference.id != "") {
+                        AppCallbacks.preference_changed({
+                            id: root.preference.id,
+                            value_string: "",
+                            value_bool: false,
+                            value_number: root.value,
+                            value_list: []
+                        });
+                    }
+                    root.edited(root.value);
+                }
+            }
+
+            if (root.unit != ""): Text {
+                text: root.unit;
+                color: Theme.textSecondary;
+                font-size: Theme.caption;
+                vertical-alignment: center;
+            }
+        }
+    }
+}

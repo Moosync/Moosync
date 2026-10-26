@@ -1,0 +1,147 @@
+import { Theme } from "../constants_mobile.slint";
+import { PillButton } from "../common/pill_button_mobile.slint";
+import { ButtonItem } from "button_group.slint";
+
+export { ButtonItem }
+export component GroupActionButtonMobile inherits PillButton {
+    in property <bool> is_destructive: false;
+    in property <bool> is_neutral: false;
+
+    has_custom_layout: true;
+    border-width: Theme.borderWidth;
+    border-color: is_destructive ? (root.has_hover ? Theme.danger : Theme.textSecondary) : is_neutral ? Theme.secondary : Theme.accent;
+    background: is_destructive ? (root.pressed ? Theme.danger : transparent) : is_neutral ? Theme.secondary : Theme.accent;
+    opacity: root.pressed ? 0.7 : (root.has_hover ? 0.85 : 1.0);
+    height: Theme.size4Xl;
+
+    animate border-color { duration: Theme.durationFast; }
+    animate background { duration: Theme.durationFast; }
+    animate opacity { duration: Theme.durationFastest; }
+
+    Text {
+        accessible-role: none;
+        text: root.text;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        color: is_destructive ? (root.pressed ? Theme.textInverse : (root.has_hover ? Theme.danger : Theme.textPrimary)) : root.is_neutral ? Theme.textPrimary : Theme.textInverse;
+        font-size: Theme.body;
+        animate color { duration: Theme.durationFast; }
+    }
+}
+
+export component ButtonGroupMobile inherits VerticalLayout {
+    in property <[ButtonItem]> buttons;
+
+    callback clicked(string);
+
+    property <string> pending_action_id;
+    property <string> pending_action_text;
+
+    spacing: Theme.spacingSm;
+    alignment: start;
+
+    HorizontalLayout {
+        spacing: Theme.spacingMd;
+        alignment: start;
+
+        for btn in buttons: GroupActionButtonMobile {
+            text: btn.text;
+            is_destructive: btn.is_destructive;
+            is_neutral: btn.is_neutral;
+
+            clicked => {
+                if (btn.is_destructive) {
+                    root.pending_action_id = btn.id;
+                    root.pending_action_text = btn.text;
+                    modal_popup.show();
+                } else {
+                    root.clicked(btn.id);
+                }
+            }
+        }
+    }
+
+    modal_popup := PopupWindow {
+        x: -Theme.overlayOffset + root.width / 2;
+        y: -Theme.overlayOffset + root.height / 2;
+        width: Theme.overlaySize;
+        height: Theme.overlaySize;
+
+        Rectangle {
+            background: Theme.modalBackdrop;
+
+            TouchArea {
+                clicked => {
+                    modal_popup.close();
+                }
+            }
+
+            VerticalLayout {
+                alignment: end;
+                width: 100%;
+                height: 100%;
+
+                Rectangle {
+                    width: 100%;
+                    background: Theme.secondary;
+                    border-top-left-radius: Theme.borderRadiusXl;
+                    border-top-right-radius: Theme.borderRadiusXl;
+                    clip: true;
+
+                    VerticalLayout {
+                        padding: Theme.paddingLg;
+                        spacing: Theme.spacingLg;
+
+                        // M3 Drag Handle
+                        HorizontalLayout {
+                            alignment: center;
+                            Rectangle {
+                                width: Theme.searchBarHeight;
+                                height: Theme.sizeXxs;
+                                border-radius: Theme.borderWidthLg;
+                                background: Theme.textSecondary.with-alpha(0.4);
+                            }
+                        }
+
+                        Text {
+                            text: @tr("Confirm Action");
+                            font-size: Theme.modelTitle;
+                            font-weight: 700;
+                            color: Theme.textPrimary;
+                        }
+
+                        Text {
+                            text: @tr("Are you sure you want to {}? This cannot be undone.", root.pending_action_text);
+                            font-size: Theme.body;
+                            wrap: word-wrap;
+                            color: Theme.textSecondary;
+                        }
+
+                        HorizontalLayout {
+                            spacing: Theme.spacingMd;
+
+                            PillButton {
+                                text: @tr("Cancel");
+                                height: Theme.size4Xl;
+                                horizontal-stretch: 1;
+                                clicked => {
+                                    modal_popup.close();
+                                }
+                            }
+
+                            PillButton {
+                                text: @tr("Confirm");
+                                height: Theme.size4Xl;
+                                horizontal-stretch: 1;
+                                clicked => {
+                                    root.clicked(root.pending_action_id);
+                                    modal_popup.close();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

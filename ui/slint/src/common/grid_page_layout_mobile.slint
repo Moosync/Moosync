@@ -1,0 +1,48 @@
+import { GridListViewMobile } from "grid_list_view_mobile.slint";
+import { Theme } from "../constants_mobile.slint";
+import { ContextMenuItem } from "../types/context_menu.slint";
+
+export component GridPageLayoutMobile inherits Rectangle {
+    in property <string> title;
+    in property <int> total_items: 0;
+    in property <bool> enable_context_menu: false;
+
+    pure callback item_title(int) -> string;
+    pure callback item_cover(int) -> image;
+    pure callback item_extension(int) -> string;
+    pure callback item_extension_icon(int) -> image;
+    callback item_clicked(int);
+    pure callback get_context_menu_items(int) -> [ContextMenuItem];
+    callback context_menu_action(int, string);
+
+    VerticalLayout {
+        width: 100%;
+        height: 100%;
+        spacing: Theme.spacingSm;
+
+        if root.title != "": HorizontalLayout {
+            padding-left: Theme.paddingSm;
+            padding-right: Theme.paddingSm;
+            padding-top: Theme.spacingXs;
+            Text {
+                text: root.title;
+                font-size: Theme.modelTitle;
+                font-weight: 700;
+                color: Theme.textPrimary;
+            }
+        }
+
+        GridListViewMobile {
+            vertical-stretch: 1;
+            total-items: root.total_items;
+            enable-context-menu: root.enable_context_menu;
+            item-title(idx) => { root.item_title(idx) }
+            item-cover(idx) => { root.item_cover(idx) }
+            item_extension(idx) => { root.item_extension(idx) }
+            item_extension_icon(idx) => { root.item_extension_icon(idx) }
+            item-clicked(idx) => { root.item_clicked(idx); }
+            get-context-menu-items(idx) => { root.get_context_menu_items(idx) }
+            context-menu-action(idx, action_id) => { root.context_menu_action(idx, action_id); }
+        }
+    }
+}

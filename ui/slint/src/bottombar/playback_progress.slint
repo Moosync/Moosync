@@ -1,6 +1,6 @@
 import { Theme } from "../constants.slint";
 import { BottomBarCallbacks } from "../callbacks.slint";
-import { PlayerProps } from "../props.slint";
+import { PlayerProps } from "playback_props.slint";
 
 export component PlaybackProgressBar inherits Rectangle {
     property <int> current_duration: PlayerProps.current_duration;
@@ -39,7 +39,7 @@ export component PlaybackProgressBar inherits Rectangle {
         background: Theme.accent;
         border-radius: Theme.borderRadiusSm;
 
-        animate width { duration: 100ms; }
+        animate width { duration: Theme.durationFastest; }
     }
 
     // Slider thumb (white circle)
@@ -50,10 +50,10 @@ export component PlaybackProgressBar inherits Rectangle {
         height: Theme.sliderThumbSize;
         border-radius: Theme.sliderThumbSize / 2;
         background: Theme.textPrimary;
-        border-width: 1.5px;
+        border-width: Theme.borderWidthMd;
         border-color: Theme.primary;
 
-        animate width, height, x, y { duration: 100ms; }
+        animate width, height, x, y { duration: Theme.durationFastest; }
 
         states [
             hover when touch.has-hover: {

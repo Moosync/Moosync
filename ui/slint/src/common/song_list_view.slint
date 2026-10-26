@@ -14,6 +14,7 @@ import {
 import { SearchBar } from "../topbar/search_bar.slint";
 import { PopupMenu } from "popup_menu.slint";
 import { IconButton } from "icon_button.slint";
+import { ScrollActivity } from "scroll_activity.slint";
 
 export component SongListView inherits Rectangle {
     in property <[SongModel]> songs: Constants.testSongs;
@@ -24,7 +25,7 @@ export component SongListView inherits Rectangle {
     in-out property <[int]> selected-indices: [];
     property <int> anchor-idx: 0;
     in property <bool> show-controls: true;
-    out property <bool> is_scrollable: list_view.viewport-height > list_view.height;
+    out property <bool> is_scrollable: list_view.content-height > list_view.height;
 
     changed display-songs => {
         if (!root.is_scrollable) {
@@ -57,21 +58,21 @@ export component SongListView inherits Rectangle {
 
             // Expandable Search Bar container
             Rectangle {
-                width: root.search-open ? 220px : 0px;
+                width: root.search-open ? Theme.themeCardWidth : 0px;
                 opacity: root.search-open ? 1.0 : 0.0;
                 clip: true;
 
                 animate width {
-                    duration: 200ms;
+                    duration: Theme.durationNormal;
                     easing: ease-in-out;
                 }
                 animate opacity {
-                    duration: 150ms;
+                    duration: Theme.durationFast;
                     easing: ease-in-out;
                 }
 
                 SearchBar {
-                    width: 220px;
+                    width: Theme.themeCardWidth;
                     text <=> root.search-text;
                     custom-background: Theme.tertiary;
                     placeholder-text: @tr("Filter songs...");
@@ -94,14 +95,14 @@ export component SongListView inherits Rectangle {
             sort_btn := IconButton {
                 icon_source: @image-url("../icons/sort.svg");
                 active: root.sort-criterion != SongSortCriterion.Title || !root.sort-ascending;
-                icon_rotation: !root.sort-ascending ? 180deg : 0deg;
+                icon_rotation: !root.sort-ascending ? Theme.angle180 : Theme.angle0;
                 clicked => {
                     sort-popup.show();
                 }
 
                 sort-popup := PopupMenu {
                     x: sort_btn.width - self.width;
-                    y: sort_btn.height + 4px;
+                    y: sort_btn.height + Theme.sizeXxs;
                     items: AppCallbacks.get_sort_menu_items(root.sort-criterion);
 
                     selected(id) => {
@@ -121,7 +122,7 @@ export component SongListView inherits Rectangle {
 
                 ext_popup := ExtensionProviderMenu {
                     x: ext_btn.width - self.width;
-                    y: ext_btn.height + 4px;
+                    y: ext_btn.height + Theme.sizeXxs;
                     providers <=> root.extension_providers;
 
                     toggled(id, enabled) => {
@@ -134,13 +135,18 @@ export component SongListView inherits Rectangle {
         Rectangle {
             vertical-stretch: 1;
 
+            scroll_activity := ScrollActivity {
+                position: list_view.content-y;
+            }
+
             list_view := ListView {
                 width: 100%;
                 height: 100%;
-                vertical-scrollbar-policy: always-on;
+                horizontal-scrollbar-policy: always-off;
+                vertical-scrollbar-policy: scroll_activity.active ? as-needed : always-off;
 
-                changed viewport-y => {
-                    if (root.is_scrollable && -self.viewport-y + self.height >= self.viewport-height - 200px) {
+                changed content-y => {
+                    if (root.is_scrollable && -self.content-y + self.height >= self.content-height - Theme.cardWidth) {
                         root.load_more();
                     }
                 }

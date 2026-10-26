@@ -1,0 +1,80 @@
+import { Theme } from "../constants_mobile.slint";
+import { PreferenceItem } from "preferences.slint";
+import { AppCallbacks } from "../callbacks.slint";
+import { IconButton } from "../common/icon_button_mobile.slint";
+
+export component SingleFileInputMobile inherits VerticalLayout {
+    in property <PreferenceItem> preference;
+    in property <string> title: root.preference.title;
+    in property <string> subtitle: root.preference.subtitle;
+    in-out property <string> value: root.preference.value_string;
+
+    callback browse_clicked();
+
+    spacing: Theme.spacingSm;
+    alignment: start;
+
+    VerticalLayout {
+        spacing: Theme.spacingTiny;
+
+        Text {
+            text: root.title;
+            font-size: Theme.modelTitle;
+            color: Theme.textPrimary;
+        }
+
+        if (root.subtitle != ""): Text {
+            text: root.subtitle;
+            font-size: Theme.caption;
+            wrap: word-wrap;
+            color: Theme.textSecondary;
+        }
+    }
+
+    Rectangle {
+        border-radius: Theme.borderRadiusLg;
+        border-color: Theme.textSecondary.transparentize(Theme.percent60);
+        border-width: Theme.borderWidth;
+        min-height: Theme.mobileQueueDragHandleHeight;
+        background: Theme.secondary.transparentize(Theme.percent50);
+
+        HorizontalLayout {
+            padding-left: Theme.paddingMd;
+            padding-right: Theme.paddingSm;
+            spacing: Theme.spacingMd;
+
+            Text {
+                text: root.value != "" ? root.value : @tr("No file selected");
+                vertical-alignment: center;
+                color: root.value != "" ? Theme.textPrimary : Theme.textSecondary;
+                font-size: Theme.body;
+                overflow: elide;
+                horizontal-stretch: 1;
+            }
+
+            IconButton {
+                icon_source: @image-url("../icons/folder.svg");
+                icon_color: Theme.textPrimary;
+                icon_size: Theme.mobileSearchBarIconSize;
+                width: Theme.mobileButtonSize;
+                height: Theme.mobileButtonSize;
+                clicked => {
+                    let chosen = AppCallbacks.open_directory_picker();
+                    if (chosen != "") {
+                        if (root.preference.id != "") {
+                            AppCallbacks.preference_changed({
+                                id: root.preference.id,
+                                value_string: chosen,
+                                value_bool: false,
+                                value_number: 0.0,
+                                value_list: []
+                            });
+                        }
+                        root.value = chosen;
+                        root.browse_clicked();
+                    }
+                }
+            }
+        }
+    }
+}

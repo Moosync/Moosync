@@ -45,7 +45,7 @@ export component TextArrayInput inherits VerticalLayout {
             horizontal-stretch: 1;
             border-radius: Theme.borderRadiusXl;
             border-color: (root.new_text != "" && !root.is_valid) ? Theme.danger : (text_input.has-focus ? Theme.accent : Theme.textSecondary);
-            border-width: 1px;
+            border-width: Theme.borderWidth;
             clip: true;
 
             HorizontalLayout {
@@ -112,21 +112,21 @@ export component TextArrayInput inherits VerticalLayout {
     }
 
     ScrollView {
-        height: 120px;
+        height: Theme.size7Xl;
         VerticalLayout {
             spacing: Theme.spacingXxs;
             padding-right: Theme.paddingLg;
 
             for item in root.items: Rectangle {
                 border-radius: Theme.borderRadiusLg;
-                border-width: 1px;
+                border-width: Theme.borderWidth;
                 border-color: Theme.textSecondary;
 
                 HorizontalLayout {
-                    padding-top: 10px;
-                    padding-bottom: 10px;
-                    padding-left: 12px;
-                    padding-right: 12px;
+                    padding-top: Theme.paddingSm;
+                    padding-bottom: Theme.paddingSm;
+                    padding-left: Theme.extensionItemPaddingY;
+                    padding-right: Theme.extensionItemPaddingY;
                     spacing: Theme.spacingMd;
 
                     Text {
@@ -140,7 +140,7 @@ export component TextArrayInput inherits VerticalLayout {
 
                     IconButton {
                         icon_source: @image-url("../icons/cross.svg");
-                        icon_size: 8px;
+                        icon_size: Theme.sizeXs;
                         width: Theme.iconSizeMd;
                         height: Theme.iconSizeMd;
                         clicked => {

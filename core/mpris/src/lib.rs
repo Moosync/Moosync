@@ -23,9 +23,9 @@ use std::{
 };
 
 use extensions_proto::moosync::types::PlayerState;
+use songs_proto::moosync::types::Song;
 #[cfg(target_os = "android")]
 use types::android::AndroidJNIContext;
-pub use types::mpris::MprisPlayerDetails;
 use types::plugin::{Plugin, PluginContext};
 pub mod error;
 #[cfg(not(target_os = "android"))]
@@ -160,9 +160,9 @@ impl MprisHolder {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn set_metadata(&self, metadata: MprisPlayerDetails) -> Result<(), MprisError> {
+    pub fn set_metadata(&self, song: &Song) -> Result<(), MprisError> {
         let mut context = self.context.lock().unwrap();
-        context.set_metadata(metadata)
+        context.set_metadata(song)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

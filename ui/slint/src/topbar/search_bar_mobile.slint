@@ -1,0 +1,71 @@
+import { Theme } from "../constants_mobile.slint";
+import { IconButtonMobile } from "../common/icon_button_mobile.slint";
+
+export component SearchBarMobile inherits Rectangle {
+    in-out property <string> text;
+    in property <string> placeholder-text: @tr("Search songs, albums, artists...");
+    callback accepted(string);
+    callback edited(string);
+
+    height: Theme.mobileThumbnailSizeSm;
+    background: Theme.secondary;
+    border-radius: Theme.borderRadiusMd;
+    border-width: Theme.borderWidth;
+    border-color: Theme.divider;
+    forward-focus: input;
+
+    HorizontalLayout {
+        padding-left: Theme.paddingSm;
+        padding-right: Theme.paddingSm;
+        spacing: Theme.spacingSm;
+
+        VerticalLayout {
+            alignment: center;
+            Image {
+                width: Theme.mobileSearchFilterIconSize;
+                height: Theme.mobileSearchFilterIconSize;
+                source: @image-url("../icons/search.svg");
+                colorize: Theme.textSecondary;
+            }
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            clip: true;
+
+            if (input.text == ""): Text {
+                text: root.placeholder-text;
+                color: Theme.textSecondary;
+                font-size: Theme.body;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            input := TextInput {
+                width: 100%;
+                height: 100%;
+                text <=> root.text;
+                color: Theme.textPrimary;
+                font-size: Theme.body;
+                vertical-alignment: center;
+
+                accepted => { root.accepted(self.text); }
+                edited => { root.edited(self.text); }
+            }
+        }
+
+        if (root.text != ""): VerticalLayout {
+            alignment: center;
+            IconButtonMobile {
+                accessible-label: @tr("Clear");
+                icon_source: @image-url("../icons/cross.svg");
+                icon_size: Theme.subtitle;
+                width: Theme.navButtonSize;
+                height: Theme.navButtonSize;
+                clicked => {
+                    root.text = "";
+                }
+            }
+        }
+    }
+}

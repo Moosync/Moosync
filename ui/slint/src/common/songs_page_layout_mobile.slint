@@ -1,0 +1,32 @@
+import { SongModel, SongDetailAction } from "../types/song_view.slint";
+import { ExtensionProviderItem } from "../types/extension_view.slint";
+import { SongListViewMobile } from "song_list_view_mobile.slint";
+import { Constants } from "../constants_mobile.slint";
+import { AppCallbacks } from "../callbacks.slint";
+
+export component SongsPageLayoutMobile inherits Rectangle {
+    in-out property <int> active-idx: -1;
+    in property <[SongModel]> songs: Constants.testSongs;
+    in property <SongModel> default-song: Constants.defaultSong;
+    in-out property <[ExtensionProviderItem]> extension_providers: [];
+    callback provider_toggled(string, bool);
+    callback load_more();
+
+    song-list := SongListViewMobile {
+        songs: root.songs;
+        active-idx <=> root.active-idx;
+        extension_providers <=> root.extension_providers;
+        show_play_all: true;
+        play_all => {
+            if (root.songs.length > 0) {
+                AppCallbacks.song_detail_action(SongDetailAction.Play, root.songs);
+            }
+        }
+        provider_toggled(id, enabled) => {
+            root.provider_toggled(id, enabled);
+        }
+        load_more => {
+            root.load_more();
+        }
+    }
+}

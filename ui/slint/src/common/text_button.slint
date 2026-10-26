@@ -18,6 +18,6 @@ export component TextButton inherits Button {
         vertical-alignment: center;
         opacity: root.pressed ? 0.7 : (root.has_hover ? 0.85 : 1.0);
 
-        animate opacity { duration: 150ms; }
+        animate opacity { duration: Theme.durationFast; }
     }
 }

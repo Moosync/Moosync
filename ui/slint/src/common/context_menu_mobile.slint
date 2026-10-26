@@ -1,0 +1,292 @@
+import { Theme } from "../constants_mobile.slint";
+import { WindowInfo } from "../window_info.slint";
+import {
+    ContextMenuItem,
+    ContextSubMenuItem,
+} from "../types/context_menu.slint";
+import { IconButton } from "icon_button_mobile.slint";
+import { ListView } from "std-widgets.slint";
+import { ScrollActivity } from "scroll_activity_mobile.slint";
+
+export component ContextMenuMobile inherits Rectangle {
+    in-out property <[ContextMenuItem]> items: [];
+    in-out property <length> requested_x: 0px;
+    in-out property <length> requested_y: 0px;
+
+    callback selected(string);
+    callback clicked();
+
+    property <bool> is_open: false;
+    property <int> active_submenu_index: -1;
+    property <bool> is_expanded: false;
+    property <length> drag_offset: 0px;
+    property <bool> is_dragging: false;
+    property <duration> open_start_time: Theme.zeroDuration;
+    property <float> open_progress: Math.min(1.0, Math.max(0.0, (animation-tick() - root.open_start_time) / Theme.durationMedium));
+    property <float> ease_progress: 1.0 - (1.0 - root.open_progress) * (1.0 - root.open_progress);
+    property <length> base_height: root.is_expanded ? Math.min(WindowInfo.window-height * 0.75, Theme.modalWidth) : Math.min(WindowInfo.window-height * 0.38, Theme.modalHeightSm);
+
+    width: 0px;
+    height: 0px;
+
+    public function show() {
+        root.active_submenu_index = -1;
+        root.is_expanded = false;
+        root.drag_offset = 0px;
+        root.is_dragging = false;
+        root.open_start_time = animation-tick();
+        root.is_open = true;
+        popup.show();
+    }
+
+    public function show_at(x: length, y: length) {
+        root.requested_x = x;
+        root.requested_y = y;
+        root.show();
+    }
+
+    public function hide() {
+        root.is_open = false;
+        popup.close();
+    }
+
+    popup := PopupWindow {
+        x: -root.absolute-position.x;
+        y: -root.absolute-position.y;
+        width: WindowInfo.window-width;
+        height: WindowInfo.window-height;
+
+        // Scrim backdrop with fade animation
+        Rectangle {
+            background: Theme.modalBackdrop;
+            opacity: root.ease_progress;
+
+            TouchArea {
+                width: 100%;
+                height: 100%;
+                clicked => {
+                    root.hide();
+                }
+            }
+        }
+
+        popup_sheet := Rectangle {
+            y: parent.height - (root.base_height * root.ease_progress) + root.drag_offset;
+            height: root.base_height;
+            width: 100%;
+            background: Theme.secondary;
+            border-top-left-radius: Theme.borderRadiusXl;
+            border-top-right-radius: Theme.borderRadiusXl;
+            clip: true;
+
+            animate height {
+                duration: root.is_dragging ? Theme.zeroDuration : Theme.durationMedium;
+                easing: ease-out;
+            }
+
+            VerticalLayout {
+                padding: Theme.paddingMd;
+                padding-top: Theme.paddingSm;
+                spacing: Theme.borderWidthLg;
+
+                // Visual drag handle
+                HorizontalLayout {
+                    height: Theme.sizeXl;
+                    alignment: center;
+                    Rectangle {
+                        y: (parent.height - Theme.sizeXxs) / 2;
+                        width: Theme.searchBarHeight;
+                        height: Theme.sizeXxs;
+                        border-radius: Theme.borderWidthLg;
+                        background: Theme.textSecondary.with-alpha(0.4);
+                    }
+                }
+
+                // Submenu Header (when in submenu)
+                if root.active_submenu_index >= 0: HorizontalLayout {
+                    alignment: start;
+                    spacing: Theme.spacingMd;
+                    IconButton {
+                        icon_source: @image-url("../icons/chevron.svg");
+                        icon_rotation: Theme.angle90;
+                        icon_size: Theme.playbackControlsIconSize;
+                        width: Theme.searchBarHeight;
+                        height: Theme.searchBarHeight;
+                        clicked => {
+                            root.active_submenu_index = -1;
+                        }
+                    }
+
+                    Text {
+                        text: root.items[root.active_submenu_index].title;
+                        font-size: Theme.modelTitle;
+                        font-weight: 700;
+                        color: Theme.textPrimary;
+                        vertical-alignment: center;
+                    }
+                }
+
+                // Main Menu Items in scrollable ListView
+                if root.active_submenu_index < 0: Rectangle {
+                    vertical-stretch: 1;
+                    main_scroll_activity := ScrollActivity {
+                        position: main_menu_list.content-y;
+                    }
+
+                    main_menu_list := ListView {
+                        width: 100%;
+                        height: 100%;
+                        horizontal-scrollbar-policy: always-off;
+                        vertical-scrollbar-policy: main_scroll_activity.active ? as-needed : always-off;
+                        for item[idx] in root.items: TouchArea {
+                            height: Theme.size3Xl;
+                            clicked => {
+                                if (item.has_sub_menu || item.sub_items.length > 0) {
+                                    root.active_submenu_index = idx;
+                                } else {
+                                    root.hide();
+                                    root.selected(item.action_id);
+                                }
+                            }
+
+                            Rectangle {
+                                background: parent.has-hover ? Theme.primary.with-alpha(0.5) : transparent;
+                                border-radius: Theme.borderRadiusMd;
+
+                                HorizontalLayout {
+                                    padding-left: Theme.paddingMd;
+                                    padding-right: Theme.paddingMd;
+                                    spacing: Theme.spacingMd;
+                                    alignment: start;
+
+                                    VerticalLayout {
+                                        alignment: center;
+                                        Rectangle {
+                                            width: Theme.sizeLg;
+                                            height: Theme.sizeLg;
+                                            if item.icon.width > 0: Image {
+                                                width: 100%;
+                                                height: 100%;
+                                                source: item.icon;
+                                                image-fit: contain;
+                                                colorize: Theme.textPrimary;
+                                            }
+                                        }
+                                    }
+
+                                    Text {
+                                        text: item.title;
+                                        font-size: Theme.body;
+                                        color: Theme.textPrimary;
+                                        vertical-alignment: center;
+                                        horizontal-stretch: 1;
+                                    }
+
+                                    if (item.has_sub_menu || item.sub_items.length > 0): VerticalLayout {
+                                        alignment: center;
+                                        Image {
+                                            width: Theme.subtitle;
+                                            height: Theme.subtitle;
+                                            source: @image-url("../icons/chevron.svg");
+                                            image-fit: contain;
+                                            colorize: Theme.textSecondary;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Submenu Items in scrollable ListView
+                if root.active_submenu_index >= 0: Rectangle {
+                    vertical-stretch: 1;
+                    sub_scroll_activity := ScrollActivity {
+                        position: sub_menu_list.content-y;
+                    }
+
+                    sub_menu_list := ListView {
+                        width: 100%;
+                        height: 100%;
+                        horizontal-scrollbar-policy: always-off;
+                        vertical-scrollbar-policy: sub_scroll_activity.active ? as-needed : always-off;
+                        for sub_item in root.items[root.active_submenu_index].sub_items: TouchArea {
+                            height: Theme.size3Xl;
+                            clicked => {
+                                root.hide();
+                                root.selected(sub_item.action_id);
+                            }
+
+                            Rectangle {
+                                background: parent.has-hover ? Theme.primary.with-alpha(0.5) : transparent;
+                                border-radius: Theme.borderRadiusMd;
+
+                                HorizontalLayout {
+                                    padding-left: Theme.paddingMd;
+                                    padding-right: Theme.paddingMd;
+                                    spacing: Theme.spacingMd;
+                                    alignment: start;
+
+                                    VerticalLayout {
+                                        alignment: center;
+                                        Rectangle {
+                                            width: Theme.sizeLg;
+                                            height: Theme.sizeLg;
+                                            if sub_item.icon.width > 0: Image {
+                                                width: 100%;
+                                                height: 100%;
+                                                source: sub_item.icon;
+                                                image-fit: contain;
+                                                colorize: Theme.textPrimary;
+                                            }
+                                        }
+                                    }
+
+                                    Text {
+                                        text: sub_item.title;
+                                        font-size: Theme.body;
+                                        color: Theme.textPrimary;
+                                        vertical-alignment: center;
+                                        horizontal-stretch: 1;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Fixed drag touch area with static origin at top of sheet
+        if root.is_open: TouchArea {
+            x: 0px;
+            y: parent.height - root.base_height;
+            width: 100%;
+            height: Theme.songListItemHeight;
+
+            pointer-event(event) => {
+                if (event.kind == PointerEventKind.down) {
+                    root.is_dragging = true;
+                } else if (event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel) {
+                    root.is_dragging = false;
+                    if (root.drag_offset < -Theme.size3Xl) {
+                        root.is_expanded = true;
+                    } else if (root.drag_offset > Theme.size3Xl) {
+                        if (root.is_expanded) {
+                            root.is_expanded = false;
+                        } else {
+                            root.hide();
+                        }
+                    }
+                    root.drag_offset = 0px;
+                }
+            }
+
+            moved => {
+                if (self.pressed) {
+                    root.drag_offset = root.is_expanded ? Math.max(0px, self.mouse-y - self.pressed-y) : (self.mouse-y - self.pressed-y);
+                }
+            }
+        }
+    }
+}

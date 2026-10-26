@@ -1,0 +1,56 @@
+import { Theme } from "../constants_mobile.slint";
+import { Utils, DefaultIconType } from "../utils.slint";
+
+export component CardViewMobile inherits VerticalLayout {
+    in property <string> title: @tr("Card Title");
+    in property <image> cover-img: @image-url("");
+    in property <string> extension: "";
+    in property <image> extension_icon: @image-url("");
+
+    accessible-role: button;
+    accessible-label: root.title;
+    padding: Theme.paddingXs;
+    spacing: Theme.spacingXs;
+
+    Rectangle {
+        border-radius: Theme.borderRadiusMd;
+        height: self.width;
+        clip: true;
+        background: Theme.tertiary;
+
+        Image {
+            height: 100%;
+            width: 100%;
+            source: Utils.load_image_or_default(root.cover-img, DefaultIconType.Entity);
+            image-fit: cover;
+        }
+
+        if (root.extension != ""): Rectangle {
+            x: parent.width - self.width - Theme.paddingXs;
+            y: Theme.paddingXs;
+            width: Theme.iconSizeSm;
+            height: Theme.iconSizeSm;
+            background: Theme.primary.with-alpha(0.85);
+            border-radius: self.width / 2;
+
+            Image {
+                width: parent.width - Theme.sizeXxs;
+                height: parent.height - Theme.sizeXxs;
+                x: Theme.borderWidthLg;
+                y: Theme.borderWidthLg;
+                source: Utils.load_image_or_default(root.extension_icon, DefaultIconType.Extension);
+            }
+        }
+    }
+
+    VerticalLayout {
+        padding-top: Theme.spacingXxs;
+        Text {
+            text: root.title;
+            font-size: Theme.body;
+            font-weight: 600;
+            color: Theme.textPrimary;
+            overflow: elide;
+        }
+    }
+}

@@ -36,10 +36,10 @@ export component RadioOption inherits Rectangle {
                 width: Theme.radioOptionCircleSize;
                 height: Theme.radioOptionCircleSize;
                 border-radius: self.width / 2;
-                border-width: 2px;
+                border-width: Theme.borderWidthLg;
                 border-color: root.checked || touch.has-hover ? Theme.accent : Theme.textSecondary;
 
-                animate border-color { duration: 150ms; }
+                animate border-color { duration: Theme.durationFast; }
 
                 Rectangle {
                     width: parent.width / 2;
@@ -49,7 +49,7 @@ export component RadioOption inherits Rectangle {
                     border-radius: self.width / 2;
                     background: Theme.accent;
                     opacity: root.checked ? 1 : 0;
-                    animate opacity { duration: 150ms; }
+                    animate opacity { duration: Theme.durationFast; }
                 }
             }
         }

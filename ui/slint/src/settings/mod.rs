@@ -16,7 +16,9 @@
 
 use extensions_proto::moosync::types::{PreferenceArgs, PreferenceChangedRequest};
 use preferences::keys::{AUTO_STARTUP, I18N_LANGUAGE, PreferenceItemExt};
-use preferences_proto::moosync::types::PreferenceItem as ProtoPreferenceItem;
+use preferences_proto::moosync::types::{
+    PreferenceItem as ProtoPreferenceItem, PreferenceType, PreferenceValue,
+};
 #[cfg(not(target_os = "android"))]
 use rfd::FileDialog;
 use slint::{ComponentHandle, Model};
@@ -255,9 +257,12 @@ pub async fn handle_preference_change(
         update_auto_startup(value_bool);
     }
 
+    let pref_type =
+        PreferenceType::try_from(item.pref_type).unwrap_or(PreferenceType::TextInputGroup);
+
     let val =
         compute_updated_preference_value(&item, value_string, value_bool, value_number, value_list);
-    item.value = Some(preferences_proto::moosync::types::PreferenceValue { value: Some(val) });
+    item.value = Some(PreferenceValue { value: Some(val) });
 
     if let Err(e) = config.save(item) {
         tracing::error!("Failed to save preference for {}: {:?}", key, e);
@@ -265,7 +270,10 @@ pub async fn handle_preference_change(
         tracing::debug!("Successfully applied preference change: key = {}", key);
     }
 
-    refresh_relevant_page(&key, main_window_weak, state_manager).await;
+    if pref_type != PreferenceType::TextInputGroup && pref_type != PreferenceType::NumberInputGroup
+    {
+        refresh_relevant_page(&key, main_window_weak, state_manager).await;
+    }
     notify_extension_preference_changed(&key, state_manager).await;
 }
 

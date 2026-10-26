@@ -7,10 +7,28 @@ fn main() {
     let config = slint_build::CompilerConfiguration::new()
         .with_bundled_translations("locales")
         .with_default_translation_context(slint_build::DefaultTranslationContext::None);
-    slint_build::compile_with_config("src/app.slint", config).unwrap();
+    let is_android = env::var("CARGO_CFG_TARGET_OS")
+        .map(|s| s == "android")
+        .unwrap_or(false);
+    let default_entry = if is_android {
+        "src/app_mobile.slint".to_string()
+    } else {
+        "src/app.slint".to_string()
+    };
+    let entry_file = env::var("SLINT_ENTRY_FILE").unwrap_or(default_entry);
+    slint_build::compile_with_config(&entry_file, config).unwrap();
 
     let out_dir = env::var("OUT_DIR").unwrap();
-    let app_rs_path = PathBuf::from(out_dir).join("app.rs");
+    let gen_rs_name = PathBuf::from(&entry_file)
+        .file_stem()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_else(|| "app".to_string())
+        + ".rs";
+    let gen_rs_path = PathBuf::from(&out_dir).join(&gen_rs_name);
+    let app_rs_path = PathBuf::from(&out_dir).join("app.rs");
+    if gen_rs_path != app_rs_path && gen_rs_path.exists() {
+        fs::copy(&gen_rs_path, &app_rs_path).unwrap();
+    }
     let content = fs::read_to_string(&app_rs_path).unwrap();
 
     let mut new_content = String::new();

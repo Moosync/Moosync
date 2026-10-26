@@ -17,13 +17,11 @@
 use assertables::assert_ok;
 use extensions_proto::moosync::types::PlayerState;
 use rstest::{fixture, rstest};
+use songs_proto::moosync::types::{Album, Artist, InnerSong, Song};
 use tracing_test::traced_test;
 use types::plugin::{Plugin, PluginContext};
 
-use crate::{
-    MediaControlEvent, MprisHolder, MprisPlayerDetails, context::MockMprisContext,
-    error::MprisError,
-};
+use crate::{MediaControlEvent, MprisHolder, context::MockMprisContext, error::MprisError};
 
 #[fixture]
 #[tracing::instrument(level = "debug", skip_all)]
@@ -51,16 +49,24 @@ fn test_mpris_holder_set_metadata(mut mock_mpris_context: Box<MockMprisContext>)
         .times(1)
         .returning(|_| Ok(()));
     let holder = MprisHolder::new_with_context(mock_mpris_context).unwrap();
-    let metadata = MprisPlayerDetails {
-        title: Some("Title".to_string()),
-        album_name: Some("Album".to_string()),
-        artist_name: Some("Artist".to_string()),
-        thumbnail: Some("http://cover.url".to_string()),
-        duration: Some(120.0),
+    let song = Song {
+        song: Some(InnerSong {
+            title: Some("Title".to_string()),
+            song_cover_path_high: Some("http://cover.url".to_string()),
+            ..Default::default()
+        }),
+        artists: vec![Artist {
+            artist_name: Some("Artist".to_string()),
+            ..Default::default()
+        }],
+        album: Some(Album {
+            album_name: Some("Album".to_string()),
+            ..Default::default()
+        }),
         ..Default::default()
     };
 
-    let result = holder.set_metadata(metadata);
+    let result = holder.set_metadata(&song);
 
     assert_ok!(result);
 }
@@ -147,7 +153,7 @@ fn test_mpris_holder_context_errors() {
         .returning(|_, _| Err(MprisError::SetPlaybackFailed("failed".to_string())));
 
     let holder = MprisHolder::new_with_context(mock).unwrap();
-    assert!(holder.set_metadata(MprisPlayerDetails::default()).is_err());
+    assert!(holder.set_metadata(&Song::default()).is_err());
     assert!(holder.set_playback_state(PlayerState::Playing).is_err());
 }
 

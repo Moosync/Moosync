@@ -1,0 +1,488 @@
+import { SidebarMobile } from "sidebar/sidebar_mobile.slint";
+import { TopBarMobile } from "topbar/top_bar_mobile.slint";
+import { BottomBarMobile } from "bottombar/bottom_bar_mobile.slint";
+import { AllSongsMobile } from "main_content/all_songs_mobile.slint";
+import { WindowInfo } from "window_info.slint";
+import {
+    SongModel,
+    LyricLineModel,
+    CoverHelper,
+    AlbumModel,
+    PlaylistModel,
+    ArtistModel,
+    GenreModel,
+    SearchResult,
+    ProviderRecommendations,
+    SongSortCriterion,
+    MenuItem,
+} from "types/song_view.slint";
+import { AlbumsPageMobile } from "main_content/albums_mobile.slint";
+import { ArtistsPageMobile } from "main_content/artists_mobile.slint";
+import { PlaylistsPageMobile } from "main_content/playlists_mobile.slint";
+import { GenresPageMobile } from "main_content/genres_mobile.slint";
+import { ExplorePageMobile } from "main_content/explore_mobile.slint";
+import { SearchPageMobile } from "main_content/search_mobile.slint";
+import { QueuePageMobile } from "main_content/queue_page_mobile.slint";
+import {
+    PlaylistContentMobile,
+} from "main_content/playlist_content_mobile.slint";
+import { AlbumContentMobile } from "main_content/album_content_mobile.slint";
+import { ArtistContentMobile } from "main_content/artist_content_mobile.slint";
+import { GenreContentMobile } from "main_content/genre_content_mobile.slint";
+import {
+    Pages,
+    SettingsPages,
+    QueuePages,
+    Constants,
+    Theme,
+    ThemeConfig,
+    RgbaColor,
+    ThemeConstant,
+} from "constants_mobile.slint";
+import {
+    AppCallbacks,
+    BottomBarCallbacks,
+    ContextMenuCallbacks,
+    UtilCallbacks,
+    PreferenceChange,
+    SortDecision,
+} from "callbacks.slint";
+import { SettingsMobile } from "settings/settings_mobile.slint";
+import {
+    SavePlaylistModalMobile,
+} from "common/save_playlist_modal_mobile.slint";
+import { SaveThemeModalMobile } from "common/save_theme_modal_mobile.slint";
+import { PageWrapperMobile } from "common/page_wrapper_mobile.slint";
+import { ContextMenuItem, ContextMenuItems } from "types/context_menu.slint";
+import { AccountsProps } from "common/accounts_props.slint";
+import { AccountsPopupMobile } from "common/accounts_popup_mobile.slint";
+import {
+    Preferences,
+    AppPreferences,
+    PreferenceItem,
+    PreferenceOption,
+} from "settings/preferences.slint";
+import {
+    ExtensionItem,
+    ExtensionProviderItem,
+    AccountItem,
+    ExtensionPathPermission,
+    ProviderScope,
+} from "./types/extension_view.slint";
+import {
+    ExtensionsPageProps,
+    ExtensionsPreferenceProps,
+    ExtensionPreferenceGroup,
+} from "settings/extensions_props.slint";
+import { ThemesPageProps } from "settings/themes_props.slint";
+import { Utils, DefaultIconType } from "utils.slint";
+import { OAuthModalMobile } from "common/oauth_modal_mobile.slint";
+import {
+    ExtensionDetailsModalMobile,
+} from "common/extension_details_modal_mobile.slint";
+import {
+    ExtensionDetailsState,
+} from "common/extension_details_modal_props.slint";
+import { PlayerProps } from "bottombar/playback_props.slint";
+import { AppProps } from "app_props.slint";
+import { QueuePageProps } from "main_content/queue_props.slint";
+import { TopBarProps } from "topbar/top_bar_props.slint";
+import { SettingsState } from "settings/settings_props.slint";
+import { SavePlaylistState } from "common/save_playlist_modal_props.slint";
+import { SaveThemeState } from "common/save_theme_modal_props.slint";
+import { OAuthState } from "common/oauth_modal_props.slint";
+import { AllSongsPageProps } from "main_content/all_songs_props.slint";
+import { PlaylistsPageProps } from "main_content/playlists_props.slint";
+import {
+    PlaylistContentPageProps,
+} from "main_content/playlist_content_props.slint";
+import { ArtistsPageProps } from "main_content/artists_props.slint";
+import {
+    ArtistContentPageProps,
+} from "main_content/artist_content_props.slint";
+import { AlbumsPageProps } from "main_content/albums_props.slint";
+import { AlbumContentPageProps } from "main_content/album_content_props.slint";
+import { GenresPageProps } from "main_content/genres_props.slint";
+import { GenreContentPageProps } from "main_content/genre_content_props.slint";
+import { SearchPageProps } from "main_content/search_props.slint";
+import { ExplorePageProps } from "main_content/explore_props.slint";
+
+export {
+    PlayerProps,
+    AppProps,
+    TopBarProps,
+    SettingsState,
+    ThemesPageProps,
+    ExtensionsPageProps,
+    ExtensionsPreferenceProps,
+    ExtensionPreferenceGroup,
+    OAuthState,
+    SavePlaylistState,
+    SaveThemeState,
+    ExtensionDetailsState,
+    ExtensionPathPermission,
+    ProviderScope,
+    WindowInfo,
+    Utils,
+    DefaultIconType,
+    CoverHelper,
+    Constants,
+    Theme,
+    SongModel,
+    LyricLineModel,
+    AlbumModel,
+    PlaylistModel,
+    ArtistModel,
+    GenreModel,
+    SearchResult,
+    ProviderRecommendations,
+    Pages,
+    AppCallbacks,
+    BottomBarCallbacks,
+    ContextMenuCallbacks,
+    UtilCallbacks,
+    Preferences,
+    AppPreferences,
+    PreferenceChange,
+    SortDecision,
+    PreferenceItem,
+    PreferenceOption,
+    ThemeConfig,
+    RgbaColor,
+    ExtensionItem,
+    ExtensionProviderItem,
+    AccountItem,
+    ThemeConstant,
+    SettingsPages,
+    QueuePages,
+    PlaylistsPageProps,
+    PlaylistContentPageProps,
+    ArtistsPageProps,
+    ArtistContentPageProps,
+    AlbumsPageProps,
+    AlbumContentPageProps,
+    GenresPageProps,
+    GenreContentPageProps,
+    AllSongsPageProps,
+    SearchPageProps,
+    ExplorePageProps,
+    QueuePageProps,
+    SongSortCriterion,
+    MenuItem,
+    ContextMenuItem,
+    ContextMenuItems,
+    AccountsProps,
+}
+export { AppTray } from "tray.slint";
+
+export component MainWindow inherits Window {
+    title: "moosync";
+    background: Theme.primary;
+
+    changed width => {
+        WindowInfo.window-width = self.width;
+        if (self.width < Theme.breakpointSm) {
+            WindowInfo.window-size = WindowInfo.sm;
+        } else if (self.width < Theme.breakpointMd) {
+            WindowInfo.window-size = WindowInfo.md;
+        } else if (self.width < Theme.breakpointLg) {
+            WindowInfo.window-size = WindowInfo.lg;
+        } else {
+            WindowInfo.window-size = WindowInfo.xl;
+        }
+        AppCallbacks.resize();
+    }
+
+    changed height => {
+        WindowInfo.window-height = self.height;
+        AppCallbacks.resize();
+    }
+
+    VerticalLayout {
+        padding: 0px;
+        padding-top: Theme.mobileTopBarPaddingTop;
+        height: 100%;
+        width: 100%;
+
+        // Top App Bar
+        TopBarMobile { }
+
+        public function close_all_modals() -> bool {
+            let any_open = AccountsProps.show_accounts || SettingsState.show_settings || SavePlaylistState.show_modal || SaveThemeState.show_modal || OAuthState.show_oauth_modal || ExtensionDetailsState.show_modal || QueuePageProps.show_queue;
+            AccountsProps.show_accounts = false;
+            SettingsState.show_settings = false;
+            SavePlaylistState.show_modal = false;
+            SaveThemeState.show_modal = false;
+            OAuthState.show_oauth_modal = false;
+            ExtensionDetailsState.show_modal = false;
+            QueuePageProps.show_queue = false;
+            return any_open;
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+            clip: true;
+
+            // Gesture area for back/forward navigation
+        TouchArea {
+                pointer-event(event) => {
+                    if (event.kind == PointerEventKind.down) {
+                        if (event.button == PointerEventButton.back) {
+                            if (!root.close_all_modals()) {
+                                AppCallbacks.navigate_back();
+                            }
+                        } else if (event.button == PointerEventButton.forward) {
+                            AppCallbacks.navigate_forward();
+                        }
+                    }
+                }
+            }
+
+            PageWrapperMobile {
+                page-type: Pages.Search;
+                active-page <=> AppProps.active_page;
+                SearchPageMobile { }
+            }
+
+            PageWrapperMobile {
+                page-type: Pages.AllSongs;
+                active-page <=> AppProps.active_page;
+                AllSongsMobile { }
+            }
+
+            PageWrapperMobile {
+                page-type: Pages.Playlists;
+                active-page <=> AppProps.active_page;
+                PlaylistsPageMobile { }
+            }
+
+            PageWrapperMobile {
+                page-type: Pages.PlaylistContent;
+                active-page <=> AppProps.active_page;
+                PlaylistContentMobile { }
+            }
+
+            PageWrapperMobile {
+                page-type: Pages.Artists;
+                active-page <=> AppProps.active_page;
+                ArtistsPageMobile { }
+            }
+
+            PageWrapperMobile {
+                page-type: Pages.ArtistContent;
+                active-page <=> AppProps.active_page;
+                ArtistContentMobile { }
+            }
+
+            PageWrapperMobile {
+                page-type: Pages.Albums;
+                active-page <=> AppProps.active_page;
+                AlbumsPageMobile { }
+            }
+
+            PageWrapperMobile {
+                page-type: Pages.AlbumContent;
+                active-page <=> AppProps.active_page;
+                AlbumContentMobile { }
+            }
+
+            PageWrapperMobile {
+                page-type: Pages.Genres;
+                active-page <=> AppProps.active_page;
+                GenresPageMobile { }
+            }
+
+            PageWrapperMobile {
+                page-type: Pages.GenreContent;
+                active-page <=> AppProps.active_page;
+                GenreContentMobile { }
+            }
+
+            PageWrapperMobile {
+                page-type: Pages.Explore;
+                active-page <=> AppProps.active_page;
+                ExplorePageMobile { }
+            }
+        }
+
+        // Docking spacer for mini-player and bottom nav
+        Rectangle {
+            height: Theme.mobileDockingSpacerHeight;
+        }
+    }
+
+    // Draggable sliding player sheet: docked above bottom nav when collapsed, full screen when expanded
+    player_sheet := Rectangle {
+        property <length> collapsed_y: parent.height - Theme.mobileDockingSpacerHeight;
+        property <length> sheet_drag: 0px;
+        property <bool> is_dragging: false;
+
+        x: 0px;
+        y: Math.max(0px, Math.min(self.collapsed_y, (QueuePageProps.show_queue ? 0px : self.collapsed_y) + self.sheet_drag));
+        width: 100%;
+        height: QueuePageProps.show_queue || player_sheet.y < player_sheet.collapsed_y ? parent.height : Theme.mobileMiniPlayerHeight;
+        clip: true;
+
+        animate y {
+            duration: player_sheet.is_dragging ? Theme.zeroDuration : Theme.durationNormal;
+            easing: ease-in-out;
+        }
+
+        QueuePageMobile {
+            width: 100%;
+            height: parent.height;
+            y: 0px;
+            visible: QueuePageProps.show_queue || player_sheet.y < player_sheet.collapsed_y - Theme.mobileDragThreshold;
+        }
+
+        BottomBarMobile {
+            width: 100%;
+            height: Theme.mobileMiniPlayerHeight;
+            y: 0px;
+            visible: !QueuePageProps.show_queue;
+            opacity: QueuePageProps.show_queue ? 0.0 : Math.max(0.0, 1.0 - (player_sheet.collapsed_y - player_sheet.y) / Theme.mobileVolumeSliderWidth);
+        }
+    }
+
+    // M3 Bottom Navigation Bar: displaces down out of screen when player sheet is dragged up, displaces back in when dragged down
+    sidebar := SidebarMobile {
+        property <length> displacement: player_sheet.is_dragging ?
+            (QueuePageProps.show_queue ?
+            Math.max(0px, Math.min(Theme.mobileBottomNavHeight, Theme.mobileBottomNavHeight - player_sheet.sheet_drag)) :
+            Math.max(0px, Math.min(Theme.mobileBottomNavHeight, -player_sheet.sheet_drag))) :
+            (QueuePageProps.show_queue ? Theme.mobileBottomNavHeight : 0px);
+
+        x: 0px;
+        y: parent.height - Theme.mobileBottomNavHeight + self.displacement;
+        width: 100%;
+        height: Theme.mobileBottomNavHeight;
+
+        animate displacement {
+            duration: player_sheet.is_dragging ? Theme.zeroDuration : Theme.durationNormal;
+            easing: ease-in-out;
+        }
+    }
+
+    // Fixed touch area for mini-player drag up (excludes right play button)
+    if !QueuePageProps.show_queue: TouchArea {
+        x: 0px;
+        y: player_sheet.collapsed_y;
+        width: parent.width - Theme.mobileQueueListItemHeight;
+        height: Theme.mobileMiniPlayerHeight;
+
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down) {
+                player_sheet.is_dragging = true;
+            } else if (event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel) {
+                player_sheet.is_dragging = false;
+                if (player_sheet.sheet_drag < -Theme.mobileSheetDismissThreshold) {
+                    QueuePageProps.show_queue = true;
+                }
+                player_sheet.sheet_drag = 0px;
+            }
+        }
+
+        moved => {
+            if (self.pressed) {
+                player_sheet.sheet_drag = Math.min(0px, self.mouse-y - self.pressed-y);
+            }
+        }
+
+        clicked => {
+            QueuePageProps.show_queue = true;
+        }
+    }
+
+    // Fixed touch area for queue drag down (restricted to top drag handle region)
+    if QueuePageProps.show_queue: TouchArea {
+        x: 0px;
+        y: 0px;
+        width: 100%;
+        height: Theme.mobileQueueDragHandleHeight;
+
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down) {
+                player_sheet.is_dragging = true;
+            } else if (event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel) {
+                player_sheet.is_dragging = false;
+                if (player_sheet.sheet_drag > Theme.mobileSheetDismissThreshold) {
+                    QueuePageProps.show_queue = false;
+                }
+                player_sheet.sheet_drag = 0px;
+            }
+        }
+
+        moved => {
+            if (self.pressed) {
+                player_sheet.sheet_drag = Math.max(0px, self.mouse-y - self.pressed-y);
+            }
+        }
+    }
+
+    // Cover image drag down area on Now Playing tab (holding cover drags down, excludes top buttons and bottom playback controls)
+    if QueuePageProps.show_queue && QueuePageProps.active_tab == 0: TouchArea {
+        x: 0px;
+        y: Theme.mobileCoverDragTop;
+        width: 100%;
+        height: Math.max(0px, parent.height - Theme.mobileCoverDragBottomOffset);
+
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down) {
+                player_sheet.is_dragging = true;
+            } else if (event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel) {
+                player_sheet.is_dragging = false;
+                if (player_sheet.sheet_drag > Theme.mobileSheetDismissThreshold) {
+                    QueuePageProps.show_queue = false;
+                }
+                player_sheet.sheet_drag = 0px;
+            }
+        }
+
+        moved => {
+            if (self.pressed) {
+                player_sheet.sheet_drag = Math.max(0px, self.mouse-y - self.pressed-y);
+            }
+        }
+    }
+
+    if AccountsProps.show_accounts: AccountsPopupMobile {
+        close => {
+            AccountsProps.show_accounts = false;
+        }
+    }
+
+    if SettingsState.show_settings: SettingsMobile {
+        close => {
+            SettingsState.show_settings = false;
+        }
+    }
+
+    if SavePlaylistState.show_modal: SavePlaylistModalMobile {
+        close => {
+            SavePlaylistState.show_modal = false;
+        }
+    }
+
+    if SaveThemeState.show_modal: SaveThemeModalMobile {
+        close => {
+            SaveThemeState.show_modal = false;
+        }
+    }
+
+    if OAuthState.show_oauth_modal: OAuthModalMobile {
+        oauth_url: OAuthState.oauth_url;
+        oauth_code <=> OAuthState.oauth_code;
+        submit_code(code) => {
+            AppCallbacks.submit_oauth_code(code);
+        }
+        close => {
+            OAuthState.show_oauth_modal = false;
+        }
+    }
+
+    if ExtensionDetailsState.show_modal: ExtensionDetailsModalMobile {
+        close => {
+            ExtensionDetailsState.show_modal = false;
+        }
+    }
+}

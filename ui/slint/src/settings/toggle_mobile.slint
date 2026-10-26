@@ -1,0 +1,83 @@
+import { Theme } from "../constants_mobile.slint";
+import { PreferenceItem } from "preferences.slint";
+import { AppCallbacks } from "../callbacks.slint";
+
+export component ToggleGroupMobile inherits Rectangle {
+    in property <PreferenceItem> preference;
+    in property <string> title: root.preference.title;
+    in property <string> subtitle: root.preference.subtitle;
+    in-out property <bool> checked: root.preference.value_bool;
+    callback toggled(bool);
+
+    accessible-role: AccessibleRole.checkbox;
+    accessible-label: root.title;
+    accessible-checked: root.checked;
+
+    TouchArea {
+        width: 100%;
+        height: 100%;
+        clicked => {
+            root.checked = !root.checked;
+            if (root.preference.id != "") {
+                AppCallbacks.preference_changed({
+                    id: root.preference.id,
+                    value_string: "",
+                    value_bool: root.checked,
+                    value_number: 0.0,
+                    value_list: []
+                });
+            }
+            root.toggled(root.checked);
+        }
+    }
+
+    HorizontalLayout {
+        spacing: Theme.spacingMd;
+        alignment: center;
+
+        VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            spacing: Theme.spacingTiny;
+
+            Text {
+                text: root.title;
+                font-size: Theme.body;
+                font-weight: 600;
+                color: Theme.textPrimary;
+            }
+
+            if (root.subtitle != ""): Text {
+                text: root.subtitle;
+                font-size: Theme.caption;
+                wrap: word-wrap;
+                color: Theme.textSecondary;
+            }
+        }
+
+        VerticalLayout {
+            alignment: center;
+
+            Rectangle {
+                width: Theme.mobileQueueDragHandleHeight;
+                height: Theme.sizeXxl;
+                border-radius: Theme.borderRadiusXl;
+                background: root.checked ? Theme.accent : Theme.divider;
+
+                Rectangle {
+                    width: Theme.sizeXl;
+                    height: Theme.sizeXl;
+                    border-radius: Theme.sizeSm;
+                    background: Theme.textPrimary;
+                    y: Theme.sizeXxs;
+                    x: root.checked ? Theme.sizeXl : Theme.sizeXxs;
+
+                    animate x {
+                        duration: Theme.durationFast;
+                        easing: ease-out;
+                    }
+                }
+            }
+        }
+    }
+}

@@ -7,7 +7,7 @@ export component Button inherits Rectangle {
     in property <bool> has_custom_layout: false;
     in property <MouseCursor> mouse_cursor: pointer;
     in property <length> font_size: Theme.caption;
-    in property <length> padding_h: 14px;
+    in property <length> padding_h: Theme.paddingMd;
     out property <bool> has_hover: touch.has-hover;
     out property <bool> pressed: touch.pressed;
 
@@ -16,18 +16,18 @@ export component Button inherits Rectangle {
     accessible-role: button;
     accessible-label: root.text;
     horizontal-stretch: 0;
-    border-radius: 13px;
-    height: Theme.modelTitle + 10px;
+    border-radius: Theme.body;
+    height: Theme.modelTitle + Theme.extraSmall;
     background: root.text != "" || root.icon.width > 0 ? (
         root.pressed ? Theme.accent.darker(0.15) : (root.has_hover ? Theme.accent.darker(0.08) : Theme.accent)) : (
         !root.enabled ? transparent : (root.pressed ? Theme.textPrimary.with-alpha(0.08) : (root.has_hover ? Theme.textPrimary.with-alpha(0.04) : transparent)));
 
     animate background {
-        duration: 150ms;
+        duration: Theme.durationFast;
         easing: ease-out;
     }
     animate opacity {
-        duration: 150ms;
+        duration: Theme.durationFast;
         easing: ease-out;
     }
 
@@ -36,15 +36,15 @@ export component Button inherits Rectangle {
         alignment: center;
         padding-right: root.padding_h;
         padding-left: root.padding_h;
-        spacing: 6px;
+        spacing: Theme.spacingXs;
 
         if (root.icon.width > 0): VerticalLayout {
             alignment: center;
             Image {
                 source: root.icon;
                 colorize: Theme.textInverse;
-                width: 8px;
-                height: 8px;
+                width: Theme.sizeXs;
+                height: Theme.sizeXs;
             }
         }
 

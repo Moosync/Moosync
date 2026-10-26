@@ -1,12 +1,9 @@
 import { GenreModel } from "../types/song_view.slint";
 import { GridPageLayout } from "../common/grid_page_layout.slint";
 import { Constants, Pages } from "../constants.slint";
-import { AppProps } from "../props.slint";
+import { AppProps } from "../app_props.slint";
 
-export global GenresPageProps {
-    in-out property <[GenreModel]> genres: Constants.testGenres;
-    in-out property <GenreModel> selected-genre;
-}
+import { GenresPageProps } from "genres_props.slint";
 
 export component GenresPage inherits Rectangle {
     GridPageLayout {

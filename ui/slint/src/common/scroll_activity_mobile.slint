@@ -1,0 +1,22 @@
+import { Theme } from "../constants_mobile.slint";
+
+// Reports `active` while `position` keeps changing, then turns it off after an idle delay.
+export component ScrollActivity {
+    in property <length> position;
+    out property <bool> active: false;
+
+    changed position => {
+        root.active = true;
+        idle_timer.running = false;
+        idle_timer.running = true;
+    }
+
+    idle_timer := Timer {
+        interval: Theme.durationLong;
+        running: false;
+        triggered => {
+            root.active = false;
+            self.running = false;
+        }
+    }
+}

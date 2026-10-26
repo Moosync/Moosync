@@ -1,0 +1,7 @@
+import { ThemeConfig, ThemeConstant } from "../constants.slint";
+
+export global ThemesPageProps {
+    in-out property <string> active_theme_id;
+    in-out property <[ThemeConfig]> available_themes;
+    in-out property <[ThemeConstant]> theme_constants;
+}

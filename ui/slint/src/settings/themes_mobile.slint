@@ -1,0 +1,299 @@
+import {
+    Theme,
+    RgbaColor,
+    ThemeConfig,
+    ThemeConstant,
+} from "../constants_mobile.slint";
+import { PreferenceGroupMobile } from "preference_group_mobile.slint";
+import { NumberInputGroupMobile } from "number_input_mobile.slint";
+import { ButtonGroupMobile } from "button_group_mobile.slint";
+import { AppCallbacks } from "../callbacks.slint";
+import { SaveThemeState } from "../common/save_theme_modal_props.slint";
+import { SettingsPageLayoutMobile } from "settings_page_layout_mobile.slint";
+import { ColorTabCard } from "themes.slint";
+import { ThemesPageProps } from "themes_props.slint";
+
+component ThemeCardMobile inherits Rectangle {
+    in property <ThemeConfig> config;
+    in property <bool> is-active: false;
+    callback clicked();
+
+    horizontal-stretch: 1;
+    border-radius: Theme.borderRadiusLg;
+    background: Theme.tertiary;
+    border-width: root.is-active ? Theme.borderWidthLg : Theme.borderWidth;
+    border-color: root.is-active ? rgba(config.accent_color.r, config.accent_color.g, config.accent_color.b, 1.0) : Theme.textSecondary.with-alpha(0.2);
+
+    touch := TouchArea {
+        clicked => { root.clicked(); }
+    }
+
+    VerticalLayout {
+        padding: Theme.paddingSm;
+        spacing: Theme.spacingSm;
+
+        Rectangle {
+            height: Theme.songListItemHeight;
+            border-radius: Theme.borderRadiusMd;
+            background: rgba(config.preview_bg.r, config.preview_bg.g, config.preview_bg.b, config.preview_bg.a);
+            border-width: Theme.borderWidth;
+            border-color: Theme.textSecondary.with-alpha(0.2);
+            clip: true;
+
+            VerticalLayout {
+                padding: Theme.borderRadiusMd;
+                alignment: space-between;
+                Rectangle {
+                    width: Theme.percent40;
+                    height: Theme.borderRadiusMd;
+                    border-radius: Theme.borderWidthXxl;
+                    background: rgba(config.accent_color.r, config.accent_color.g, config.accent_color.b, config.accent_color.a);
+                }
+
+                HorizontalLayout {
+                    spacing: Theme.spacingXs;
+                    Rectangle {
+                        width: Theme.sizeMd;
+                        height: Theme.sizeMd;
+                        border-radius: Theme.borderRadiusSm;
+                        background: rgba(config.secondary_color.r, config.secondary_color.g, config.secondary_color.b, config.secondary_color.a);
+                    }
+
+                    VerticalLayout {
+                        spacing: Theme.borderWidthXxl;
+                        alignment: center;
+                        Rectangle {
+                            width: 100%;
+                            height: Theme.sizeXxs;
+                            border-radius: Theme.borderWidthLg;
+                            background: rgba(config.primary_color.r, config.primary_color.g, config.primary_color.b, config.primary_color.a);
+                        }
+                    }
+                }
+            }
+        }
+
+        VerticalLayout {
+            alignment: center;
+            spacing: Theme.borderWidthLg;
+            Text {
+                text: config.name;
+                font-size: Theme.caption;
+                font-weight: 600;
+                color: Theme.textPrimary;
+                horizontal-alignment: center;
+                overflow: elide;
+            }
+
+            Text {
+                text: config.author;
+                font-size: Theme.extraSmall;
+                color: Theme.textSecondary;
+                horizontal-alignment: center;
+                overflow: elide;
+            }
+        }
+    }
+}
+
+export component ThemesPageMobile inherits SettingsPageLayoutMobile {
+    title: @tr("Themes");
+
+    pure function color_to_rgba(c: color) -> RgbaColor {
+        return { r: c.red, g: c.green, b: c.blue, a: c.alpha / 255.0 };
+    }
+
+    property <RgbaColor> active-accent: root.color_to_rgba(Theme.accent);
+
+    property <[RgbaColor]> quick-accents: [
+        { r: 129, g: 232, b: 162, a: 1.0 }, // Green
+        { r: 96, g: 165, b: 250, a: 1.0 },  // Blue
+        { r: 192, g: 132, b: 252, a: 1.0 }, // Purple
+        { r: 251, g: 146, b: 60, a: 1.0 },  // Orange
+        { r: 251, g: 113, b: 133, a: 1.0 }  // Rose
+    ];
+
+    property <bool> advanced-expanded: false;
+
+    PreferenceGroupMobile {
+        VerticalLayout {
+            spacing: Theme.spacingMd;
+
+            Text {
+                text: @tr("Preset Themes");
+                font-size: Theme.modelTitle;
+                font-weight: 700;
+                color: Theme.textPrimary;
+            }
+
+            Text {
+                text: @tr("Selecting a theme will instantly override your advanced styling configurations.");
+                font-size: Theme.caption;
+                color: Theme.textSecondary;
+                wrap: word-wrap;
+            }
+
+            HorizontalLayout {
+                spacing: Theme.spacingSm;
+                for theme in ThemesPageProps.available_themes: ThemeCardMobile {
+                    config: theme;
+                    is-active: ThemesPageProps.active_theme_id == theme.id;
+                    clicked => {
+                        AppCallbacks.select_preset_theme(theme.id);
+                    }
+                }
+            }
+        }
+    }
+
+    PreferenceGroupMobile {
+        VerticalLayout {
+            spacing: Theme.spacingMd;
+
+            Text {
+                text: @tr("Quick Accent");
+                font-size: Theme.modelTitle;
+                font-weight: 700;
+                color: Theme.textPrimary;
+            }
+
+            Text {
+                text: @tr("Instantly update the primary interactive color.");
+                font-size: Theme.caption;
+                color: Theme.textSecondary;
+            }
+
+            HorizontalLayout {
+                spacing: Theme.spacingLg;
+                alignment: start;
+
+                for swatch in quick-accents: TouchArea {
+                    width: Theme.mobileButtonSize;
+                    height: Theme.mobileButtonSize;
+
+                    clicked => {
+                        let val-str = "rgba(" + round(swatch.r) + "," + round(swatch.g) + "," + round(swatch.b) + "," + swatch.a + ")";
+                        AppCallbacks.theme_constant_changed("accent", val-str);
+                    }
+
+                    Rectangle {
+                        width: Theme.size3Xl;
+                        height: Theme.size3Xl;
+                        border-radius: Theme.sizeLg;
+                        background: rgba(swatch.r, swatch.g, swatch.b, swatch.a);
+                        border-width: root.active-accent.r == swatch.r && root.active-accent.g == swatch.g ? Theme.borderWidthXxl : 0px;
+                        border-color: Theme.textPrimary;
+                    }
+                }
+            }
+        }
+    }
+
+    PreferenceGroupMobile {
+        VerticalLayout {
+            spacing: root.advanced-expanded ? Theme.spacingLg : 0px;
+
+            // Accordion Header
+            accordion_touch := TouchArea {
+                height: Theme.size4Xl;
+                clicked => {
+                    root.advanced-expanded = !root.advanced-expanded;
+                }
+
+                HorizontalLayout {
+                    alignment: space-between;
+
+                    VerticalLayout {
+                        alignment: center;
+                        spacing: Theme.borderWidthLg;
+                        horizontal-stretch: 1;
+                        Text {
+                            text: @tr("Advanced Styling");
+                            font-size: Theme.modelTitle;
+                            font-weight: 700;
+                            color: Theme.textPrimary;
+                        }
+
+                        Text {
+                            text: @tr("Fine-tune UI parameters. Modifying these clones/mutates the current active theme.");
+                            font-size: Theme.caption;
+                            color: Theme.textSecondary;
+                            wrap: word-wrap;
+                        }
+                    }
+
+                    VerticalLayout {
+                        alignment: center;
+                        Text {
+                            text: root.advanced-expanded ? "▲" : "▼";
+                            color: Theme.textSecondary;
+                            font-size: Theme.subtitle;
+                        }
+                    }
+                }
+            }
+
+            // Accordion Content Body
+            if root.advanced-expanded: VerticalLayout {
+                spacing: Theme.spacingLg;
+                padding-top: Theme.paddingMd;
+
+                for item in ThemesPageProps.theme_constants: VerticalLayout {
+                    spacing: Theme.spacingMd;
+                    if item.is-color: ColorTabCard {
+                        title: item.name;
+                        desc: @tr("Adjust the color for {}", item.name);
+                        active-val: item.color-value;
+                        changed(val) => {
+                            let val-str = "rgba(" + round(val.r) + "," + round(val.g) + "," + round(val.b) + "," + val.a + ")";
+                            AppCallbacks.theme_constant_changed(item.name, val-str);
+                        }
+                    }
+                    if !item.is-color: NumberInputGroupMobile {
+                        title: item.name;
+                        subtitle: @tr("Adjust the size for {}", item.name);
+                        unit: "px";
+                        value: item.value.to-float();
+                        edited(v) => {
+                            AppCallbacks.theme_constant_changed(item.name, v + "px");
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    PreferenceGroupMobile {
+        VerticalLayout {
+            spacing: Theme.spacingMd;
+
+            Text {
+                text: @tr("Export Theme");
+                font-size: Theme.modelTitle;
+                font-weight: 700;
+                color: Theme.textPrimary;
+            }
+
+            Text {
+                text: @tr("Save your current styling configuration as a new reusable preset.");
+                font-size: Theme.caption;
+                color: Theme.textSecondary;
+                wrap: word-wrap;
+            }
+
+            ButtonGroupMobile {
+                buttons: [
+                    {
+                        id: "save_modal",
+                        text: @tr("Save as New Theme"),
+                        is_destructive: false,
+                        is_neutral: false
+                    }
+                ];
+                clicked(id) => {
+                    SaveThemeState.show_modal = true;
+                }
+            }
+        }
+    }
+}

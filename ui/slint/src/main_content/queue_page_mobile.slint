@@ -1,0 +1,434 @@
+import {
+    SongModel,
+    LyricLineModel,
+    CoverHelper,
+} from "../types/song_view.slint";
+import { Theme, Constants, QueuePages } from "../constants_mobile.slint";
+import { ListView } from "std-widgets.slint";
+import { AppCallbacks, ContextMenuCallbacks } from "../callbacks.slint";
+import { IconButton } from "../common/icon_button_mobile.slint";
+import { Button } from "../common/button_mobile.slint";
+import { SongDetailsMobile } from "../common/song_details_mobile.slint";
+import { LyricsViewMobile } from "lyrics_view_mobile.slint";
+import {
+    PlaybackProgressBarMobile,
+} from "../bottombar/playback_progress_mobile.slint";
+import {
+    PlaybackControlsMobile,
+} from "../bottombar/playback_controls_mobile.slint";
+import { VolumeControlMobile } from "../bottombar/volume_control_mobile.slint";
+import { ContextMenuMobile } from "../common/context_menu_mobile.slint";
+import { SavePlaylistState } from "../common/save_playlist_modal_props.slint";
+import { QueuePageProps } from "queue_props.slint";
+import { PlayerProps } from "../bottombar/playback_props.slint";
+import {
+    SongItemThumbnail,
+    SongItemInfo,
+} from "../common/song_item_components_mobile.slint";
+import { ScrollActivity } from "../common/scroll_activity_mobile.slint";
+
+component QueueItemMobile inherits Rectangle {
+    in property <SongModel> song;
+    in property <int> item-idx;
+    in property <int> model-idx;
+    in property <bool> is-active: false;
+    callback clicked();
+    callback remove-clicked();
+
+    height: Theme.mobileSongListItemHeight;
+    background: root.is-active ? Theme.secondary : transparent;
+    border-radius: Theme.borderRadiusMd;
+
+    TouchArea {
+        width: 100%;
+        height: 100%;
+        clicked => { root.clicked(); }
+    }
+
+    HorizontalLayout {
+        padding: Theme.paddingXs;
+        padding-right: Theme.paddingLg;
+
+        SongItemThumbnail {
+            song: root.song;
+            show_play_overlay: !root.is-active;
+            play_clicked => { root.clicked(); }
+        }
+
+        HorizontalLayout {
+            horizontal-stretch: 1;
+            alignment: start;
+            padding-left: Theme.paddingLg;
+
+            SongItemInfo {
+                song: root.song;
+                title_color: root.is-active ? Theme.accent : Theme.textPrimary;
+            }
+        }
+
+        VerticalLayout {
+            alignment: center;
+            HorizontalLayout {
+                spacing: Theme.spacingLg;
+                alignment: end;
+
+                Text {
+                    accessible-role: none;
+                    text: root.song.duration_str;
+                    font-size: Theme.caption;
+                    color: Theme.textSecondary;
+                    vertical-alignment: center;
+                }
+
+                IconButton {
+                    accessible-label: @tr("More options");
+                    icon_source: @image-url("../icons/ellipsis.svg");
+                    icon_size: Theme.iconSizeMd;
+                    width: Theme.mobileButtonSize;
+                    height: Theme.mobileButtonSize;
+                    clicked => {
+                        context_menu.show();
+                    }
+                }
+
+                IconButton {
+                    accessible-label: @tr("Remove from queue");
+                    icon_source: @image-url("../icons/cross.svg");
+                    icon_size: Theme.iconSizeMd;
+                    width: Theme.mobileButtonSize;
+                    height: Theme.mobileButtonSize;
+                    icon_color: #ff5555;
+                    clicked => { root.remove-clicked(); }
+                }
+            }
+        }
+    }
+
+    context_menu := ContextMenuMobile {
+        items: ContextMenuCallbacks.get_queue_menu_items([song], root.model-idx);
+        clicked => { root.clicked(); }
+        selected(action_id) => {
+            ContextMenuCallbacks.queue_action([song], root.model-idx, action_id);
+        }
+    }
+}
+
+export component QueuePageMobile inherits Rectangle {
+
+    in-out property <int> active_tab <=> QueuePageProps.active_tab; // 0 = Now Playing, 1 = Queue, 2 = Lyrics
+
+    clip: true;
+    background: Theme.primary;
+
+    // Blurred Background Artwork
+    Rectangle {
+        clip: true;
+        width: 100%;
+        height: 100%;
+
+        if (QueuePageProps.blurred-cover.width > 0): Image {
+            width: parent.width;
+            height: parent.height;
+            source: QueuePageProps.blurred-cover;
+            image-fit: cover;
+            opacity: 0.85;
+        }
+
+        Rectangle {
+            background: rgba(15, 15, 15, 0.75);
+            width: 100%;
+            height: 100%;
+        }
+    }
+
+    VerticalLayout {
+        padding: Theme.paddingMd;
+        spacing: Theme.spacingMd;
+
+        // Top Drag Handle Visual
+        Rectangle {
+            height: Theme.searchBarHeight;
+            width: 100%;
+
+            HorizontalLayout {
+                alignment: center;
+                Rectangle {
+                    y: (parent.height - Theme.spacingXs) / 2;
+                    width: Theme.size3Xl;
+                    height: Theme.spacingXs;
+                    border-radius: Theme.borderWidthXl;
+                    background: Theme.textSecondary.with-alpha(0.5);
+                }
+            }
+        }
+
+        // Header Navigation Bar
+        HorizontalLayout {
+            spacing: Theme.spacingSm;
+            alignment: space-between;
+
+            // Balance spacer
+            Rectangle {
+                width: Theme.searchBarHeight;
+                height: Theme.searchBarHeight;
+            }
+
+            // Segmented Tab Switcher
+            HorizontalLayout {
+                spacing: Theme.spacingSm;
+                alignment: center;
+
+                Rectangle {
+                    height: Theme.searchBarHeight;
+                    border-radius: Theme.mobileSearchFilterRadius;
+                    background: root.active_tab == 0 ? Theme.accent.with-alpha(0.2) : transparent;
+
+                    animate background {
+                        duration: Theme.durationNormal;
+                        easing: ease-in-out;
+                    }
+
+                    TouchArea {
+                        clicked => { root.active_tab = 0; }
+                    }
+
+                    HorizontalLayout {
+                        padding-left: Theme.paddingLg;
+                        padding-right: Theme.paddingLg;
+                        alignment: center;
+                        Text {
+                            text: @tr("Playing");
+                            font-size: Theme.caption;
+                            font-weight: 500;
+                            color: root.active_tab == 0 ? Theme.accent : Theme.textSecondary;
+                            vertical-alignment: center;
+
+                            animate color {
+                                duration: Theme.durationNormal;
+                                easing: ease-in-out;
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    height: Theme.searchBarHeight;
+                    border-radius: Theme.mobileSearchFilterRadius;
+                    background: root.active_tab == 1 ? Theme.accent.with-alpha(0.2) : transparent;
+
+                    animate background {
+                        duration: Theme.durationNormal;
+                        easing: ease-in-out;
+                    }
+
+                    TouchArea {
+                        clicked => { root.active_tab = 1; }
+                    }
+
+                    HorizontalLayout {
+                        padding-left: Theme.paddingLg;
+                        padding-right: Theme.paddingLg;
+                        alignment: center;
+                        Text {
+                            text: @tr("Queue");
+                            font-size: Theme.caption;
+                            font-weight: 500;
+                            color: root.active_tab == 1 ? Theme.accent : Theme.textSecondary;
+                            vertical-alignment: center;
+
+                            animate color {
+                                duration: Theme.durationNormal;
+                                easing: ease-in-out;
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    height: Theme.searchBarHeight;
+                    border-radius: Theme.mobileSearchFilterRadius;
+                    background: root.active_tab == 2 ? Theme.accent.with-alpha(0.2) : transparent;
+
+                    animate background {
+                        duration: Theme.durationNormal;
+                        easing: ease-in-out;
+                    }
+
+                    TouchArea {
+                        clicked => { root.active_tab = 2; }
+                    }
+
+                    HorizontalLayout {
+                        padding-left: Theme.paddingLg;
+                        padding-right: Theme.paddingLg;
+                        alignment: center;
+                        Text {
+                            text: @tr("Lyrics");
+                            font-size: Theme.caption;
+                            font-weight: 500;
+                            color: root.active_tab == 2 ? Theme.accent : Theme.textSecondary;
+                            vertical-alignment: center;
+
+                            animate color {
+                                duration: Theme.durationNormal;
+                                easing: ease-in-out;
+                            }
+                        }
+                    }
+                }
+            }
+
+            IconButton {
+                accessible-label: @tr("Song Menu");
+                icon_source: @image-url("../icons/ellipsis.svg");
+                icon_size: Theme.playbackControlsIconSize;
+                width: Theme.searchBarHeight;
+                height: Theme.searchBarHeight;
+                clicked => {
+                    song_context_menu.show();
+                }
+            }
+        }
+
+        // Tab Content with animated transitions
+        Rectangle {
+            vertical-stretch: 1;
+            clip: true;
+
+            // Tab 0: Now Playing
+            tab_playing := Rectangle {
+                width: 100%;
+                height: 100%;
+                opacity: root.active_tab == 0 ? 1.0 : 0.0;
+                x: root.active_tab == 0 ? 0px : (root.active_tab > 0 ? -Theme.size3Xl : Theme.size3Xl);
+                visible: root.active_tab == 0 || self.opacity > 0;
+
+                animate opacity {
+                    duration: Theme.durationNormal;
+                    easing: ease-in-out;
+                }
+                animate x {
+                    duration: Theme.durationNormal;
+                    easing: ease-in-out;
+                }
+
+                VerticalLayout {
+                    spacing: Theme.spacingLg;
+                    alignment: space-around;
+
+                    SongDetailsMobile {
+                        song: PlayerProps.current_song;
+                    }
+
+                    PlaybackProgressBarMobile { }
+
+                    PlaybackControlsMobile { }
+                }
+            }
+
+            // Tab 1: Queue
+            tab_queue := Rectangle {
+                width: 100%;
+                height: 100%;
+                opacity: root.active_tab == 1 ? 1.0 : 0.0;
+                x: root.active_tab == 1 ? 0px : (root.active_tab > 1 ? -Theme.size3Xl : Theme.size3Xl);
+                visible: root.active_tab == 1 || self.opacity > 0;
+
+                animate opacity {
+                    duration: Theme.durationNormal;
+                    easing: ease-in-out;
+                }
+                animate x {
+                    duration: Theme.durationNormal;
+                    easing: ease-in-out;
+                }
+
+                VerticalLayout {
+                    spacing: Theme.spacingSm;
+
+                    HorizontalLayout {
+                        spacing: Theme.spacingSm;
+                        alignment: space-between;
+
+                        Text {
+                            text: @tr("Up Next") + " (" + QueuePageProps.queue.length + ")";
+                            font-size: Theme.modelTitle;
+                            font-weight: 700;
+                            color: Theme.textPrimary;
+                            vertical-alignment: center;
+                        }
+
+                        HorizontalLayout {
+                            spacing: Theme.spacingSm;
+                            Button {
+                                text: @tr("Save");
+                                clicked => {
+                                    SavePlaylistState.show_modal = true;
+                                }
+                            }
+
+                            Button {
+                                text: @tr("Clear");
+                                clicked => {
+                                    AppCallbacks.clear-queue();
+                                }
+                            }
+                        }
+                    }
+
+                    scroll_activity := ScrollActivity {
+                        position: queue_list.content-y;
+                    }
+
+                    queue_list := ListView {
+                        vertical-stretch: 1;
+                        horizontal-scrollbar-policy: always-off;
+                        vertical-scrollbar-policy: scroll_activity.active ? as-needed : always-off;
+                        for song[idx] in QueuePageProps.queue: VerticalLayout {
+                            padding-bottom: Theme.spacingXs;
+                            QueueItemMobile {
+                                song: song;
+                                item-idx: idx;
+                                model-idx: idx;
+                                is-active: idx == QueuePageProps.active-idx;
+                                clicked => {
+                                    AppCallbacks.play-queue-index(idx);
+                                }
+                                remove-clicked => {
+                                    AppCallbacks.remove-from-queue(idx);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Tab 2: Lyrics
+            tab_lyrics := Rectangle {
+                width: 100%;
+                height: 100%;
+                opacity: root.active_tab == 2 ? 1.0 : 0.0;
+                x: root.active_tab == 2 ? 0px : (root.active_tab > 2 ? -Theme.size3Xl : Theme.size3Xl);
+                visible: root.active_tab == 2 || self.opacity > 0;
+
+                animate opacity {
+                    duration: Theme.durationNormal;
+                    easing: ease-in-out;
+                }
+                animate x {
+                    duration: Theme.durationNormal;
+                    easing: ease-in-out;
+                }
+
+                LyricsViewMobile { }
+            }
+        }
+    }
+
+    song_context_menu := ContextMenuMobile {
+        items: ContextMenuCallbacks.get_song_menu_items([PlayerProps.current_song]);
+        selected(id) => {
+            ContextMenuCallbacks.song_action([PlayerProps.current_song], id);
+        }
+    }
+}

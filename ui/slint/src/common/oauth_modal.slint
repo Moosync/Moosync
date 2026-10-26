@@ -3,11 +3,7 @@ import { Modal, ModalSize } from "modal.slint";
 import { TextInputGroup } from "../settings/text_input.slint";
 import { ButtonGroup } from "../settings/button_group.slint";
 
-export global OAuthState {
-    in-out property <bool> show_oauth_modal: false;
-    in-out property <string> oauth_url: "";
-    in-out property <string> oauth_code: "";
-}
+import { OAuthState } from "oauth_modal_props.slint";
 
 export component OAuthModal inherits Modal {
     in property <string> oauth_url: OAuthState.oauth_url;
@@ -21,7 +17,7 @@ export component OAuthModal inherits Modal {
         background: Theme.primary;
         border-radius: Theme.borderRadiusLg;
         border-width: Theme.borderWidth;
-        border-color: Theme.accent.transparentize(80%);
+        border-color: Theme.accent.transparentize(Theme.percent80);
 
         VerticalLayout {
             padding: Theme.paddingMd;

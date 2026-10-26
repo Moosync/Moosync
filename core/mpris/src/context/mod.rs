@@ -22,6 +22,7 @@ use extensions_proto::moosync::types::PlayerState;
 use mockall::mock;
 #[cfg(test)]
 mod mod_test;
+use songs_proto::moosync::types::Song;
 #[cfg(not(target_os = "android"))]
 use souvlaki::{
     MediaControls, MediaMetadata, MediaPlayback, MediaPosition as SouvlakiMediaPosition,
@@ -30,7 +31,7 @@ use souvlaki::{
 
 #[cfg(not(target_os = "android"))]
 use crate::SeekDirection;
-use crate::{MediaControlEvent, MprisPlayerDetails, error::MprisError};
+use crate::{MediaControlEvent, error::MprisError};
 
 // ─────────────────────────────────────────────────────────────────────── //
 //  MprisContext trait — platform-agnostic interface.                       //
@@ -42,7 +43,7 @@ pub trait MprisContext: std::fmt::Debug + Send + Sync {
         &mut self,
         sender: std::sync::mpsc::Sender<MediaControlEvent>,
     ) -> Result<(), MprisError>;
-    fn set_metadata(&mut self, metadata: MprisPlayerDetails) -> Result<(), MprisError>;
+    fn set_metadata(&mut self, song: &Song) -> Result<(), MprisError>;
     fn set_playback_state(&mut self, state: PlayerState, duration: u64) -> Result<(), MprisError>;
 }
 
@@ -54,7 +55,7 @@ mock! {
     }
     impl MprisContext for MprisContext {
         fn attach(&mut self, sender: std::sync::mpsc::Sender<MediaControlEvent>) -> Result<(), MprisError>;
-        fn set_metadata(&mut self, metadata: MprisPlayerDetails) -> Result<(), MprisError>;
+        fn set_metadata(&mut self, song: &Song) -> Result<(), MprisError>;
         fn set_playback_state(&mut self, state: PlayerState, duration: u64) -> Result<(), MprisError>;
     }
 }
@@ -175,15 +176,27 @@ impl MprisContext for SouvlakiMprisContext {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn set_metadata(&mut self, metadata: MprisPlayerDetails) -> Result<(), MprisError> {
-        let duration = metadata.duration.map(|d| (d * 1000.0) as u64);
+    fn set_metadata(&mut self, song: &Song) -> Result<(), MprisError> {
+        let inner = song.song.as_ref();
+        let duration = inner
+            .and_then(|s| s.duration.as_ref())
+            .map(|d| Duration::from_secs(d.seconds as u64) + Duration::from_nanos(d.nanos as u64));
+        let title = inner.and_then(|s| s.title.as_deref());
+        let album = song.album.as_ref().and_then(|a| a.album_name.as_deref());
+        let artist = song.artists.first().and_then(|a| a.artist_name.as_deref());
+        let cover_url = inner.and_then(|s| {
+            s.song_cover_path_high
+                .as_deref()
+                .or(s.song_cover_path_low.as_deref())
+        });
+
         self.controls
             .set_metadata(MediaMetadata {
-                title: metadata.title.as_deref(),
-                album: metadata.album_name.as_deref(),
-                artist: metadata.artist_name.as_deref(),
-                cover_url: metadata.thumbnail.as_deref(),
-                duration: duration.map(Duration::from_millis),
+                title,
+                album,
+                artist,
+                cover_url,
+                duration,
             })
             .map_err(MprisError::Souvlaki)
     }
@@ -222,7 +235,7 @@ impl MprisContext for DummyContext {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn set_metadata(&mut self, _: MprisPlayerDetails) -> Result<(), MprisError> { Ok(()) }
+    fn set_metadata(&mut self, _: &Song) -> Result<(), MprisError> { Ok(()) }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn set_playback_state(&mut self, _: PlayerState, _: u64) -> Result<(), MprisError> { Ok(()) }

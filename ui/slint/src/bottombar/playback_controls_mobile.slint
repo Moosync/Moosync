@@ -1,0 +1,84 @@
+import { Theme } from "../constants_mobile.slint";
+import { BottomBarCallbacks } from "../callbacks.slint";
+import { PlayerProps } from "playback_props.slint";
+import { IconButton } from "../common/icon_button_mobile.slint";
+
+export component PlaybackControlsMobile inherits HorizontalLayout {
+    alignment: space-around;
+    spacing: Theme.spacingMd;
+
+    // Shuffle Button
+    IconButton {
+        accessible-label: @tr("Shuffle");
+        icon_source: @image-url("../icons/shuffle.svg");
+        icon_size: Theme.mobilePlayPauseIconSize;
+        width: Theme.mobileButtonSizeLg;
+        height: Theme.mobileButtonSizeLg;
+        clicked => {
+            BottomBarCallbacks.shuffle();
+        }
+    }
+
+    // Previous Button
+    IconButton {
+        accessible-label: @tr("Previous");
+        icon_source: @image-url("../icons/prev.svg");
+        icon_size: Theme.mobileIconSizeLg;
+        width: Theme.mobileButtonSizeLg;
+        height: Theme.mobileButtonSizeLg;
+        clicked => {
+            BottomBarCallbacks.prev-song();
+        }
+    }
+
+    // Play/Pause FAB Button
+    Rectangle {
+        width: Theme.mobileFabSize;
+        height: Theme.mobileFabSize;
+        border-radius: Theme.mobileFabRadius;
+        background: Theme.accent;
+
+        TouchArea {
+            width: 100%;
+            height: 100%;
+            clicked => {
+                BottomBarCallbacks.play-pause-clicked();
+            }
+        }
+
+        Image {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            width: Theme.spacingXxl;
+            height: Theme.spacingXxl;
+            source: PlayerProps.playing ? @image-url("../icons/playback_pause.svg") : @image-url("../icons/playback_play.svg");
+            colorize: Theme.textInverse;
+            image-fit: contain;
+        }
+    }
+
+    // Next Button
+    IconButton {
+        accessible-label: @tr("Next");
+        icon_source: @image-url("../icons/next.svg");
+        icon_size: Theme.mobileIconSizeLg;
+        width: Theme.mobileButtonSizeLg;
+        height: Theme.mobileButtonSizeLg;
+        clicked => {
+            BottomBarCallbacks.next-song();
+        }
+    }
+
+    // Repeat Button
+    IconButton {
+        accessible-label: @tr("Repeat");
+        icon_source: @image-url("../icons/repeat.svg");
+        active: PlayerProps.repeat_mode != 0;
+        icon_size: Theme.mobilePlayPauseIconSize;
+        width: Theme.mobileButtonSizeLg;
+        height: Theme.mobileButtonSizeLg;
+        clicked => {
+            BottomBarCallbacks.toggle-repeat();
+        }
+    }
+}

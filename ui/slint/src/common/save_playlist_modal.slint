@@ -4,9 +4,7 @@ import { Modal, ModalSize } from "modal.slint";
 import { TextInputGroup } from "../settings/text_input.slint";
 import { ButtonGroup } from "../settings/button_group.slint";
 
-export global SavePlaylistState {
-    in-out property <bool> show_modal: false;
-}
+import { SavePlaylistState } from "save_playlist_modal_props.slint";
 
 export component SavePlaylistModal inherits Modal {
     in-out property <string> playlist_name: "";
@@ -18,10 +16,10 @@ export component SavePlaylistModal inherits Modal {
         background: Theme.primary;
         border-radius: Theme.borderRadiusLg;
         border-width: Theme.borderWidth;
-        border-color: Theme.accent.transparentize(80%);
+        border-color: Theme.accent.transparentize(Theme.percent80);
         clip: true;
-        preferred-height: 270px;
-        max-height: 280px;
+        preferred-height: Theme.trackInfoWidth;
+        max-height: Theme.trackInfoWidth;
 
         VerticalLayout {
             padding: Theme.paddingMd;

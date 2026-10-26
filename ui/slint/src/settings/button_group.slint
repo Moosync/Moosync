@@ -19,9 +19,9 @@ export component GroupActionButton inherits PillButton {
     background: is_destructive ? (root.pressed ? Theme.danger : transparent) : is_neutral ? Theme.secondary : Theme.accent;
     opacity: root.pressed ? 0.7 : (root.has_hover ? 0.85 : 1.0);
 
-    animate border-color { duration: 150ms; }
-    animate background { duration: 150ms; }
-    animate opacity { duration: 100ms; }
+    animate border-color { duration: Theme.durationFast; }
+    animate background { duration: Theme.durationFast; }
+    animate opacity { duration: Theme.durationFastest; }
 
     Text {
         accessible-role: none;
@@ -29,7 +29,7 @@ export component GroupActionButton inherits PillButton {
         horizontal-alignment: center;
         vertical-alignment: center;
         color: is_destructive ? (root.pressed ? Theme.textInverse : (root.has_hover ? Theme.danger : Theme.textPrimary)) : root.is_neutral ? Theme.textPrimary : Theme.textInverse;
-        animate color { duration: 150ms; }
+        animate color { duration: Theme.durationFast; }
     }
 }
 
@@ -88,10 +88,10 @@ export component ButtonGroup inherits VerticalLayout {
     }
 
     modal_popup := PopupWindow {
-        x: -2000px + root.width / 2;
-        y: -2000px + root.height / 2;
-        width: 4000px;
-        height: 4000px;
+        x: -Theme.overlayOffset + root.width / 2;
+        y: -Theme.overlayOffset + root.height / 2;
+        width: Theme.overlaySize;
+        height: Theme.overlaySize;
 
         Rectangle {
             background: Theme.modalBackdrop;

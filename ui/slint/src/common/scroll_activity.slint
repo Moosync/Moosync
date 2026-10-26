@@ -1,0 +1,21 @@
+import { Theme } from "../constants.slint";
+
+export component ScrollActivity {
+    in property <length> position;
+    out property <bool> active: false;
+
+    changed position => {
+        root.active = true;
+        idle_timer.running = false;
+        idle_timer.running = true;
+    }
+
+    idle_timer := Timer {
+        interval: Theme.durationLong;
+        running: false;
+        triggered => {
+            root.active = false;
+            self.running = false;
+        }
+    }
+}

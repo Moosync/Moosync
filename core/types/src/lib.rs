@@ -16,7 +16,6 @@
 
 pub mod canvaz;
 pub mod errors;
-pub mod mpris;
 pub mod plugin;
 pub mod preferences;
 pub mod providers;
@@ -199,7 +198,10 @@ pub mod prelude {
         }
     }
 
+    #[cfg(not(target_os = "android"))]
     theme_macro::generate_theme_impl!("ui/slint/src/constants.slint");
+    #[cfg(target_os = "android")]
+    theme_macro::generate_theme_impl!("ui/slint/src/constants_mobile.slint");
 
     impl ThemeExt for ThemeDetails {
         fn get_theme_item_or_default(&self) -> ThemeItem {

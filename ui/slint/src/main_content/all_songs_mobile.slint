@@ -1,0 +1,10 @@
+import {
+    SongsPageLayoutMobile,
+} from "../common/songs_page_layout_mobile.slint";
+import { AllSongsPageProps } from "all_songs_props.slint";
+
+export component AllSongsMobile inherits Rectangle {
+    SongsPageLayoutMobile {
+        songs <=> AllSongsPageProps.songs;
+    }
+}

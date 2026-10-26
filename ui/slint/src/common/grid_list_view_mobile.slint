@@ -1,0 +1,89 @@
+import { ListView } from "std-widgets.slint";
+import { CardViewMobile } from "card_view_mobile.slint";
+import { Theme } from "../constants_mobile.slint";
+import { ContextMenuMobile } from "context_menu_mobile.slint";
+import { ContextMenuItem } from "../types/context_menu.slint";
+import { ScrollActivity } from "scroll_activity_mobile.slint";
+
+export component GridListViewMobile inherits Rectangle {
+    clip: true;
+    width: 100%;
+    height: 100%;
+    in property <int> total-items: 0;
+    in property <bool> enable-context-menu: false;
+
+    property <int> columns: 2;
+    property <length> spacing-val: Theme.spacingSm;
+    property <length> item-width: (root.width - Theme.paddingSm * 2 - root.spacing-val) / 2;
+    property <length> item-height: root.item-width + Theme.size4Xl;
+
+    property <int> total-rows: root.total-items == 0 ? 0 : (root.total-items + root.columns - 1) / root.columns;
+
+    pure callback item-title(int) -> string;
+    pure callback item-cover(int) -> image;
+    pure callback item_extension(int) -> string;
+    pure callback item_extension_icon(int) -> image;
+    callback item-clicked(int);
+    pure callback get-context-menu-items(int) -> [ContextMenuItem];
+    callback context-menu-action(int, string);
+
+    scroll_activity := ScrollActivity {
+        position: list_view.content-y;
+    }
+
+    list_view := ListView {
+        width: 100%;
+        height: 100%;
+        horizontal-scrollbar-policy: always-off;
+        vertical-scrollbar-policy: scroll_activity.active ? as-needed : always-off;
+
+        for row-index in root.total-rows: VerticalLayout {
+            padding-bottom: root.spacing-val;
+            padding-left: Theme.paddingSm;
+            padding-right: Theme.paddingSm;
+
+            HorizontalLayout {
+                spacing: root.spacing-val;
+
+                for col-index in 2: col := Rectangle {
+                    property <int> item-idx: row-index * 2 + col-index;
+                    width: root.item-width;
+                    height: root.item-height;
+
+                    if (self.item-idx < root.total-items): cell := Rectangle {
+                        width: 100%;
+                        height: 100%;
+                        background: Theme.secondary;
+                        border-radius: Theme.borderRadiusMd;
+                        clip: true;
+
+                        CardViewMobile {
+                            title: root.item-title(col.item-idx);
+                            cover-img: root.item-cover(col.item-idx);
+                            extension: root.item_extension(col.item-idx);
+                            extension_icon: root.item_extension_icon(col.item-idx);
+                        }
+
+                        TouchArea {
+                            width: 100%;
+                            height: 100%;
+                            clicked => {
+                                root.item-clicked(col.item-idx);
+                            }
+                        }
+
+                        if root.enable-context-menu: context_menu := ContextMenuMobile {
+                            items: root.get-context-menu-items(col.item-idx);
+                            clicked => {
+                                root.item-clicked(col.item-idx);
+                            }
+                            selected(action_id) => {
+                                root.context-menu-action(col.item-idx, action_id);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

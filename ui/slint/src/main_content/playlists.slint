@@ -2,12 +2,9 @@ import { PlaylistModel } from "../types/song_view.slint";
 import { GridPageLayout } from "../common/grid_page_layout.slint";
 import { Constants, Pages } from "../constants.slint";
 import { ContextMenuCallbacks } from "../callbacks.slint";
-import { AppProps } from "../props.slint";
+import { AppProps } from "../app_props.slint";
 
-export global PlaylistsPageProps {
-    in-out property <[PlaylistModel]> playlists: Constants.testPlaylists;
-    in-out property <PlaylistModel> selected-playlist;
-}
+import { PlaylistsPageProps } from "playlists_props.slint";
 
 export component PlaylistsPage inherits Rectangle {
     GridPageLayout {

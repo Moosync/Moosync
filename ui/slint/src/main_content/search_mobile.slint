@@ -1,0 +1,218 @@
+import { Theme, Constants, Pages } from "../constants_mobile.slint";
+import {
+    SongModel,
+    AlbumModel,
+    ArtistModel,
+    PlaylistModel,
+    GenreModel,
+    SearchResult,
+} from "../types/song_view.slint";
+import { SongListViewMobile } from "../common/song_list_view_mobile.slint";
+import { GridListViewMobile } from "../common/grid_list_view_mobile.slint";
+import { AppCallbacks } from "../callbacks.slint";
+import { Button } from "../common/button_mobile.slint";
+import { Utils, DefaultIconType } from "../utils.slint";
+import { AccountsProps } from "../common/accounts_props.slint";
+import { StatusTooltip } from "../common/status_tooltip.slint";
+import { Spinner } from "../common/spinner.slint";
+import { AlbumsPageProps } from "albums_props.slint";
+import { ArtistsPageProps } from "artists_props.slint";
+import { PlaylistsPageProps } from "playlists_props.slint";
+import { AppProps } from "../app_props.slint";
+import { SearchBarMobile } from "../topbar/search_bar_mobile.slint";
+import { SearchPageProps } from "search_props.slint";
+import { Provider, ProviderItem } from "search.slint";
+
+component ProviderChipMobile inherits Rectangle {
+    in property <string> name;
+    in property <image> icon;
+    in property <bool> is_local: false;
+    in property <bool> active: false;
+    callback clicked();
+
+    height: Theme.searchBarHeight;
+    border-radius: Theme.mobileSearchFilterRadius;
+    background: root.active ? Theme.accent.with-alpha(0.2) : Theme.secondary;
+    border-width: root.active ? Theme.borderWidthMd : Theme.borderWidth;
+    border-color: root.active ? Theme.accent : Theme.divider;
+
+    TouchArea {
+        clicked => { root.clicked(); }
+    }
+
+    HorizontalLayout {
+        padding-left: Theme.paddingMd;
+        padding-right: Theme.paddingMd;
+        spacing: Theme.spacingSm;
+        alignment: center;
+
+        VerticalLayout {
+            alignment: center;
+            Image {
+                source: Utils.load_image_or_default(root.icon, root.is_local ? DefaultIconType.Folder : DefaultIconType.Extension);
+                width: Theme.playbackControlsIconSize;
+                height: Theme.playbackControlsIconSize;
+                image-fit: contain;
+                colorize: root.active ? Theme.accent : Theme.textPrimary;
+            }
+        }
+
+        Text {
+            text: root.name;
+            font-size: Theme.caption;
+            font-weight: 500;
+            color: root.active ? Theme.accent : Theme.textPrimary;
+            vertical-alignment: center;
+
+            animate color {
+                duration: Theme.durationNormal;
+                easing: ease-in-out;
+            }
+        }
+    }
+}
+
+export component SearchPageMobile inherits Rectangle {
+    in-out property <int> active_tab <=> SearchPageProps.active_tab;
+    in-out property <int> selected_provider <=> SearchPageProps.selected_provider;
+
+    width: 100%;
+    height: 100%;
+
+    VerticalLayout {
+        width: 100%;
+        height: 100%;
+        spacing: Theme.spacingMd;
+        padding-top: Theme.spacingSm;
+
+        // Provider chips (always visible when results/providers are available)
+        HorizontalLayout {
+            padding-left: Theme.paddingSm;
+            padding-right: Theme.paddingSm;
+            spacing: Theme.spacingSm;
+            alignment: start;
+
+            for prov[idx] in SearchPageProps.provider_results: ProviderChipMobile {
+                name: prov.extension == "" ? @tr("Local") : (prov.extension_name != "" ? prov.extension_name : prov.extension);
+                icon: prov.extension_icon;
+                is_local: prov.extension == "";
+                active: root.selected_provider == idx;
+                clicked => { SearchPageProps.selected_provider = idx; }
+            }
+        }
+
+        // Filter tabs chips: [Songs | Albums | Artists | Playlists | Genres]
+        HorizontalLayout {
+            padding-left: Theme.paddingSm;
+            padding-right: Theme.paddingSm;
+            spacing: Theme.spacingSm;
+
+            for tab_item[tab_idx] in [
+                { name: @tr("Songs") },
+                { name: @tr("Albums") },
+                { name: @tr("Artists") },
+                { name: @tr("Playlists") },
+                { name: @tr("Genres") }
+            ]: Rectangle {
+                background: root.active_tab == tab_idx ? Theme.accent : Theme.secondary;
+                border-radius: Theme.mobileSearchFilterRadius;
+                height: Theme.searchBarHeight;
+
+                TouchArea {
+                    clicked => { SearchPageProps.active_tab = tab_idx; }
+                }
+
+                HorizontalLayout {
+                    padding-left: Theme.paddingMd;
+                    padding-right: Theme.paddingMd;
+                    alignment: center;
+
+                    Text {
+                        text: tab_item.name;
+                        color: root.active_tab == tab_idx ? Theme.textInverse : Theme.textPrimary;
+                        font-size: Theme.caption;
+                        font-weight: 500;
+                        vertical-alignment: center;
+
+                        animate color {
+                            duration: Theme.durationNormal;
+                            easing: ease-in-out;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Search Results Content
+        res_container := Rectangle {
+            vertical-stretch: 1;
+            property <SearchResult> current_res: SearchPageProps.provider_results[root.selected_provider];
+            property <bool> has_no_results: res_container.current_res.songs.length == 0 &&
+                res_container.current_res.albums.length == 0 &&
+                res_container.current_res.artists.length == 0 &&
+                res_container.current_res.playlists.length == 0 &&
+                res_container.current_res.genres.length == 0;
+
+            if (res_container.current_res.loading): Spinner {
+                width: Theme.sizeXxl;
+                height: Theme.sizeXxl;
+            }
+
+            if (!res_container.current_res.loading && root.active_tab == 0): SongListViewMobile {
+                songs: res_container.current_res.songs;
+            }
+
+            if (!res_container.current_res.loading && root.active_tab == 1): GridListViewMobile {
+                total_items: res_container.current_res.albums.length;
+                item_title(idx) => { res_container.current_res.albums[idx].title }
+                item_cover(idx) => { res_container.current_res.albums[idx].coverPath }
+                item_extension(idx) => { res_container.current_res.albums[idx].extension }
+                item_extension_icon(idx) => { res_container.current_res.albums[idx].extension_icon }
+                item_clicked(idx) => {
+                    AlbumsPageProps.selected_album = res_container.current_res.albums[idx];
+                    AppProps.active_page = Pages.AlbumContent;
+                }
+            }
+
+            if (!res_container.current_res.loading && root.active_tab == 2): GridListViewMobile {
+                total_items: res_container.current_res.artists.length;
+                item_title(idx) => { res_container.current_res.artists[idx].title }
+                item_cover(idx) => { res_container.current_res.artists[idx].coverPath }
+                item_extension(idx) => { res_container.current_res.artists[idx].extension }
+                item_extension_icon(idx) => { res_container.current_res.artists[idx].extension_icon }
+                item_clicked(idx) => {
+                    ArtistsPageProps.selected_artist = res_container.current_res.artists[idx];
+                    AppProps.active_page = Pages.ArtistContent;
+                }
+            }
+
+            if (!res_container.current_res.loading && root.active_tab == 3): GridListViewMobile {
+                total_items: res_container.current_res.playlists.length;
+                item_title(idx) => { res_container.current_res.playlists[idx].title }
+                item_cover(idx) => { res_container.current_res.playlists[idx].coverPath }
+                item_extension(idx) => { res_container.current_res.playlists[idx].extension }
+                item_extension_icon(idx) => { res_container.current_res.playlists[idx].extension_icon }
+                item_clicked(idx) => {
+                    PlaylistsPageProps.selected_playlist = res_container.current_res.playlists[idx];
+                    AppProps.active_page = Pages.PlaylistContent;
+                }
+            }
+
+            if (!res_container.current_res.loading && root.active_tab == 4): GridListViewMobile {
+                total_items: res_container.current_res.genres.length;
+                item_title(idx) => { res_container.current_res.genres[idx].title }
+                item_cover(idx) => { res_container.current_res.genres[idx].coverPath }
+            }
+
+            if (!res_container.current_res.loading && SearchPageProps.search_query != "" && res_container.has_no_results): Rectangle {
+                Text {
+                    text: @tr("No results found");
+                    font-size: Theme.body;
+                    color: Theme.textSecondary;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+        }
+    }
+}

@@ -482,7 +482,8 @@ impl Plugin for PlayerHandler {
                 tokio::spawn(
                     async move {
                         let mut interval = interval(Duration::from_secs(1));
-                        // Tick elapsed position updates every second while playing; exits naturally
+                        // Tick elapsed position updates every second while
+                        // playing; exits naturally
                         // on pause or stop.
                         while ph_timer.player.get_player_state() == PlayerState::Playing {
                             interval.tick().await;

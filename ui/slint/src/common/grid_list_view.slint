@@ -1,15 +1,15 @@
 import { ListView } from "std-widgets.slint";
 import { CardView } from "card_view.slint";
 import { Theme } from "../constants.slint";
-import { WindowInfo } from "../window_info.slint";
 import { ContextMenu } from "context_menu.slint";
 import { ContextMenuItem } from "../types/context_menu.slint";
+import { ScrollActivity } from "scroll_activity.slint";
 
 export component GridListView inherits Rectangle {
     clip: true;
     width: 100%;
     in property <length> padding-offset: 0px;
-    property <int> max-columns: Math.max(1, Math.floor((WindowInfo.window-width - WindowInfo.sidebar-width - Theme.paddingLg - root.padding-offset) / (root.item-width + root.spacing-x)));
+    property <int> max-columns: Math.max(1, Math.floor((root.width - root.padding-offset) / (root.item-width + root.spacing-x)));
     in property <length> item-width: Theme.cardWidth;
     in property <length> item-height: Theme.cardHeight;
     in property <length> spacing-x: Theme.spacingSm;
@@ -28,10 +28,15 @@ export component GridListView inherits Rectangle {
     pure callback get-context-menu-items(int) -> [ContextMenuItem];
     callback context-menu-action(int, string);
 
-    ListView {
+    scroll_activity := ScrollActivity {
+        position: list_view.content-y;
+    }
+
+    list_view := ListView {
         width: 100%;
         height: 100%;
-        vertical-scrollbar-policy: always-on;
+        horizontal-scrollbar-policy: always-off;
+        vertical-scrollbar-policy: scroll_activity.active ? as-needed : always-off;
 
         for row-index in root.total-rows: Rectangle {
             height: root.item-height + root.spacing-y;

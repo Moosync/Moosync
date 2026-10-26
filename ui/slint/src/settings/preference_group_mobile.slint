@@ -1,0 +1,15 @@
+import { Theme } from "../constants_mobile.slint";
+
+export component PreferenceGroupMobile inherits Rectangle {
+    border-radius: Theme.borderRadiusLg;
+    background: Theme.secondary;
+    height: main_layout.preferred-height;
+
+    main_layout := VerticalLayout {
+        padding: Theme.paddingMd;
+        spacing: Theme.spacingMd;
+        alignment: start;
+
+        @children
+    }
+}

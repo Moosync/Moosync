@@ -1,0 +1,53 @@
+import { Theme } from "../constants_mobile.slint";
+import { ProviderRecommendations, SongModel } from "../types/song_view.slint";
+import { ProviderItem } from "./search.slint";
+import { SongListViewMobile } from "../common/song_list_view_mobile.slint";
+import { ExplorePageProps } from "explore_props.slint";
+
+export component ExplorePageMobile inherits Rectangle {
+    property <int> selected-provider: 0;
+
+    width: 100%;
+    height: 100%;
+
+    VerticalLayout {
+        spacing: Theme.spacingMd;
+        padding-top: Theme.spacingSm;
+
+        if (ExplorePageProps.provider-recommendations.length == 0): Rectangle {
+            vertical-stretch: 1;
+            Text {
+                text: @tr("No recommendations available");
+                color: Theme.textSecondary;
+                font-size: Theme.body;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+
+        if (ExplorePageProps.provider-recommendations.length > 0): VerticalLayout {
+            vertical-stretch: 1;
+            spacing: Theme.spacingSm;
+
+            // Provider Selector chips
+            HorizontalLayout {
+                padding-left: Theme.paddingSm;
+                padding-right: Theme.paddingSm;
+                spacing: Theme.spacingSm;
+
+                for prov[idx] in ExplorePageProps.provider-recommendations: ProviderItem {
+                    provider: { name: prov.provider-name, icon: prov.provider-icon };
+                    active: root.selected-provider == idx;
+                    clicked => { root.selected-provider = idx; }
+                }
+            }
+
+            Rectangle {
+                vertical-stretch: 1;
+                SongListViewMobile {
+                    songs: ExplorePageProps.provider-recommendations[root.selected-provider].songs;
+                }
+            }
+        }
+    }
+}

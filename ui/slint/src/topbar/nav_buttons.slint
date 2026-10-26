@@ -29,7 +29,7 @@ export component NavButtons inherits VerticalLayout {
             icon_source: @image-url("../icons/nav_button.svg");
             icon_width: Theme.spacingSm;
             icon_height: Theme.iconSizeMd;
-            icon_rotation: 180deg;
+            icon_rotation: Theme.angle180;
             clicked => {
                 root.go_forward();
             }

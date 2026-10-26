@@ -25,6 +25,7 @@ export component SongItemThumbnail inherits Rectangle {
 
     touch := TouchArea {
         enabled: root.show_play_overlay;
+        mouse-cursor: pointer;
         clicked => {
             root.play_clicked();
         }

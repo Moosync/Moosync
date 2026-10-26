@@ -1,0 +1,9 @@
+import { Button } from "button.slint";
+import { Theme } from "../constants.slint";
+
+export component PillButton inherits Button {
+    height: Theme.pillButtonHeight;
+    border-radius: self.height / 2;
+    font_size: Theme.body;
+    padding_h: Theme.paddingLg;
+}

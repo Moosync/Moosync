@@ -6,6 +6,8 @@ export component Button inherits Rectangle {
     in property <bool> enabled: true;
     in property <bool> has_custom_layout: false;
     in property <MouseCursor> mouse_cursor: pointer;
+    in property <length> font_size: Theme.caption;
+    in property <length> padding_h: 14px;
     out property <bool> has_hover: touch.has-hover;
     out property <bool> pressed: touch.pressed;
 
@@ -32,8 +34,8 @@ export component Button inherits Rectangle {
     content_layout := HorizontalLayout {
         visible: !root.has_custom_layout && (root.text != "" || root.icon.width > 0);
         alignment: center;
-        padding-right: 14px;
-        padding-left: 14px;
+        padding-right: root.padding_h;
+        padding-left: root.padding_h;
         spacing: 6px;
 
         if (root.icon.width > 0): VerticalLayout {
@@ -51,7 +53,7 @@ export component Button inherits Rectangle {
             vertical-alignment: center;
             text: root.text;
             color: Theme.textInverse;
-            font-size: Theme.caption;
+            font-size: root.font_size;
         }
     }
 

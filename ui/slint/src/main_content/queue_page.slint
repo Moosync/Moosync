@@ -7,6 +7,7 @@ import { Theme, Constants, QueuePages } from "../constants.slint";
 import { ListView } from "std-widgets.slint";
 import { AppCallbacks, ContextMenuCallbacks } from "../callbacks.slint";
 import { Button } from "../common/button.slint";
+import { PillButton } from "../common/pill_button.slint";
 import { IconButton } from "../common/icon_button.slint";
 import { SongDetails } from "../common/song_details.slint";
 import { LyricsView } from "lyrics_view.slint";
@@ -226,6 +227,7 @@ export component QueuePage inherits Rectangle {
                 TouchArea {
                     accessible-role: button;
                     accessible-label: @tr("Show Lyrics");
+                    mouse-cursor: pointer;
                     clicked => {
                         QueuePageProps.show_lyrics = true;
                     }
@@ -250,7 +252,7 @@ export component QueuePage inherits Rectangle {
                 height: Theme.searchBarHeight;
                 spacing: Theme.spacingMd;
 
-                Button {
+                PillButton {
                     text: @tr("Save as playlist");
                     clicked => {
                         if (QueuePageProps.queue.length > 0) {
@@ -259,7 +261,7 @@ export component QueuePage inherits Rectangle {
                     }
                 }
 
-                Button {
+                PillButton {
                     text: @tr("Clear");
                     clicked => {
                         AppCallbacks.clear-queue();

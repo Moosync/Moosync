@@ -474,14 +474,6 @@ async fn test_extension_version_and_installation(handler_context: TestHandlerCon
     .unwrap();
     fs::write(valid_dir.join("main.wasm"), b"wasm bytes").unwrap();
 
-    let ver = handler.get_extension_version(valid_dir.clone());
-    assert_eq!(ver.unwrap(), "2.3.4");
-
-    let empty_dir = temp_dir.path().join("empty");
-    fs::create_dir_all(&empty_dir).unwrap();
-    let no_ver = handler.get_extension_version(empty_dir);
-    assert!(no_ver.is_err());
-
     let local_install = handler
         .install_extension(crate::ExtensionInfo::Local(
             extensions_proto::moosync::types::ExtensionDetail::default(),

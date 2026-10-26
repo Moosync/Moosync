@@ -384,23 +384,6 @@ impl ExtensionHandler {
     }
 }
 
-#[cfg(test)]
-impl ExtensionHandler {
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub(crate) fn get_extension_version(
-        &self,
-        ext_path: PathBuf,
-    ) -> Result<String, ExtensionError> {
-        let manifest_path = ext_path.join("manifest.pb");
-        if manifest_path.exists() {
-            let manifest = fs::read(manifest_path)?;
-            let manifest: ExtensionManifest = Message::decode(&*manifest)?;
-            return Ok(manifest.version);
-        }
-        Err(ExtensionError::NotAnExtension)
-    }
-}
-
 impl types::plugin::Plugin for ExtensionHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     fn init(context: &types::plugin::PluginContext) -> Arc<Self> {

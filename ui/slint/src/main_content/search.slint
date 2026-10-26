@@ -1,4 +1,4 @@
-import { Theme, Constants } from "../constants.slint";
+import { Theme, Constants, Pages } from "../constants.slint";
 import {
     SongModel,
     AlbumModel,
@@ -15,6 +15,10 @@ import { Utils, DefaultIconType } from "../utils.slint";
 import { AccountsProps } from "../common/accounts_popup.slint";
 import { StatusTooltip } from "../common/status_tooltip.slint";
 import { Spinner } from "../common/spinner.slint";
+import { AlbumsPageProps } from "albums.slint";
+import { ArtistsPageProps } from "artists.slint";
+import { PlaylistsPageProps } from "playlists.slint";
+import { AppProps } from "../props.slint";
 
 export struct Provider {
     name: string,
@@ -179,6 +183,10 @@ export component SearchPage inherits Rectangle {
                 item_cover(idx) => { res_container.current_res.albums[idx].coverPath }
                 item_extension(idx) => { res_container.current_res.albums[idx].extension }
                 item_extension_icon(idx) => { res_container.current_res.albums[idx].extension_icon }
+                item_clicked(idx) => {
+                    AlbumsPageProps.selected_album = res_container.current_res.albums[idx];
+                    AppProps.active_page = Pages.AlbumContent;
+                }
                 opacity: (!res_container.current_res.loading && root.active_tab == 1) ? 1.0 : 0.0;
                 visible: !res_container.current_res.loading && self.opacity > 0.01;
                 animate opacity {
@@ -194,6 +202,10 @@ export component SearchPage inherits Rectangle {
                 item_cover(idx) => { res_container.current_res.artists[idx].coverPath }
                 item_extension(idx) => { res_container.current_res.artists[idx].extension }
                 item_extension_icon(idx) => { res_container.current_res.artists[idx].extension_icon }
+                item_clicked(idx) => {
+                    ArtistsPageProps.selected_artist = res_container.current_res.artists[idx];
+                    AppProps.active_page = Pages.ArtistContent;
+                }
                 opacity: (!res_container.current_res.loading && root.active_tab == 2) ? 1.0 : 0.0;
                 visible: !res_container.current_res.loading && self.opacity > 0.01;
                 animate opacity {
@@ -209,6 +221,10 @@ export component SearchPage inherits Rectangle {
                 item_cover(idx) => { res_container.current_res.playlists[idx].coverPath }
                 item_extension(idx) => { res_container.current_res.playlists[idx].extension }
                 item_extension_icon(idx) => { res_container.current_res.playlists[idx].extension_icon }
+                item_clicked(idx) => {
+                    PlaylistsPageProps.selected_playlist = res_container.current_res.playlists[idx];
+                    AppProps.active_page = Pages.PlaylistContent;
+                }
                 opacity: (!res_container.current_res.loading && root.active_tab == 3) ? 1.0 : 0.0;
                 visible: !res_container.current_res.loading && self.opacity > 0.01;
                 animate opacity {

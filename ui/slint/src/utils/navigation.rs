@@ -9,6 +9,7 @@ use slint::ComponentHandle;
 
 use crate::{
     AlbumModel, AlbumsPageProps, AppProps, ArtistModel, ArtistsPageProps, MainWindow, Pages,
+    PlaylistModel, PlaylistsPageProps,
 };
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -31,4 +32,15 @@ pub fn goto_artist(main_window: &MainWindow, artist: ArtistModel) {
     main_window
         .global::<AppProps>()
         .set_active_page(Pages::ArtistContent);
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn goto_playlist(main_window: &MainWindow, playlist: PlaylistModel) {
+    tracing::debug!("Setting goto playlist: {:?}", playlist);
+    main_window
+        .global::<PlaylistsPageProps>()
+        .set_selected_playlist(playlist);
+    main_window
+        .global::<AppProps>()
+        .set_active_page(Pages::PlaylistContent);
 }

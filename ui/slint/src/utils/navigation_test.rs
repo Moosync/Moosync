@@ -2,10 +2,10 @@ use rstest::rstest;
 use slint::ComponentHandle;
 use tracing_test::traced_test;
 
-use super::navigation::{goto_album, goto_artist};
+use super::navigation::{goto_album, goto_artist, goto_playlist};
 use crate::{
     AlbumModel, AlbumsPageProps, AppProps, ArtistModel, ArtistsPageProps, MainWindow, Pages,
-    test_utils::main_window,
+    PlaylistModel, PlaylistsPageProps, test_utils::main_window,
 };
 
 #[rstest]
@@ -57,5 +57,31 @@ fn test_goto_artist_sets_selected_artist_and_active_page(main_window: MainWindow
     assert_eq!(
         main_window.global::<AppProps>().get_active_page(),
         Pages::ArtistContent
+    );
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_goto_playlist_sets_selected_playlist_and_active_page(main_window: MainWindow) {
+    let playlist = PlaylistModel {
+        id: "playlist_789".into(),
+        title: "Test Playlist".into(),
+        songs_count: 8,
+        ..Default::default()
+    };
+
+    goto_playlist(&main_window, playlist.clone());
+
+    assert_eq!(
+        main_window
+            .global::<PlaylistsPageProps>()
+            .get_selected_playlist()
+            .id,
+        "playlist_789"
+    );
+    assert_eq!(
+        main_window.global::<AppProps>().get_active_page(),
+        Pages::PlaylistContent
     );
 }

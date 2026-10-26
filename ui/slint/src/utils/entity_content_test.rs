@@ -1,3 +1,4 @@
+use extensions::Extension;
 use rstest::rstest;
 use slint::{ComponentHandle, Model, ModelRc, VecModel};
 use songs_proto::moosync::types::{InnerSong, Song};
@@ -15,6 +16,7 @@ use crate::{
     },
 };
 
+#[derive(Clone)]
 struct MockEntitySongProvider;
 
 #[async_trait::async_trait]
@@ -73,15 +75,14 @@ impl EntitySongProvider for MockEntitySongProvider {
 
     #[tracing::instrument(level = "debug", skip_all)]
     async fn fetch_extension_songs(
-        _state_manager: &StateManager,
+        ext: &Extension,
         _entity: Self::Entity,
-        extension: String,
         _page_token: Option<String>,
     ) -> Result<(Vec<Song>, Option<String>), UiError> {
         Ok((
             vec![Song {
                 song: Some(InnerSong {
-                    id: Some(format!("{}_ext_s", extension)),
+                    id: Some(format!("{}_ext_s", ext.get_package_name())),
                     title: Some("Extension Song".to_string()),
                     ..Default::default()
                 }),
@@ -366,10 +367,9 @@ async fn test_entity_content_fetch_scope_providers_none(state_manager_fixture: T
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
     let handler = sm.get_extension_handler();
 
-    let (providers, detail) = fetch_scope_providers(&handler, None, "").await;
+    let providers = fetch_scope_providers(&handler, None, "").await;
 
     assert!(providers.is_empty());
-    assert!(detail.is_none());
 }
 
 #[rstest]

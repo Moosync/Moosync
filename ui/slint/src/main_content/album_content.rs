@@ -1,3 +1,4 @@
+use extensions::Extension;
 use extensions_proto::moosync::types::{ExtensionProviderScope, RequestedAlbumSongsRequest};
 use slint::{ComponentHandle, ModelRc};
 use songs_proto::moosync::types::{Album, GetSongOptions, Song};
@@ -77,14 +78,10 @@ impl EntitySongProvider for AlbumSongProvider {
 
     #[tracing::instrument(level = "debug", skip_all)]
     async fn fetch_extension_songs(
-        state_manager: &StateManager,
+        ext: &Extension,
         album: Album,
-        extension: String,
         page_token: Option<String>,
     ) -> Result<(Vec<Song>, Option<String>), UiError> {
-        let ext = state_manager
-            .get_extension_handler()
-            .get_extension(&extension)?;
         let resp = ext
             .get_album_songs(RequestedAlbumSongsRequest {
                 album: Some(album),

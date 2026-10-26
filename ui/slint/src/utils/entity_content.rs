@@ -1,11 +1,12 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     marker::PhantomData,
     sync::{Arc, Mutex},
 };
 
-use extensions::ExtensionHandler;
+use extensions::{Extension, ExtensionGroupExt, ExtensionHandler};
 use extensions_proto::moosync::types::{ExtensionDetail, ExtensionProviderScope};
+use futures::StreamExt;
 use slint::{ComponentHandle, ModelRc, VecModel, Weak};
 use songs_proto::moosync::types::Song;
 use state_manager::StateManager;
@@ -78,11 +79,16 @@ impl ExtensionPaginationManager {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
+    pub fn contains_extension(&self, package_name: &str) -> bool {
+        self.extensions.contains_key(package_name)
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn remove_extension(&mut self, package_name: &str) { self.extensions.remove(package_name); }
 }
 
 #[async_trait::async_trait]
-pub trait EntitySongProvider: Send + Sync + 'static {
+pub trait EntitySongProvider: Clone + Send + Sync + 'static {
     type Entity: Clone + Send + Sync + 'static;
 
     fn extension_scope() -> Option<ExtensionProviderScope> { None }
@@ -109,32 +115,20 @@ pub trait EntitySongProvider: Send + Sync + 'static {
     ) -> Result<Vec<Song>, UiError>;
 
     async fn fetch_extension_songs(
-        _state_manager: &StateManager,
+        _ext: &Extension,
         _entity: Self::Entity,
-        _extension: String,
         _page_token: Option<String>,
     ) -> Result<(Vec<Song>, Option<String>), UiError> {
         Ok((Vec::new(), None))
     }
 }
 
+#[derive(Clone)]
 pub struct EntityContentCoordinator<P: EntitySongProvider> {
     weak: Weak<MainWindow>,
     state_manager: &'static StateManager,
     pagination: Arc<Mutex<ExtensionPaginationManager>>,
     _phantom: PhantomData<P>,
-}
-
-impl<P: EntitySongProvider> Clone for EntityContentCoordinator<P> {
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn clone(&self) -> Self {
-        Self {
-            weak: self.weak.clone(),
-            state_manager: self.state_manager,
-            pagination: self.pagination.clone(),
-            _phantom: PhantomData,
-        }
-    }
 }
 
 impl<P: EntitySongProvider> EntityContentCoordinator<P> {
@@ -183,121 +177,87 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
         };
         P::update_extensions_enabled(&main_window, &package_name, true);
         let (entity, _) = P::get_entity(&main_window);
-        self.pagination
-            .lock()
-            .unwrap()
-            .register_extension(&package_name);
+        let enabled_packages: HashSet<String> = P::get_extensions(&main_window)
+            .into_vec()
+            .into_iter()
+            .filter(|p| p.enabled)
+            .map(|p| p.id.to_string())
+            .collect();
 
-        let state_manager = self.state_manager;
-        let weak = self.weak.clone();
-        let pagination = self.pagination.clone();
-
+        let coordinator = self.clone();
         tokio::spawn(
             async move {
-                let ext = match state_manager
-                    .get_extension_handler()
-                    .get_extension(&package_name)
-                {
-                    Ok(ext) => ext,
-                    Err(e) => {
-                        tracing::error!("Failed to get extension {} detail: {:?}", package_name, e);
-                        pagination.lock().unwrap().remove_extension(&package_name);
-                        let _ = weak.upgrade_in_event_loop(move |window| {
-                            P::update_extensions_enabled(&window, &package_name, false);
-                        });
-                        return;
-                    }
-                };
-                let detail = ext.get_extension_detail();
-
-                let (new_songs, next_token) = match P::fetch_extension_songs(
-                    state_manager,
-                    entity,
-                    package_name.clone(),
-                    None,
-                )
-                .await
-                {
-                    Ok(result) => result,
-                    Err(error) => {
-                        tracing::error!(
-                            "Failed to fetch songs from extension {}: {:?}",
-                            package_name,
-                            error
-                        );
-                        pagination.lock().unwrap().remove_extension(&package_name);
-                        let _ = weak.upgrade_in_event_loop(move |window| {
-                            P::update_extensions_enabled(&window, &package_name, false);
-                        });
-                        return;
-                    }
-                };
-
-                let _ = weak.upgrade_in_event_loop(move |main_window| {
-                    let mut current = P::get_songs(&main_window);
-                    current.extend(map_songs_to_models(new_songs, Some(&detail)));
-                    let model = make_lazy_song_model(&main_window, state_manager, current);
-                    P::set_songs(&main_window, model);
-
-                    pagination
-                        .lock()
-                        .unwrap()
-                        .update_after_fetch(&package_name, next_token);
-                });
+                coordinator
+                    .fetch_enabled_extension_songs(entity, enabled_packages)
+                    .await;
             }
             .in_current_span(),
         );
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn on_load_more_songs(&self) {
-        let extensions_to_fetch = self.pagination.lock().unwrap().load_more();
-        if extensions_to_fetch.is_empty() {
+    pub async fn fetch_enabled_extension_songs(
+        &self,
+        entity: P::Entity,
+        enabled_packages: HashSet<String>,
+    ) {
+        let Some(scope) = P::extension_scope() else {
+            return;
+        };
+        if enabled_packages.is_empty() {
             return;
         }
 
-        let Some(main_window) = self.weak.upgrade() else {
-            return;
+        let active_exts = self
+            .state_manager
+            .get_extension_handler()
+            .get_extensions_with_scope(scope)
+            .await;
+
+        let to_fetch: Vec<Arc<Extension>> = {
+            let pagination = self.pagination.lock().unwrap();
+            active_exts
+                .into_iter()
+                .filter(|ext| {
+                    let pkg = ext.get_package_name();
+                    enabled_packages.contains(pkg) && !pagination.contains_extension(pkg)
+                })
+                .collect()
         };
-        let (entity, _) = P::get_entity(&main_window);
 
-        for (package_name, page_token) in extensions_to_fetch {
-            let state_manager = self.state_manager;
-            let weak = self.weak.clone();
-            let pagination = self.pagination.clone();
+        if to_fetch.is_empty() {
+            return;
+        }
+
+        {
+            let mut pagination = self.pagination.lock().unwrap();
+            for ext in &to_fetch {
+                pagination.register_extension(ext.get_package_name());
+            }
+        }
+
+        let mut stream = to_fetch.with(|ext| {
             let entity = entity.clone();
+            async move {
+                let detail = ext.get_extension_detail();
+                let result = P::fetch_extension_songs(&ext, entity, None).await;
+                (detail, result)
+            }
+            .in_current_span()
+        });
 
-            tokio::spawn(
-                async move {
-                    let (new_songs, next_token) = match P::fetch_extension_songs(
-                        state_manager,
-                        entity,
-                        package_name.clone(),
-                        page_token,
-                    )
-                    .await
-                    {
-                        Ok(result) => result,
-                        Err(error) => {
-                            tracing::error!(
-                                "Failed to fetch songs from extension {}: {:?}",
-                                package_name,
-                                error
-                            );
-                            pagination.lock().unwrap().mark_error(&package_name);
-                            return;
-                        }
-                    };
+        let state_manager = self.state_manager;
+        let weak = self.weak.clone();
+        let pagination = self.pagination.clone();
 
-                    let detail = state_manager
-                        .get_extension_handler()
-                        .get_extension(&package_name)
-                        .ok()
-                        .map(|e| e.get_extension_detail());
-
+        while let Some((detail, result)) = stream.next().await {
+            match result {
+                Ok((songs, next_token)) => {
+                    let pagination = pagination.clone();
+                    let package_name = detail.package_name.clone();
                     let _ = weak.upgrade_in_event_loop(move |window| {
                         let mut current = P::get_songs(&window);
-                        current.extend(map_songs_to_models(new_songs, detail.as_ref()));
+                        current.extend(map_songs_to_models(songs, Some(&detail)));
                         let model = make_lazy_song_model(&window, state_manager, current);
                         P::set_songs(&window, model);
 
@@ -307,9 +267,109 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
                             .update_after_fetch(&package_name, next_token);
                     });
                 }
-                .in_current_span(),
-            );
+                Err(error) => {
+                    tracing::error!(
+                        "Failed to fetch songs from extension {}: {:?}",
+                        detail.package_name,
+                        error
+                    );
+                    pagination
+                        .lock()
+                        .unwrap()
+                        .remove_extension(&detail.package_name);
+                    let package_name = detail.package_name;
+                    let _ = weak.upgrade_in_event_loop(move |window| {
+                        P::update_extensions_enabled(&window, &package_name, false);
+                    });
+                }
+            }
         }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn on_load_more_songs(&self) {
+        let Some(scope) = P::extension_scope() else {
+            return;
+        };
+        let extensions_to_fetch: HashMap<String, Option<String>> = self
+            .pagination
+            .lock()
+            .unwrap()
+            .load_more()
+            .into_iter()
+            .collect();
+        if extensions_to_fetch.is_empty() {
+            return;
+        }
+
+        let Some(main_window) = self.weak.upgrade() else {
+            return;
+        };
+        let (entity, _) = P::get_entity(&main_window);
+
+        let state_manager = self.state_manager;
+        let weak = self.weak.clone();
+        let pagination = self.pagination.clone();
+
+        tokio::spawn(
+            async move {
+                let active_exts = state_manager
+                    .get_extension_handler()
+                    .get_extensions_with_scope(scope)
+                    .await;
+                let to_fetch: Vec<Arc<Extension>> = active_exts
+                    .into_iter()
+                    .filter(|ext| extensions_to_fetch.contains_key(ext.get_package_name()))
+                    .collect();
+
+                if to_fetch.is_empty() {
+                    return;
+                }
+
+                let mut stream = to_fetch.with(|ext| {
+                    let entity = entity.clone();
+                    let page_token = extensions_to_fetch
+                        .get(ext.get_package_name())
+                        .cloned()
+                        .flatten();
+                    async move {
+                        let detail = ext.get_extension_detail();
+                        let result = P::fetch_extension_songs(&ext, entity, page_token).await;
+                        (detail, result)
+                    }
+                    .in_current_span()
+                });
+
+                while let Some((detail, result)) = stream.next().await {
+                    match result {
+                        Ok((songs, next_token)) => {
+                            let pagination = pagination.clone();
+                            let package_name = detail.package_name.clone();
+                            let _ = weak.upgrade_in_event_loop(move |window| {
+                                let mut current = P::get_songs(&window);
+                                current.extend(map_songs_to_models(songs, Some(&detail)));
+                                let model = make_lazy_song_model(&window, state_manager, current);
+                                P::set_songs(&window, model);
+
+                                pagination
+                                    .lock()
+                                    .unwrap()
+                                    .update_after_fetch(&package_name, next_token);
+                            });
+                        }
+                        Err(error) => {
+                            tracing::error!(
+                                "Failed to fetch more songs from extension {}: {:?}",
+                                detail.package_name,
+                                error
+                            );
+                            pagination.lock().unwrap().mark_error(&detail.package_name);
+                        }
+                    }
+                }
+            }
+            .in_current_span(),
+        );
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -321,59 +381,38 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
         };
         let (entity, extension) = P::get_entity(&main_window);
 
-        if !extension.is_empty() {
-            self.pagination
-                .lock()
-                .unwrap()
-                .register_extension(&extension);
-        }
-
         let state_manager = self.state_manager;
         let weak = self.weak.clone();
-        let pagination = self.pagination.clone();
+        let coordinator = self.clone();
 
         tokio::spawn(
             async move {
                 let ext_handler = state_manager.get_extension_handler();
-                let (extensions, detail) =
+                let providers =
                     fetch_scope_providers(&ext_handler, P::extension_scope(), &extension).await;
 
-                let (songs, next_token) = if !extension.is_empty() {
-                    match P::fetch_extension_songs(state_manager, entity, extension.clone(), None)
-                        .await
-                    {
-                        Ok(result) => result,
-                        Err(error) => {
-                            tracing::error!(
-                                "on_show: failed to fetch extension songs: {:?}",
-                                error
-                            );
-                            return;
-                        }
-                    }
-                } else {
-                    match P::fetch_local_songs(state_manager, entity).await {
-                        Ok(songs) => (songs, None),
-                        Err(error) => {
-                            tracing::error!("on_show: failed to fetch local songs: {:?}", error);
-                            return;
-                        }
-                    }
-                };
-
+                let providers_for_ui = providers.clone();
                 let _ = weak.upgrade_in_event_loop(move |main_window| {
-                    P::set_extensions(&main_window, ModelRc::new(VecModel::from(extensions)));
-                    let song_models = map_songs_to_models(songs, detail.as_ref());
-                    let model = make_lazy_song_model(&main_window, state_manager, song_models);
-                    P::set_songs(&main_window, model);
-
-                    if !extension.is_empty() {
-                        pagination
-                            .lock()
-                            .unwrap()
-                            .update_after_fetch(&extension, next_token);
-                    }
+                    P::set_extensions(&main_window, ModelRc::new(VecModel::from(providers_for_ui)));
                 });
+
+                if let Ok(songs) = P::fetch_local_songs(state_manager, entity.clone()).await {
+                    let _ = weak.upgrade_in_event_loop(move |main_window| {
+                        let song_models = map_songs_to_models(songs, None);
+                        let model = make_lazy_song_model(&main_window, state_manager, song_models);
+                        P::set_songs(&main_window, model);
+                    });
+                }
+
+                let enabled_packages: HashSet<String> = providers
+                    .into_iter()
+                    .filter(|p| p.enabled)
+                    .map(|p| p.id.to_string())
+                    .collect();
+
+                coordinator
+                    .fetch_enabled_extension_songs(entity, enabled_packages)
+                    .await;
             }
             .in_current_span(),
         );
@@ -401,14 +440,14 @@ pub(crate) async fn fetch_scope_providers(
     ext_handler: &ExtensionHandler,
     scope: Option<ExtensionProviderScope>,
     current_extension: &str,
-) -> (Vec<ExtensionProviderItem>, Option<ExtensionDetail>) {
+) -> Vec<ExtensionProviderItem> {
     let Some(scope) = scope else {
-        return (Vec::new(), None);
+        return Vec::new();
     };
 
-    let active_exts = ext_handler.get_extensions_with_scope(scope).await;
-
-    let providers: Vec<ExtensionProviderItem> = active_exts
+    ext_handler
+        .get_extensions_with_scope(scope)
+        .await
         .into_iter()
         .map(|ext| {
             let detail = ext.get_extension_detail();
@@ -419,18 +458,7 @@ pub(crate) async fn fetch_scope_providers(
                 enabled,
             }
         })
-        .collect();
-
-    let detail = if !current_extension.is_empty() {
-        ext_handler
-            .get_extension(current_extension)
-            .ok()
-            .map(|e| e.get_extension_detail())
-    } else {
-        None
-    };
-
-    (providers, detail)
+        .collect()
 }
 
 #[tracing::instrument(level = "debug", skip_all)]

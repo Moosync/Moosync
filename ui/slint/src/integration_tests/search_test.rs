@@ -1,7 +1,9 @@
 use i_slint_backend_testing::ElementHandle;
 use slint::{ComponentHandle, Model};
 use slint_app::{
-    AccountsProps, AppCallbacks, AppProps, MainWindow, OAuthState, Pages, SearchPageProps,
+    AccountsProps, AlbumContentPageProps, AlbumsPageProps, AppCallbacks, AppProps,
+    ArtistContentPageProps, ArtistsPageProps, MainWindow, OAuthState, Pages,
+    PlaylistContentPageProps, PlaylistsPageProps, SearchPageProps,
     accounts::AccountsHandler,
     test_utils::integration::{ExtensionFixture, create_test_song, integration_test, wait_until},
 };
@@ -588,6 +590,352 @@ async fn do_search_extension_pills_appear_immediately(
     assert!(searched);
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_search_click_album_navigates_to_album_content(
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) {
+    let database = state_manager.get_database();
+    let song = create_test_song("s_alb_nav", "Track One", "Clickable Album", "Album Artist");
+    database.insert_songs(vec![song]).unwrap();
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::Search);
+    let nav =
+        wait_until(|| main_window.global::<AppProps>().get_active_page() == Pages::Search).await;
+    assert!(nav);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_search_term_changed("Clickable".into());
+
+    let searched = wait_until(|| {
+        let results = main_window
+            .global::<SearchPageProps>()
+            .get_provider_results();
+        results.row_count() > 0
+            && results
+                .iter()
+                .any(|r| r.albums.iter().any(|a| a.title == "Clickable Album"))
+    })
+    .await;
+    assert!(searched);
+
+    main_window.global::<SearchPageProps>().set_active_tab(1);
+
+    let handles_found = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Clickable Album").count() > 0
+    })
+    .await;
+    assert!(handles_found);
+
+    let handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Clickable Album").collect();
+    assert!(!handles.is_empty());
+    assert!(handles[0].is_valid());
+    handles[0]
+        .single_click(slint::platform::PointerEventButton::Left)
+        .await;
+
+    let navigated = wait_until(|| {
+        main_window.global::<AppProps>().get_active_page() == Pages::AlbumContent
+            && main_window
+                .global::<AlbumsPageProps>()
+                .get_selected_album()
+                .title
+                == "Clickable Album"
+    })
+    .await;
+    assert!(navigated);
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_search_click_artist_navigates_to_artist_content(
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) {
+    let database = state_manager.get_database();
+    let song = create_test_song("s_art_nav", "Track Two", "Album Two", "Clickable Artist");
+    database.insert_songs(vec![song]).unwrap();
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::Search);
+    let nav =
+        wait_until(|| main_window.global::<AppProps>().get_active_page() == Pages::Search).await;
+    assert!(nav);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_search_term_changed("Clickable".into());
+
+    let searched = wait_until(|| {
+        let results = main_window
+            .global::<SearchPageProps>()
+            .get_provider_results();
+        results.row_count() > 0
+            && results
+                .iter()
+                .any(|r| r.artists.iter().any(|a| a.title == "Clickable Artist"))
+    })
+    .await;
+    assert!(searched);
+
+    main_window.global::<SearchPageProps>().set_active_tab(2);
+
+    let handles_found = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Clickable Artist").count() > 0
+    })
+    .await;
+    assert!(handles_found);
+
+    let handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Clickable Artist").collect();
+    assert!(!handles.is_empty());
+    assert!(handles[0].is_valid());
+    handles[0]
+        .single_click(slint::platform::PointerEventButton::Left)
+        .await;
+
+    let navigated = wait_until(|| {
+        main_window.global::<AppProps>().get_active_page() == Pages::ArtistContent
+            && main_window
+                .global::<ArtistsPageProps>()
+                .get_selected_artist()
+                .title
+                == "Clickable Artist"
+            && main_window
+                .global::<ArtistContentPageProps>()
+                .get_songs()
+                .row_count()
+                > 0
+    })
+    .await;
+    assert!(navigated);
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_search_click_playlist_navigates_to_playlist_content(
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) {
+    let database = state_manager.get_database();
+    let song = create_test_song("s_pl_song", "Pl Track", "Pl Album", "Pl Artist");
+    database.insert_songs(vec![song.clone()]).unwrap();
+    let playlist = Playlist {
+        playlist_id: Some("pl_search_click".into()),
+        playlist_name: "Clickable Playlist".into(),
+        ..Default::default()
+    };
+    database
+        .create_playlist_with_songs(playlist, &[song])
+        .unwrap();
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::Search);
+    let nav =
+        wait_until(|| main_window.global::<AppProps>().get_active_page() == Pages::Search).await;
+    assert!(nav);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_search_term_changed("Clickable".into());
+
+    let searched = wait_until(|| {
+        let results = main_window
+            .global::<SearchPageProps>()
+            .get_provider_results();
+        results.row_count() > 0
+            && results
+                .iter()
+                .any(|r| r.playlists.iter().any(|p| p.title == "Clickable Playlist"))
+    })
+    .await;
+    assert!(searched);
+
+    main_window.global::<SearchPageProps>().set_active_tab(3);
+
+    let handles_found = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Clickable Playlist").count() > 0
+    })
+    .await;
+    assert!(handles_found);
+
+    let handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Clickable Playlist").collect();
+    assert!(!handles.is_empty());
+    assert!(handles[0].is_valid());
+    handles[0]
+        .single_click(slint::platform::PointerEventButton::Left)
+        .await;
+
+    let navigated = wait_until(|| {
+        main_window.global::<AppProps>().get_active_page() == Pages::PlaylistContent
+            && main_window
+                .global::<PlaylistsPageProps>()
+                .get_selected_playlist()
+                .title
+                == "Clickable Playlist"
+            && main_window
+                .global::<PlaylistContentPageProps>()
+                .get_songs()
+                .row_count()
+                > 0
+    })
+    .await;
+    assert!(navigated);
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_search_extension_album_with_scope_enables_provider(
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) {
+    let _ext = ExtensionFixture::new(state_manager).await;
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::Search);
+    let nav =
+        wait_until(|| main_window.global::<AppProps>().get_active_page() == Pages::Search).await;
+    assert!(nav);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_search_term_changed("Test".into());
+
+    let searched = wait_until(|| {
+        let results = main_window
+            .global::<SearchPageProps>()
+            .get_provider_results();
+        results.row_count() == 2
+            && results.iter().any(|r| {
+                r.extension == "rs.sample" && r.albums.iter().any(|a| a.title == "Search Album 1")
+            })
+    })
+    .await;
+    assert!(searched);
+
+    main_window
+        .global::<SearchPageProps>()
+        .set_selected_provider(1);
+    main_window.global::<SearchPageProps>().set_active_tab(1);
+
+    let handles_found = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Search Album 1").count() > 0
+    })
+    .await;
+    assert!(handles_found);
+
+    let handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Search Album 1").collect();
+    assert!(!handles.is_empty());
+    assert!(handles[0].is_valid());
+    handles[0]
+        .single_click(slint::platform::PointerEventButton::Left)
+        .await;
+
+    let navigated = wait_until(|| {
+        main_window.global::<AppProps>().get_active_page() == Pages::AlbumContent
+            && main_window
+                .global::<AlbumsPageProps>()
+                .get_selected_album()
+                .title
+                == "Search Album 1"
+    })
+    .await;
+    assert!(navigated);
+
+    let provider_enabled = wait_until(|| {
+        let providers = main_window
+            .global::<AlbumContentPageProps>()
+            .get_extension_providers();
+        providers.iter().any(|p| p.id == "rs.sample" && p.enabled)
+    })
+    .await;
+    assert!(provider_enabled);
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_search_extension_album_without_scope_does_not_enable_provider(
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) {
+    let _ext = ExtensionFixture::new_empty(state_manager).await;
+    let database = state_manager.get_database();
+    let mut song = create_test_song(
+        "s_no_scope",
+        "Song No Scope",
+        "No Scope Album",
+        "No Scope Artist",
+    );
+    if let Some(ref mut alb) = song.album {
+        alb.extension = Some("rs.sample.empty".into());
+    }
+    database.insert_songs(vec![song]).unwrap();
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::Search);
+    let nav =
+        wait_until(|| main_window.global::<AppProps>().get_active_page() == Pages::Search).await;
+    assert!(nav);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_search_term_changed("No Scope".into());
+
+    let searched = wait_until(|| {
+        let results = main_window
+            .global::<SearchPageProps>()
+            .get_provider_results();
+        results.row_count() > 0
+            && results
+                .iter()
+                .any(|r| r.albums.iter().any(|a| a.title == "No Scope Album"))
+    })
+    .await;
+    assert!(searched);
+
+    main_window.global::<SearchPageProps>().set_active_tab(1);
+
+    let handles_found = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "No Scope Album").count() > 0
+    })
+    .await;
+    assert!(handles_found);
+
+    let handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "No Scope Album").collect();
+    assert!(!handles.is_empty());
+    assert!(handles[0].is_valid());
+    handles[0]
+        .single_click(slint::platform::PointerEventButton::Left)
+        .await;
+
+    let navigated = wait_until(|| {
+        main_window.global::<AppProps>().get_active_page() == Pages::AlbumContent
+            && main_window
+                .global::<AlbumsPageProps>()
+                .get_selected_album()
+                .title
+                == "No Scope Album"
+    })
+    .await;
+    assert!(navigated);
+
+    let providers_checked = wait_until(|| {
+        let providers = main_window
+            .global::<AlbumContentPageProps>()
+            .get_extension_providers();
+        !providers.iter().any(|p| p.enabled)
+    })
+    .await;
+    assert!(providers_checked);
+}
+
 integration_test!(
     test_search_songs => do_search_category_songs,
     test_search_albums => do_search_category_albums,
@@ -598,4 +946,9 @@ integration_test!(
     test_search_no_results_tooltip => do_search_no_results_tooltip,
     test_search_network_covers_ui_hang => do_search_network_covers_ui_hang,
     test_search_extension_pills_appear_immediately => do_search_extension_pills_appear_immediately,
+    test_search_click_album_navigates_to_album_content => do_search_click_album_navigates_to_album_content,
+    test_search_click_artist_navigates_to_artist_content => do_search_click_artist_navigates_to_artist_content,
+    test_search_click_playlist_navigates_to_playlist_content => do_search_click_playlist_navigates_to_playlist_content,
+    test_search_extension_album_with_scope_enables_provider => do_search_extension_album_with_scope_enables_provider,
+    test_search_extension_album_without_scope_does_not_enable_provider => do_search_extension_album_without_scope_does_not_enable_provider,
 );

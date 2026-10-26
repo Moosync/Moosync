@@ -248,9 +248,8 @@ export component ExtensionDetailsModal inherits Modal {
                             color: Theme.textSecondary;
                         }
 
-                        HorizontalLayout {
+                        FlexboxLayout {
                             spacing: Theme.spacingXs;
-                            alignment: start;
                             for scope in root.item.scopes: Rectangle {
                                 border-radius: Theme.borderRadiusSm;
                                 background: Theme.accent.transparentize(0.85);

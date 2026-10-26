@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: moosync\n"
 "POT-Creation-Date: 2026-08-24 20:45+0000\n"
-"PO-Revision-Date: 2026-10-01 04:50\n"
+"PO-Revision-Date: 2026-10-01 22:27\n"
 "Language: fi_FI\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -369,277 +369,277 @@ msgstr "Tilavuus"
 
 #: ui/slint/src/common/accounts_popup.slint:14
 msgid "Login"
-msgstr ""
+msgstr "Kirjaudu"
 
 #: ui/slint/src/common/accounts_popup.slint:14
 msgid "Logout"
-msgstr ""
+msgstr "Kirjaudu Ulos"
 
 #: ui/slint/src/common/accounts_popup.slint:80
 msgid "No accounts configured"
-msgstr ""
+msgstr "Tilejä ei ole määritetty"
 
 #: ui/slint/src/common/extension_details_modal.slint:25
 msgid "Playlist Songs"
-msgstr ""
+msgstr "Soittolistan Kappaleet"
 
 #: ui/slint/src/common/extension_details_modal.slint:28
 msgid "Artist Songs"
-msgstr ""
+msgstr "Esittäjän Kappaleet"
 
 #: ui/slint/src/common/extension_details_modal.slint:31
 msgid "Album Songs"
-msgstr ""
+msgstr "Albumin Kappaleet"
 
 #: ui/slint/src/common/extension_details_modal.slint:34
 msgid "Recommendations"
-msgstr ""
+msgstr "Suositukset"
 
 #: ui/slint/src/common/extension_details_modal.slint:37
 msgid "Scrobble"
-msgstr ""
+msgstr "Scrobble"
 
 #: ui/slint/src/common/extension_details_modal.slint:40
 msgid "Playlist from URL"
-msgstr ""
+msgstr "Soittolista osoitteesta"
 
 #: ui/slint/src/common/extension_details_modal.slint:43
 msgid "Song from URL"
-msgstr ""
+msgstr "Kappale URL-osoitteesta"
 
 #: ui/slint/src/common/extension_details_modal.slint:46
 msgid "Playback Details"
-msgstr ""
+msgstr "Toiston Tiedot"
 
 #: ui/slint/src/common/extension_details_modal.slint:49
 msgid "Lyrics"
-msgstr ""
+msgstr "Sanoitukset"
 
 #: ui/slint/src/common/extension_details_modal.slint:52
 msgid "Song Context Menu"
-msgstr ""
+msgstr "Kappaleen Kontekstivalikko"
 
 #: ui/slint/src/common/extension_details_modal.slint:55
 msgid "Playlist Context Menu"
-msgstr ""
+msgstr "Soittolistan Kontekstivalikko"
 
 #: ui/slint/src/common/extension_details_modal.slint:58
 msgid "Accounts"
-msgstr ""
+msgstr "Tilit"
 
 #: ui/slint/src/common/extension_details_modal.slint:61
 msgid "Song Database Events"
-msgstr ""
+msgstr "Kappaleen Tietokantatapahtumat"
 
 #: ui/slint/src/common/extension_details_modal.slint:64
 msgid "Playlist Database Events"
-msgstr ""
+msgstr "Soittolistan Tietokantatapahtumat"
 
 #: ui/slint/src/common/extension_details_modal.slint:67
 msgid "Player UI Events"
-msgstr ""
+msgstr "Pelaajan Käyttöliittymän Tapahtumat"
 
 #: ui/slint/src/common/extension_details_modal.slint:70
 msgid "Player Data Events"
-msgstr ""
+msgstr "Pelaajan Datatapahtumat"
 
 #: ui/slint/src/common/extension_details_modal.slint:72
 msgid "Unknown Scope"
-msgstr ""
+msgstr "Tuntematon Laajuus"
 
 #: ui/slint/src/common/extension_details_modal.slint:123
 msgid "By "
-msgstr ""
+msgstr "Tekijä "
 
 #: ui/slint/src/common/extension_details_modal.slint:147
 msgid "Network Permissions"
-msgstr ""
+msgstr "Verkon Oikeudet"
 
 #: ui/slint/src/common/extension_details_modal.slint:155
 msgid "No network permissions requested."
-msgstr ""
+msgstr "Verkkooikeuksia ei pyydetty."
 
 #: ui/slint/src/common/extension_details_modal.slint:163
 msgid "Network Host: "
-msgstr ""
+msgstr "Verkon Isäntä: "
 
 #: ui/slint/src/common/extension_details_modal.slint:172
 msgid "Filesystem Permissions"
-msgstr ""
+msgstr "Tiedostojärjestelmän Käyttöoikeudet"
 
 #: ui/slint/src/common/extension_details_modal.slint:180
 msgid "No filesystem permissions requested."
-msgstr ""
+msgstr "Tiedostojärjestelmän käyttöoikeuksia ei pyydetty."
 
 #: ui/slint/src/common/extension_details_modal.slint:188
 msgid "Filesystem Path: "
-msgstr ""
+msgstr "Tiedostojärjestelmän Polku: "
 
 #: ui/slint/src/common/extension_details_modal.slint:197
 msgid "Provider Scopes"
-msgstr ""
+msgstr "Tarjoajan Käyttöalueet"
 
 #: ui/slint/src/common/extension_details_modal.slint:205
 msgid "No provider scopes registered."
-msgstr ""
+msgstr "Palveluntarjoajan kattavuuksia ei ole rekisteröity."
 
 #: ui/slint/src/common/extension_details_modal.slint:224
 msgid "Scope: "
-msgstr ""
+msgstr "Laajuus: "
 
 #: ui/slint/src/common/extension_details_modal.slint:239
 msgid "Close"
-msgstr ""
+msgstr "Sulje"
 
 #: ui/slint/src/common/extension_details_modal.slint:240
 msgid "Close Extension Details"
-msgstr ""
+msgstr "Sulje Lisäosan Tiedot"
 
 #: ui/slint/src/common/oauth_modal.slint:33
 msgid "Account Login"
-msgstr ""
+msgstr "Tilin Kirjautuminen"
 
 #: ui/slint/src/common/oauth_modal.slint:40
 msgid "If the browser did not open automatically, copy the URL below:"
-msgstr ""
+msgstr "Jos selain ei avautunut automaattisesti, kopioi URL-osoite alla:"
 
 #: ui/slint/src/common/oauth_modal.slint:72
 msgid "Authorization Code / Callback URL"
-msgstr ""
+msgstr "Valtuutuskoodi / Takaisinsoiton URL"
 
 #: ui/slint/src/common/oauth_modal.slint:74
 msgid "Paste the code or redirected URL here"
-msgstr ""
+msgstr "Liitä koodi tai uudelleen kohdistettu URL-osoite tähän"
 
 #: ui/slint/src/common/oauth_modal.slint:84
 msgid "Submit"
-msgstr ""
+msgstr "Lähetä"
 
 #: ui/slint/src/main_content/lyrics_view.slint:79
 msgid "Synced"
-msgstr ""
+msgstr "Synkronoitu"
 
 #: ui/slint/src/main_content/lyrics_view.slint:79
 msgid "Plain"
-msgstr ""
+msgstr "Tavallinen"
 
 #: ui/slint/src/main_content/lyrics_view.slint:91
 msgid "Show Details"
-msgstr ""
+msgstr "Näytä Yksityiskohdat"
 
 #: ui/slint/src/main_content/lyrics_view.slint:114
 msgid "Loading lyrics..."
-msgstr ""
+msgstr "Ladataan sanoituksia..."
 
 #: ui/slint/src/main_content/lyrics_view.slint:124
 msgid "No lyrics available"
-msgstr ""
+msgstr "Ei sanoituksia saatavilla"
 
 #: ui/slint/src/main_content/queue_page.slint:159
 msgid "Remove from queue"
-msgstr ""
+msgstr "Poista jonosta"
 
 #: ui/slint/src/main_content/search.slint:108
 msgid "Search Songs"
-msgstr ""
+msgstr "Etsi Kappaleita"
 
 #: ui/slint/src/main_content/search.slint:109
 msgid "Search Albums"
-msgstr ""
+msgstr "Hae Albumeita"
 
 #: ui/slint/src/main_content/search.slint:110
 msgid "Search Artists"
-msgstr ""
+msgstr "Hae Esittäjiä"
 
 #: ui/slint/src/main_content/search.slint:111
 msgid "Search Playlists"
-msgstr ""
+msgstr "Etsi Soittolistoja"
 
 #: ui/slint/src/main_content/search.slint:112
 msgid "Search Genres"
-msgstr ""
+msgstr "Etsi Tyylit"
 
 #: ui/slint/src/main_content/search.slint:234
 msgid "Not logged in"
-msgstr ""
+msgstr "Ei kirjautunut sisään"
 
 #: ui/slint/src/main_content/search.slint:244
 msgid "Please log in to your account to view search results."
-msgstr ""
+msgstr "Ole hyvä ja kirjaudu sisään tilillesi nähdäksesi hakutulokset."
 
 #: ui/slint/src/settings/button_group.slint:129
 msgid "Confirm Action"
-msgstr ""
+msgstr "Vahvista Toiminto"
 
 #: ui/slint/src/settings/button_group.slint:134
 msgid "Are you sure you want to {}? This cannot be undone."
-msgstr ""
+msgstr "Oletko varma, että haluat {}? Tätä ei voi perua."
 
 #: ui/slint/src/settings/button_group.slint:153
 msgid "Confirm"
-msgstr ""
+msgstr "Vahvista"
 
 #: ui/slint/src/settings/extensions.slint:113
 msgid "Extension Details"
-msgstr ""
+msgstr "Laajennuksen Tiedot"
 
 #: ui/slint/src/settings/settings.slint:44
 msgid "Settings Paths"
-msgstr ""
+msgstr "Asetusten Polut"
 
 #: ui/slint/src/settings/settings.slint:50
 msgid "Settings System"
-msgstr ""
+msgstr "Asetusten Järjestelmä"
 
 #: ui/slint/src/settings/settings.slint:56
 msgid "Settings Extensions"
-msgstr ""
+msgstr "Asetusten Lisäosat"
 
 #: ui/slint/src/settings/settings.slint:62
 msgid "Settings Themes"
-msgstr ""
+msgstr "Asetusten Teemat"
 
 #: ui/slint/src/sidebar/sidebar_header.slint:18
 msgid "Toggle Sidebar"
-msgstr ""
+msgstr "Vaihda Sivupalkkia"
 
 #: ui/slint/src/sidebar/sidebar.slint:57
 msgid "Sidebar Songs"
-msgstr ""
+msgstr "Sivupalkin Kappaleet"
 
 #: ui/slint/src/sidebar/sidebar.slint:63
 msgid "Sidebar Playlists"
-msgstr ""
+msgstr "Sivupalkin Soittolistat"
 
 #: ui/slint/src/sidebar/sidebar.slint:69
 msgid "Sidebar Artists"
-msgstr ""
+msgstr "Sivupalkin Esittäjät"
 
 #: ui/slint/src/sidebar/sidebar.slint:75
 msgid "Sidebar Albums"
-msgstr ""
+msgstr "Sivupalkin Albumit"
 
 #: ui/slint/src/sidebar/sidebar.slint:81
 msgid "Sidebar Genres"
-msgstr ""
+msgstr "Sidebar Genres"
 
 #: ui/slint/src/sidebar/sidebar.slint:87
 msgid "Sidebar Explore"
-msgstr ""
+msgstr "Sidebar Explore"
 
 #: ui/slint/src/topbar/nav_buttons.slint:16
 msgid "Back"
-msgstr ""
+msgstr "Takaisin"
 
 #: ui/slint/src/topbar/nav_buttons.slint:27
 msgid "Forward"
-msgstr ""
+msgstr "Eteenpäin"
 
 #: ui/slint/src/topbar/top_bar.slint:88
 msgid "Settings"
-msgstr ""
+msgstr "Asetukset"
 
 #: ui/slint/src/main_content/search.slint:278
 msgid "No results found"
-msgstr ""
+msgstr "Tuloksia ei löytynyt"
 

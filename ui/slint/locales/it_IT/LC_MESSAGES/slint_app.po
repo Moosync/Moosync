@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: moosync\n"
 "POT-Creation-Date: 2026-08-24 20:45+0000\n"
-"PO-Revision-Date: 2026-10-01 04:50\n"
+"PO-Revision-Date: 2026-10-01 22:27\n"
 "Language: it_IT\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -369,277 +369,277 @@ msgstr "Volume"
 
 #: ui/slint/src/common/accounts_popup.slint:14
 msgid "Login"
-msgstr ""
+msgstr "Accedi"
 
 #: ui/slint/src/common/accounts_popup.slint:14
 msgid "Logout"
-msgstr ""
+msgstr "Esci"
 
 #: ui/slint/src/common/accounts_popup.slint:80
 msgid "No accounts configured"
-msgstr ""
+msgstr "Nessun account configurato"
 
 #: ui/slint/src/common/extension_details_modal.slint:25
 msgid "Playlist Songs"
-msgstr ""
+msgstr "Brani Della Playlist"
 
 #: ui/slint/src/common/extension_details_modal.slint:28
 msgid "Artist Songs"
-msgstr ""
+msgstr "Brani D'Artista"
 
 #: ui/slint/src/common/extension_details_modal.slint:31
 msgid "Album Songs"
-msgstr ""
+msgstr "Canzoni Dell'Album"
 
 #: ui/slint/src/common/extension_details_modal.slint:34
 msgid "Recommendations"
-msgstr ""
+msgstr "Raccomandazioni"
 
 #: ui/slint/src/common/extension_details_modal.slint:37
 msgid "Scrobble"
-msgstr ""
+msgstr "Scrobble"
 
 #: ui/slint/src/common/extension_details_modal.slint:40
 msgid "Playlist from URL"
-msgstr ""
+msgstr "Playlist da URL"
 
 #: ui/slint/src/common/extension_details_modal.slint:43
 msgid "Song from URL"
-msgstr ""
+msgstr "Brano dall'URL"
 
 #: ui/slint/src/common/extension_details_modal.slint:46
 msgid "Playback Details"
-msgstr ""
+msgstr "Dettagli Di Riproduzione"
 
 #: ui/slint/src/common/extension_details_modal.slint:49
 msgid "Lyrics"
-msgstr ""
+msgstr "Testi"
 
 #: ui/slint/src/common/extension_details_modal.slint:52
 msgid "Song Context Menu"
-msgstr ""
+msgstr "Menu Contestuale Brano"
 
 #: ui/slint/src/common/extension_details_modal.slint:55
 msgid "Playlist Context Menu"
-msgstr ""
+msgstr "Menu Contesto Scaletta"
 
 #: ui/slint/src/common/extension_details_modal.slint:58
 msgid "Accounts"
-msgstr ""
+msgstr "Account"
 
 #: ui/slint/src/common/extension_details_modal.slint:61
 msgid "Song Database Events"
-msgstr ""
+msgstr "Eventi Del Database Brano"
 
 #: ui/slint/src/common/extension_details_modal.slint:64
 msgid "Playlist Database Events"
-msgstr ""
+msgstr "Eventi Database Playlist"
 
 #: ui/slint/src/common/extension_details_modal.slint:67
 msgid "Player UI Events"
-msgstr ""
+msgstr "Eventi UI Giocatore"
 
 #: ui/slint/src/common/extension_details_modal.slint:70
 msgid "Player Data Events"
-msgstr ""
+msgstr "Eventi Dati Giocatore"
 
 #: ui/slint/src/common/extension_details_modal.slint:72
 msgid "Unknown Scope"
-msgstr ""
+msgstr "Ambito Sconosciuto"
 
 #: ui/slint/src/common/extension_details_modal.slint:123
 msgid "By "
-msgstr ""
+msgstr "Da "
 
 #: ui/slint/src/common/extension_details_modal.slint:147
 msgid "Network Permissions"
-msgstr ""
+msgstr "Permessi Di Rete"
 
 #: ui/slint/src/common/extension_details_modal.slint:155
 msgid "No network permissions requested."
-msgstr ""
+msgstr "Nessuna autorizzazione di rete richiesta."
 
 #: ui/slint/src/common/extension_details_modal.slint:163
 msgid "Network Host: "
-msgstr ""
+msgstr "Host Di Rete: "
 
 #: ui/slint/src/common/extension_details_modal.slint:172
 msgid "Filesystem Permissions"
-msgstr ""
+msgstr "Permessi Filesystem"
 
 #: ui/slint/src/common/extension_details_modal.slint:180
 msgid "No filesystem permissions requested."
-msgstr ""
+msgstr "Nessun permesso di filesystem richiesto."
 
 #: ui/slint/src/common/extension_details_modal.slint:188
 msgid "Filesystem Path: "
-msgstr ""
+msgstr "Percorso Filesystem: "
 
 #: ui/slint/src/common/extension_details_modal.slint:197
 msgid "Provider Scopes"
-msgstr ""
+msgstr "Ambiti Provider"
 
 #: ui/slint/src/common/extension_details_modal.slint:205
 msgid "No provider scopes registered."
-msgstr ""
+msgstr "Nessun ambito provider registrato."
 
 #: ui/slint/src/common/extension_details_modal.slint:224
 msgid "Scope: "
-msgstr ""
+msgstr "Ampiezza: "
 
 #: ui/slint/src/common/extension_details_modal.slint:239
 msgid "Close"
-msgstr ""
+msgstr "Chiudi"
 
 #: ui/slint/src/common/extension_details_modal.slint:240
 msgid "Close Extension Details"
-msgstr ""
+msgstr "Chiudi Dettagli Estensione"
 
 #: ui/slint/src/common/oauth_modal.slint:33
 msgid "Account Login"
-msgstr ""
+msgstr "Login Account"
 
 #: ui/slint/src/common/oauth_modal.slint:40
 msgid "If the browser did not open automatically, copy the URL below:"
-msgstr ""
+msgstr "Se il browser non si è aperto automaticamente, copiare l'URL qui sotto:"
 
 #: ui/slint/src/common/oauth_modal.slint:72
 msgid "Authorization Code / Callback URL"
-msgstr ""
+msgstr "Codice Di Autorizzazione / Url Di Callback"
 
 #: ui/slint/src/common/oauth_modal.slint:74
 msgid "Paste the code or redirected URL here"
-msgstr ""
+msgstr "Incolla qui il codice o l'URL reindirizzato"
 
 #: ui/slint/src/common/oauth_modal.slint:84
 msgid "Submit"
-msgstr ""
+msgstr "Invia"
 
 #: ui/slint/src/main_content/lyrics_view.slint:79
 msgid "Synced"
-msgstr ""
+msgstr "Sincronizzato"
 
 #: ui/slint/src/main_content/lyrics_view.slint:79
 msgid "Plain"
-msgstr ""
+msgstr "Semplice"
 
 #: ui/slint/src/main_content/lyrics_view.slint:91
 msgid "Show Details"
-msgstr ""
+msgstr "Mostra Dettagli"
 
 #: ui/slint/src/main_content/lyrics_view.slint:114
 msgid "Loading lyrics..."
-msgstr ""
+msgstr "Caricamento testi..."
 
 #: ui/slint/src/main_content/lyrics_view.slint:124
 msgid "No lyrics available"
-msgstr ""
+msgstr "Nessun testo disponibile"
 
 #: ui/slint/src/main_content/queue_page.slint:159
 msgid "Remove from queue"
-msgstr ""
+msgstr "Rimuovi dalla coda"
 
 #: ui/slint/src/main_content/search.slint:108
 msgid "Search Songs"
-msgstr ""
+msgstr "Cerca Brani"
 
 #: ui/slint/src/main_content/search.slint:109
 msgid "Search Albums"
-msgstr ""
+msgstr "Cerca Album"
 
 #: ui/slint/src/main_content/search.slint:110
 msgid "Search Artists"
-msgstr ""
+msgstr "Cerca Artisti"
 
 #: ui/slint/src/main_content/search.slint:111
 msgid "Search Playlists"
-msgstr ""
+msgstr "Cerca Scalette"
 
 #: ui/slint/src/main_content/search.slint:112
 msgid "Search Genres"
-msgstr ""
+msgstr "Cerca Generi"
 
 #: ui/slint/src/main_content/search.slint:234
 msgid "Not logged in"
-msgstr ""
+msgstr "Accesso non effettuato"
 
 #: ui/slint/src/main_content/search.slint:244
 msgid "Please log in to your account to view search results."
-msgstr ""
+msgstr "Accedi al tuo account per visualizzare i risultati della ricerca."
 
 #: ui/slint/src/settings/button_group.slint:129
 msgid "Confirm Action"
-msgstr ""
+msgstr "Conferma Azione"
 
 #: ui/slint/src/settings/button_group.slint:134
 msgid "Are you sure you want to {}? This cannot be undone."
-msgstr ""
+msgstr "Sei sicuro di voler {}? Questo non può essere annullato."
 
 #: ui/slint/src/settings/button_group.slint:153
 msgid "Confirm"
-msgstr ""
+msgstr "Conferma"
 
 #: ui/slint/src/settings/extensions.slint:113
 msgid "Extension Details"
-msgstr ""
+msgstr "Dettagli Estensione"
 
 #: ui/slint/src/settings/settings.slint:44
 msgid "Settings Paths"
-msgstr ""
+msgstr "Impostazioni Percorsi"
 
 #: ui/slint/src/settings/settings.slint:50
 msgid "Settings System"
-msgstr ""
+msgstr "Impostazioni Sistema"
 
 #: ui/slint/src/settings/settings.slint:56
 msgid "Settings Extensions"
-msgstr ""
+msgstr "Estensioni Impostazioni"
 
 #: ui/slint/src/settings/settings.slint:62
 msgid "Settings Themes"
-msgstr ""
+msgstr "Impostazioni Temi"
 
 #: ui/slint/src/sidebar/sidebar_header.slint:18
 msgid "Toggle Sidebar"
-msgstr ""
+msgstr "Attiva/Disattiva Barra Laterale"
 
 #: ui/slint/src/sidebar/sidebar.slint:57
 msgid "Sidebar Songs"
-msgstr ""
+msgstr "Brani Barra Laterale"
 
 #: ui/slint/src/sidebar/sidebar.slint:63
 msgid "Sidebar Playlists"
-msgstr ""
+msgstr "Scalette Barra Laterale"
 
 #: ui/slint/src/sidebar/sidebar.slint:69
 msgid "Sidebar Artists"
-msgstr ""
+msgstr "Artisti Barra Laterale"
 
 #: ui/slint/src/sidebar/sidebar.slint:75
 msgid "Sidebar Albums"
-msgstr ""
+msgstr "Album Barra Laterale"
 
 #: ui/slint/src/sidebar/sidebar.slint:81
 msgid "Sidebar Genres"
-msgstr ""
+msgstr "Sidebar Genres"
 
 #: ui/slint/src/sidebar/sidebar.slint:87
 msgid "Sidebar Explore"
-msgstr ""
+msgstr "Sidebar Explore"
 
 #: ui/slint/src/topbar/nav_buttons.slint:16
 msgid "Back"
-msgstr ""
+msgstr "Indietro"
 
 #: ui/slint/src/topbar/nav_buttons.slint:27
 msgid "Forward"
-msgstr ""
+msgstr "Avanti"
 
 #: ui/slint/src/topbar/top_bar.slint:88
 msgid "Settings"
-msgstr ""
+msgstr "Impostazioni"
 
 #: ui/slint/src/main_content/search.slint:278
 msgid "No results found"
-msgstr ""
+msgstr "Nessun risultato trovato"
 

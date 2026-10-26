@@ -27,17 +27,8 @@ export component SpeakerButton inherits Button {
                 Image {
                     width: Theme.playbackControlsIconSize;
                     height: Theme.playbackControlsIconSize;
-                    source: @image-url("../icons/volume.svg");
+                    source: root.volume == 0 ? @image-url("../icons/volume_mute.svg") : @image-url("../icons/volume.svg");
                     colorize: root.current_color;
-                }
-
-                if (volume == 0): Path {
-                    width: Theme.playbackControlsIconSize;
-                    height: Theme.playbackControlsIconSize;
-                    viewbox-width: 8;
-                    viewbox-height: 8;
-                    fill: root.current_color;
-                    commands: "M 0.5 0 L 8 7.5 L 7.5 8 L 0 0.5 Z";
                 }
             }
         }

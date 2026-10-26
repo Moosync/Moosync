@@ -1,22 +1,7 @@
 import { Theme } from "../constants.slint";
 import { PreferenceItem } from "preferences.slint";
 import { AppCallbacks } from "../callbacks.slint";
-import { Button } from "../common/button.slint";
-
-component BrowseButton inherits Button {
-    has_custom_layout: true;
-    border-radius: Theme.borderRadiusSm;
-    background: root.has_hover ? Theme.textPrimary.with-alpha(0.08) : transparent;
-
-    HorizontalLayout {
-        padding: 10px;
-        Image {
-            source: @image-url("../icons/folder.svg");
-            colorize: Theme.textPrimary;
-            width: Theme.iconSizeMd;
-        }
-    }
-}
+import { IconButton } from "../common/icon_button.slint";
 
 export component SingleFileInput inherits VerticalLayout {
     in property <PreferenceItem> preference;
@@ -65,7 +50,9 @@ export component SingleFileInput inherits VerticalLayout {
                     font-size: Theme.caption;
                 }
 
-                BrowseButton {
+                IconButton {
+                    icon_source: @image-url("../icons/folder.svg");
+                    icon_color: Theme.textPrimary;
                     clicked => {
                         let chosen = AppCallbacks.open_directory_picker();
                         if (chosen != "") {

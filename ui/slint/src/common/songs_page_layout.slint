@@ -5,21 +5,14 @@ import { SongListView } from "song_list_view.slint";
 import { SongDetails } from "song_details.slint";
 import { Constants, Theme } from "../constants.slint";
 import { AppCallbacks } from "../callbacks.slint";
-import { Button } from "button.slint";
+import { IconButton } from "icon_button.slint";
 
-export component SongActionButton inherits Button {
-    has_custom_layout: true;
+export component SongActionButton inherits IconButton {
     width: 32px;
     height: 32px;
-    border-radius: Theme.borderRadiusMd;
+    icon_size: 20px;
     background: root.has_hover ? Theme.secondary : transparent;
-
-    Image {
-        width: 20px;
-        height: 20px;
-        source: root.icon;
-        colorize: root.has_hover ? Theme.accent.brighter(0.2) : Theme.accent;
-    }
+    icon_color: root.has_hover ? Theme.accent.brighter(0.2) : Theme.accent;
 }
 
 export component SongsPageLayout inherits Rectangle {

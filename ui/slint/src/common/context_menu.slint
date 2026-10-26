@@ -19,18 +19,31 @@ export component ContextMenu inherits TouchArea {
 
     property <bool> has_active_submenu: active_submenu_index >= 0 && active_submenu_index < items.length && (items[active_submenu_index].has_sub_menu || items[active_submenu_index].sub_items.length > 0);
     property <length> submenu_height: has_active_submenu ? (items[active_submenu_index].sub_items.length * item_height + Math.max(0, items[active_submenu_index].sub_items.length - 1) * Theme.spacingTiny + Theme.paddingXs * 2) : 0px;
-    property <length> submenu_y: has_active_submenu ? (active_submenu_index * (item_height + Theme.spacingTiny)) : 0px;
-    property <length> popup_height: Math.max(estimated_height, submenu_y + submenu_height);
-    property <length> total_width: has_active_submenu ? (menu_width * 2 + Theme.spacingTiny) : menu_width;
 
     property <length> global_x: root.absolute-position.x + requested_x;
     property <length> global_y: root.absolute-position.y + requested_y;
 
-    property <length> clamped_global_x: Math.max(Theme.paddingXs, Math.min(WindowInfo.window-width - total_width - Theme.paddingXs, global_x));
-    property <length> clamped_global_y: Math.max(Theme.paddingXs, Math.min(WindowInfo.window-height - popup_height - Theme.paddingXs, global_y));
+    property <length> main_menu_global_x: Math.max(Theme.paddingXs, Math.min(WindowInfo.window-width - menu_width - Theme.paddingXs, global_x));
+    property <length> main_menu_global_y: Math.max(Theme.paddingXs, Math.min(WindowInfo.window-height - estimated_height - Theme.paddingXs, global_y));
 
-    property <length> clamped_x: clamped_global_x - root.absolute-position.x;
-    property <length> clamped_y: clamped_global_y - root.absolute-position.y;
+    property <bool> submenu_fits_right: main_menu_global_x + menu_width + Theme.spacingTiny + menu_width + Theme.paddingXs <= WindowInfo.window-width;
+    property <bool> open_left: has_active_submenu && !submenu_fits_right;
+
+    property <length> popup_global_x: open_left ? Math.max(Theme.paddingXs, main_menu_global_x - menu_width - Theme.spacingTiny) : main_menu_global_x;
+    property <length> popup_global_y: main_menu_global_y;
+
+    property <length> main_menu_rel_x: main_menu_global_x - popup_global_x;
+    property <length> submenu_rel_x: open_left ? 0px : (menu_width + Theme.spacingTiny);
+
+    property <length> submenu_raw_y: has_active_submenu ? (active_submenu_index * (item_height + Theme.spacingTiny)) : 0px;
+    property <length> submenu_overflow_y: Math.max(0px, (main_menu_global_y + submenu_raw_y + submenu_height + Theme.paddingXs) - WindowInfo.window-height);
+    property <length> submenu_y: Math.max(0px, submenu_raw_y - submenu_overflow_y);
+
+    property <length> total_width: has_active_submenu ? (menu_width * 2 + Theme.spacingTiny) : menu_width;
+    property <length> popup_height: Math.max(estimated_height, submenu_y + submenu_height);
+
+    property <length> popup_x: popup_global_x - root.absolute-position.x;
+    property <length> popup_y: popup_global_y - root.absolute-position.y;
 
     property <int> active_submenu_index: -1;
 
@@ -58,14 +71,14 @@ export component ContextMenu inherits TouchArea {
     }
 
     popup := PopupWindow {
-        x: root.clamped_x;
-        y: root.clamped_y;
+        x: root.popup_x;
+        y: root.popup_y;
         width: root.total_width;
         height: root.popup_height;
 
         // Main Menu Box
         Rectangle {
-            x: 0px;
+            x: root.main_menu_rel_x;
             y: 0px;
             width: root.menu_width;
             height: root.estimated_height;
@@ -161,7 +174,7 @@ export component ContextMenu inherits TouchArea {
 
         // Submenu Box (aligned vertically with the parent item)
         if (root.has_active_submenu): Rectangle {
-            x: root.menu_width + Theme.spacingTiny;
+            x: root.submenu_rel_x;
             y: root.submenu_y;
             width: root.menu_width;
             height: root.submenu_height;

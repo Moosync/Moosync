@@ -98,8 +98,6 @@ pub struct MprisHolder {
     pub event_rx: Arc<Mutex<Receiver<crate::MediaControlEvent>>>,
     last_duration: Mutex<u64>,
     last_state: Mutex<PlayerState>,
-    #[cfg(target_os = "windows")]
-    _dummy_window: Option<crate::win32::DummyWindow>,
 }
 
 #[plugin_macro::generate]
@@ -116,7 +114,8 @@ impl MprisHolder {
     pub fn new() -> Result<MprisHolder, MprisError> {
         #[cfg(target_os = "windows")]
         {
-            // If we cannot determine wine support, just default to assuming it is wine
+            // If we cannot determine wine support, just default to assuming it
+            // is wine
             let is_wine = is_wine::try_is_wine().unwrap_or(true);
             if is_wine {
                 let context = Box::new(DummyContext {});
@@ -157,8 +156,6 @@ impl MprisHolder {
             event_rx: Arc::new(Mutex::new(event_rx)),
             last_duration: Mutex::new(0),
             last_state: Mutex::new(PlayerState::Stopped),
-            #[cfg(target_os = "windows")]
-            _dummy_window: None,
         })
     }
 

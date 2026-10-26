@@ -85,10 +85,31 @@ impl SouvlakiMprisContext {
         let hwnd = None;
 
         #[cfg(target_os = "windows")]
-        let (hwnd, _dummy_window) = {
-            let dummy_window = crate::win32::DummyWindow::new().unwrap();
-            let handle = Some(dummy_window.handle.0 as _);
-            (handle, dummy_window)
+        let hwnd = {
+            let (tx, rx) = std::sync::mpsc::channel();
+            std::thread::spawn(move || {
+                let dummy_window = match crate::win32::DummyWindow::new() {
+                    Ok(w) => w,
+                    Err(e) => {
+                        tracing::error!("Failed to create dummy window: {e}");
+                        let _ = tx.send(None);
+                        return;
+                    }
+                };
+                let raw_addr = dummy_window.handle.0 as usize;
+                let _ = tx.send(Some(raw_addr));
+
+                loop {
+                    std::thread::sleep(std::time::Duration::from_millis(100));
+                    crate::win32::pump_event_queue();
+                }
+            });
+
+            rx.recv()
+                .map_err(|e| {
+                    MprisError::InitFailed(format!("Failed to receive dummy window: {e}"))
+                })?
+                .map(|addr| addr as *mut std::ffi::c_void)
         };
 
         let config = PlatformConfig {
@@ -99,15 +120,6 @@ impl SouvlakiMprisContext {
 
         let controls =
             MediaControls::new(config).map_err(|e| MprisError::InitFailed(format!("{:?}", e)))?;
-
-        #[cfg(target_os = "windows")]
-        std::thread::spawn(move || {
-            loop {
-                std::thread::sleep(std::time::Duration::from_millis(100));
-                #[cfg(target_os = "windows")]
-                crate::win32::pump_event_queue();
-            }
-        });
 
         Ok(Self { controls })
     }

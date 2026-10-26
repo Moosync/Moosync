@@ -10,7 +10,7 @@ use windows::{
             WINDOW_EX_STYLE, WINDOW_STYLE, WM_QUIT, WNDCLASSEXW,
         },
     },
-    w,
+    core::w,
 };
 
 pub struct DummyWindow {
@@ -28,7 +28,7 @@ impl DummyWindow {
 
             let wnd_class = WNDCLASSEXW {
                 cbSize: mem::size_of::<WNDCLASSEXW>() as u32,
-                hInstance: instance,
+                hInstance: instance.into(),
                 lpszClassName: class_name,
                 lpfnWndProc: Some(Self::wnd_proc),
                 ..Default::default()
@@ -41,7 +41,7 @@ impl DummyWindow {
                 ));
             }
 
-            let handle = CreateWindowExW(
+            CreateWindowExW(
                 WINDOW_EX_STYLE::default(),
                 class_name,
                 w!(""),
@@ -52,23 +52,16 @@ impl DummyWindow {
                 0,
                 None,
                 None,
-                instance,
+                Some(instance.into()),
                 None,
-            );
-
-            if handle.0 == 0 {
-                return Err(format!(
-                    "Message only window creation failed: {}",
-                    Error::last_os_error()
-                ));
-            }
-
-            Ok(handle)
+            )
+            .map_err(|e| format!("Message only window creation failed: {e}"))
         };
 
         handle_result.map(|handle| DummyWindow { handle })
     }
-    #[tracing::instrument(level = "debug", skip(hwnd, msg, wparam, lparam))]
+
+    #[tracing::instrument(level = "debug", skip_all)]
     extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
         unsafe { DefWindowProcW(hwnd, msg, wparam, lparam) }
     }
@@ -78,7 +71,7 @@ impl Drop for DummyWindow {
     #[tracing::instrument(level = "debug", skip_all)]
     fn drop(&mut self) {
         unsafe {
-            DestroyWindow(self.handle);
+            let _ = DestroyWindow(self.handle);
         }
     }
 }
@@ -90,7 +83,7 @@ pub fn pump_event_queue() -> bool {
         let mut has_message = PeekMessageW(&mut msg, None, 0, 0, PM_REMOVE).as_bool();
         while msg.message != WM_QUIT && has_message {
             if !IsDialogMessageW(GetAncestor(msg.hwnd, GA_ROOT), &msg).as_bool() {
-                TranslateMessage(&msg);
+                let _ = TranslateMessage(&msg);
                 DispatchMessageW(&msg);
             }
 

@@ -5412,7 +5412,7 @@ dependencies = [
  "uuid",
  "vergen",
  "whoami",
- "windows 0.44.0",
+ "windows 0.62.2",
  "wiremock",
  "zip-extensions",
 ]

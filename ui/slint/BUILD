@@ -46,6 +46,8 @@ SRC_LIST = [
     "src/settings/utils.rs",
     "src/settings/utils_test.rs",
     "src/test_utils.rs",
+    "src/utils/autostart.rs",
+    "src/utils/autostart_test.rs",
     "src/utils/context_menu.rs",
     "src/utils/context_menu_test.rs",
     "src/utils/entity_content.rs",
@@ -324,6 +326,7 @@ rust_library(
     ] + select({
         "@platforms//os:android": [],
         "//conditions:default": [
+            "@crates//:auto-launch",
             "@crates//:rfd",
             "@crates//:sysuri",
             "@crates//:tracing-tracy",

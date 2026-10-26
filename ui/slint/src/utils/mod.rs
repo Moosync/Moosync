@@ -1,3 +1,4 @@
+pub mod autostart;
 pub mod context_menu;
 pub mod entity_content;
 pub mod entity_list;
@@ -12,6 +13,7 @@ pub mod queue;
 pub mod selection;
 pub mod validation;
 
+pub use autostart::*;
 pub use context_menu::*;
 pub use entity_content::*;
 pub use entity_list::*;
@@ -25,6 +27,8 @@ pub use queue::*;
 pub use selection::*;
 pub use validation::*;
 
+#[cfg(test)]
+mod autostart_test;
 #[cfg(test)]
 mod context_menu_test;
 #[cfg(test)]

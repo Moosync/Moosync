@@ -15,7 +15,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use extensions_proto::moosync::types::{PreferenceArgs, PreferenceChangedRequest};
-use preferences::keys::{I18N_LANGUAGE, PreferenceItemExt};
+use preferences::keys::{AUTO_STARTUP, I18N_LANGUAGE, PreferenceItemExt};
 use preferences_proto::moosync::types::PreferenceItem as ProtoPreferenceItem;
 #[cfg(not(target_os = "android"))]
 use rfd::FileDialog;
@@ -29,6 +29,7 @@ use crate::{
     settings::{
         extensions::ExtensionsPageHandler, paths::PathsPageHandler, system::SystemPageHandler,
     },
+    utils::autostart::update_auto_startup,
 };
 
 pub mod extensions;
@@ -245,6 +246,9 @@ pub async fn handle_preference_change(
     if key == I18N_LANGUAGE.id {
         let _ = slint::select_bundled_translation(&value_string);
     }
+    if key == AUTO_STARTUP.id {
+        update_auto_startup(value_bool);
+    }
 
     let val =
         compute_updated_preference_value(&item, value_string, value_bool, value_number, value_list);
@@ -268,6 +272,13 @@ pub fn setup_settings(main_window: &'static MainWindow, state_manager: &'static 
         .value::<String>()
         .unwrap_or_else(|| "en_US".to_string());
     let _ = slint::select_bundled_translation(&initial_lang);
+
+    let auto_startup_enabled = state_manager
+        .get_preference_config()
+        .load(&AUTO_STARTUP)
+        .value::<bool>()
+        .unwrap_or(false);
+    update_auto_startup(auto_startup_enabled);
 
     let paths_handler = PathsPageHandler::new(main_window, state_manager);
     let system_handler = SystemPageHandler::new(main_window, state_manager);

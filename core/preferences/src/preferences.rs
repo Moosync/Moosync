@@ -24,11 +24,11 @@ use std::{
 };
 
 #[cfg(not(target_os = "android"))]
+use chacha20poly1305::Nonce;
 use chacha20poly1305::{
-    AeadCore, KeySizeUser,
-    aead::{Aead, generic_array::GenericArray},
+    ChaCha20Poly1305, Key, KeyInit,
+    aead::{Aead, Generate},
 };
-use chacha20poly1305::{ChaCha20Poly1305, Key, KeyInit, aead::OsRng};
 use preferences_proto::moosync::types::{PreferenceItem, PreferenceValue, preference_value};
 use prost::Message;
 use types::{
@@ -84,16 +84,14 @@ impl PreferenceConfig {
         let secret = match context.get_secret() {
             Ok(password) => {
                 tracing::debug!("Got keystore password");
-                Key::from(GenericArray::clone_from_slice(
-                    &password[0..ChaCha20Poly1305::key_size()],
-                ))
+                Key::try_from(&password[0..32]).unwrap()
             }
             Err(e) => {
                 tracing::warn!(
                     "Error getting keystore password: {:?} (May happen if the app is run for the first time)",
                     e
                 );
-                let key = ChaCha20Poly1305::generate_key(&mut OsRng);
+                let key = Key::generate();
                 context
                     .set_secret(key.as_slice())
                     .map_err(PreferencesError::Keyring)?;
@@ -107,7 +105,7 @@ impl PreferenceConfig {
         };
 
         #[cfg(target_os = "android")]
-        let secret = ChaCha20Poly1305::generate_key(&mut OsRng);
+        let secret = Key::generate();
 
         let mut map = HashMap::new();
         if config_file_path.exists() {
@@ -158,9 +156,10 @@ impl PreferenceConfig {
             let nonce_str = split
                 .next()
                 .ok_or_else(|| PreferencesError::KeyNotFound(key.clone()))?;
-            let nonce = GenericArray::clone_from_slice(
+            let nonce = Nonce::try_from(
                 &hex::decode(nonce_str).map_err(PreferencesError::HexDecode)?[0..12],
-            );
+            )
+            .unwrap();
             let ciphertext_str = split
                 .next()
                 .ok_or_else(|| PreferencesError::KeyNotFound(key))?;
@@ -208,7 +207,7 @@ impl PreferenceConfig {
             let val = value.unwrap();
             let secret = self.secret.lock().unwrap();
             let cipher = ChaCha20Poly1305::new(&secret);
-            let nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng);
+            let nonce = Nonce::generate();
             let serialized = val.encode_to_vec();
             let encrypted = cipher
                 .encrypt(&nonce, serialized.as_slice())

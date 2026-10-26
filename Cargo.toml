@@ -16,7 +16,7 @@ assertables = "10.1.0"
 auto-launch = "0.6.0"
 bitcode = "0.6.9"
 blake3 = { version = "1.8.7", default-features = false }
-chacha20poly1305 = "0.10.1"
+chacha20poly1305 = "0.11.0"
 criterion = "0.5.1"
 crossbeam-channel = "0.5.17"
 csscolorparser = "0.9.0"
@@ -90,6 +90,5 @@ sysuri = "0.4.0"
 zip-extensions = "0.14.1"
 
 # Git dependencies
-librespot = { git = "https://github.com/librespot-org/librespot", rev = "99b6088bf3ea028f90192676ac1a337fa4b2ed12", default-features = false, features = ["rodio-backend", "native-tls"] }
-rodio = { git = "https://github.com/RustAudio/rodio", rev = "ffa1d8a2e5fc3efdec2c675eecca8f1f4be4e0f2", default-features = false, features = ["playback"] }
+rodio = { git = "https://github.com/RustAudio/rodio", rev = "685e05765c2aff8fbb51e32cda5b18428d09ffbe", default-features = false, features = ["playback"] }
 rsmpeg = { git = "https://github.com/aegroto/rsmpeg", rev = "a1f06d4c2c87e938bb6f84d66bb9c5afe4a006ed", default-features = false, features = ["ffmpeg8"] }

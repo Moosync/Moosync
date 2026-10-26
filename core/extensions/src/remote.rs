@@ -150,6 +150,7 @@ impl RemoteExtensions {
             let chunk = chunk_result?;
             file.write_all(&chunk).await?;
         }
+        file.flush().await?;
 
         tracing::info!("Wrote file");
 

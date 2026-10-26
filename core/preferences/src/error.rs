@@ -25,10 +25,10 @@ pub enum PreferencesError {
     Keyring(#[from] keyring::Error),
 
     #[error("Decryption failed: {0}")]
-    Decryption(chacha20poly1305::aead::Error),
+    Decryption(chacha20poly1305::Error),
 
     #[error("Encryption failed: {0}")]
-    Encryption(chacha20poly1305::aead::Error),
+    Encryption(chacha20poly1305::Error),
 
     #[error("Hex decode failed: {0}")]
     HexDecode(#[from] hex::FromHexError),

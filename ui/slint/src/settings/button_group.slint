@@ -1,5 +1,6 @@
 import { Theme } from "../constants.slint";
 import { Button } from "../common/button.slint";
+import { PillButton } from "../common/pill_button.slint";
 
 export struct ButtonItem {
     id: string,
@@ -8,13 +9,11 @@ export struct ButtonItem {
     is_neutral: bool,
 }
 
-export component GroupActionButton inherits Button {
+export component GroupActionButton inherits PillButton {
     in property <bool> is_destructive: false;
     in property <bool> is_neutral: false;
 
     has_custom_layout: true;
-    height: Theme.textInputHeight;
-    border-radius: Theme.borderRadiusXl;
     border-width: Theme.borderWidth;
     border-color: is_destructive ? (root.has_hover ? Theme.danger : Theme.textSecondary) : is_neutral ? Theme.secondary : Theme.accent;
     background: is_destructive ? (root.pressed ? Theme.danger : transparent) : is_neutral ? Theme.secondary : Theme.accent;

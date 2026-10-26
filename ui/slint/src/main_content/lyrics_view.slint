@@ -89,6 +89,7 @@ export component LyricsView inherits HorizontalLayout {
             TouchArea {
                 accessible-role: button;
                 accessible-label: @tr("Show Details");
+                mouse-cursor: pointer;
                 clicked => {
                     QueuePageProps.show_lyrics = false;
                 }

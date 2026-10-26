@@ -1,5 +1,6 @@
 use std::sync::LazyLock;
 
+use i_slint_backend_testing::ElementHandle;
 use preferences::keys::{
     ARTIST_SPLITTER, ARTWORK_PATH, AUTO_STARTUP, CLEAR_QUEUE, EXCLUDE_MUSIC_PATHS,
     EXTENSION_REGISTRIES, I18N_LANGUAGE, MINIMIZE_TO_TRAY, MUSIC_PATHS, PreferenceItemExt,
@@ -406,6 +407,55 @@ parameterized_test!(
     ),
 );
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_preference_language_translation_switch(
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) {
+    main_window
+        .global::<SettingsState>()
+        .set_show_settings(true);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_toggled(true);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_active_page_changed(SettingsPages::System);
+
+    let initial_rendered = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Settings System").count() > 0
+    })
+    .await;
+    assert!(initial_rendered);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_preference_changed(PreferenceChange {
+            id: "i18n_language".into(),
+            value_string: "fr_FR".into(),
+            value_bool: false,
+            value_number: 0.0,
+            value_list: ModelRc::default(),
+        });
+
+    let config = state_manager.get_preference_config();
+    let saved = wait_until(|| {
+        config
+            .load(&I18N_LANGUAGE)
+            .value::<String>()
+            .is_some_and(|val| val == "fr_FR")
+    })
+    .await;
+    assert!(saved);
+
+    let translated = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Paramètres système").count() > 0
+    })
+    .await;
+    assert!(translated);
+}
+
 integration_test!(
     test_preference_extension_registries => do_preference_extension_registries,
+    test_preference_language_translation_switch => do_preference_language_translation_switch,
 );

@@ -2,7 +2,7 @@ import { Theme } from "../constants.slint";
 import { ScrollView } from "std-widgets.slint";
 import { PreferenceItem } from "preferences.slint";
 import { AppCallbacks } from "../callbacks.slint";
-import { Button } from "../common/button.slint";
+import { PillButton } from "../common/pill_button.slint";
 import { IconButton } from "../common/icon_button.slint";
 
 export component PathSelector {
@@ -32,7 +32,7 @@ export component PathSelector {
                 }
             }
 
-            Button {
+            PillButton {
                 text: @tr("Add folder");
                 icon: @image-url("../icons/plus.svg");
                 clicked => {

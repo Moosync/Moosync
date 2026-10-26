@@ -244,7 +244,12 @@ pub async fn handle_preference_change(
     };
 
     if key == I18N_LANGUAGE.id {
-        let _ = slint::select_bundled_translation(&value_string);
+        let lang = value_string.clone();
+        let _ = slint::invoke_from_event_loop(move || {
+            if let Err(e) = slint::select_bundled_translation(&lang) {
+                tracing::error!("Failed to select bundled translation {}: {:?}", lang, e);
+            }
+        });
     }
     if key == AUTO_STARTUP.id {
         update_auto_startup(value_bool);

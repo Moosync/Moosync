@@ -4,6 +4,7 @@ import { AppCallbacks } from "../callbacks.slint";
 import { PreferenceGroup } from "preference_group.slint";
 import { ExtensionItem } from "../types/extension_view.slint";
 import { Button } from "../common/button.slint";
+import { PillButton } from "../common/pill_button.slint";
 import { PreferenceItem } from "preferences.slint";
 import { PreferenceList } from "preference_list.slint";
 import { Spinner } from "../common/spinner.slint";
@@ -217,7 +218,7 @@ export component ExtensionsPage inherits SettingsPageLayout {
                 }
             }
 
-            if ExtensionsPageProps.has_updates: Button {
+            if ExtensionsPageProps.has_updates: PillButton {
                 text: @tr("Update all");
                 clicked => {
                     ExtensionsPageProps.has_updates = false;
@@ -225,7 +226,7 @@ export component ExtensionsPage inherits SettingsPageLayout {
                 }
             }
 
-            Button {
+            PillButton {
                 text: @tr("Add Extension");
                 icon: @image-url("../icons/plus.svg");
                 clicked => {

@@ -84,6 +84,7 @@ export component DropdownGroup inherits VerticalLayout {
                         height: Theme.dropdownOptionHeight;
                         mouse-cursor: pointer;
                         clicked => {
+                            popup.close();
                             root.current_value = option.id != "" ? option.id : option.label;
                             if (root.preference.id != "") {
                                 AppCallbacks.preference_changed({

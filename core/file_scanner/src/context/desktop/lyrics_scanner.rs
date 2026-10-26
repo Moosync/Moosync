@@ -20,7 +20,7 @@ use std::{
 };
 
 use lazy_static::lazy_static;
-use lofty::tag::Tag;
+use lofty::tag::{ItemKey, Tag};
 use regex::Regex;
 use songs_proto::moosync::types::{LyricLine, Lyrics};
 
@@ -165,7 +165,8 @@ impl LyricsScanner {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn extract_lyrics(metadata: &Tag, path: &Path) -> Option<Lyrics> {
         metadata
-            .get_string(&lofty::prelude::ItemKey::Lyrics)
+            .get_string(ItemKey::Lyrics)
+            .or_else(|| metadata.get_string(ItemKey::UnsyncLyrics))
             .and_then(Self::parse_lyrics_content)
             .or_else(|| Self::scan_lrc(path.to_path_buf()))
     }

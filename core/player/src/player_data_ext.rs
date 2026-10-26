@@ -15,7 +15,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use player_proto::moosync::types::{PlayerData, RepeatMode};
-use rand::{seq::SliceRandom, thread_rng};
+use rand::{rng, seq::SliceRandom};
 use songs_proto::moosync::types::Song;
 
 pub trait PlayerDataExt {
@@ -62,7 +62,7 @@ impl PlayerDataExt for PlayerData {
             return;
         }
         let current_song = self.song_queue.remove(self.current_idx as usize);
-        let mut rng = thread_rng();
+        let mut rng = rng();
         self.song_queue.shuffle(&mut rng);
         self.song_queue
             .insert(self.current_idx as usize, current_song);

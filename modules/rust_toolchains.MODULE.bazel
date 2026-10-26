@@ -8,7 +8,7 @@ rust.toolchain(
         "wasm32-wasip1",
     ],
     versions = [
-        "1.95.0",
+        "1.99.1",
         # "nightly/2025-12-16",
     ],
 )
@@ -20,7 +20,7 @@ use_repo(
 rust_host_tools = use_extension("@rules_rust//rust:extensions.bzl", "rust_host_tools")
 rust_host_tools.host_tools(
     name = "rust_host_tools_nightly",
-    version = "nightly/2026-08-23",
+    version = "nightly/2026-10-25",
 )
 use_repo(
     rust_host_tools,

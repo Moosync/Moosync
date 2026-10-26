@@ -17,7 +17,7 @@
 use std::fs;
 
 use assertables::{assert_none, assert_some};
-use lofty::tag::Tag;
+use lofty::tag::{ItemKey, Tag};
 use rstest::{fixture, rstest};
 use tempdir::TempDir;
 use tracing_test::traced_test;
@@ -108,7 +108,7 @@ fn test_lyrics_scanner_scan_plain_unsynced_text(temp_dir_fixture: TempDir) {
 fn test_lyrics_scanner_extract_lyrics_from_id3_tag(temp_dir_fixture: TempDir) {
     let mut tag = Tag::new(lofty::tag::TagType::Id3v2);
     tag.insert_text(
-        lofty::prelude::ItemKey::Lyrics,
+        ItemKey::UnsyncLyrics,
         "[00:02.00]Tag Lyric Line 1\n[00:04.50]Tag Lyric Line 2".to_string(),
     );
     let dummy_path = temp_dir_fixture.path().join("dummy.mp3");

@@ -1,6 +1,9 @@
 --- a/tools/rust_analyzer/bin/flycheck.rs
 +++ b/tools/rust_analyzer/bin/flycheck.rs
-@@ -133,15 +133,12 @@
+@@ -130,18 +130,15 @@ fn run() -> Result<u8> {
+         .arg(format!("--output_groups=+{}", bep::RUSTC_OUTPUT_GROUP))
+         .arg("--keep_going")
+         .arg(format!("--build_event_json_file={bep_path}"));
 -    if user.clippy {
 -        // `clippy_error_format=json` is separate from `error_format`
 -        // (which only covers rustc). Without it the aspect writes
@@ -13,9 +16,6 @@
 -        // exposed via the `clippy_output` group.
 -        cmd.arg("--aspects=@rules_rust//rust:defs.bzl%rust_clippy_aspect")
 -            .arg("--@rules_rust//rust/settings:clippy_error_format=json")
--            .arg("--@rules_rust//rust/settings:clippy_output_diagnostics=true")
--            .arg(format!("--output_groups=+{}", bep::CLIPPY_OUTPUT_GROUP));
--    }
 +    let has_bazelrc_clippy = fs::read_to_string(workspace.join(".bazelrc"))
 +        .map(|s| s.contains("rust_clippy_aspect"))
 +        .unwrap_or(false);
@@ -25,23 +25,20 @@
 +            cmd.arg("--aspects=@rules_rust//rust:defs.bzl%rust_clippy_aspect");
 +        }
 +        cmd.arg("--@rules_rust//rust/settings:clippy_error_format=json")
-+            .arg("--@rules_rust//rust/settings:clippy_output_diagnostics=true")
-+            .arg(format!("--output_groups=+{}", bep::CLIPPY_OUTPUT_GROUP));
-+    }
-@@ -159,3 +156,3 @@
+             .arg("--@rules_rust//rust/settings:clippy_output_diagnostics=true")
+             .arg(format!("--output_groups=+{}", bep::CLIPPY_OUTPUT_GROUP));
+     }
+@@ -156,7 +153,7 @@ fn run() -> Result<u8> {
+             Vec::new()
+         }
+     };
 -    if user.clippy {
 +    if run_clippy {
          // Additive: clippy's JSON goes to the declared
-@@ -474,22 +471,24 @@
--    let file_basename = file_rel
--        .file_name()
--        .with_context(|| format!("saved file {saved_file} has no file name"))?;
--    let pattern = format!("//{package}:{file_basename}");
-+    let file_in_package = file_rel.strip_prefix(&package).with_context(|| {
-+        format!("saved file {saved_file} is not under Bazel package //{package}")
-+    })?;
-+    let pattern = format!("//{package}:{file_in_package}");
-     let query = format!("attr(srcs, {pattern:?}, //{package}:*)");
+         // `.clippy.diagnostics` file (exposed via `clippy_output`),
+         // not stderr, when `clippy_output_diagnostics=true`.
+@@ -485,21 +482,23 @@ fn query_label_for(
+     let query = query_string_for(workspace, saved_file)?;
      let output = Command::new(bazel.as_str())
          .current_dir(workspace)
 -        .arg("query")
@@ -65,7 +62,9 @@
 +        .map(str::trim)
          .find(|l| !l.is_empty())
 -        .map(str::to_owned)
--        .with_context(|| format!("bazel query returned no targets for {pattern}"))
+-        .with_context(|| format!("bazel query {query:?} returned no targets"))
 +        .map(|l| l.trim_start_matches('@').to_owned())
-+        .with_context(|| format!("bazel cquery returned no targets for {pattern}"))
++        .with_context(|| format!("bazel cquery returned no targets for {query}"))
  }
+ 
+ /// Walk up looking for `BUILD.bazel` or `BUILD`. Returns the

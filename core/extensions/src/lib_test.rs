@@ -23,6 +23,7 @@ use rstest::{fixture, rstest};
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Song};
 use tempdir::TempDir;
 use tracing_test::traced_test;
+use zip_extensions::zip_writer::zip_create_from_directory;
 
 use crate::{ExtensionHandler, ReplyHandler, errors::ExtensionError};
 
@@ -489,7 +490,7 @@ async fn test_extension_version_and_installation(handler_context: TestHandlerCon
     assert!(local_install.is_ok());
 
     let zip_file = temp_dir.path().join("zip_ext.msxt");
-    zip_extensions::zip_create_from_directory(&zip_file, &valid_dir).unwrap();
+    zip_create_from_directory(&zip_file, &valid_dir).unwrap();
 
     let zip_install = handler
         .install_extension(crate::ExtensionInfo::LocalPath(zip_file))

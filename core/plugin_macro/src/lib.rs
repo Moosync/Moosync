@@ -21,9 +21,9 @@ enum ReceiverKind {
 fn get_receiver_kind(method: &ImplItemFn) -> Option<ReceiverKind> {
     for arg in &method.sig.inputs {
         if let FnArg::Receiver(r) = arg
-            && r.reference.is_some()
+            && let syn::ReceiverKind::Reference(_, _, maybe_mut) = &r.kind
         {
-            if r.mutability.is_some() {
+            if maybe_mut.is_some() {
                 return Some(ReceiverKind::Mut);
             } else {
                 return Some(ReceiverKind::Shared);
@@ -328,8 +328,8 @@ fn generate_wrapper_method(
         }
     } else {
         // FIXED: For non-intercepted methods (like generics), grab the original
-        // argument names so we don't accidentally try to pass the missing `_` prefixed
-        // variables
+        // argument names so we don't accidentally try to pass the missing `_`
+        // prefixed variables
         let original_names: Vec<_> = method
             .sig
             .inputs

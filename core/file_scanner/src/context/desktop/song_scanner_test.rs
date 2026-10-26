@@ -164,16 +164,14 @@ async fn test_song_scanner_extract_metadata_and_cover_art(temp_dir_fixture: Temp
     tag.set_title("Direct Title".to_string());
     tag.set_artist("Artist A; Artist B".to_string());
     tag.set_album("Direct Album".to_string());
-    tag.set_year(2023);
+    tag.insert_text(ItemKey::RecordingDate, "2023".to_string());
     tag.set_genre("Jazz".to_string());
     tag.insert_text(ItemKey::TrackNumber, "5".to_string());
     tag.insert_text(ItemKey::AlbumArtist, "Album Artist Direct".to_string());
-    let pic = Picture::new_unchecked(
-        PictureType::CoverFront,
-        Some(MimeType::Png),
-        None,
-        TINY_PNG.to_vec(),
-    );
+    let pic = Picture::unchecked(TINY_PNG.to_vec())
+        .pic_type(PictureType::CoverFront)
+        .mime_type(MimeType::Png)
+        .build();
     tag.push_picture(pic);
 
     let mut inner_song = songs_proto::moosync::types::InnerSong::default();

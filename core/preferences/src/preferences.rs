@@ -63,8 +63,9 @@ impl fmt::Debug for PreferenceConfig {
 impl PreferenceConfig {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(data_dir: PathBuf) -> Result<Self, PreferencesError> {
-        let context = KeyringContext::new("moosync", whoami::username().as_str())
-            .map_err(PreferencesError::Keyring)?;
+        let username = whoami::username().unwrap_or_else(|_| "moosync_user".to_string());
+        let context =
+            KeyringContext::new("moosync", &username).map_err(PreferencesError::Keyring)?;
         Self::new_with_context(data_dir, Box::new(context))
     }
 

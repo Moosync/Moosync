@@ -21,7 +21,7 @@ use std::{
 
 use lofty::{
     file::TaggedFile,
-    prelude::{Accessor, AudioFile, TaggedFileExt},
+    prelude::{Accessor, AudioFile, ItemKey, TaggedFileExt},
     probe::Probe,
     read_from_path,
     tag::Tag,
@@ -173,7 +173,7 @@ pub(crate) fn extract_album(metadata: &Tag, inner_song: &InnerSong) -> Option<Al
         album_coverpath_high: inner_song.song_cover_path_high.clone(),
         album_coverpath_low: inner_song.song_cover_path_low.clone(),
         album_artist: metadata
-            .get_string(&lofty::prelude::ItemKey::AlbumArtist)
+            .get_string(ItemKey::AlbumArtist)
             .map(|s| s.to_owned()),
         ..Default::default()
     })
@@ -198,11 +198,14 @@ pub(crate) fn extract_metadata(
         .unwrap_or_default();
     if metadata.album().is_some() {
         inner_song.track_no = metadata
-            .get_string(&lofty::prelude::ItemKey::TrackNumber)
+            .get_string(ItemKey::TrackNumber)
             .and_then(|s| s.parse().ok());
         song.album = extract_album(metadata, inner_song);
     }
-    inner_song.year = metadata.year().map(|s| s.to_string());
+    inner_song.year = metadata
+        .date()
+        .map(|d| d.year.to_string())
+        .or_else(|| metadata.get_string(ItemKey::Year).map(|s| s.to_string()));
     song.genre = metadata
         .genre()
         .map(|s| {

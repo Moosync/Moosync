@@ -26,6 +26,7 @@ use types::{
     subscription::SubscriberList,
 };
 use uuid::Uuid;
+use zip_extensions::{zip_extract::zip_extract, zip_writer::zip_create_from_directory};
 
 use crate::error::ThemesError;
 
@@ -121,7 +122,7 @@ impl ThemeHolder {
             .join(format!("moosync_theme_{}", uuid::Uuid::new_v4()));
 
         let theme_path = PathBuf::from_str(&theme_path).unwrap();
-        zip_extensions::zip_extract(&theme_path, &extract_dir.clone())
+        zip_extract(&theme_path, &extract_dir.clone())
             .map_err(|e| ThemesError::Zip(format!("{:?}", e)))?;
 
         for item in extract_dir.read_dir().map_err(ThemesError::Io)?.flatten() {
@@ -162,7 +163,7 @@ impl ThemeHolder {
         let config_path = theme_dir.clone().join("config.pb");
         fs::write(config_path.clone(), theme.encode_to_vec()).map_err(ThemesError::Io)?;
 
-        zip_extensions::zip_create_from_directory(&export_path, &theme_dir)
+        zip_create_from_directory(&export_path, &theme_dir)
             .map_err(|e| ThemesError::Zip(format!("{:?}", e)))?;
 
         fs::remove_file(config_path).map_err(ThemesError::Io)?;
@@ -198,7 +199,8 @@ impl ThemeHolder {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub async fn get_themes_manifest(&self) -> Result<HashMap<String, ThemeDetails>, ThemesError> {
-        // Remote theme registry will be implemented with ThemesManifest protobuf later.
+        // Remote theme registry will be implemented with ThemesManifest
+        // protobuf later.
         Ok(HashMap::new())
     }
 }

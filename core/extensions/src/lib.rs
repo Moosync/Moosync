@@ -28,7 +28,7 @@ use fs_extra::dir::CopyOptions;
 use prost::Message;
 use semver::Version;
 use types::subscription::SubscriberList;
-use zip_extensions::zip_extract;
+use zip_extensions::zip_extract::zip_extract;
 
 pub use crate::{
     errors::ExtensionError,
@@ -381,6 +381,23 @@ impl ExtensionHandler {
         self.check_for_updates();
         self.trigger_extensions_updated();
         Ok(())
+    }
+}
+
+#[cfg(test)]
+impl ExtensionHandler {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub(crate) fn get_extension_version(
+        &self,
+        ext_path: PathBuf,
+    ) -> Result<String, ExtensionError> {
+        let manifest_path = ext_path.join("manifest.pb");
+        if manifest_path.exists() {
+            let manifest = fs::read(manifest_path)?;
+            let manifest: ExtensionManifest = Message::decode(&*manifest)?;
+            return Ok(manifest.version);
+        }
+        Err(ExtensionError::NotAnExtension)
     }
 }
 

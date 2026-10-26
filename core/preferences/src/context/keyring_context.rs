@@ -1,13 +1,21 @@
-use std::{result::Result, sync::Mutex};
+use std::{fmt, result::Result, sync::Mutex};
 
 use keyring::Entry;
 
 use super::Keyring;
 
-#[derive(Debug)]
 pub struct KeyringContext {
     entry: Option<Entry>,
     fallback: Mutex<Option<Vec<u8>>>,
+}
+
+impl fmt::Debug for KeyringContext {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("KeyringContext")
+            .field("entry", &self.entry.as_ref().map(|_| "Entry(...)"))
+            .field("fallback", &self.fallback)
+            .finish()
+    }
 }
 
 impl KeyringContext {

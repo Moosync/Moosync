@@ -150,7 +150,7 @@ bindeps = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
 bindeps.spec(
     artifact = "bin",
     package = "slint-tr-extractor",
-    version = "1.17.1",
+    version = "1.18.1",
 )
 bindeps.annotation(
     crate = "slint-tr-extractor",

@@ -1,0 +1,23 @@
+import { Button } from "button.slint";
+import { Theme } from "../constants.slint";
+
+export component TextButton inherits Button {
+    in property <color> text_color: Theme.accent;
+    in property <int> font_weight: 600;
+
+    has_custom_layout: true;
+    background: transparent;
+    height: txt.preferred-height;
+
+    txt := Text {
+        accessible-role: none;
+        text: root.text;
+        color: root.text_color;
+        font-size: root.font_size;
+        font-weight: root.font_weight;
+        vertical-alignment: center;
+        opacity: root.pressed ? 0.7 : (root.has_hover ? 0.85 : 1.0);
+
+        animate opacity { duration: 150ms; }
+    }
+}

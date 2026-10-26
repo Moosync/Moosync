@@ -80,7 +80,7 @@ Always activate and follow the **problem-solving** skill (`.agents/skills/proble
 - **Error Handling & Explicit Logging**: Never ignore errors silently (e.g. avoid unlogged `if let Ok(...)` or `let Ok(...) = ... else { return; }`). All errors must be logged at least once (e.g. using `tracing::error!`). Prefer explicit `match` statements for error handling and logging rather than `else` returns that drop error context.
 - **Slint Modal Lifecycle**: Reusable modals inherit from `Modal` and live in `ui/slint/src/common/`. The parent controls visibility conditionally (`if show_modal: MyModal { close => { show_modal = false; } }`). Rely on `Modal`'s built-in `callback close();` — backdrop clicks and dialog action buttons trigger `root.close()`. Do not create custom `is_open` properties on modals.
 - **Explicit `tokio::spawn`**: Do not import `spawn` from tokio (e.g. `use tokio::spawn;`). Always use `tokio::spawn(...)` explicitly to avoid confusion with `slint::spawn`.
-- **No Dead Code**: Never use `#[allow(dead_code)]`. If a function or item is not used, remove it completely.
+- **No Dead Code**: Never use `#[allow(dead_code)]`. If a function or item is not used in production code, remove it completely. Do NOT keep dead or unused code just to satisfy tests.
 
 ### Git & Version Control
 

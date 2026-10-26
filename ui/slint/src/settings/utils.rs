@@ -52,7 +52,9 @@ pub async fn update_preferences_in_ui<F>(
     let items: Vec<ProtoPreferenceItem> =
         preferences.iter().map(|pref| config.load(pref)).collect();
 
-    if let Err(e) = invoke_from_event_loop(move || {
+    if let Some(main_window) = main_window_weak.upgrade() {
+        on_render(&main_window, items);
+    } else if let Err(e) = invoke_from_event_loop(move || {
         if let Some(main_window) = main_window_weak.upgrade() {
             on_render(&main_window, items);
         }

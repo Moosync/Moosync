@@ -55,13 +55,6 @@ impl PathsPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_preferences() -> Vec<ProtoPreferenceItem> { clone_lazy_preferences(PREFERENCES) }
 
-    #[cfg(test)]
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub(crate) fn render_paths(main_window: &MainWindow, items: Vec<ProtoPreferenceItem>) {
-        let prefs_global = main_window.global::<AppPreferences>();
-        prefs_global.set_paths_items(to_preference_model(items));
-    }
-
     #[tracing::instrument(level = "debug", skip_all)]
     pub async fn refresh_preferences(
         main_window_weak: slint::Weak<MainWindow>,

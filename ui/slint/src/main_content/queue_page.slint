@@ -8,6 +8,7 @@ import { ListView } from "std-widgets.slint";
 import { AppCallbacks, ContextMenuCallbacks } from "../callbacks.slint";
 import { Button } from "../common/button.slint";
 import { PillButton } from "../common/pill_button.slint";
+import { TextButton } from "../common/text_button.slint";
 import { IconButton } from "../common/icon_button.slint";
 import { SongDetails } from "../common/song_details.slint";
 import { LyricsView } from "lyrics_view.slint";
@@ -224,19 +225,11 @@ export component QueuePage inherits Rectangle {
             HorizontalLayout {
                 alignment: end;
                 padding-top: Theme.spacingSm;
-                TouchArea {
-                    accessible-role: button;
-                    accessible-label: @tr("Show Lyrics");
-                    mouse-cursor: pointer;
+                TextButton {
+                    text: @tr("Show Lyrics");
+                    font_size: Theme.subtitle;
                     clicked => {
                         QueuePageProps.show_lyrics = true;
-                    }
-
-                    Text {
-                        text: @tr("Show Lyrics");
-                        color: Theme.accent;
-                        font-size: Theme.subtitle;
-                        font-weight: 600;
                     }
                 }
             }

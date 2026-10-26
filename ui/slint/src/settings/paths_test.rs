@@ -89,12 +89,17 @@ async fn test_paths_page_handler_handle_change_music_paths(
 }
 
 #[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_paths_page_handler_render_paths(main_window: MainWindow) {
-    let prefs = PathsPageHandler::get_preferences();
+async fn test_paths_page_handler_refresh_preferences(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let state_manager = Box::leak(Box::new(sm));
 
-    PathsPageHandler::render_paths(&main_window, prefs);
+    PathsPageHandler::refresh_preferences(main_window.as_weak(), state_manager).await;
 
     let items = main_window.global::<AppPreferences>().get_paths_items();
     assert_eq!(items.row_count(), 7);

@@ -96,12 +96,17 @@ async fn test_system_page_handler_handle_change_auto_startup(
 }
 
 #[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_system_page_handler_render_system(main_window: MainWindow) {
-    let prefs = SystemPageHandler::get_preferences();
+async fn test_system_page_handler_refresh_preferences(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let state_manager = Box::leak(Box::new(sm));
 
-    SystemPageHandler::render_system(&main_window, prefs);
+    SystemPageHandler::refresh_preferences(main_window.as_weak(), state_manager).await;
 
     let items = main_window.global::<AppPreferences>().get_system_items();
     assert_eq!(items.row_count(), 6);

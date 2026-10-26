@@ -4,6 +4,7 @@ import { WindowInfo } from "../window_info.slint";
 import { QueuePageProps, PlayerProps } from "../props.slint";
 import { AppCallbacks } from "../callbacks.slint";
 import { ListView, ScrollView } from "std-widgets.slint";
+import { TextButton } from "../common/text_button.slint";
 
 export component LyricsView inherits HorizontalLayout {
     in property <[LyricLineModel]> lyrics_lines: QueuePageProps.lyrics_lines;
@@ -86,20 +87,11 @@ export component LyricsView inherits HorizontalLayout {
                 }
             }
 
-            TouchArea {
-                accessible-role: button;
-                accessible-label: @tr("Show Details");
-                mouse-cursor: pointer;
+            TextButton {
+                text: @tr("Show Details");
+                font_size: Theme.subtitle;
                 clicked => {
                     QueuePageProps.show_lyrics = false;
-                }
-
-                Text {
-                    text: @tr("Show Details");
-                    color: Theme.accent;
-                    font-size: Theme.subtitle;
-                    font-weight: 600;
-                    vertical-alignment: center;
                 }
             }
         }

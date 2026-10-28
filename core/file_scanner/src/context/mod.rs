@@ -26,7 +26,8 @@ pub trait ScannerContext: Send + Sync {
     ) -> Result<(), ScannerError>;
 }
 
-#[cfg(target_os = "android")]
 pub mod android;
+#[cfg(test)]
+mod android_test;
 #[cfg(not(target_os = "android"))]
 pub mod desktop;

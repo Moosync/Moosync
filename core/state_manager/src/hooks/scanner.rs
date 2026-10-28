@@ -1,5 +1,4 @@
 use std::{
-    env::temp_dir,
     error::Error,
     path::PathBuf,
     sync::{Arc, Mutex},
@@ -8,6 +7,7 @@ use std::{
 use async_trait::async_trait;
 use database::Database;
 use file_scanner::{PlaylistSongId, ScannerHolder};
+#[cfg(not(target_os = "android"))]
 use platform_dirs::UserDirs;
 use preferences::{
     keys::{EXCLUDE_MUSIC_PATHS, MUSIC_PATHS, PreferenceItemExt, SCAN_INTERVAL, SCAN_THREADS},
@@ -85,6 +85,7 @@ async fn sync_music_paths(
     preferences: Arc<PreferenceConfig>,
     database: Arc<Database>,
 ) {
+    #[cfg_attr(target_os = "android", allow(unused_mut))]
     let mut scan_dirs = preferences
         .load(&MUSIC_PATHS)
         .value::<Vec<String>>()
@@ -93,6 +94,7 @@ async fn sync_music_paths(
         .map(PathBuf::from)
         .collect::<Vec<_>>();
 
+    #[cfg(not(target_os = "android"))]
     if scan_dirs.is_empty()
         && let Some(user_dirs) = UserDirs::new()
     {
@@ -113,11 +115,15 @@ async fn sync_music_paths(
     scanner.set_exclude_dirs(exclude_dirs);
     scanner.set_scan_threads(threads);
 
-    if key == MUSIC_PATHS.id && !scan_dirs.is_empty() {
-        if let Err(e) = database.remove_songs_outside_directories(&scan_dirs) {
+    if key == MUSIC_PATHS.id {
+        if !scan_dirs.is_empty()
+            && let Err(e) = database.remove_songs_outside_directories(&scan_dirs)
+        {
             tracing::error!("Failed to clean up songs: {:?}", e);
         }
-        if let Err(e) = scanner.start_scan().await {
+        if (!scan_dirs.is_empty() || cfg!(target_os = "android"))
+            && let Err(e) = scanner.start_scan().await
+        {
             tracing::error!("Scan failed: {:?}", e);
         }
     }
@@ -162,7 +168,9 @@ impl Hook for ScannerHook {
         let database = state_manager.plugins.get::<Database>();
 
         scanner.set_artist_split(",".into());
-        scanner.set_thumbnail_dir(temp_dir());
+        let thumbnail_dir = state_manager.get_cache_dir().join("thumbnails");
+        let _ = std::fs::create_dir_all(&thumbnail_dir);
+        scanner.set_thumbnail_dir(thumbnail_dir);
 
         let db = database.clone();
         scanner.set_on_playlist(move |playlists| {

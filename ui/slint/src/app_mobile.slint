@@ -198,6 +198,18 @@ export component MainWindow inherits Window {
         AppCallbacks.resize();
     }
 
+    public function close_all_modals() -> bool {
+        let any_open = AccountsProps.show_accounts || SettingsState.show_settings || SavePlaylistState.show_modal || SaveThemeState.show_modal || OAuthState.show_oauth_modal || ExtensionDetailsState.show_modal || QueuePageProps.show_queue;
+        AccountsProps.show_accounts = false;
+        SettingsState.show_settings = false;
+        SavePlaylistState.show_modal = false;
+        SaveThemeState.show_modal = false;
+        OAuthState.show_oauth_modal = false;
+        ExtensionDetailsState.show_modal = false;
+        QueuePageProps.show_queue = false;
+        return any_open;
+    }
+
     VerticalLayout {
         padding: 0px;
         padding-top: Theme.mobileTopBarPaddingTop;
@@ -206,18 +218,6 @@ export component MainWindow inherits Window {
 
         // Top App Bar
         TopBarMobile { }
-
-        public function close_all_modals() -> bool {
-            let any_open = AccountsProps.show_accounts || SettingsState.show_settings || SavePlaylistState.show_modal || SaveThemeState.show_modal || OAuthState.show_oauth_modal || ExtensionDetailsState.show_modal || QueuePageProps.show_queue;
-            AccountsProps.show_accounts = false;
-            SettingsState.show_settings = false;
-            SavePlaylistState.show_modal = false;
-            SaveThemeState.show_modal = false;
-            OAuthState.show_oauth_modal = false;
-            ExtensionDetailsState.show_modal = false;
-            QueuePageProps.show_queue = false;
-            return any_open;
-        }
 
         Rectangle {
             vertical-stretch: 1;

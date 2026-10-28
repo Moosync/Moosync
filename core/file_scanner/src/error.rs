@@ -37,6 +37,12 @@ pub enum ScannerError {
     #[error("Image resize error: {0}")]
     Resize(#[from] fast_image_resize::ResizeError),
 
+    #[error("Protobuf decode error: {0}")]
+    Decode(#[from] prost::DecodeError),
+
+    #[error("JNI error: {0}")]
+    Jni(String),
+
     #[error("Scan directories not configured")]
     ScanDirsNotConfigured,
 
@@ -51,4 +57,7 @@ pub enum ScannerError {
 
     #[error("Invalid image dimensions")]
     InvalidImageDimensions,
+
+    #[error("Audio permission denied by user")]
+    PermissionDenied,
 }

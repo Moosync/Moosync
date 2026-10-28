@@ -13,9 +13,9 @@ export component BottomSheetMobile inherits Rectangle {
 
     // Height is defined by the popup container without artificial caps, draggable to full screen
     property <length> sheet_height: Math.min(WindowInfo.window-height, root.base_content_height);
-    property <length> resting_y: parent.height - (root.sheet_height * root.ease_progress);
-    property <length> current_y: Math.max(0px, Math.min(parent.height, root.resting_y + root.drag_offset));
-    property <length> current_height: Math.max(0px, parent.height - root.current_y);
+    property <length> resting_y: root.height - (root.sheet_height * root.ease_progress);
+    property <length> current_y: Math.max(0px, Math.min(root.height, root.resting_y + root.drag_offset));
+    property <length> current_height: Math.max(0px, root.height - root.current_y);
 
     width: 100%;
     height: 100%;

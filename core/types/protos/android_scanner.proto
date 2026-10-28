@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package moosync.types;
+
+import "core/types/protos/songs.proto";
+
+message ScanRequest {
+  repeated string scan_dirs = 1;
+  repeated string exclude_dirs = 2;
+  string thumbnail_dir = 3;
+  string artist_split = 4;
+}
+
+message ScannedPlaylist {
+  Playlist playlist = 1;
+  repeated string song_paths = 2;
+}
+
+message ScanResult {
+  repeated Song songs = 1;
+  repeated ScannedPlaylist playlists = 2;
+}

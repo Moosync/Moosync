@@ -4,6 +4,7 @@ rust_library(
     name = "file_scanner",
     srcs = [
         "src/context/android.rs",
+        "src/context/android_test.rs",
         "src/context/desktop/image_processor.rs",
         "src/context/desktop/image_processor_test.rs",
         "src/context/desktop/lyrics_scanner.rs",
@@ -23,10 +24,12 @@ rust_library(
     crate_root = "src/lib.rs",
     proc_macro_deps = [
         "//core/plugin_macro",
+        "@crates//:async-trait",
     ],
     visibility = ["//visibility:public"],
     deps = [
         "//core/types",
+        "//core/types/protos:android_scanner_rs",
         "//core/types/protos:songs_rs",
         "@crates//:blake3",
         "@crates//:dunce",
@@ -36,20 +39,33 @@ rust_library(
         "@crates//:lazy_static",
         "@crates//:lofty",
         "@crates//:num_cpus",
+        "@crates//:prost",
         "@crates//:regex",
         "@crates//:substring",
         "@crates//:thiserror",
         "@crates//:tokio",
         "@crates//:tracing",
         "@crates//:uuid",
-    ],
+    ] + select({
+        "@platforms//os:android": [
+            "@crates//:jni",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 rust_test(
     name = "file_scanner_test",
     crate = ":file_scanner",
+    data = [
+        "//android:scanner_kt_runner",
+    ],
+    env = {
+        "SCANNER_KT_RUNNER": "$(rootpath //android:scanner_kt_runner)",
+    },
     deps = [
         "@crates//:assertables",
+        "@crates//:mockall",
         "@crates//:rstest",
         "@crates//:tempdir",
         "@crates//:tracing-test",

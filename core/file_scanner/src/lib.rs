@@ -27,10 +27,14 @@ use types::plugin::{Plugin, PluginContext};
 
 pub mod error;
 #[cfg(target_os = "android")]
-use crate::context::android::AndroidScannerContext;
+use crate::context::android::JniScannerBridge;
 #[cfg(not(target_os = "android"))]
 use crate::context::desktop::DesktopScannerContext;
-use crate::{context::ScannerContext, error::ScannerError};
+pub use crate::context::{
+    ScannerContext,
+    android::{AndroidScannerBridge, AndroidScannerContext},
+};
+use crate::error::ScannerError;
 
 mod context;
 
@@ -51,7 +55,7 @@ pub type OnSongScanned = Arc<
 >;
 #[derive(Debug, Clone, PartialEq)]
 pub enum PlaylistSongId {
-    Path(std::path::PathBuf),
+    Path(PathBuf),
     Url(String),
 }
 
@@ -71,6 +75,7 @@ struct ScannerConfig {
     scan_threads: Option<i32>,
     on_song: Option<OnSongScanned>,
     on_playlist: Option<OnPlaylistScanned>,
+    android_bridge: Option<Arc<dyn AndroidScannerBridge>>,
 }
 
 pub struct ScannerHolder {
@@ -86,6 +91,11 @@ impl ScannerHolder {
             config: Mutex::new(ScannerConfig::default()),
             subscribers: Mutex::new(Vec::new()),
         }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn set_android_bridge(&self, bridge: Arc<dyn AndroidScannerBridge>) {
+        self.config.lock().unwrap().android_bridge = Some(bridge);
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -123,7 +133,7 @@ impl ScannerHolder {
     pub fn set_on_song<F, Fut>(&self, cb: F)
     where
         F: Fn(Option<String>, Vec<Song>) -> Fut + Send + Sync + 'static,
-        Fut: std::future::Future<Output = ()> + Send + 'static,
+        Fut: Future<Output = ()> + Send + 'static,
     {
         self.config.lock().unwrap().on_song =
             Some(Arc::new(move |pl_id, songs| Box::pin(cb(pl_id, songs))));
@@ -133,7 +143,7 @@ impl ScannerHolder {
     pub fn set_on_playlist<F, Fut>(&self, cb: F)
     where
         F: Fn(Vec<(Playlist, Vec<PlaylistSongId>)>) -> Fut + Send + Sync + 'static,
-        Fut: std::future::Future<Output = ()> + Send + 'static,
+        Fut: Future<Output = ()> + Send + 'static,
     {
         self.config.lock().unwrap().on_playlist =
             Some(Arc::new(move |playlists| Box::pin(cb(playlists))));
@@ -155,12 +165,14 @@ impl ScannerHolder {
             thumbnail_dir,
             artist_split,
             exclude_dirs,
-            scan_threads,
+            _scan_threads,
             on_song,
             on_playlist,
+            android_bridge,
         ) = {
             let config = self.config.lock().unwrap();
-            if config.scan_dirs.is_empty() {
+            let uses_android = cfg!(target_os = "android") || config.android_bridge.is_some();
+            if !uses_android && config.scan_dirs.is_empty() {
                 return Err(ScannerError::ScanDirsNotConfigured);
             }
             let thumbnail_dir = config
@@ -187,6 +199,7 @@ impl ScannerHolder {
                 config.scan_threads,
                 on_song,
                 on_playlist,
+                config.android_bridge.clone(),
             )
         };
 
@@ -202,23 +215,37 @@ impl ScannerHolder {
             }
         });
 
-        tracing::trace!("here 2");
+        if let Some(bridge) = android_bridge {
+            let context = AndroidScannerContext::new_with_bridge(
+                bridge,
+                scan_dirs,
+                exclude_dirs,
+                thumbnail_dir,
+                artist_split,
+            );
+            return context
+                .start_scan(&on_song, &on_playlist, &on_progress)
+                .await;
+        }
+
         #[cfg(not(target_os = "android"))]
-        let context = DesktopScannerContext::new(
-            scan_dirs,
-            thumbnail_dir,
-            artist_split,
-            exclude_dirs,
-            scan_threads,
-        );
+        {
+            let context = DesktopScannerContext::new(
+                scan_dirs,
+                thumbnail_dir,
+                artist_split,
+                exclude_dirs,
+                _scan_threads,
+            );
+            return context
+                .start_scan(&on_song, &on_playlist, &on_progress)
+                .await;
+        }
 
         #[cfg(target_os = "android")]
-        let context = AndroidScannerContext::new(scan_dirs, thumbnail_dir, artist_split);
-
-        tracing::trace!("here 3");
-        context
-            .start_scan(&on_song, &on_playlist, &on_progress)
-            .await
+        Err(ScannerError::Jni(
+            "Android scanner bridge not initialized".to_string(),
+        ))
     }
 }
 
@@ -228,5 +255,14 @@ impl Default for ScannerHolder {
 
 impl Plugin for ScannerHolder {
     #[tracing::instrument(level = "debug", skip_all)]
-    fn init(_context: &PluginContext) -> Arc<Self> { Arc::new(ScannerHolder::new()) }
+    fn init(_context: &PluginContext) -> Arc<Self> {
+        let holder = ScannerHolder::new();
+        #[cfg(target_os = "android")]
+        {
+            holder.set_android_bridge(Arc::new(JniScannerBridge::new(
+                _context.android_context.clone(),
+            )));
+        }
+        Arc::new(holder)
+    }
 }

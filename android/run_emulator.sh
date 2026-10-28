@@ -30,11 +30,28 @@ if [ -z "$RUNNING_DEV" ]; then
 fi
 
 echo "Installing APK: $APK_FILE..."
-adb install -r "$APK_FILE"
+adb install -r -g "$APK_FILE"
 
 echo "Clearing logcat and launching Moosync Mobile..."
 adb logcat -c || true
-adb shell am start -n app.moosync.android/app.moosync.android.MainActivity
+adb shell am start -W -n app.moosync.android/app.moosync.android.MainActivity
 
-echo "Moosync launched! Streaming logs for Moosync and crashes (Ctrl+C to stop)..."
-adb logcat -v color | grep --line-buffered -iE "app\.moosync\.android|moosync|rust|androidruntime|fatal|crash|panic|sigsegv|backtrace|tombstone|linker|DEBUG"
+MOOSYNC_PID=$(adb shell pidof -s app.moosync.android 2>/dev/null | tr -d '\r' || true)
+
+if [ "${1:-}" = "--dump" ]; then
+    sleep 3
+    if [ -n "$MOOSYNC_PID" ]; then
+        adb logcat -d --pid="$MOOSYNC_PID"
+    else
+        adb logcat -d -s MoosyncAndroid:V MoosyncAndroidRust:V RustStdoutStderr:V AndroidRuntime:E
+    fi
+    exit 0
+fi
+
+if [ -n "$MOOSYNC_PID" ]; then
+    echo "Moosync launched (PID: $MOOSYNC_PID)! Streaming Moosync logs (Ctrl+C to stop)..."
+    adb logcat -v color --pid="$MOOSYNC_PID"
+else
+    echo "Moosync launched! Streaming Moosync logs (Ctrl+C to stop)..."
+    adb logcat -v color -s MoosyncAndroid:V MoosyncAndroidRust:V RustStdoutStderr:V AndroidRuntime:E
+fi

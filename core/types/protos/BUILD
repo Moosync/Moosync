@@ -1,9 +1,11 @@
+load("@com_google_protobuf//bazel:java_lite_proto_library.bzl", "java_lite_proto_library")
 load("@rules_proto//proto:defs.bzl", "proto_library")
 load("@rules_rust_prost//:defs.bzl", "rust_prost_library")
 
 package(default_visibility = ["//visibility:public"])
 
 exports_files([
+    "android_scanner.proto",
     "extensions.proto",
     "preferences.proto",
     "songs.proto",
@@ -66,6 +68,28 @@ rust_prost_library(
     name = "songs_rs",
     proto = ":songs_proto",
     visibility = ["//visibility:public"],
+)
+
+java_lite_proto_library(
+    name = "songs_java_proto_lite",
+    deps = [":songs_proto"],
+)
+
+proto_library(
+    name = "android_scanner_proto",
+    srcs = ["android_scanner.proto"],
+    deps = [":songs_proto"],
+)
+
+rust_prost_library(
+    name = "android_scanner_rs",
+    proto = ":android_scanner_proto",
+    visibility = ["//visibility:public"],
+)
+
+java_lite_proto_library(
+    name = "android_scanner_java_proto_lite",
+    deps = [":android_scanner_proto"],
 )
 
 proto_library(

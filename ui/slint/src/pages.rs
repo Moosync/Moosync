@@ -16,6 +16,23 @@ pub(crate) trait PageHandler {
     fn on_hide(&self) {}
 }
 
+#[cfg(target_os = "android")]
+thread_local! {
+    static GLOBAL_BACK_HANDLER: std::cell::RefCell<Option<Box<dyn Fn() -> bool + 'static>>> = const { std::cell::RefCell::new(None) };
+}
+
+#[cfg(target_os = "android")]
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn handle_native_back_press() -> bool {
+    GLOBAL_BACK_HANDLER.with(|handler| {
+        if let Some(ref cb) = *handler.borrow() {
+            cb()
+        } else {
+            false
+        }
+    })
+}
+
 /// Generic linear navigation history tracker.
 ///
 /// Keeps track of the history stack and current position pointer.
@@ -154,18 +171,24 @@ impl NavigationManager {
         let oauth = main_window.global::<crate::OAuthState>();
         let ext_details = main_window.global::<crate::ExtensionDetailsState>();
         let settings = main_window.global::<crate::SettingsState>();
+        let accounts = main_window.global::<crate::AccountsProps>();
+        let queue_props = main_window.global::<crate::QueuePageProps>();
 
         let any_open = save_playlist.get_show_modal()
             || save_theme.get_show_modal()
             || oauth.get_show_oauth_modal()
             || ext_details.get_show_modal()
-            || settings.get_show_settings();
+            || settings.get_show_settings()
+            || accounts.get_show_accounts()
+            || queue_props.get_show_queue();
 
         save_playlist.set_show_modal(false);
         save_theme.set_show_modal(false);
         oauth.set_show_oauth_modal(false);
         ext_details.set_show_modal(false);
         settings.set_show_settings(false);
+        accounts.set_show_accounts(false);
+        queue_props.set_show_queue(false);
 
         any_open
     }
@@ -227,6 +250,23 @@ impl NavigationManager {
     ) {
         let nav_back = nav.clone();
         let lifecycle_back = lifecycle.clone();
+        #[cfg(target_os = "android")]
+        {
+            let nav_b_global = nav.clone();
+            let life_b_global = lifecycle.clone();
+            GLOBAL_BACK_HANDLER.with(|handler| {
+                *handler.borrow_mut() = Some(Box::new(move || {
+                    if nav_b_global.borrow_mut().go_back(main_window) {
+                        life_b_global
+                            .borrow_mut()
+                            .update_all_visibility(&nav_b_global.borrow());
+                        true
+                    } else {
+                        false
+                    }
+                }));
+            });
+        }
         main_window
             .global::<AppCallbacks>()
             .on_navigate_back(move || {

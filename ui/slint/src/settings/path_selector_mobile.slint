@@ -12,41 +12,50 @@ export component PathSelectorMobile inherits VerticalLayout {
 
     spacing: Theme.spacingMd;
 
-    VerticalLayout {
-        spacing: Theme.spacingTiny;
-
-        Text {
-            text: root.title;
-            font-size: Theme.modelTitle;
-            color: Theme.textPrimary;
-        }
-
-        if root.subtitle != "": Text {
-            text: root.subtitle;
-            font-size: Theme.caption;
-            wrap: word-wrap;
-            color: Theme.textSecondary;
-        }
-    }
-
     HorizontalLayout {
-        alignment: start;
+        alignment: space-between;
 
-        PillButton {
-            text: @tr("Add folder");
-            icon: @image-url("../icons/plus.svg");
-            height: Theme.mobileButtonSize;
-            clicked => {
-                let chosen = AppCallbacks.open_directory_picker();
-                if (chosen != "") {
-                    if (root.preference.id != "") {
-                        AppCallbacks.preference_changed({
-                            id: root.preference.id,
-                            value_string: chosen,
-                            value_bool: false,
-                            value_number: 0.0,
-                            value_list: []
-                        });
+        VerticalLayout {
+            alignment: center;
+            horizontal-stretch: 1;
+            spacing: Theme.spacingTiny;
+
+            Text {
+                text: root.title;
+                font-size: Theme.modelTitle;
+                font-weight: 700;
+                color: Theme.textPrimary;
+            }
+
+            if root.subtitle != "": Text {
+                text: root.subtitle;
+                font-size: Theme.caption;
+                wrap: word-wrap;
+                color: Theme.textSecondary;
+            }
+        }
+
+        HorizontalLayout {
+            alignment: end;
+
+            PillButton {
+                text: @tr("Add folder");
+                icon: @image-url("../icons/plus.svg");
+                height: Theme.sizeXxl;
+                font_size: Theme.caption;
+                padding_h: Theme.paddingSm;
+                clicked => {
+                    let chosen = AppCallbacks.open_directory_picker();
+                    if (chosen != "") {
+                        if (root.preference.id != "") {
+                            AppCallbacks.preference_changed({
+                                id: root.preference.id,
+                                value_string: chosen,
+                                value_bool: false,
+                                value_number: 0.0,
+                                value_list: []
+                            });
+                        }
                     }
                 }
             }

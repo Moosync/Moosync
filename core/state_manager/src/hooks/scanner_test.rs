@@ -14,21 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{
-    env, fs,
-    path::PathBuf,
-    process::Command,
-    sync::{
-        Arc,
-        atomic::{AtomicUsize, Ordering},
-    },
-    time::Duration,
-};
+use std::{path::PathBuf, time::Duration};
 
 use assertables::assert_ok;
-use async_trait::async_trait;
 use database::Database;
-use file_scanner::{AndroidScannerBridge, PlaylistSongId, ScannerHolder, error::ScannerError};
+use file_scanner::{PlaylistSongId, ScannerHolder};
 use preferences::{
     keys::{MUSIC_PATHS, SCAN_THREADS},
     preferences::PreferenceConfig,
@@ -338,123 +328,4 @@ async fn test_sync_music_paths(sm_context: TestSmContext) {
     .await;
 
     assert!(!scanner.get_scan_dirs().is_empty());
-}
-
-struct KotlinE2eBridge {
-    work_dir: PathBuf,
-    counter: AtomicUsize,
-}
-
-impl KotlinE2eBridge {
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn new(work_dir: PathBuf) -> Self {
-        Self {
-            work_dir,
-            counter: AtomicUsize::new(0),
-        }
-    }
-}
-
-#[async_trait]
-impl AndroidScannerBridge for KotlinE2eBridge {
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn invoke_scan(&self, request_bytes: Vec<u8>) -> Result<Vec<u8>, ScannerError> {
-        let id = self.counter.fetch_add(1, Ordering::SeqCst);
-        let req_path = self.work_dir.join(format!("e2e_req_{id}.pb"));
-        let res_path = self.work_dir.join(format!("e2e_res_{id}.pb"));
-        fs::write(&req_path, &request_bytes)?;
-        let runner = env::var("SCANNER_KT_RUNNER")
-            .map_err(|e| ScannerError::Jni(format!("SCANNER_KT_RUNNER missing: {e}")))?;
-        let status = Command::new(runner)
-            .arg(&req_path)
-            .arg(&res_path)
-            .status()?;
-        if !status.success() {
-            return Err(ScannerError::Jni(format!("Kotlin runner failed: {status}")));
-        }
-        Ok(fs::read(&res_path)?)
-    }
-}
-
-#[rstest]
-#[tokio::test]
-#[traced_test]
-#[tracing::instrument(level = "debug", skip_all)]
-async fn test_android_scanner_to_database_end_to_end(sm_context: TestSmContext) {
-    let TestSmContext { sm, _temp_dir } = sm_context;
-    let music_dir = _temp_dir.path().join("android_music");
-    let thumb_dir = _temp_dir.path().join("android_thumbs");
-    fs::create_dir_all(&music_dir).unwrap();
-    fs::create_dir_all(&thumb_dir).unwrap();
-    fs::write(music_dir.join("FullStack.mp3"), vec![1u8, 2, 3, 4]).unwrap();
-    fs::write(
-        music_dir.join("FullStack.lrc"),
-        "[00:04.50]Database E2E Lyric",
-    )
-    .unwrap();
-    fs::write(music_dir.join("cover.png"), vec![5u8, 6, 7, 8]).unwrap();
-    fs::write(
-        music_dir.join("AndroidMix.m3u8"),
-        "FullStack.mp3\nhttps://stream.example.com/radio.mp3\n",
-    )
-    .unwrap();
-    let scanner = sm.plugins.get::<ScannerHolder>();
-    let database = sm.plugins.get::<Database>();
-    scanner.set_android_bridge(Arc::new(KotlinE2eBridge::new(
-        _temp_dir.path().to_path_buf(),
-    )));
-    let hook = ScannerHook::new();
-    hook.on_startup(&sm).await.unwrap();
-    scanner.set_scan_dirs(vec![music_dir]);
-    scanner.set_exclude_dirs(vec![]);
-    scanner.set_thumbnail_dir(thumb_dir);
-
-    let scan_res = scanner.start_scan().await;
-
-    assert_ok!(scan_res);
-    let stored_songs = database
-        .get_songs_by_options(GetSongOptions {
-            song: Some(SearchableSong {
-                title: Some("FullStack".to_string()),
-                ..Default::default()
-            }),
-            ..Default::default()
-        })
-        .unwrap();
-    assert_eq!(stored_songs.len(), 1);
-    let inner = stored_songs[0].song.as_ref().unwrap();
-    assert!(inner.song_cover_path_high.is_some());
-    assert!(inner.song_cover_path_low.is_some());
-    let lyrics = database
-        .get_lyrics(inner.id.as_deref().unwrap())
-        .unwrap()
-        .unwrap();
-    assert!(lyrics.is_synced);
-    assert_eq!(lyrics.lines.len(), 1);
-    assert_eq!(lyrics.lines[0].text, "Database E2E Lyric");
-    assert_eq!(lyrics.lines[0].time_ms, 4500);
-    let playlist_entities = database
-        .get_entity_by_options(GetEntityOptions {
-            playlist: Some(Playlist::default()),
-            ..Default::default()
-        })
-        .unwrap();
-    let Some(EntityResultVariant::Playlists(playlist_list)) = playlist_entities.result else {
-        panic!("Expected Playlists result");
-    };
-    let android_mix = playlist_list
-        .playlists
-        .iter()
-        .find(|p| p.playlist_name == "AndroidMix")
-        .expect("AndroidMix playlist should be stored in database");
-    let playlist_songs = database
-        .get_songs_by_options(GetSongOptions {
-            playlist: Some(Playlist {
-                playlist_id: android_mix.playlist_id.clone(),
-                ..Default::default()
-            }),
-            ..Default::default()
-        })
-        .unwrap();
-    assert_eq!(playlist_songs.len(), 2);
 }

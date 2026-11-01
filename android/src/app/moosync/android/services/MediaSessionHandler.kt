@@ -96,7 +96,8 @@ class MediaSessionHandler(private val mContext: Context) {
         artistName: String?,
         albumName: String?,
         durationMs: Long,
-        thumbnailUri: String?
+        thumbnailUri: String?,
+        onBitmapLoaded: ((Bitmap?) -> Unit)? = null
     ) {
         val builder = MediaMetadata.Builder()
             .putString(MediaMetadata.METADATA_KEY_TITLE, title)
@@ -111,9 +112,11 @@ class MediaSessionHandler(private val mContext: Context) {
                     builder.putBitmap(MediaMetadata.METADATA_KEY_ART, bitmap)
                 }
                 mMediaSession.setMetadata(builder.build())
+                onBitmapLoaded?.invoke(bitmap)
             }
         } else {
             mMediaSession.setMetadata(builder.build())
+            onBitmapLoaded?.invoke(null)
         }
     }
 

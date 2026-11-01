@@ -25,6 +25,20 @@ export component SettingsMobile inherits Rectangle {
 
     in-out property <SettingsPages> active_page <=> SettingsState.active_page;
 
+    property <bool> is_open: false;
+
+    init => {
+        is_open = true;
+    }
+
+    x: root.is_open ? 0px : Theme.size3Xl;
+    opacity: root.is_open ? 1.0 : 0.0;
+
+    animate x, opacity {
+        duration: Theme.durationMedium;
+        easing: ease-out;
+    }
+
     width: 100%;
     height: 100%;
     background: Theme.primary;

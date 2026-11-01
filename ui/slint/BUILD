@@ -379,7 +379,6 @@ SLINT_SOURCES = [
     "src/common/pill_button.slint",
     "src/common/pill_button_mobile.slint",
     "src/common/popup_menu.slint",
-    "src/common/popup_menu_mobile.slint",
     "src/common/save_playlist_modal.slint",
     "src/common/save_playlist_modal_mobile.slint",
     "src/common/save_playlist_modal_props.slint",

@@ -21,7 +21,7 @@ use std::{
 };
 
 use extensions_proto::moosync::types::{PlayerState, player_event::Event as PlayerEvent};
-use rodio::{MixerDeviceSink, Player, source::EmptyCallback};
+use rodio::{ChannelCount, MixerDeviceSink, Player, SampleRate, Source, source::SeekError};
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
@@ -30,6 +30,65 @@ use crate::{
     rodio::{decoder::FFMPEGDecoder, get_system_sample_rate},
     source::ValidSrc,
 };
+
+struct OnEnded<S> {
+    source: S,
+    on_ended: Option<Box<dyn FnOnce() + Send>>,
+}
+
+impl<S> OnEnded<S> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn new(source: S, on_ended: Box<dyn FnOnce() + Send>) -> Self {
+        Self {
+            source,
+            on_ended: Some(on_ended),
+        }
+    }
+}
+
+impl<S: Source> Iterator for OnEnded<S> {
+    type Item = S::Item;
+
+    #[inline]
+    // moosync::no_instrument(reason = "hot loop: invoked per audio sample (~96k
+    // times/sec)")
+    fn next(&mut self) -> Option<Self::Item> {
+        let sample = self.source.next();
+        if sample.is_none()
+            && let Some(on_ended) = self.on_ended.take()
+        {
+            on_ended();
+        }
+        sample
+    }
+
+    #[inline]
+    // moosync::no_instrument(reason = "trivial getter called frequently on
+    // audio thread")
+    fn size_hint(&self) -> (usize, Option<usize>) { self.source.size_hint() }
+}
+
+impl<S: Source> Source for OnEnded<S> {
+    #[inline]
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn current_span_len(&self) -> Option<usize> { self.source.current_span_len() }
+
+    #[inline]
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn channels(&self) -> ChannelCount { self.source.channels() }
+
+    #[inline]
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn sample_rate(&self) -> SampleRate { self.source.sample_rate() }
+
+    #[inline]
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn total_duration(&self) -> Option<Duration> { self.source.total_duration() }
+
+    #[inline]
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn try_seek(&mut self, pos: Duration) -> Result<(), SeekError> { self.source.try_seek(pos) }
+}
 
 pub struct RodioPlayerContext {
     sink: Mutex<Option<MixerDeviceSink>>,
@@ -147,10 +206,6 @@ impl AudioPlayerContext for RodioPlayerContext {
     ) -> Result<(), PlayerError> {
         let old_volume = self.get_volume().unwrap_or(50);
 
-        if let Some(player) = self.player.lock().unwrap().as_ref() {
-            player.clear();
-        }
-
         let system_rate = get_system_sample_rate().max(1);
         let safe_rate = NonZero::new(system_rate).expect("Sample rate is clamped to 1");
 
@@ -176,10 +231,13 @@ impl AudioPlayerContext for RodioPlayerContext {
             output_sample_rate,
         )?;
         let player = rodio::Player::connect_new(sink.mixer());
-        player.append(decoder);
-        player.append(EmptyCallback::new(Box::new(move || {
-            let _ = events_tx.send(PlayerEvent::Ended(true));
-        })));
+        let source = OnEnded::new(
+            decoder,
+            Box::new(move || {
+                let _ = events_tx.send(PlayerEvent::Ended(true));
+            }),
+        );
+        player.append(source);
         player.set_volume(old_volume as f32 / 100f32);
 
         *self.player.lock().unwrap() = Some(player);

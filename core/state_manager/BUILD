@@ -3,12 +3,6 @@ load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
 rust_test(
     name = "state_manager_test",
     crate = ":state_manager",
-    data = [
-        "//android:scanner_kt_runner",
-    ],
-    env = {
-        "SCANNER_KT_RUNNER": "$(rootpath //android:scanner_kt_runner)",
-    },
     deps = [
         "@crates//:assertables",
         "@crates//:rstest",

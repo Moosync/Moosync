@@ -16,11 +16,13 @@
 
 use std::{fs, path::PathBuf};
 
+use async_trait::async_trait;
 use lazy_static::lazy_static;
 use regex::Regex;
 
 use crate::{
     FileList, OnPlaylistScanned, OnProgressUpdated, OnSongScanned, ScanProgress,
+    context::{ScanParameters, ScannerContext},
     error::ScannerError,
 };
 
@@ -118,37 +120,20 @@ fn process_directory(
     Ok(())
 }
 
-pub struct DesktopScannerContext {
-    scan_dirs: Vec<PathBuf>,
-    thumbnail_dir: PathBuf,
-    artist_split: String,
-    exclude_dirs: Vec<PathBuf>,
-    scan_threads: Option<i32>,
-}
+#[derive(Default)]
+pub struct DesktopScannerContext;
 
 impl DesktopScannerContext {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(
-        scan_dirs: Vec<PathBuf>,
-        thumbnail_dir: PathBuf,
-        artist_split: String,
-        exclude_dirs: Vec<PathBuf>,
-        scan_threads: Option<i32>,
-    ) -> Self {
-        Self {
-            scan_dirs,
-            thumbnail_dir,
-            artist_split,
-            exclude_dirs,
-            scan_threads,
-        }
-    }
+    pub fn new() -> Self { Self }
 }
 
-impl super::ScannerContext for DesktopScannerContext {
+#[async_trait]
+impl ScannerContext for DesktopScannerContext {
     #[tracing::instrument(level = "debug", skip_all)]
-    async fn start_scan(
+    async fn scan(
         &self,
+        params: ScanParameters,
         on_song: &OnSongScanned,
         on_playlist: &OnPlaylistScanned,
         on_progress: &OnProgressUpdated,
@@ -157,17 +142,17 @@ impl super::ScannerContext for DesktopScannerContext {
             file_list: Vec::new(),
             playlist_list: Vec::new(),
         };
-        for dir in &self.scan_dirs {
-            let res = get_files_recursively(dir.clone(), &self.exclude_dirs)?;
+        for dir in params.scan_dirs {
+            let res = get_files_recursively(dir, &params.exclude_dirs)?;
             file_list.file_list.extend(res.file_list);
             file_list.playlist_list.extend(res.playlist_list);
         }
 
         let song_scanner = SongScanner::new(
             &file_list,
-            self.thumbnail_dir.clone(),
-            self.artist_split.clone(),
-            self.scan_threads,
+            params.thumbnail_dir,
+            params.artist_split,
+            params.scan_threads,
         );
         let playlist_scanner = PlaylistScanner::new(&file_list);
 

@@ -146,4 +146,44 @@ export global ContextMenuItems {
     pure public function get_remove_from_playlist_title() -> string {
         return @tr("Remove from Playlist");
     }
+
+    pure public function get_sort_items() -> [ContextMenuItem] {
+        return [
+            {
+                action_id: "title",
+                title: @tr("Title"),
+                icon: @image-url(""),
+                has_sub_menu: false,
+                sub_items: [],
+            },
+            {
+                action_id: "date",
+                title: @tr("Date"),
+                icon: @image-url(""),
+                has_sub_menu: false,
+                sub_items: [],
+            },
+            {
+                action_id: "album",
+                title: @tr("Album"),
+                icon: @image-url(""),
+                has_sub_menu: false,
+                sub_items: [],
+            },
+            {
+                action_id: "track",
+                title: @tr("Track Number"),
+                icon: @image-url(""),
+                has_sub_menu: false,
+                sub_items: [],
+            },
+            {
+                action_id: "artist",
+                title: @tr("Artist"),
+                icon: @image-url(""),
+                has_sub_menu: false,
+                sub_items: [],
+            },
+        ];
+    }
 }

@@ -14,11 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{path::PathBuf, sync::Arc};
+use std::path::PathBuf;
 
 use android_scanner_proto::moosync::types::{ScanRequest, ScanResult, ScannedPlaylist};
 use async_trait::async_trait;
-#[cfg(target_os = "android")]
 use jni::{
     Env,
     errors::Error as JniError,
@@ -27,39 +26,18 @@ use jni::{
 };
 use prost::Message;
 use songs_proto::moosync::types::{Playlist, Song};
-#[cfg(target_os = "android")]
 use types::android::AndroidJNIContext;
 
 use crate::{
     OnPlaylistScanned, OnProgressUpdated, OnSongScanned, PlaylistSongId, ScanProgress,
+    context::{ScanParameters, ScannerContext},
     error::ScannerError,
 };
 
-#[cfg(target_os = "android")]
 impl From<JniError> for ScannerError {
     fn from(err: JniError) -> Self { ScannerError::Jni(format!("JNI error: {err:?}")) }
 }
 
-#[async_trait]
-#[cfg_attr(test, mockall::automock)]
-pub trait AndroidScannerBridge: Send + Sync {
-    async fn ensure_permission(&self) -> Result<bool, ScannerError> { Ok(true) }
-
-    fn invoke_scan(&self, request_bytes: Vec<u8>) -> Result<Vec<u8>, ScannerError>;
-}
-
-#[cfg(target_os = "android")]
-pub struct JniScannerBridge {
-    context: AndroidJNIContext,
-}
-
-#[cfg(target_os = "android")]
-impl JniScannerBridge {
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(context: AndroidJNIContext) -> Self { Self { context } }
-}
-
-#[cfg(target_os = "android")]
 #[tracing::instrument(level = "debug", skip_all)]
 fn load_scanner_class<'local>(
     env: &mut Env<'local>,
@@ -106,7 +84,6 @@ fn load_scanner_class<'local>(
     Ok(unsafe { JClass::from_raw(env, loaded_class.as_raw().cast()) })
 }
 
-#[cfg(target_os = "android")]
 #[tracing::instrument(level = "debug", skip_all)]
 fn call_scan_media(
     env: &mut Env,
@@ -135,14 +112,11 @@ fn call_scan_media(
         .map_err(|e| ScannerError::Jni(format!("convert_byte_array: {e:?}")))
 }
 
-#[cfg(target_os = "android")]
 static PERMISSION_TX: std::sync::Mutex<Option<tokio::sync::oneshot::Sender<bool>>> =
     std::sync::Mutex::new(None);
 
-#[cfg(target_os = "android")]
 const REQUEST_AUDIO_PERMISSION: i32 = 1001;
 
-#[cfg(target_os = "android")]
 #[unsafe(no_mangle)]
 #[allow(non_snake_case)]
 #[tracing::instrument(level = "debug", skip_all)]
@@ -164,7 +138,6 @@ pub unsafe extern "C" fn Java_app_moosync_android_MainActivity_nativeOnPermissio
     }
 }
 
-#[cfg(target_os = "android")]
 #[tracing::instrument(level = "debug", skip_all)]
 fn get_audio_permission_string(env: &mut Env) -> Result<String, ScannerError> {
     let build_version_class = env
@@ -183,7 +156,6 @@ fn get_audio_permission_string(env: &mut Env) -> Result<String, ScannerError> {
     }
 }
 
-#[cfg(target_os = "android")]
 #[tracing::instrument(level = "debug", skip_all)]
 fn is_audio_permission_granted(
     env: &mut Env,
@@ -209,7 +181,6 @@ fn is_audio_permission_granted(
     Ok(status == 0)
 }
 
-#[cfg(target_os = "android")]
 #[tracing::instrument(level = "debug", skip_all)]
 fn request_audio_permission(
     env: &mut Env,
@@ -243,7 +214,6 @@ fn request_audio_permission(
     Ok(())
 }
 
-#[cfg(target_os = "android")]
 #[tracing::instrument(level = "debug", skip_all)]
 async fn check_and_request_audio_permission(
     context: &AndroidJNIContext,
@@ -273,85 +243,6 @@ async fn check_and_request_audio_permission(
     let granted = rx.await.unwrap_or(false);
     tracing::info!("Audio permission response received: granted={}", granted);
     Ok(granted)
-}
-
-#[cfg(target_os = "android")]
-#[async_trait]
-impl AndroidScannerBridge for JniScannerBridge {
-    #[tracing::instrument(level = "debug", skip_all)]
-    async fn ensure_permission(&self) -> Result<bool, ScannerError> {
-        check_and_request_audio_permission(&self.context).await
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn invoke_scan(&self, request_bytes: Vec<u8>) -> Result<Vec<u8>, ScannerError> {
-        self.context
-            .jvm
-            .attach_current_thread(|env| call_scan_media(env, &self.context, &request_bytes))
-    }
-}
-
-pub struct AndroidScannerContext {
-    bridge: Arc<dyn AndroidScannerBridge>,
-    scan_dirs: Vec<PathBuf>,
-    exclude_dirs: Vec<PathBuf>,
-    thumbnail_dir: PathBuf,
-    artist_split: String,
-}
-
-impl AndroidScannerContext {
-    #[cfg(target_os = "android")]
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(
-        android_context: AndroidJNIContext,
-        scan_dirs: Vec<PathBuf>,
-        exclude_dirs: Vec<PathBuf>,
-        thumbnail_dir: PathBuf,
-        artist_split: String,
-    ) -> Self {
-        Self::new_with_bridge(
-            Arc::new(JniScannerBridge::new(android_context)),
-            scan_dirs,
-            exclude_dirs,
-            thumbnail_dir,
-            artist_split,
-        )
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new_with_bridge(
-        bridge: Arc<dyn AndroidScannerBridge>,
-        scan_dirs: Vec<PathBuf>,
-        exclude_dirs: Vec<PathBuf>,
-        thumbnail_dir: PathBuf,
-        artist_split: String,
-    ) -> Self {
-        Self {
-            bridge,
-            scan_dirs,
-            exclude_dirs,
-            thumbnail_dir,
-            artist_split,
-        }
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn build_request(&self) -> ScanRequest {
-        ScanRequest {
-            scan_dirs: self
-                .scan_dirs
-                .iter()
-                .map(|path| path.to_string_lossy().to_string())
-                .collect(),
-            exclude_dirs: self
-                .exclude_dirs
-                .iter()
-                .map(|path| path.to_string_lossy().to_string())
-                .collect(),
-            thumbnail_dir: self.thumbnail_dir.to_string_lossy().to_string(),
-            artist_split: self.artist_split.clone(),
-        }
-    }
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -410,27 +301,55 @@ async fn dispatch_scanned_songs(
     }
 }
 
-impl super::ScannerContext for AndroidScannerContext {
+pub struct AndroidScannerContext {
+    context: AndroidJNIContext,
+}
+
+impl AndroidScannerContext {
     #[tracing::instrument(level = "debug", skip_all)]
-    async fn start_scan(
+    pub fn new(context: AndroidJNIContext) -> Self { Self { context } }
+}
+
+#[async_trait]
+impl ScannerContext for AndroidScannerContext {
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn scan(
         &self,
+        params: ScanParameters,
         on_song: &OnSongScanned,
         on_playlist: &OnPlaylistScanned,
         on_progress: &OnProgressUpdated,
     ) -> Result<(), ScannerError> {
-        if !self.bridge.ensure_permission().await? {
+        if !check_and_request_audio_permission(&self.context).await? {
             tracing::warn!("Audio permission denied by user, skipping scan");
             on_progress(ScanProgress::STOPPED);
             return Err(ScannerError::PermissionDenied);
         }
 
-        let request = self.build_request();
+        let request = ScanRequest {
+            scan_dirs: params
+                .scan_dirs
+                .into_iter()
+                .map(|p| p.to_string_lossy().to_string())
+                .collect(),
+            exclude_dirs: params
+                .exclude_dirs
+                .into_iter()
+                .map(|p| p.to_string_lossy().to_string())
+                .collect(),
+            thumbnail_dir: params.thumbnail_dir.to_string_lossy().to_string(),
+            artist_split: params.artist_split,
+        };
         let request_bytes = encode_request(&request);
-        let bridge = self.bridge.clone();
+        let jni_context = self.context.clone();
 
-        let response_bytes = tokio::task::spawn_blocking(move || bridge.invoke_scan(request_bytes))
-            .await
-            .map_err(ScannerError::Join)??;
+        let response_bytes = tokio::task::spawn_blocking(move || {
+            jni_context
+                .jvm
+                .attach_current_thread(|env| call_scan_media(env, &jni_context, &request_bytes))
+        })
+        .await
+        .map_err(ScannerError::Join)??;
 
         let scan_result = ScanResult::decode(response_bytes.as_slice())?;
 

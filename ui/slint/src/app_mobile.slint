@@ -332,7 +332,7 @@ export component MainWindow inherits Window {
             width: 100%;
             height: parent.height;
             y: 0px;
-            visible: QueuePageProps.show_queue || player_sheet.y < player_sheet.collapsed_y - Theme.mobileDragThreshold;
+            visible: QueuePageProps.show_queue || player_sheet.is_dragging || player_sheet.y < player_sheet.collapsed_y;
         }
 
         BottomBarMobile {
@@ -373,10 +373,13 @@ export component MainWindow inherits Window {
         pointer-event(event) => {
             if (event.kind == PointerEventKind.down) {
                 player_sheet.is_dragging = true;
+                AppCallbacks.queue-toggled(true);
             } else if (event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel) {
                 player_sheet.is_dragging = false;
                 if (player_sheet.sheet_drag < -Theme.mobileSheetDismissThreshold) {
                     QueuePageProps.show_queue = true;
+                } else {
+                    AppCallbacks.queue-toggled(false);
                 }
                 player_sheet.sheet_drag = 0px;
             }
@@ -385,6 +388,7 @@ export component MainWindow inherits Window {
         moved => {
             if (self.pressed) {
                 player_sheet.sheet_drag = Math.min(0px, self.mouse-y - self.pressed-y);
+                AppCallbacks.queue-toggled(true);
             }
         }
 
@@ -421,10 +425,10 @@ export component MainWindow inherits Window {
 
     // Cover image drag down area on Now Playing tab (holding cover drags down, excludes top buttons and bottom playback controls)
     if QueuePageProps.show_queue && QueuePageProps.active_tab == 0: TouchArea {
-        x: 0px;
+        x: (parent.width - self.width) / 2;
         y: Theme.mobileCoverDragTop;
-        width: 100%;
-        height: Math.max(0px, parent.height - Theme.mobileCoverDragBottomOffset);
+        width: Math.min(parent.width - Theme.paddingLg * 2, Theme.mobileModalWidth);
+        height: self.width;
 
         pointer-event(event) => {
             if (event.kind == PointerEventKind.down) {

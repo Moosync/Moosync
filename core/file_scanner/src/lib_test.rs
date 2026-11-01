@@ -157,3 +157,30 @@ https://radio.stereoanime.net/listen/stereoanime/320
     assert_eq!(*progress_events.last().unwrap(), ScanProgress::STOPPED);
     assert_eq!(*playlist_count.lock().unwrap(), 1);
 }
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_scanner_holder_new_with_context(temp_dir_fixture: TempDir) {
+    let mut mock_context = crate::context::MockScannerContext::new();
+    mock_context
+        .expect_scan()
+        .times(1)
+        .returning(|_, _, _, on_progress| {
+            on_progress(ScanProgress::STOPPED);
+            Box::pin(async { Ok(()) })
+        });
+
+    let scanner = ScannerHolder::new_with_context(Box::new(mock_context));
+    scanner.set_scan_dirs(vec![temp_dir_fixture.path().to_path_buf()]);
+    scanner.set_thumbnail_dir(temp_dir_fixture.path().to_path_buf());
+    scanner.set_on_song(|_pl, _songs| async {});
+    scanner.set_on_playlist(|_pls| async {});
+
+    let mut progress_rx = scanner.add_subscriber();
+    let res = scanner.start_scan().await;
+
+    assert_ok!(res);
+    assert_eq!(progress_rx.try_recv().unwrap(), ScanProgress::STOPPED);
+}

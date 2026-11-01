@@ -47,15 +47,38 @@ mod window_info_test;
 pub use window_info::{WINDOW_EVENTS, WindowEvents};
 
 #[cfg(target_os = "android")]
-static ANDROID_APP: std::sync::OnceLock<slint::android::AndroidApp> = std::sync::OnceLock::new();
+static ANDROID_APP: std::sync::RwLock<Option<slint::android::AndroidApp>> =
+    std::sync::RwLock::new(None);
 
 #[cfg(target_os = "android")]
 #[unsafe(no_mangle)]
 #[tracing::instrument(level = "debug", skip_all)]
 fn android_main(app: slint::android::AndroidApp) {
-    slint::android::init(app.clone()).unwrap();
-    ANDROID_APP.set(app).expect("failed to set ANDROID_APP");
+    let _ = slint::android::init(app.clone());
+    if let Ok(mut lock) = ANDROID_APP.write() {
+        *lock = Some(app);
+    }
     run();
+}
+
+#[cfg(target_os = "android")]
+#[unsafe(no_mangle)]
+#[allow(non_snake_case)]
+#[tracing::instrument(level = "debug", skip_all)]
+pub unsafe extern "C" fn Java_app_moosync_android_MainActivity_nativeOnBackPressed(
+    _env: jni::EnvUnowned,
+    _class: jni::objects::JClass,
+) -> bool {
+    let (tx, rx) = std::sync::mpsc::channel();
+    let res = slint::invoke_from_event_loop(move || {
+        let handled = pages::handle_native_back_press();
+        let _ = tx.send(handled);
+    });
+    if res.is_err() {
+        return false;
+    }
+    rx.recv_timeout(std::time::Duration::from_millis(500))
+        .unwrap_or(false)
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -724,13 +747,17 @@ fn setup_tracing() {
     #[cfg(target_os = "android")]
     let subscriber = tracing_subscriber::registry().with(env_filter).with(layer);
 
-    tracing::subscriber::set_global_default(subscriber).unwrap();
+    let _ = tracing::subscriber::set_global_default(subscriber);
 }
 
 #[cfg(target_os = "android")]
 #[tracing::instrument(level = "debug", skip_all)]
 fn setup_android() -> types::android::AndroidJNIContext {
-    let app = ANDROID_APP.get().expect("ANDROID_APP not initialized");
+    let app = ANDROID_APP
+        .read()
+        .ok()
+        .and_then(|guard| guard.clone())
+        .expect("ANDROID_APP not initialized");
 
     // Safety: vm_as_ptr() returns the raw *mut JavaVM for this process.
     let vm = unsafe { jni::JavaVM::from_raw(app.vm_as_ptr().cast()) };

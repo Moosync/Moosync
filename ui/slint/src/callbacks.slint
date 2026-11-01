@@ -81,6 +81,14 @@ export global AppCallbacks {
         return SongSortCriterion.Title;
     }
 
+    pure public function sort_criterion_to_id(criterion: SongSortCriterion) -> string {
+        if (criterion == SongSortCriterion.Date) { return "date"; }
+        if (criterion == SongSortCriterion.Album) { return "album"; }
+        if (criterion == SongSortCriterion.TrackNumber) { return "track"; }
+        if (criterion == SongSortCriterion.Artist) { return "artist"; }
+        return "title";
+    }
+
     pure public function decide_sort_ascending(current_criterion: SongSortCriterion, current_ascending: bool, id: string) -> bool {
         if (id == "title" && current_criterion == SongSortCriterion.Title) { return !current_ascending; }
         if (id == "date" && current_criterion == SongSortCriterion.Date) { return !current_ascending; }

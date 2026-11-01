@@ -13,7 +13,8 @@ import {
     AppCallbacks,
     UtilCallbacks,
 } from "../callbacks.slint";
-import { PopupMenuMobile, MenuItem } from "popup_menu_mobile.slint";
+import { ContextMenuMobile } from "context_menu_mobile.slint";
+import { ContextMenuItems } from "../types/context_menu.slint";
 import { IconButton } from "icon_button_mobile.slint";
 import { Button } from "button_mobile.slint";
 import { ScrollActivity } from "scroll_activity_mobile.slint";
@@ -104,8 +105,9 @@ export component SongListViewMobile inherits Rectangle {
                 }
             }
 
-            sort-popup := PopupMenuMobile {
-                items: AppCallbacks.get_sort_menu_items(root.sort-criterion);
+            sort-popup := ContextMenuMobile {
+                items: ContextMenuItems.get_sort_items();
+                selected_id: AppCallbacks.sort_criterion_to_id(root.sort-criterion);
                 selected(id) => {
                     root.sort-ascending = AppCallbacks.decide_sort_ascending(root.sort-criterion, root.sort-ascending, id);
                     root.sort-criterion = AppCallbacks.decide_sort_criterion(id);

@@ -7,6 +7,7 @@ import android.media.session.MediaSession
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
+import android.view.KeyEvent
 import app.moosync.android.services.Constants.NOTIFICATION_ID
 
 class MoosyncService : Service() {
@@ -90,7 +91,38 @@ class MoosyncService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent != null && Intent.ACTION_MEDIA_BUTTON == intent.action) {
+            val keyEvent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT, KeyEvent::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                intent.getParcelableExtra<KeyEvent>(Intent.EXTRA_KEY_EVENT)
+            }
+            if (keyEvent != null && keyEvent.action == KeyEvent.ACTION_DOWN) {
+                handleMediaKeyEvent(keyEvent.keyCode)
+            }
+        }
         return START_NOT_STICKY
+    }
+
+    private fun handleMediaKeyEvent(keyCode: Int) {
+        val ptr = nativeCallbackPtr
+        Log.d("MoosyncAndroid", "handleMediaKeyEvent: keyCode=$keyCode, ptr=$ptr")
+        if (ptr == 0L) return
+        when (keyCode) {
+            KeyEvent.KEYCODE_MEDIA_PLAY -> nativeOnPlay(ptr)
+            KeyEvent.KEYCODE_MEDIA_PAUSE -> nativeOnPause(ptr)
+            KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_HEADSETHOOK -> {
+                if (notificationHandler.isPlaying) {
+                    nativeOnPause(ptr)
+                } else {
+                    nativeOnPlay(ptr)
+                }
+            }
+            KeyEvent.KEYCODE_MEDIA_STOP -> nativeOnStop(ptr)
+            KeyEvent.KEYCODE_MEDIA_NEXT -> nativeOnSkipToNext(ptr)
+            KeyEvent.KEYCODE_MEDIA_PREVIOUS -> nativeOnSkipToPrevious(ptr)
+        }
     }
 
     override fun onDestroy() {
@@ -139,14 +171,16 @@ class MoosyncService : Service() {
                                 Log.w("MoosyncAndroid", "updateMetadata: service not running")
                                 return
                             }
+            svc.notificationHandler.updateMetadata(title, artistName, albumName)
             svc.mediaSessionHandler.updateMetadata(
                     title,
                     artistName,
                     albumName,
                     durationMs,
                     thumbnailUri
-            )
-            svc.notificationHandler.updateNotification()
+            ) { bitmap ->
+                svc.notificationHandler.updateCover(bitmap)
+            }
         }
 
         @JvmStatic
@@ -158,7 +192,7 @@ class MoosyncService : Service() {
                                 return
                             }
             svc.mediaSessionHandler.updatePlayerState(isPlaying, positionMs)
-            svc.notificationHandler.updateNotification()
+            svc.notificationHandler.updatePlayerState(isPlaying)
         }
 
         @JvmStatic

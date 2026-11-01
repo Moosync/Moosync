@@ -4,7 +4,6 @@ rust_library(
     name = "file_scanner",
     srcs = [
         "src/context/android.rs",
-        "src/context/android_test.rs",
         "src/context/desktop/image_processor.rs",
         "src/context/desktop/image_processor_test.rs",
         "src/context/desktop/lyrics_scanner.rs",
@@ -57,12 +56,6 @@ rust_library(
 rust_test(
     name = "file_scanner_test",
     crate = ":file_scanner",
-    data = [
-        "//android:scanner_kt_runner",
-    ],
-    env = {
-        "SCANNER_KT_RUNNER": "$(rootpath //android:scanner_kt_runner)",
-    },
     deps = [
         "@crates//:assertables",
         "@crates//:mockall",

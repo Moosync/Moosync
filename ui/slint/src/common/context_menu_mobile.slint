@@ -12,6 +12,7 @@ export component ContextMenuMobile inherits Rectangle {
     in-out property <[ContextMenuItem]> items: [];
     in-out property <length> requested_x: 0px;
     in-out property <length> requested_y: 0px;
+    in property <string> selected_id: "";
 
     callback selected(string);
     callback clicked();
@@ -144,13 +145,13 @@ export component ContextMenuMobile inherits Rectangle {
                                 if (item.has_sub_menu || item.sub_items.length > 0) {
                                     root.active_submenu_index = idx;
                                 } else {
-                                    root.hide();
                                     root.selected(item.action_id);
+                                    root.hide();
                                 }
                             }
 
                             Rectangle {
-                                background: parent.has-hover ? Theme.primary.with-alpha(0.5) : transparent;
+                                background: (root.selected_id != "" && item.action_id == root.selected_id) ? Theme.accent.with-alpha(0.12) : (parent.has-hover ? Theme.primary.with-alpha(0.5) : transparent);
                                 border-radius: Theme.borderRadiusMd;
 
                                 HorizontalLayout {
@@ -159,17 +160,17 @@ export component ContextMenuMobile inherits Rectangle {
                                     spacing: Theme.spacingMd;
                                     alignment: start;
 
-                                    VerticalLayout {
+                                    if item.icon.width > 0: VerticalLayout {
                                         alignment: center;
                                         Rectangle {
                                             width: Theme.sizeLg;
                                             height: Theme.sizeLg;
-                                            if item.icon.width > 0: Image {
+                                            Image {
                                                 width: 100%;
                                                 height: 100%;
                                                 source: item.icon;
                                                 image-fit: contain;
-                                                colorize: Theme.textPrimary;
+                                                colorize: (root.selected_id != "" && item.action_id == root.selected_id) ? Theme.accent : Theme.textPrimary;
                                             }
                                         }
                                     }
@@ -177,9 +178,20 @@ export component ContextMenuMobile inherits Rectangle {
                                     Text {
                                         text: item.title;
                                         font-size: Theme.body;
-                                        color: Theme.textPrimary;
+                                        font-weight: (root.selected_id != "" && item.action_id == root.selected_id) ? 700 : 500;
+                                        color: (root.selected_id != "" && item.action_id == root.selected_id) ? Theme.accent : Theme.textPrimary;
                                         vertical-alignment: center;
                                         horizontal-stretch: 1;
+                                    }
+
+                                    if (root.selected_id != "" && item.action_id == root.selected_id): VerticalLayout {
+                                        alignment: center;
+                                        Rectangle {
+                                            width: Theme.borderWidthXxl;
+                                            height: Theme.sizeLg;
+                                            border-radius: Theme.borderRadiusSm;
+                                            background: Theme.accent;
+                                        }
                                     }
 
                                     if (item.has_sub_menu || item.sub_items.length > 0): VerticalLayout {
@@ -213,8 +225,8 @@ export component ContextMenuMobile inherits Rectangle {
                         for sub_item in root.items[root.active_submenu_index].sub_items: TouchArea {
                             height: Theme.size3Xl;
                             clicked => {
-                                root.hide();
                                 root.selected(sub_item.action_id);
+                                root.hide();
                             }
 
                             Rectangle {

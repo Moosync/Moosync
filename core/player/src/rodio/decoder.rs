@@ -275,12 +275,18 @@ impl FFMPEGDecoder {
                             ) => {
                                 return Ok(None);
                             }
-                            Err(e) => return Err(DecoderError::Rsmpeg(e)),
+                            Err(e) => {
+                                return Err(DecoderError::Rsmpeg(e));
+                            }
                         }
                     }
                 }
-                Err(RsmpegError::DecoderFlushedError) => return Ok(None),
-                Err(e) => return Err(DecoderError::Rsmpeg(e)),
+                Err(RsmpegError::DecoderFlushedError) => {
+                    return Ok(None);
+                }
+                Err(e) => {
+                    return Err(DecoderError::Rsmpeg(e));
+                }
             }
         }
     }

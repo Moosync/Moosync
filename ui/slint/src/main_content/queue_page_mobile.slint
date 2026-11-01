@@ -164,14 +164,7 @@ export component QueuePageMobile inherits Rectangle {
 
         // Header Navigation Bar
         HorizontalLayout {
-            spacing: Theme.spacingSm;
-            alignment: space-between;
-
-            // Balance spacer
-            Rectangle {
-                width: Theme.searchBarHeight;
-                height: Theme.searchBarHeight;
-            }
+            alignment: center;
 
             // Segmented Tab Switcher
             HorizontalLayout {
@@ -277,17 +270,6 @@ export component QueuePageMobile inherits Rectangle {
                     }
                 }
             }
-
-            IconButton {
-                accessible-label: @tr("Song Menu");
-                icon_source: @image-url("../icons/ellipsis.svg");
-                icon_size: Theme.playbackControlsIconSize;
-                width: Theme.searchBarHeight;
-                height: Theme.searchBarHeight;
-                clicked => {
-                    song_context_menu.show();
-                }
-            }
         }
 
         // Tab Content with animated transitions
@@ -343,6 +325,10 @@ export component QueuePageMobile inherits Rectangle {
                     easing: ease-in-out;
                 }
 
+                scroll_activity := ScrollActivity {
+                    position: queue_list.content-y;
+                }
+
                 VerticalLayout {
                     spacing: Theme.spacingSm;
 
@@ -374,10 +360,6 @@ export component QueuePageMobile inherits Rectangle {
                                 }
                             }
                         }
-                    }
-
-                    scroll_activity := ScrollActivity {
-                        position: queue_list.content-y;
                     }
 
                     queue_list := ListView {
@@ -422,13 +404,6 @@ export component QueuePageMobile inherits Rectangle {
 
                 LyricsViewMobile { }
             }
-        }
-    }
-
-    song_context_menu := ContextMenuMobile {
-        items: ContextMenuCallbacks.get_song_menu_items([PlayerProps.current_song]);
-        selected(id) => {
-            ContextMenuCallbacks.song_action([PlayerProps.current_song], id);
         }
     }
 }

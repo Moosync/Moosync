@@ -24,7 +24,7 @@ use tracing_test::traced_test;
 use crate::{
     OnPlaylistScanned, OnProgressUpdated, OnSongScanned,
     context::{
-        ScannerContext,
+        ScanParameters, ScannerContext,
         desktop::{DesktopScannerContext, get_files_recursively},
     },
 };
@@ -73,19 +73,21 @@ async fn test_desktop_scanner_context_start_scan(temp_dir_fixture: TempDir) {
     let scan_dir = dir.join("music");
     fs::create_dir_all(&scan_dir).unwrap();
 
-    let ctx = DesktopScannerContext::new(
-        vec![scan_dir.clone()],
-        thumb_dir,
-        ";".to_string(),
-        vec![],
-        Some(2),
-    );
+    let ctx = DesktopScannerContext::new();
 
     let on_song: OnSongScanned = Arc::new(|_pl_id, _songs| Box::pin(async {}));
     let on_playlist: OnPlaylistScanned = Arc::new(|_pls| Box::pin(async {}));
     let on_progress: OnProgressUpdated = Box::new(|_p| {});
 
-    let res = ctx.start_scan(&on_song, &on_playlist, &on_progress).await;
+    let params = ScanParameters {
+        scan_dirs: vec![scan_dir],
+        exclude_dirs: vec![],
+        thumbnail_dir: thumb_dir,
+        artist_split: ";".to_string(),
+        scan_threads: Some(2),
+    };
+
+    let res = ctx.scan(params, &on_song, &on_playlist, &on_progress).await;
 
     assert_ok!(res);
 }

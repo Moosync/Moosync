@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.media.session.MediaSession
 import android.media.session.PlaybackState
 import android.view.KeyEvent
@@ -21,6 +22,12 @@ class NotificationHandler(
 
     var notification: Notification? = null
         private set
+
+    var title: String? = null
+    var artistName: String? = null
+    var albumName: String? = null
+    var isPlaying: Boolean = false
+    var coverBitmap: Bitmap? = null
 
     init {
         mNotificationManager.cancelAll()
@@ -47,7 +54,9 @@ class NotificationHandler(
     private fun buildMediaButtonPendingIntent(action: Long): PendingIntent {
         val keyCode = when (action) {
             PlaybackState.ACTION_SKIP_TO_PREVIOUS -> KeyEvent.KEYCODE_MEDIA_PREVIOUS
-            PlaybackState.ACTION_PAUSE, PlaybackState.ACTION_PLAY_PAUSE -> KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
+            PlaybackState.ACTION_PLAY -> KeyEvent.KEYCODE_MEDIA_PLAY
+            PlaybackState.ACTION_PAUSE -> KeyEvent.KEYCODE_MEDIA_PAUSE
+            PlaybackState.ACTION_PLAY_PAUSE -> KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
             PlaybackState.ACTION_SKIP_TO_NEXT -> KeyEvent.KEYCODE_MEDIA_NEXT
             else -> KeyEvent.KEYCODE_UNKNOWN
         }
@@ -82,11 +91,16 @@ class NotificationHandler(
         )
 
         val prevIntent = buildMediaButtonPendingIntent(PlaybackState.ACTION_SKIP_TO_PREVIOUS)
-        val pauseIntent = buildMediaButtonPendingIntent(PlaybackState.ACTION_PAUSE)
+        val playPauseAction = if (isPlaying) PlaybackState.ACTION_PAUSE else PlaybackState.ACTION_PLAY
+        val playPauseIntent = buildMediaButtonPendingIntent(playPauseAction)
+        val playPauseIcon = if (isPlaying) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play
+        val playPauseLabel = if (isPlaying) "Pause" else "Play"
         val nextIntent = buildMediaButtonPendingIntent(PlaybackState.ACTION_SKIP_TO_NEXT)
 
         val builder = Notification.Builder(mContext, NOTIFICATION_CHANNEL_ID)
             .setStyle(mediaStyle)
+            .setContentTitle(if (!title.isNullOrEmpty()) title else "Moosync")
+            .setContentText(artistName ?: "")
             .addAction(
                 Notification.Action.Builder(
                     android.R.drawable.ic_media_previous, "Previous", prevIntent
@@ -94,7 +108,7 @@ class NotificationHandler(
             )
             .addAction(
                 Notification.Action.Builder(
-                    android.R.drawable.ic_media_pause, "Pause", pauseIntent
+                    playPauseIcon, playPauseLabel, playPauseIntent
                 ).build()
             )
             .addAction(
@@ -107,7 +121,35 @@ class NotificationHandler(
             .setContentIntent(clickIntent)
             .setShowWhen(false)
 
+        if (!albumName.isNullOrEmpty()) {
+            builder.setSubText(albumName)
+        }
+
+        if (coverBitmap != null) {
+            builder.setLargeIcon(coverBitmap)
+        }
+
         notification = builder.build()
+    }
+
+    fun updateMetadata(title: String?, artistName: String?, albumName: String?, coverBitmap: Bitmap? = null) {
+        this.title = title
+        this.artistName = artistName
+        this.albumName = albumName
+        if (coverBitmap != null) {
+            this.coverBitmap = coverBitmap
+        }
+        updateNotification()
+    }
+
+    fun updateCover(bitmap: Bitmap?) {
+        this.coverBitmap = bitmap
+        updateNotification()
+    }
+
+    fun updatePlayerState(isPlaying: Boolean) {
+        this.isPlaying = isPlaying
+        updateNotification()
     }
 
     fun clearNotification() {

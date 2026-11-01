@@ -26,12 +26,26 @@ class MainActivity : NativeActivity() {
         }
     }
 
+    override fun onBackPressed() {
+        val handled = try {
+            nativeOnBackPressed()
+        } catch (e: UnsatisfiedLinkError) {
+            Log.e("MoosyncAndroid", "Failed to invoke nativeOnBackPressed", e)
+            false
+        }
+        Log.d("MoosyncAndroid", "MainActivity onBackPressed: handled=$handled")
+        if (!handled) {
+            super.onBackPressed()
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         Log.d("MoosyncAndroid", "MainActivity onDestroy")
     }
 
     private external fun nativeOnPermissionResult(requestCode: Int, granted: Boolean)
+    private external fun nativeOnBackPressed(): Boolean
 
     companion object {
         init {

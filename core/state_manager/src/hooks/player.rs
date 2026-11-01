@@ -17,6 +17,7 @@ use crate::StateManager;
 pub struct PlayerHook;
 
 impl Default for PlayerHook {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn default() -> Self { Self::new() }
 }
 

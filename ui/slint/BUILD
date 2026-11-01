@@ -554,7 +554,9 @@ rust_library(
         "@crates//:tracing-subscriber",
         "@crates//:uuid",
     ] + select({
-        "@platforms//os:android": [],
+        "@platforms//os:android": [
+            "@crates//:jni",
+        ],
         "//conditions:default": [
             "@crates//:auto-launch",
             "@crates//:rfd",

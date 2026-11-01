@@ -10,14 +10,18 @@ import {
 
 export component SongListItemMobile inherits Rectangle {
     in property <SongModel> song: Constants.defaultSong;
+    in property <bool> is_selected: false;
+    in property <bool> selection_mode: false;
     callback clicked();
     callback item_pressed(PointerEvent);
     pure callback get_selected_songs() -> [SongModel];
 
     accessible-role: list-item;
     accessible-label: root.song.title;
-    background: Theme.secondary;
+    background: root.is_selected ? Theme.accent.transparentize(0.85) : Theme.secondary;
     border-radius: Theme.borderRadiusMd;
+    border-width: root.is_selected ? Theme.borderWidth * 2 : 0px;
+    border-color: root.is_selected ? Theme.accent : transparent;
     height: Theme.mobileSongListItemHeight;
 
     TouchArea {
@@ -34,6 +38,26 @@ export component SongListItemMobile inherits Rectangle {
     HorizontalLayout {
         padding: Theme.paddingXs;
         padding-right: Theme.paddingLg;
+
+        if root.selection_mode: VerticalLayout {
+            alignment: center;
+            padding-right: Theme.paddingSm;
+            Rectangle {
+                width: Theme.iconSizeMd;
+                height: Theme.iconSizeMd;
+                border-radius: Theme.iconSizeMd / 2;
+                border-width: Theme.borderWidth * 1.5;
+                border-color: root.is_selected ? Theme.accent : Theme.textSecondary;
+                background: root.is_selected ? Theme.accent : transparent;
+
+                if root.is_selected: Rectangle {
+                    width: Theme.iconSizeMd * 0.45;
+                    height: Theme.iconSizeMd * 0.45;
+                    border-radius: self.width / 2;
+                    background: Theme.primary;
+                }
+            }
+        }
 
         SongItemThumbnail {
             song: root.song;

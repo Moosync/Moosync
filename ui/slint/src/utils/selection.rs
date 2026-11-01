@@ -50,3 +50,6 @@ pub fn update_selection(
 
     vec![clicked_idx]
 }
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn select_all(total_count: usize) -> Vec<i32> { (0..total_count as i32).collect() }

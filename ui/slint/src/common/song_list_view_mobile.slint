@@ -12,6 +12,7 @@ import { Theme, Constants } from "../constants_mobile.slint";
 import {
     AppCallbacks,
     UtilCallbacks,
+    ContextMenuCallbacks,
 } from "../callbacks.slint";
 import { ContextMenuMobile } from "context_menu_mobile.slint";
 import { ContextMenuItems } from "../types/context_menu.slint";
@@ -27,6 +28,7 @@ export component SongListViewMobile inherits Rectangle {
     callback play_all();
     in-out property <int> active-idx: -1;
     in-out property <[int]> selected-indices: [];
+    in-out property <bool> selection_mode: false;
     in property <bool> show-controls: true;
     in property <bool> show_play_all: false;
     out property <bool> is_scrollable: list_view.content-height > list_view.height;
@@ -55,8 +57,8 @@ export component SongListViewMobile inherits Rectangle {
     VerticalLayout {
         spacing: Theme.spacingSm;
 
-        // Mobile Controls Row (Play All and Sort)
-        if root.show-controls: HorizontalLayout {
+        // Mobile Controls Row (Play All, Selection Toggle, and Sort)
+        if root.show-controls && !root.selection_mode && root.selected-indices.length == 0: HorizontalLayout {
             padding-left: Theme.paddingSm;
             padding-right: Theme.paddingSm;
             spacing: Theme.spacingSm;
@@ -81,6 +83,20 @@ export component SongListViewMobile inherits Rectangle {
             VerticalLayout {
                 alignment: center;
                 IconButton {
+                    accessible-label: @tr("Select songs");
+                    icon_source: @image-url("../icons/queue.svg");
+                    width: Theme.mobileButtonSize;
+                    height: Theme.mobileButtonSize;
+                    clicked => {
+                        root.selection_mode = true;
+                    }
+                }
+            }
+
+            VerticalLayout {
+                alignment: center;
+                IconButton {
+                    accessible-label: @tr("Sort songs");
                     icon_source: @image-url("../icons/sort.svg");
                     active: root.sort-criterion != SongSortCriterion.Title || !root.sort-ascending;
                     icon_rotation: !root.sort-ascending ? Theme.angle180 : Theme.angle0;
@@ -95,6 +111,7 @@ export component SongListViewMobile inherits Rectangle {
             if (root.extension_providers.length > 0): VerticalLayout {
                 alignment: center;
                 IconButton {
+                    accessible-label: @tr("Filter extension providers");
                     icon_source: @image-url("../icons/extensions.svg");
                     active: UtilCallbacks.has_active_extension_providers(root.extension_providers);
                     width: Theme.mobileButtonSize;
@@ -122,6 +139,94 @@ export component SongListViewMobile inherits Rectangle {
             }
         }
 
+        // Selection Action Bar
+        if root.show-controls && (root.selection_mode || root.selected-indices.length > 0): HorizontalLayout {
+            padding-left: Theme.paddingSm;
+            padding-right: Theme.paddingSm;
+            spacing: Theme.spacingSm;
+            height: Theme.mobileButtonSize;
+
+            VerticalLayout {
+                alignment: center;
+                horizontal-stretch: 1;
+                Text {
+                    text: root.selected-indices.length > 0 ? @tr("{} selected", root.selected-indices.length) : @tr("Select songs");
+                    font-size: Theme.body;
+                    color: Theme.accent;
+                    font-weight: 600;
+                    vertical-alignment: center;
+                }
+            }
+
+            VerticalLayout {
+                alignment: center;
+                Button {
+                    text: root.selected-indices.length == root.display-songs.length ? @tr("None") : @tr("All");
+                    clicked => {
+                        if (root.selected-indices.length == root.display-songs.length) {
+                            root.selected-indices = [];
+                        } else {
+                            root.selected-indices = UtilCallbacks.select_all(root.display-songs.length);
+                        }
+                    }
+                }
+            }
+
+            if root.selected-indices.length > 0: VerticalLayout {
+                alignment: center;
+                IconButton {
+                    accessible-label: @tr("Add selected to queue");
+                    icon_source: @image-url("../icons/add_to_queue.svg");
+                    icon_size: Theme.iconSizeMd;
+                    width: Theme.mobileButtonSize;
+                    height: Theme.mobileButtonSize;
+                    clicked => {
+                        ContextMenuCallbacks.song_action(root.selected-songs, "add_to_queue");
+                        root.selected-indices = [];
+                        root.selection_mode = false;
+                    }
+                }
+            }
+
+            if root.selected-indices.length > 0: VerticalLayout {
+                alignment: center;
+                IconButton {
+                    accessible-label: @tr("More actions for selected songs");
+                    icon_source: @image-url("../icons/ellipsis.svg");
+                    icon_size: Theme.iconSizeMd;
+                    width: Theme.mobileButtonSize;
+                    height: Theme.mobileButtonSize;
+                    clicked => {
+                        batch-context-menu.show();
+                    }
+                }
+            }
+
+            VerticalLayout {
+                alignment: center;
+                IconButton {
+                    accessible-label: @tr("Cancel selection");
+                    icon_source: @image-url("../icons/cross.svg");
+                    icon_size: Theme.iconSizeMd;
+                    width: Theme.mobileButtonSize;
+                    height: Theme.mobileButtonSize;
+                    clicked => {
+                        root.selected-indices = [];
+                        root.selection_mode = false;
+                    }
+                }
+            }
+
+            batch-context-menu := ContextMenuMobile {
+                items: ContextMenuCallbacks.get_song_menu_items(root.selected-songs);
+                selected(id) => {
+                    ContextMenuCallbacks.song_action(root.selected-songs, id);
+                    root.selected-indices = [];
+                    root.selection_mode = false;
+                }
+            }
+        }
+
         // List View
         list_view := ListView {
             vertical-stretch: 1;
@@ -134,8 +239,34 @@ export component SongListViewMobile inherits Rectangle {
 
                 SongListItemMobile {
                     song: song;
+                    is_selected: UtilCallbacks.is_index_selected(root.selected-indices, idx);
+                    selection_mode: root.selection_mode || root.selected-indices.length > 0;
                     clicked => {
-                        AppCallbacks.play-song(song);
+                        if (root.selection_mode || root.selected-indices.length > 0) {
+                            root.selected-indices = UtilCallbacks.update_selection(
+                                root.selected-indices,
+                                idx,
+                                0,
+                                true,
+                                false,
+                                false,
+                                root.display-songs.length);
+                        } else {
+                            AppCallbacks.play-song(song);
+                        }
+                    }
+                    item_pressed(event) => {
+                        if (event.kind == PointerEventKind.down && event.button == PointerEventButton.right) {
+                            root.selection_mode = true;
+                            root.selected-indices = UtilCallbacks.update_selection(
+                                root.selected-indices,
+                                idx,
+                                0,
+                                true,
+                                false,
+                                false,
+                                root.display-songs.length);
+                        }
                     }
                     get_selected_songs => {
                         return root.selected-songs;

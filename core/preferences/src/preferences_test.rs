@@ -224,3 +224,44 @@ fn test_preferences_get_secure_key_not_found(prefs_context: TestPrefsContext) {
 
     assert!(result.is_err());
 }
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_preferences_secure_roundtrip(prefs_context: TestPrefsContext) {
+    let TestPrefsContext { prefs, .. } = prefs_context;
+    let data = StringList {
+        values: vec!["secret_token_123".to_string()],
+    };
+
+    prefs
+        .set_secure("my_secure_key".to_string(), Some(data.clone()))
+        .unwrap();
+
+    let loaded: StringList = prefs.get_secure("my_secure_key".to_string()).unwrap();
+    assert_eq!(loaded, data);
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_preferences_get_secure_legacy_unencrypted_fallback(prefs_context: TestPrefsContext) {
+    use prost::Message;
+    let TestPrefsContext { prefs, .. } = prefs_context;
+    let data = StringList {
+        values: vec!["legacy_unencrypted_token".to_string()],
+    };
+    let hex_encoded = hex::encode(data.encode_to_vec());
+
+    let item = preferences_proto::moosync::types::PreferenceItem {
+        id: "legacy_key".to_string(),
+        value: Some(PreferenceValue {
+            value: Some(preference_value::Value::StringValue(hex_encoded)),
+        }),
+        ..Default::default()
+    };
+    prefs.save(item).unwrap();
+
+    let loaded: StringList = prefs.get_secure("legacy_key".to_string()).unwrap();
+    assert_eq!(loaded, data);
+}

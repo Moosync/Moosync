@@ -23,10 +23,8 @@ use std::{
     sync::{Arc, Mutex, RwLock},
 };
 
-#[cfg(not(target_os = "android"))]
-use chacha20poly1305::Nonce;
 use chacha20poly1305::{
-    ChaCha20Poly1305, Key, KeyInit,
+    ChaCha20Poly1305, Key, KeyInit, Nonce,
     aead::{Aead, Generate},
 };
 use preferences_proto::moosync::types::{PreferenceItem, PreferenceValue, preference_value};
@@ -35,12 +33,14 @@ use types::{
     plugin::{Plugin, PluginContext},
     subscription::SubscriberList,
 };
+#[cfg(not(target_os = "android"))]
 use whoami;
 
-use crate::{
-    context::{Keyring, KeyringContext},
-    error::PreferencesError,
-};
+#[cfg(target_os = "android")]
+use crate::context::AndroidKeyringContext;
+#[cfg(not(target_os = "android"))]
+use crate::context::KeyringContext;
+use crate::{context::Keyring, error::PreferencesError};
 
 pub struct PreferenceConfig {
     pub config_file: Mutex<PathBuf>,
@@ -62,11 +62,19 @@ impl fmt::Debug for PreferenceConfig {
 #[plugin_macro::generate]
 impl PreferenceConfig {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(data_dir: PathBuf) -> Result<Self, PreferencesError> {
-        let username = whoami::username().unwrap_or_else(|_| "moosync_user".to_string());
-        let context =
-            KeyringContext::new("moosync", &username).map_err(PreferencesError::Keyring)?;
-        Self::new_with_context(data_dir, Box::new(context))
+    pub fn new(
+        data_dir: PathBuf,
+        #[cfg(target_os = "android")] android_context: types::android::AndroidJNIContext,
+    ) -> Result<Self, PreferencesError> {
+        #[cfg(not(target_os = "android"))]
+        let context: Box<dyn Keyring> = {
+            let username = whoami::username().unwrap_or_else(|_| "moosync_user".to_string());
+            Box::new(KeyringContext::new("moosync", &username).map_err(PreferencesError::Keyring)?)
+        };
+        #[cfg(target_os = "android")]
+        let context: Box<dyn Keyring> = Box::new(AndroidKeyringContext::new(android_context));
+
+        Self::new_with_context(data_dir, context)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -80,7 +88,6 @@ impl PreferenceConfig {
             fs::create_dir_all(&data_dir).map_err(PreferencesError::Io)?;
         }
 
-        #[cfg(not(target_os = "android"))]
         let secret = match context.get_secret() {
             Ok(password) => {
                 tracing::debug!("Got keystore password");
@@ -103,9 +110,6 @@ impl PreferenceConfig {
                 key
             }
         };
-
-        #[cfg(target_os = "android")]
-        let secret = Key::generate();
 
         let mut map = HashMap::new();
         if config_file_path.exists() {
@@ -142,50 +146,38 @@ impl PreferenceConfig {
     where
         T: Message + Default,
     {
-        #[cfg(not(target_os = "android"))]
-        {
-            let item = self
-                .get(&key)
-                .ok_or_else(|| PreferencesError::KeyNotFound(key.clone()))?;
-            let data = match item.value.and_then(|v| v.value) {
-                Some(preference_value::Value::StringValue(s)) => s,
-                _ => return Err(PreferencesError::KeyNotFound(key)),
-            };
+        let item = self
+            .get(&key)
+            .ok_or_else(|| PreferencesError::KeyNotFound(key.clone()))?;
+        let data = match item.value.and_then(|v| v.value) {
+            Some(preference_value::Value::StringValue(s)) => s,
+            _ => return Err(PreferencesError::KeyNotFound(key)),
+        };
 
-            let mut split = data.split(':');
-            let nonce_str = split
-                .next()
-                .ok_or_else(|| PreferencesError::KeyNotFound(key.clone()))?;
-            let nonce = Nonce::try_from(
-                &hex::decode(nonce_str).map_err(PreferencesError::HexDecode)?[0..12],
-            )
-            .unwrap();
-            let ciphertext_str = split
-                .next()
-                .ok_or_else(|| PreferencesError::KeyNotFound(key))?;
-            let ciphertext = hex::decode(ciphertext_str).map_err(PreferencesError::HexDecode)?;
-
-            let secret = self.secret.lock().unwrap();
-            let cipher = ChaCha20Poly1305::new(&secret);
-            let decrypted = cipher
-                .decrypt(&nonce, ciphertext.as_slice())
-                .map_err(PreferencesError::Decryption)?;
-
-            Ok(T::decode(&decrypted[..])?)
+        if !data.contains(':') {
+            let bytes = hex::decode(&data).map_err(PreferencesError::HexDecode)?;
+            return Ok(T::decode(&bytes[..])?);
         }
 
-        #[cfg(target_os = "android")]
-        {
-            let item = self
-                .get(&key)
-                .ok_or_else(|| PreferencesError::KeyNotFound(key.clone()))?;
-            let data = match item.value.and_then(|v| v.value) {
-                Some(preference_value::Value::StringValue(s)) => s,
-                _ => return Err(PreferencesError::KeyNotFound(key)),
-            };
-            let bytes = hex::decode(data).map_err(PreferencesError::HexDecode)?;
-            Ok(T::decode(&bytes[..])?)
-        }
+        let mut split = data.split(':');
+        let nonce_str = split
+            .next()
+            .ok_or_else(|| PreferencesError::KeyNotFound(key.clone()))?;
+        let nonce =
+            Nonce::try_from(&hex::decode(nonce_str).map_err(PreferencesError::HexDecode)?[0..12])
+                .unwrap();
+        let ciphertext_str = split
+            .next()
+            .ok_or_else(|| PreferencesError::KeyNotFound(key))?;
+        let ciphertext = hex::decode(ciphertext_str).map_err(PreferencesError::HexDecode)?;
+
+        let secret = self.secret.lock().unwrap();
+        let cipher = ChaCha20Poly1305::new(&secret);
+        let decrypted = cipher
+            .decrypt(&nonce, ciphertext.as_slice())
+            .map_err(PreferencesError::Decryption)?;
+
+        Ok(T::decode(&decrypted[..])?)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -202,42 +194,24 @@ impl PreferenceConfig {
             return Ok(());
         }
 
-        #[cfg(not(target_os = "android"))]
-        {
-            let val = value.unwrap();
-            let secret = self.secret.lock().unwrap();
-            let cipher = ChaCha20Poly1305::new(&secret);
-            let nonce = Nonce::generate();
-            let serialized = val.encode_to_vec();
-            let encrypted = cipher
-                .encrypt(&nonce, serialized.as_slice())
-                .map_err(PreferencesError::Encryption)?;
+        let val = value.unwrap();
+        let secret = self.secret.lock().unwrap();
+        let cipher = ChaCha20Poly1305::new(&secret);
+        let nonce = Nonce::generate();
+        let serialized = val.encode_to_vec();
+        let encrypted = cipher
+            .encrypt(&nonce, serialized.as_slice())
+            .map_err(PreferencesError::Encryption)?;
 
-            let parsed = format!("{}:{}", hex::encode(nonce), hex::encode(encrypted));
-            let item = PreferenceItem {
-                id: key.clone(),
-                value: Some(PreferenceValue {
-                    value: Some(preference_value::Value::StringValue(parsed)),
-                }),
-                ..Default::default()
-            };
-            self.save(item)?;
-        }
-
-        #[cfg(target_os = "android")]
-        {
-            let val = value.unwrap();
-            let serialized = hex::encode(val.encode_to_vec());
-            let item = PreferenceItem {
-                id: key.clone(),
-                value: Some(PreferenceValue {
-                    value: Some(preference_value::Value::StringValue(serialized)),
-                }),
-                ..Default::default()
-            };
-            self.save(item)?;
-        }
-
+        let parsed = format!("{}:{}", hex::encode(nonce), hex::encode(encrypted));
+        let item = PreferenceItem {
+            id: key.clone(),
+            value: Some(PreferenceValue {
+                value: Some(preference_value::Value::StringValue(parsed)),
+            }),
+            ..Default::default()
+        };
+        self.save(item)?;
         Ok(())
     }
 }
@@ -313,9 +287,11 @@ impl PreferenceConfig {
 impl Plugin for PreferenceConfig {
     #[tracing::instrument(level = "debug", skip_all)]
     fn init(context: &PluginContext) -> Arc<Self> {
-        Arc::new(
-            PreferenceConfig::new(context.data_dir.clone())
-                .expect("Failed to initialize PreferenceConfig"),
-        )
+        let instance = PreferenceConfig::new(
+            context.data_dir.clone(),
+            #[cfg(target_os = "android")]
+            context.android_context.clone(),
+        );
+        Arc::new(instance.expect("Failed to initialize PreferenceConfig"))
     }
 }

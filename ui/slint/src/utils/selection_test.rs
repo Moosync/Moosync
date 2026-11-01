@@ -31,3 +31,11 @@ fn test_update_selection(
 
     assert_eq!(result, expected);
 }
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_select_all() {
+    let result = super::selection::select_all(5);
+    assert_eq!(result, vec![0, 1, 2, 3, 4]);
+}

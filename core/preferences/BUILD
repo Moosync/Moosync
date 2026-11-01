@@ -3,6 +3,8 @@ load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
 rust_library(
     name = "preferences",
     srcs = [
+        "src/context/android.rs",
+        "src/context/android_test.rs",
         "src/context/keyring_context.rs",
         "src/context/keyring_context_test.rs",
         "src/context/mod.rs",
@@ -32,7 +34,12 @@ rust_library(
         "@crates//:thiserror",
         "@crates//:tracing",
         "@crates//:whoami",
-    ],
+    ] + select({
+        "@platforms//os:android": [
+            "@crates//:jni",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 rust_test(

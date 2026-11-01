@@ -32,83 +32,128 @@ component QueueItemMobile inherits Rectangle {
     in property <int> item-idx;
     in property <int> model-idx;
     in property <bool> is-active: false;
+    in property <bool> is-ghost: false;
+    in-out property <int> drag-source-idx: -1;
+    in-out property <int> drag-target-idx: -1;
+    in-out property <length> drag-mouse-y: -Theme.borderWidth;
+    in property <length> list-viewport-y: 0px;
     callback clicked();
     callback remove-clicked();
 
     height: Theme.mobileSongListItemHeight;
-    background: root.is-active ? Theme.secondary : transparent;
+    background: root.is-ghost ? Theme.accent.transparentize(0.9) : (root.is-active ? Theme.secondary : transparent);
     border-radius: Theme.borderRadiusMd;
+    border-width: root.is-ghost ? Theme.borderWidth : 0px;
+    border-color: root.is-ghost ? Theme.accent.transparentize(0.7) : transparent;
+    opacity: root.is-ghost ? 0.4 : 1.0;
 
-    TouchArea {
+    DragArea {
         width: 100%;
         height: 100%;
-        clicked => { root.clicked(); }
-    }
+        allow-move: true;
+        data: AppCallbacks.string-to-transfer(root.model-idx);
 
-    HorizontalLayout {
-        padding: Theme.paddingXs;
-        padding-right: Theme.paddingLg;
+        DropArea {
+            width: 100%;
+            height: 100%;
 
-        SongItemThumbnail {
-            song: root.song;
-            show_play_overlay: !root.is-active;
-            play_clicked => { root.clicked(); }
-        }
-
-        HorizontalLayout {
-            horizontal-stretch: 1;
-            alignment: start;
-            padding-left: Theme.paddingLg;
-
-            SongItemInfo {
-                song: root.song;
-                title_color: root.is-active ? Theme.accent : Theme.textPrimary;
+            can-drop(event) => {
+                if (event.proposed-action == DragAction.move) {
+                    root.drag-source-idx = AppCallbacks.transfer-to-string(event.data).to-float();
+                    root.drag-target-idx = root.item-idx;
+                    root.drag-mouse-y = root.item-idx * (Theme.mobileSongListItemHeight + Theme.spacingXs) + event.position.y + root.list-viewport-y;
+                    return DragAction.move;
+                }
+                return DragAction.none;
             }
-        }
 
-        VerticalLayout {
-            alignment: center;
+            dropped(event) => {
+                AppCallbacks.move-queue-item(AppCallbacks.transfer-to-string(event.data), root.item-idx);
+                root.drag-source-idx = -1;
+                root.drag-target-idx = -1;
+                root.drag-mouse-y = -Theme.borderWidth;
+                return event.proposed-action;
+            }
+
+            TouchArea {
+                width: 100%;
+                height: 100%;
+                pointer-event(event) => {
+                    if (event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel) {
+                        root.drag-source-idx = -1;
+                        root.drag-target-idx = -1;
+                        root.drag-mouse-y = -Theme.borderWidth;
+                    }
+                }
+                clicked => { root.clicked(); }
+            }
+
             HorizontalLayout {
-                spacing: Theme.spacingLg;
-                alignment: end;
+                padding: Theme.paddingXs;
+                padding-right: Theme.paddingLg;
 
-                Text {
-                    accessible-role: none;
-                    text: root.song.duration_str;
-                    font-size: Theme.caption;
-                    color: Theme.textSecondary;
-                    vertical-alignment: center;
+                SongItemThumbnail {
+                    song: root.song;
+                    show_play_overlay: !root.is-active;
+                    play_clicked => { root.clicked(); }
                 }
 
-                IconButton {
-                    accessible-label: @tr("More options");
-                    icon_source: @image-url("../icons/ellipsis.svg");
-                    icon_size: Theme.iconSizeMd;
-                    width: Theme.mobileButtonSize;
-                    height: Theme.mobileButtonSize;
-                    clicked => {
-                        context_menu.show();
+                HorizontalLayout {
+                    horizontal-stretch: 1;
+                    alignment: start;
+                    padding-left: Theme.paddingLg;
+
+                    SongItemInfo {
+                        song: root.song;
+                        title_color: root.is-active ? Theme.accent : Theme.textPrimary;
                     }
                 }
 
-                IconButton {
-                    accessible-label: @tr("Remove from queue");
-                    icon_source: @image-url("../icons/cross.svg");
-                    icon_size: Theme.iconSizeMd;
-                    width: Theme.mobileButtonSize;
-                    height: Theme.mobileButtonSize;
-                    icon_color: #ff5555;
-                    clicked => { root.remove-clicked(); }
+                VerticalLayout {
+                    alignment: center;
+                    HorizontalLayout {
+                        spacing: Theme.spacingLg;
+                        alignment: end;
+
+                        Text {
+                            accessible-role: none;
+                            text: root.song.duration_str;
+                            font-size: Theme.caption;
+                            color: Theme.textSecondary;
+                            vertical-alignment: center;
+                        }
+
+                        IconButton {
+                            accessible-label: @tr("More options");
+                            icon_source: @image-url("../icons/ellipsis.svg");
+                            icon_size: Theme.iconSizeMd;
+                            width: Theme.mobileButtonSize;
+                            height: Theme.mobileButtonSize;
+                            clicked => {
+                                context_menu.show();
+                            }
+                        }
+
+                        IconButton {
+                            accessible-label: @tr("Remove from queue");
+                            icon_source: @image-url("../icons/cross.svg");
+                            icon_size: Theme.iconSizeMd;
+                            width: Theme.mobileButtonSize;
+                            height: Theme.mobileButtonSize;
+                            icon_color: #ff5555;
+                            clicked => { root.remove-clicked(); }
+                        }
+                    }
                 }
             }
-        }
-    }
 
-    context_menu := ContextMenuMobile {
-        items: ContextMenuCallbacks.get_queue_menu_items([song], root.model-idx);
-        clicked => { root.clicked(); }
-        selected(action_id) => {
-            ContextMenuCallbacks.queue_action([song], root.model-idx, action_id);
+            context_menu := ContextMenuMobile {
+                items: ContextMenuCallbacks.get_queue_menu_items([song], root.model-idx);
+                clicked => { root.clicked(); }
+                selected(action_id) => {
+                    ContextMenuCallbacks.queue_action([song], root.model-idx, action_id);
+                }
+            }
         }
     }
 }
@@ -116,6 +161,50 @@ component QueueItemMobile inherits Rectangle {
 export component QueuePageMobile inherits Rectangle {
 
     in-out property <int> active_tab <=> QueuePageProps.active_tab; // 0 = Now Playing, 1 = Queue, 2 = Lyrics
+
+    in-out property <int> drag-source-idx: -1;
+    in-out property <int> drag-target-idx: -1;
+    in-out property <length> drag-mouse-y: -Theme.borderWidth;
+
+    property <[SongModel]> queue-alias <=> QueuePageProps.queue;
+
+    changed queue-alias => {
+        root.drag-source-idx = -1;
+        root.drag-target-idx = -1;
+        root.drag-mouse-y = -Theme.borderWidth;
+    }
+
+    changed drag-mouse-y => {
+        if (root.drag-source-idx != -1 && root.drag-mouse-y >= 0px) {
+            if (root.drag-mouse-y < Theme.size3Xl) {
+                queue_list.content-y = Math.min(0px, queue_list.content-y + (Theme.size3Xl - root.drag-mouse-y) * 0.5);
+                root.drag-target-idx = Math.max(0, Math.min(QueuePageProps.queue.length - 1, (root.drag-mouse-y - queue_list.content-y) / (Theme.mobileSongListItemHeight + Theme.spacingXs)));
+            }
+            if (root.drag-mouse-y > queue_list.height - Theme.size3Xl) {
+                queue_list.content-y = Math.max(-(queue_list.content-height - queue_list.height), queue_list.content-y - (root.drag-mouse-y - (queue_list.height - Theme.size3Xl)) * 0.5);
+                root.drag-target-idx = Math.max(0, Math.min(QueuePageProps.queue.length - 1, (root.drag-mouse-y - queue_list.content-y) / (Theme.mobileSongListItemHeight + Theme.spacingXs)));
+            }
+        }
+    }
+
+    pure function get-mapped-idx(visual-idx: int, F: int, T: int) -> int {
+        if (F == -1 || T == -1 || F == T) {
+            return visual-idx;
+        }
+        if (visual-idx == T) {
+            return F;
+        }
+        if (F < T) {
+            if (visual-idx >= F && visual-idx < T) {
+                return visual-idx + 1;
+            }
+        } else {
+            if (visual-idx > T && visual-idx <= F) {
+                return visual-idx - 1;
+            }
+        }
+        return visual-idx;
+    }
 
     clip: true;
     background: Theme.primary;
@@ -368,16 +457,26 @@ export component QueuePageMobile inherits Rectangle {
                         vertical-scrollbar-policy: scroll_activity.active ? as-needed : always-off;
                         for song[idx] in QueuePageProps.queue: VerticalLayout {
                             padding-bottom: Theme.spacingXs;
+
+                            property <int> mapped-idx: root.get-mapped-idx(idx, root.drag-source-idx, root.drag-target-idx);
+                            property <SongModel> mapped-song: QueuePageProps.queue[mapped-idx];
+
                             QueueItemMobile {
-                                song: song;
+                                song: mapped-song;
                                 item-idx: idx;
-                                model-idx: idx;
-                                is-active: idx == QueuePageProps.active-idx;
+                                model-idx: mapped-idx;
+                                is-active: mapped-idx == QueuePageProps.active-idx;
+                                is-ghost: mapped-idx == root.drag-source-idx && idx == root.drag-target-idx;
+                                drag-source-idx <=> root.drag-source-idx;
+                                drag-target-idx <=> root.drag-target-idx;
+                                drag-mouse-y <=> root.drag-mouse-y;
+                                list-viewport-y: queue_list.content-y;
+
                                 clicked => {
-                                    AppCallbacks.play-queue-index(idx);
+                                    AppCallbacks.play-queue-index(mapped-idx);
                                 }
                                 remove-clicked => {
-                                    AppCallbacks.remove-from-queue(idx);
+                                    AppCallbacks.remove-from-queue(mapped-idx);
                                 }
                             }
                         }

@@ -342,6 +342,13 @@ fn setup_song_list_helper(main_window: &MainWindow, state_manager: &'static Stat
 
     main_window
         .global::<UtilCallbacks>()
+        .on_select_all(move |total| {
+            let res = utils::select_all(total as usize);
+            ModelRc::new(VecModel::from(res))
+        });
+
+    main_window
+        .global::<UtilCallbacks>()
         .on_validate_input(move |value, rule| utils::validate_input(value.as_str(), rule.as_str()));
 
     main_window

@@ -1,8 +1,12 @@
+pub mod android;
+#[cfg(test)]
+mod android_test;
 mod keyring_context;
 #[cfg(test)]
 mod keyring_context_test;
 #[cfg(test)]
 mod mod_test;
+pub use android::AndroidKeyringContext;
 pub use keyring_context::KeyringContext;
 
 #[cfg_attr(test, mockall::automock)]

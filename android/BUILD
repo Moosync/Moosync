@@ -78,10 +78,25 @@ kt_android_local_test(
     ],
 )
 
+kt_android_local_test(
+    name = "media_service_test",
+    srcs = ["test/app/moosync/android/services/MediaServiceLifecycleTest.kt"],
+    custom_package = "app.moosync.android",
+    manifest = "AndroidManifest.xml",
+    resource_files = glob(["res/**"]),
+    test_class = "app.moosync.android.services.MediaServiceLifecycleTest",
+    deps = [
+        ":moosync_kt",
+        "@maven//:junit_junit",
+        "@maven//:org_mockito_mockito_core",
+    ],
+)
+
 test_suite(
     name = "android_tests",
     tests = [
         ":handlers_test",
+        ":media_service_test",
         ":native_bridge_test",
         ":scanner_kt_test",
     ],

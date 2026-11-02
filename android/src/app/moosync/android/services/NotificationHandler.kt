@@ -90,6 +90,14 @@ class NotificationHandler(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val dismissIntent = Intent(mContext, NotificationDismissedReceiver::class.java)
+        val deleteIntent = PendingIntent.getBroadcast(
+            mContext,
+            0,
+            dismissIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         val prevIntent = buildMediaButtonPendingIntent(PlaybackState.ACTION_SKIP_TO_PREVIOUS)
         val playPauseAction = if (isPlaying) PlaybackState.ACTION_PAUSE else PlaybackState.ACTION_PLAY
         val playPauseIntent = buildMediaButtonPendingIntent(playPauseAction)
@@ -119,6 +127,7 @@ class NotificationHandler(
             .setVisibility(Notification.VISIBILITY_PUBLIC)
             .setSmallIcon(android.R.drawable.ic_media_play)
             .setContentIntent(clickIntent)
+            .setDeleteIntent(deleteIntent)
             .setShowWhen(false)
 
         if (!albumName.isNullOrEmpty()) {

@@ -15,6 +15,19 @@ class MainActivity : NativeActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        if (hasRunBefore) {
+            Log.w("MoosyncAndroid", "MainActivity: Process was kept alive after previous activity destruction; restarting process for fresh NativeActivity")
+            val restartIntent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            }
+            startActivity(restartIntent)
+            finish()
+            android.os.Process.killProcess(android.os.Process.myPid())
+            kotlin.system.exitProcess(0)
+            return
+        }
+        hasRunBefore = true
+        isActivityAlive = true
         super.onCreate(savedInstanceState)
         Log.d("MoosyncAndroid", "MainActivity onCreate - Slint app starting via NativeActivity")
         deepLinkHandler.handleIntent(intent)
@@ -56,11 +69,15 @@ class MainActivity : NativeActivity() {
     }
 
     override fun onDestroy() {
+        isActivityAlive = false
         super.onDestroy()
         Log.d("MoosyncAndroid", "MainActivity onDestroy")
     }
 
     companion object {
+        @Volatile var isActivityAlive: Boolean = false
+        @Volatile var hasRunBefore: Boolean = false
+
         init {
             NativeBridge.init()
         }

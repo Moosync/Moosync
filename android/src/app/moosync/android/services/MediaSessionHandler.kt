@@ -69,21 +69,48 @@ class MediaSessionHandler(private val mContext: Context) {
         mMediaSession.setPlaybackState(builder.build())
     }
 
-    private fun loadThumbnailBitmap(uri: String): Bitmap? {
-        val resolvedUri = if (uri.startsWith("/data/data")) {
-            val parts = uri.split("/")
-            File(mContext.filesDir, parts.last()).absolutePath
-        } else {
-            uri
-        }
+    fun resolveThumbnailFile(uri: String): File? = resolveThumbnailFile(mContext.filesDir, uri)
 
+    companion object {
+        fun resolveThumbnailFile(filesDir: File?, uri: String): File? {
+            val cleanPath = if (uri.startsWith("file://")) uri.removePrefix("file://") else uri
+            val directFile = File(cleanPath)
+            if (directFile.exists()) return directFile
+
+            val appDataDir = filesDir?.parentFile
+            if (appDataDir != null) {
+                if (cleanPath.startsWith("/data/data/")) {
+                    val subPath = cleanPath.replaceFirst("^/data/data/[^/]+/?".toRegex(), "")
+                    val altFile = File(appDataDir, subPath)
+                    if (altFile.exists()) return altFile
+                } else if (cleanPath.startsWith("/data/user/")) {
+                    val subPath = cleanPath.replaceFirst("^/data/user/[0-9]+/[^/]+/?".toRegex(), "")
+                    val altFile = File(appDataDir, subPath)
+                    if (altFile.exists()) return altFile
+                }
+            }
+            return null
+        }
+    }
+
+    private fun loadThumbnailBitmap(uri: String): Bitmap? {
         return try {
-            if (resolvedUri.startsWith("http://") || resolvedUri.startsWith("https://")) {
-                URI.create(resolvedUri).toURL().openStream().use { inputStream ->
+            if (uri.startsWith("http://") || uri.startsWith("https://")) {
+                URI.create(uri).toURL().openStream().use { inputStream ->
+                    BitmapFactory.decodeStream(inputStream)
+                }
+            } else if (uri.startsWith("content://")) {
+                mContext.contentResolver.openInputStream(android.net.Uri.parse(uri))?.use { inputStream ->
                     BitmapFactory.decodeStream(inputStream)
                 }
             } else {
-                BitmapFactory.decodeFile(resolvedUri)
+                val file = resolveThumbnailFile(uri)
+                if (file != null && file.exists()) {
+                    BitmapFactory.decodeFile(file.absolutePath)
+                } else {
+                    Log.w("MoosyncAndroid", "Thumbnail file does not exist: $uri")
+                    null
+                }
             }
         } catch (e: Exception) {
             Log.e("MoosyncAndroid", "Error loading thumbnail: ${e.message}")

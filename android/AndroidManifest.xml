@@ -65,5 +65,9 @@
             </intent-filter>
         </receiver>
 
+        <!-- Receives notification dismissal events -->
+        <receiver android:name="app.moosync.android.services.NotificationDismissedReceiver"
+            android:exported="false" />
+
     </application>
 </manifest>

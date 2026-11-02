@@ -8,10 +8,11 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import android.view.KeyEvent
+import app.moosync.android.MainActivity
 import app.moosync.android.NativeBridge
 import app.moosync.android.services.Constants.NOTIFICATION_ID
 
-class MoosyncService : Service() {
+open class MoosyncService : Service() {
 
     private lateinit var mediaSessionHandler: MediaSessionHandler
     private lateinit var notificationHandler: NotificationHandler
@@ -19,6 +20,10 @@ class MoosyncService : Service() {
     override fun onCreate() {
         super.onCreate()
         Log.d("MoosyncAndroid", "MoosyncService onCreate")
+
+        isNotificationActive = true
+        isTaskRemoved = false
+        instance = this
 
         mediaSessionHandler = MediaSessionHandler(this)
         notificationHandler = NotificationHandler(this, mediaSessionHandler.sessionToken)
@@ -107,7 +112,14 @@ class MoosyncService : Service() {
         return START_NOT_STICKY
     }
 
-    private fun handleMediaKeyEvent(keyCode: Int) {
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        Log.d("MoosyncAndroid", "MoosyncService onTaskRemoved")
+        isTaskRemoved = true
+        checkShouldKillApp()
+    }
+
+    open fun handleMediaKeyEvent(keyCode: Int) {
         Log.d("MoosyncAndroid", "handleMediaKeyEvent: keyCode=$keyCode")
         when (keyCode) {
             KeyEvent.KEYCODE_MEDIA_PLAY -> NativeBridge.nativeOnPlay()
@@ -123,6 +135,28 @@ class MoosyncService : Service() {
             KeyEvent.KEYCODE_MEDIA_NEXT -> NativeBridge.nativeOnSkipToNext()
             KeyEvent.KEYCODE_MEDIA_PREVIOUS -> NativeBridge.nativeOnSkipToPrevious()
         }
+    }
+
+    open fun checkShouldKillApp() {
+        val taskRemoved = isTaskRemoved || !MainActivity.isActivityAlive
+        if (shouldKillApp(taskRemoved, isNotificationActive)) {
+            Log.d("MoosyncAndroid", "MoosyncService: Task removed and notification dismissed -> killing app")
+            killApp()
+        }
+    }
+
+    open fun killApp() {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+            } else {
+                @Suppress("DEPRECATION")
+                stopForeground(true)
+            }
+        } catch (_: Exception) {}
+        stopSelf()
+        android.os.Process.killProcess(android.os.Process.myPid())
+        kotlin.system.exitProcess(0)
     }
 
     override fun onDestroy() {
@@ -149,9 +183,23 @@ class MoosyncService : Service() {
     )
 
     companion object {
-        @Volatile private var instance: MoosyncService? = null
+        @Volatile var instance: MoosyncService? = null
+        @Volatile var isTaskRemoved: Boolean = false
+        @Volatile var isNotificationActive: Boolean = false
         @Volatile private var pendingMetadata: MetadataArgs? = null
         @Volatile private var pendingPlayerState: PlayerStateArgs? = null
+
+        @JvmStatic
+        fun shouldKillApp(taskRemoved: Boolean, notificationActive: Boolean): Boolean {
+            return taskRemoved && !notificationActive
+        }
+
+        @JvmStatic
+        fun onNotificationDismissed() {
+            Log.d("MoosyncAndroid", "MoosyncService: onNotificationDismissed")
+            isNotificationActive = false
+            instance?.checkShouldKillApp()
+        }
 
         @JvmStatic
         fun updateMetadata(
@@ -168,6 +216,7 @@ class MoosyncService : Service() {
                 return
             }
             pendingMetadata = null
+            isNotificationActive = true
             svc.notificationHandler.updateMetadata(title, artistName, albumName)
             svc.mediaSessionHandler.updateMetadata(
                 title,
@@ -191,15 +240,37 @@ class MoosyncService : Service() {
             pendingPlayerState = null
             svc.mediaSessionHandler.updatePlayerState(isPlaying, positionMs)
             svc.notificationHandler.updatePlayerState(isPlaying)
+
+            if (isPlaying) {
+                isNotificationActive = true
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    svc.startForeground(
+                        NOTIFICATION_ID,
+                        svc.notificationHandler.notification!!,
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+                    )
+                } else {
+                    svc.startForeground(NOTIFICATION_ID, svc.notificationHandler.notification!!)
+                }
+            } else {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    svc.stopForeground(STOP_FOREGROUND_DETACH)
+                } else {
+                    @Suppress("DEPRECATION")
+                    svc.stopForeground(false)
+                }
+            }
         }
 
         @JvmStatic
         fun clearNotification() {
+            isNotificationActive = false
             pendingMetadata = null
             pendingPlayerState = null
             val svc = instance
             if (svc != null) {
                 svc.notificationHandler.clearNotification()
+                svc.checkShouldKillApp()
             }
         }
     }

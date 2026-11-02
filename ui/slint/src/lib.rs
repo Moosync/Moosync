@@ -61,6 +61,10 @@ pub fn run() {
         .enable_all()
         .build()
         .expect("Failed to build Tokio runtime");
+
+    #[cfg(target_os = "android")]
+    let runtime = Box::leak(Box::new(runtime));
+
     let _guard = runtime.enter();
 
     setup_tracing();

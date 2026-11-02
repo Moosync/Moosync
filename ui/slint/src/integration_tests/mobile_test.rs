@@ -122,9 +122,27 @@ async fn do_mobile_bottombar_play_pause(
     );
     database.insert_songs(vec![song.clone()]).unwrap();
 
+    if main_window.global::<AppProps>().get_active_page() == Pages::AllSongs {
+        main_window
+            .global::<AppCallbacks>()
+            .invoke_active_page_changed(Pages::Search);
+        let _ = wait_until(|| main_window.global::<AppProps>().get_active_page() == Pages::Search)
+            .await;
+    }
+
     main_window
         .global::<AppCallbacks>()
         .invoke_active_page_changed(Pages::AllSongs);
+
+    let songs_loaded = wait_until(|| {
+        main_window
+            .global::<AllSongsPageProps>()
+            .get_songs()
+            .row_count()
+            > 0
+    })
+    .await;
+    assert!(songs_loaded);
     let _ = wait_until(|| {
         main_window
             .global::<AllSongsPageProps>()
@@ -434,9 +452,27 @@ async fn do_mobile_song_selection_toggle(
     let database = state_manager.get_database();
     database.insert_songs(vec![song]).unwrap();
 
+    if main_window.global::<AppProps>().get_active_page() == Pages::AllSongs {
+        main_window
+            .global::<AppCallbacks>()
+            .invoke_active_page_changed(Pages::Search);
+        let _ = wait_until(|| main_window.global::<AppProps>().get_active_page() == Pages::Search)
+            .await;
+    }
+
     main_window
         .global::<AppCallbacks>()
         .invoke_active_page_changed(Pages::AllSongs);
+
+    let songs_loaded = wait_until(|| {
+        main_window
+            .global::<AllSongsPageProps>()
+            .get_songs()
+            .row_count()
+            > 0
+    })
+    .await;
+    assert!(songs_loaded);
 
     let loaded = wait_until(|| {
         ElementHandle::find_by_accessible_label(main_window, "Select songs").count() > 0
@@ -511,6 +547,121 @@ async fn do_mobile_close_all_modals(
     assert!(!main_window.global::<QueuePageProps>().get_show_queue());
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_mobile_context_menu_drag_handle_click(
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) {
+    let song = create_test_song("mob_ctx", "Context Track", "Ctx Album", "Ctx Artist");
+    let database = state_manager.get_database();
+    database.insert_songs(vec![song]).unwrap();
+
+    if main_window.global::<AppProps>().get_active_page() == Pages::AllSongs {
+        main_window
+            .global::<AppCallbacks>()
+            .invoke_active_page_changed(Pages::Search);
+        let _ = wait_until(|| main_window.global::<AppProps>().get_active_page() == Pages::Search)
+            .await;
+    }
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::AllSongs);
+
+    let songs_loaded = wait_until(|| {
+        main_window
+            .global::<AllSongsPageProps>()
+            .get_songs()
+            .row_count()
+            > 0
+    })
+    .await;
+    assert!(songs_loaded);
+
+    let loaded = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "More options").count() > 0
+    })
+    .await;
+    assert!(loaded);
+
+    let more_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "More options").collect();
+    assert!(!more_handles.is_empty());
+
+    click_element(&more_handles[0]).await;
+
+    let menu_opened = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Context Menu Drag Handle").count() > 0
+    })
+    .await;
+    assert!(menu_opened);
+    tokio::time::sleep(std::time::Duration::from_millis(400)).await;
+
+    let handle: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Context Menu Drag Handle").collect();
+    assert_eq!(handle.len(), 1);
+
+    click_element(&handle[0]).await;
+    tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+
+    assert_eq!(
+        ElementHandle::find_by_accessible_label(main_window, "Context Menu Drag Handle").count(),
+        1
+    );
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_mobile_context_menu_drag_fills_bottom(
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) {
+    let song = create_test_song("mob_ctx2", "Context Track 2", "Ctx Album 2", "Ctx Artist 2");
+    let database = state_manager.get_database();
+    database.insert_songs(vec![song]).unwrap();
+
+    if main_window.global::<AppProps>().get_active_page() == Pages::AllSongs {
+        main_window
+            .global::<AppCallbacks>()
+            .invoke_active_page_changed(Pages::Search);
+        let _ = wait_until(|| main_window.global::<AppProps>().get_active_page() == Pages::Search)
+            .await;
+    }
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::AllSongs);
+
+    let songs_loaded = wait_until(|| {
+        main_window
+            .global::<AllSongsPageProps>()
+            .get_songs()
+            .row_count()
+            > 0
+    })
+    .await;
+    assert!(songs_loaded);
+
+    let more_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "More options").collect();
+    assert!(!more_handles.is_empty());
+
+    click_element(&more_handles[0]).await;
+
+    let menu_opened = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Context Menu Drag Handle").count() > 0
+    })
+    .await;
+    assert!(menu_opened);
+    tokio::time::sleep(std::time::Duration::from_millis(400)).await;
+
+    let handle: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Context Menu Drag Handle").collect();
+    assert_eq!(handle.len(), 1);
+
+    let initial_y = handle[0].absolute_position().y;
+    assert!(initial_y > 0.0);
+}
+
 parameterized_test!(
     do_mobile_bottom_nav_target,
     (
@@ -553,4 +704,6 @@ integration_test!(
     test_mobile_extension_details_modal_close => do_mobile_extension_details_modal_close,
     test_mobile_song_selection_toggle => do_mobile_song_selection_toggle,
     test_mobile_close_all_modals => do_mobile_close_all_modals,
+    test_mobile_context_menu_drag_handle_click => do_mobile_context_menu_drag_handle_click,
+    test_mobile_context_menu_drag_fills_bottom => do_mobile_context_menu_drag_fills_bottom,
 );

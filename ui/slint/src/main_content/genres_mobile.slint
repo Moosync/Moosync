@@ -6,7 +6,6 @@ import { GenresPageProps } from "genres_props.slint";
 
 export component GenresPageMobile inherits Rectangle {
     GridPageLayoutMobile {
-        title: @tr("Genres");
         total_items: GenresPageProps.genres.length;
         item_title(idx) => { GenresPageProps.genres[idx].title }
         item_cover(idx) => { GenresPageProps.genres[idx].coverPath }

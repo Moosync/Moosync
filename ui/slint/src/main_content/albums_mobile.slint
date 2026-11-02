@@ -6,7 +6,6 @@ import { AlbumsPageProps } from "albums_props.slint";
 
 export component AlbumsPageMobile inherits Rectangle {
     GridPageLayoutMobile {
-        title: @tr("Albums");
         total_items: AlbumsPageProps.albums.length;
         item_title(idx) => { AlbumsPageProps.albums[idx].title }
         item_cover(idx) => { AlbumsPageProps.albums[idx].coverPath }

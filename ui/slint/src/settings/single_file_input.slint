@@ -18,6 +18,7 @@ export component SingleFileInput inherits VerticalLayout {
         Text {
             text: root.title;
             font-size: Theme.modelTitle;
+            font-weight: 600;
             color: Theme.textPrimary;
         }
 
@@ -47,7 +48,7 @@ export component SingleFileInput inherits VerticalLayout {
                     text: root.value;
                     vertical-alignment: center;
                     color: Theme.textPrimary;
-                    font-size: Theme.caption;
+                    font-size: Theme.body;
                 }
 
                 IconButton {

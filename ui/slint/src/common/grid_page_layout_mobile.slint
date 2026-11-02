@@ -20,18 +20,6 @@ export component GridPageLayoutMobile inherits Rectangle {
         height: 100%;
         spacing: Theme.spacingSm;
 
-        if root.title != "": HorizontalLayout {
-            padding-left: Theme.paddingSm;
-            padding-right: Theme.paddingSm;
-            padding-top: Theme.spacingXs;
-            Text {
-                text: root.title;
-                font-size: Theme.modelTitle;
-                font-weight: 700;
-                color: Theme.textPrimary;
-            }
-        }
-
         GridListViewMobile {
             vertical-stretch: 1;
             total-items: root.total_items;

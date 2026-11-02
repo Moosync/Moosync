@@ -26,3 +26,18 @@ message ThemeDetails {
 message ThemesManifest {
   repeated ThemeDetails themes = 1;
 }
+
+message ThemeManifest {
+  string id = 1;
+  string name = 2;
+  optional string author = 3;
+  optional string description = 4;
+  optional string url = 5;
+  optional string registry = 6;
+  optional ThemeItem theme = 7;
+}
+
+message ThemeRegistryManifest {
+  string name = 1;
+  repeated ThemeManifest themes = 2;
+}

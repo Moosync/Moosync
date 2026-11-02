@@ -121,6 +121,7 @@ impl StateManager {
         let hooks_vec: Vec<Arc<dyn hooks::Hook>> = vec![
             Arc::new(hooks::extensions::ExtensionsHook::new()),
             Arc::new(hooks::registries::ExtensionRegistriesHook::new()),
+            Arc::new(hooks::registries::ThemeRegistriesHook::new()),
             Arc::new(hooks::player::PlayerHook::new()),
             Arc::new(hooks::scanner::ScannerHook::new()),
             Arc::new(hooks::mpris::MprisHook::new()),

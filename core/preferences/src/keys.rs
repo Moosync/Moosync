@@ -344,4 +344,11 @@ define_preferences! {
         placeholder: "https://example.com/manifest.json",
         validation: "^https?://.+",
     };
+    THEME_REGISTRIES = "theme_registries" => {
+        type: TextArrayInput,
+        title: "Theme Registries",
+        subtitle: "Add or remove theme registry URLs (manifest.pb)",
+        placeholder: "https://example.com/manifest.pb",
+        validation: "^https?://.+",
+    };
 }

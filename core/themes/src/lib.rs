@@ -15,11 +15,14 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 pub mod error;
+pub mod remote;
 pub mod themes;
 
 #[cfg(test)]
 mod error_test;
 #[cfg(test)]
 mod lib_test_smoke;
+#[cfg(test)]
+mod remote_test;
 #[cfg(test)]
 mod themes_test;

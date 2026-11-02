@@ -7,6 +7,8 @@ rust_library(
         "src/error_test.rs",
         "src/lib.rs",
         "src/lib_test_smoke.rs",
+        "src/remote.rs",
+        "src/remote_test.rs",
         "src/themes.rs",
         "src/themes_test.rs",
     ],
@@ -41,5 +43,6 @@ rust_test(
         "@crates//:tempdir",
         "@crates//:tokio",
         "@crates//:tracing-test",
+        "@crates//:wiremock",
     ],
 )

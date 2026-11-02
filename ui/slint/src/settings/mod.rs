@@ -15,7 +15,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use extensions_proto::moosync::types::{PreferenceArgs, PreferenceChangedRequest};
-use preferences::keys::{AUTO_STARTUP, I18N_LANGUAGE, PreferenceItemExt};
+use preferences::keys::{AUTO_STARTUP, I18N_LANGUAGE, PreferenceItemExt, THEME_REGISTRIES};
 use preferences_proto::moosync::types::{
     PreferenceItem as ProtoPreferenceItem, PreferenceType, PreferenceValue,
 };
@@ -32,6 +32,7 @@ use crate::{
     pages::PageHandler,
     settings::{
         extensions::ExtensionsPageHandler, paths::PathsPageHandler, system::SystemPageHandler,
+        themes::ThemesPageHandler,
     },
     utils::autostart::update_auto_startup,
 };
@@ -170,6 +171,7 @@ pub fn get_all_static_preferences() -> Vec<ProtoPreferenceItem> {
     let mut prefs = PathsPageHandler::get_preferences();
     prefs.extend(SystemPageHandler::get_preferences());
     prefs.extend(ExtensionsPageHandler::get_preferences());
+    prefs.extend(ThemesPageHandler::get_preferences());
     prefs
 }
 
@@ -271,6 +273,8 @@ async fn refresh_relevant_page(
         SystemPageHandler::refresh_preferences(main_window_weak, state_manager).await;
     } else if extensions::PREFERENCES.iter().any(|p| p.id == key) || key.starts_with("ext:") {
         ExtensionsPageHandler::refresh_preferences(main_window_weak, state_manager).await;
+    } else if key == THEME_REGISTRIES.id {
+        ThemesPageHandler::refresh_preferences(main_window_weak, state_manager);
     }
 }
 

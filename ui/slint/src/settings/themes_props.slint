@@ -1,7 +1,9 @@
 import { ThemeConfig, ThemeConstant } from "../constants.slint";
+import { PreferenceItem } from "preferences.slint";
 
 export global ThemesPageProps {
     in-out property <string> active_theme_id;
     in-out property <[ThemeConfig]> available_themes;
     in-out property <[ThemeConstant]> theme_constants;
+    in-out property <[PreferenceItem]> static_preferences;
 }

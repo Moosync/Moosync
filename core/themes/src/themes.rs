@@ -14,12 +14,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{collections::HashMap, fs, path::PathBuf, str::FromStr, sync::Arc};
+use std::{
+    collections::{HashMap, HashSet},
+    fs,
+    path::PathBuf,
+    str::FromStr,
+    sync::{Arc, RwLock},
+};
 
 use fs_extra::dir::CopyOptions;
 use futures::StreamExt;
 use prost::Message;
-use themes_proto::moosync::types::ThemeDetails;
+use themes_proto::moosync::types::{ThemeDetails, ThemeManifest};
 use tokio::{fs::File as AsyncFile, io::AsyncWriteExt};
 use types::{
     plugin::{Plugin, PluginContext},
@@ -28,12 +34,15 @@ use types::{
 use uuid::Uuid;
 use zip_extensions::{zip_extract::zip_extract, zip_writer::zip_create_from_directory};
 
-use crate::error::ThemesError;
+use crate::{error::ThemesError, remote::RemoteThemes};
 
 pub struct ThemeHolder {
     pub theme_dir: PathBuf,
     pub tmp_dir: PathBuf,
+    pub remote: RemoteThemes,
+    remote_manifests: Arc<RwLock<Vec<ThemeManifest>>>,
     pub on_theme_changed: SubscriberList<ThemeDetails>,
+    pub on_themes_updated: SubscriberList<()>,
 }
 
 #[plugin_macro::generate]
@@ -42,8 +51,11 @@ impl ThemeHolder {
     pub fn new(theme_dir: PathBuf, tmp_dir: PathBuf) -> Self {
         Self {
             theme_dir,
-            tmp_dir,
+            tmp_dir: tmp_dir.clone(),
+            remote: RemoteThemes::new(tmp_dir),
+            remote_manifests: Arc::new(RwLock::new(Vec::new())),
             on_theme_changed: SubscriberList::new(),
+            on_themes_updated: SubscriberList::new(),
         }
     }
 
@@ -143,6 +155,9 @@ impl ThemeHolder {
                 fs_extra::move_items(item_list.as_slice(), final_theme_path, &options)
                     .map_err(ThemesError::FsExtra)?;
 
+                self.on_theme_changed.emit(parsed);
+                self.on_themes_updated.emit(());
+
                 return Ok(());
             }
         }
@@ -198,10 +213,41 @@ impl ThemeHolder {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub async fn get_themes_manifest(&self) -> Result<HashMap<String, ThemeDetails>, ThemesError> {
-        // Remote theme registry will be implemented with ThemesManifest
-        // protobuf later.
-        Ok(HashMap::new())
+    pub async fn fetch_remote_manifests(
+        &self,
+        registries: HashSet<String>,
+    ) -> Result<(), ThemesError> {
+        let manifests = self.remote.get_theme_manifests(&registries).await?;
+        self.set_remote_manifests(manifests);
+        self.on_themes_updated.emit(());
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn set_remote_manifests(&self, manifests: Vec<ThemeManifest>) {
+        if let Ok(mut lock) = self.remote_manifests.write() {
+            *lock = manifests;
+        }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn get_remote_manifests(&self) -> Vec<ThemeManifest> {
+        self.remote_manifests
+            .read()
+            .map(|guard| guard.clone())
+            .unwrap_or_default()
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub async fn install_remote_theme(&self, manifest: &ThemeManifest) -> Result<(), ThemesError> {
+        let file_path = self.remote.download_theme_file(manifest).await?;
+        self.import_theme(file_path.to_string_lossy().to_string())?;
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub async fn get_themes_manifest(&self) -> Result<Vec<ThemeManifest>, ThemesError> {
+        Ok(self.get_remote_manifests())
     }
 }
 

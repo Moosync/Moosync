@@ -20,7 +20,7 @@ use std::sync::{
 };
 
 use assertables::assert_ok;
-use preferences::keys::EXTENSION_REGISTRIES;
+use preferences::keys::{EXTENSION_REGISTRIES, THEME_REGISTRIES};
 use preferences_proto::moosync::types::{
     PreferenceItem, PreferenceValue, StringList, preference_value,
 };
@@ -31,7 +31,10 @@ use types::plugin::PluginContext;
 
 use crate::{
     StateManager,
-    hooks::{Hook, registries::ExtensionRegistriesHook},
+    hooks::{
+        Hook,
+        registries::{ExtensionRegistriesHook, ThemeRegistriesHook},
+    },
 };
 
 struct TestSmContext {
@@ -93,4 +96,38 @@ async fn test_registries_hook_on_startup(sm_context: TestSmContext) {
     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
 
     assert_ok!(preference_config.remove(&EXTENSION_REGISTRIES));
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_theme_registries_hook_on_startup(sm_context: TestSmContext) {
+    let TestSmContext { sm, .. } = sm_context;
+    let hook = ThemeRegistriesHook::new();
+    let preference_config = sm.get_preference_config();
+    let fetched = Arc::new(AtomicBool::new(false));
+    let fetched_clone = fetched.clone();
+
+    let _handle = sm.get_theme_holder().on_themes_updated.listen(move |_| {
+        fetched_clone.store(true, Ordering::SeqCst);
+    });
+
+    assert_ok!(hook.on_startup(&sm).await);
+
+    preference_config
+        .save(PreferenceItem {
+            id: THEME_REGISTRIES.id.clone(),
+            value: Some(PreferenceValue {
+                value: Some(preference_value::Value::ListValue(StringList {
+                    values: vec!["https://example.com/themes_manifest.pb".to_string()],
+                })),
+            }),
+            ..THEME_REGISTRIES.clone()
+        })
+        .unwrap();
+
+    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+
+    assert_ok!(preference_config.remove(&THEME_REGISTRIES));
 }

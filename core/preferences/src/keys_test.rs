@@ -22,7 +22,8 @@ use tracing_test::traced_test;
 use crate::keys::{
     ACTIVE_THEME_ID, ARTIST_SPLITTER, ARTWORK_PATH, AUTO_STARTUP, CLEAR_QUEUE, EXCLUDE_MUSIC_PATHS,
     EXTENSION_REGISTRIES, I18N_LANGUAGE, JUKEBOX_MODE, MINIMIZE_TO_TRAY, MUSIC_PATHS,
-    PreferenceItemExt, SCAN_INTERVAL, SCAN_THREADS, THUMBNAIL_PATH, VOLUME_PERSIST_MODE,
+    PreferenceItemExt, SCAN_INTERVAL, SCAN_THREADS, THEME_REGISTRIES, THUMBNAIL_PATH,
+    VOLUME_PERSIST_MODE,
 };
 
 #[test]
@@ -115,6 +116,12 @@ fn test_preference_constants_definitions() {
     assert_eq!(EXTENSION_REGISTRIES.id, "extension_registries");
     assert_eq!(
         EXTENSION_REGISTRIES.pref_type,
+        PreferenceType::TextArrayInput as i32
+    );
+
+    assert_eq!(THEME_REGISTRIES.id, "theme_registries");
+    assert_eq!(
+        THEME_REGISTRIES.pref_type,
         PreferenceType::TextArrayInput as i32
     );
 }

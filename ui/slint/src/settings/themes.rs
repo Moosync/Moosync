@@ -14,24 +14,57 @@ use std::{
     time::Duration,
 };
 
-use preferences::keys::{ACTIVE_THEME_ID, PreferenceItemExt};
-use preferences_proto::moosync::types::{PreferenceValue, preference_value};
-use slint::ComponentHandle;
+use preferences::keys::{ACTIVE_THEME_ID, PreferenceItemExt, THEME_REGISTRIES};
+use preferences_proto::moosync::types::{
+    PreferenceItem as ProtoPreferenceItem, PreferenceValue, preference_value,
+};
+use slint::{ComponentHandle, ModelRc, VecModel};
 use state_manager::StateManager;
-use themes_proto::moosync::types::ThemeDetails;
+use themes_proto::moosync::types::{ThemeDetails, ThemeItem, ThemeManifest};
 use tracing::Instrument;
 use types::prelude::{ThemeExt, ThemeItemExt};
 
 use crate::{
-    MainWindow, ThemesPageProps,
+    MainWindow, PreferenceItem, ThemesPageProps,
     pages::PageHandler,
-    utils::{parse_color, parse_length},
+    utils::{parse_color, parse_length, parse_rgba_color},
 };
 
 #[cfg(not(target_os = "android"))]
 theme_macro::generate_theme_ui_helpers!("ui/slint/src/constants.slint");
 #[cfg(target_os = "android")]
 theme_macro::generate_theme_ui_helpers!("ui/slint/src/constants_mobile.slint");
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn build_theme_config(
+    id: String,
+    name: String,
+    description: String,
+    author: String,
+    registry: String,
+    theme_item: ThemeItem,
+) -> crate::ThemeConfig {
+    let default_item = types::prelude::get_default_theme_item();
+    let get_color = |key: &str| {
+        let val = theme_item
+            .get_constant(key)
+            .or_else(|| default_item.get_constant(key))
+            .unwrap_or_default();
+        parse_rgba_color(&val)
+    };
+
+    crate::ThemeConfig {
+        id: id.into(),
+        name: name.into(),
+        description: description.into(),
+        author: author.into(),
+        tertiary: get_color("tertiary"),
+        accent_color: get_color("accent"),
+        primary_color: get_color("primary"),
+        secondary_color: get_color("secondary"),
+        registry: registry.into(),
+    }
+}
 
 pub struct ThemesPageHandler {
     main_window: &'static MainWindow,
@@ -45,6 +78,70 @@ impl ThemesPageHandler {
             main_window,
             state_manager,
         }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn get_preferences() -> Vec<ProtoPreferenceItem> { vec![THEME_REGISTRIES.clone()] }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn refresh_preferences(
+        main_window_weak: slint::Weak<MainWindow>,
+        state_manager: &'static StateManager,
+    ) {
+        let config = state_manager.get_preference_config();
+        let loaded = config.load(&THEME_REGISTRIES);
+        let update_ui = move |main_window: &MainWindow| {
+            let slint_pref = PreferenceItem::from(loaded);
+            main_window
+                .global::<ThemesPageProps>()
+                .set_static_preferences(ModelRc::new(VecModel::from(vec![slint_pref])));
+        };
+
+        if let Some(main_window) = main_window_weak.upgrade() {
+            update_ui(&main_window);
+        } else {
+            let _ = slint::invoke_from_event_loop(move || {
+                if let Some(main_window) = main_window_weak.upgrade() {
+                    update_ui(&main_window);
+                }
+            });
+        }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub(crate) fn get_all_theme_configs(
+        theme_holder: &themes::themes::ThemeHolder,
+    ) -> Vec<crate::ThemeConfig> {
+        let local_themes = Self::get_all_themes_list(theme_holder);
+        let mut configs: Vec<crate::ThemeConfig> =
+            local_themes.iter().map(Self::map_theme_to_config).collect();
+
+        let local_ids: std::collections::HashSet<String> =
+            local_themes.into_iter().map(|t| t.id).collect();
+
+        for manifest in theme_holder.get_remote_manifests() {
+            if !local_ids.contains(&manifest.id) {
+                configs.push(Self::map_manifest_to_config(&manifest));
+            }
+        }
+
+        // Pin default and current active themes to the top, then sort all
+        // remaining presets alphabetically by name.
+        configs.sort_by(|a, b| {
+            if a.id == "default" {
+                std::cmp::Ordering::Less
+            } else if b.id == "default" {
+                std::cmp::Ordering::Greater
+            } else if a.id == "current" {
+                std::cmp::Ordering::Less
+            } else if b.id == "current" {
+                std::cmp::Ordering::Greater
+            } else {
+                a.name.cmp(&b.name)
+            }
+        });
+
+        configs
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -86,51 +183,26 @@ impl ThemesPageHandler {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub(crate) fn map_theme_to_config(theme: &ThemeDetails) -> crate::ThemeConfig {
-        let theme_item = theme.get_theme_item_or_default();
-        let default_item = types::prelude::get_default_theme_item();
+        build_theme_config(
+            theme.id.clone(),
+            theme.name.clone(),
+            theme.description.clone().unwrap_or_default(),
+            theme.author.clone().unwrap_or_default(),
+            String::new(),
+            theme.get_theme_item_or_default(),
+        )
+    }
 
-        let get_color = |key: &str| -> crate::RgbaColor {
-            let val = theme_item
-                .get_constant(key)
-                .or_else(|| default_item.get_constant(key))
-                .unwrap_or_default();
-            if let Some(color) = parse_color(&val) {
-                crate::RgbaColor {
-                    r: color.red() as f32,
-                    g: color.green() as f32,
-                    b: color.blue() as f32,
-                    a: color.alpha() as f32 / 255.0,
-                }
-            } else {
-                crate::RgbaColor {
-                    r: 0.0,
-                    g: 0.0,
-                    b: 0.0,
-                    a: 1.0,
-                }
-            }
-        };
-
-        let get_length = |key: &str| -> f32 {
-            let val = theme_item
-                .get_constant(key)
-                .or_else(|| default_item.get_constant(key))
-                .unwrap_or_default();
-            parse_length(&val).unwrap_or(0.0)
-        };
-
-        crate::ThemeConfig {
-            id: theme.id.clone().into(),
-            name: theme.name.clone().into(),
-            description: theme.description.clone().unwrap_or_default().into(),
-            author: theme.author.clone().unwrap_or_default().into(),
-            preview_bg: get_color("tertiary"),
-            accent_color: get_color("accent"),
-            primary_color: get_color("primary"),
-            secondary_color: get_color("secondary"),
-            border_radius: get_length("borderRadiusLg"),
-            border_width: get_length("borderWidth"),
-        }
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub(crate) fn map_manifest_to_config(manifest: &ThemeManifest) -> crate::ThemeConfig {
+        build_theme_config(
+            manifest.id.clone(),
+            manifest.name.clone(),
+            manifest.description.clone().unwrap_or_default(),
+            manifest.author.clone().unwrap_or_default(),
+            manifest.registry.clone().unwrap_or_default(),
+            manifest.theme.clone().unwrap_or_default(),
+        )
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -250,7 +322,7 @@ impl ThemesPageHandler {
                     return;
                 }
 
-                let themes_list = Self::get_all_themes_list(&theme_holder.inner);
+                let configs = Self::get_all_theme_configs(&theme_holder.inner);
 
                 let _ = slint::invoke_from_event_loop({
                     let main_window_weak = main_window_weak.clone();
@@ -262,8 +334,8 @@ impl ThemesPageHandler {
                             Self::apply_theme(&main_window, &theme);
 
                             let vec_model = slint::VecModel::default();
-                            for t in themes_list {
-                                vec_model.push(Self::map_theme_to_config(&t));
+                            for c in configs {
+                                vec_model.push(c);
                             }
                             themes_props.set_available_themes(slint::ModelRc::new(vec_model));
                         }
@@ -313,7 +385,7 @@ fn listen_active_theme_preference(
                                                 ..Default::default()
                                             });
 
-                                        let themes_list = ThemesPageHandler::get_all_themes_list(
+                                        let configs = ThemesPageHandler::get_all_theme_configs(
                                             &theme_holder.inner,
                                         );
 
@@ -329,10 +401,8 @@ fn listen_active_theme_preference(
                                                 );
 
                                                 let vec_model = slint::VecModel::default();
-                                                for t in themes_list {
-                                                    vec_model.push(
-                                                        ThemesPageHandler::map_theme_to_config(&t),
-                                                    );
+                                                for c in configs {
+                                                    vec_model.push(c);
                                                 }
                                                 themes_props.set_available_themes(
                                                     slint::ModelRc::new(vec_model),
@@ -353,52 +423,77 @@ fn listen_active_theme_preference(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
+async fn ensure_theme_installed(
+    theme_id: &str,
+    theme_holder: &themes::themes::ThemeHolder,
+) -> Result<(), themes::error::ThemesError> {
+    if theme_holder.load_theme(theme_id.to_string()).is_ok() {
+        return Ok(());
+    }
+
+    let remotes = theme_holder.get_remote_manifests();
+    if let Some(remote_manifest) = remotes.into_iter().find(|m| m.id == theme_id) {
+        tracing::info!("Downloading and installing remote theme: {}", theme_id);
+        theme_holder.install_remote_theme(&remote_manifest).await?;
+    }
+    Ok(())
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn select_preset_theme(
+    theme_id: String,
+    main_window_weak: slint::Weak<MainWindow>,
+    state_manager: &'static StateManager,
+) {
+    tracing::debug!("Selecting preset theme: {}", theme_id);
+    let theme_holder = state_manager.get_theme_holder();
+    let preference_config = state_manager.get_preference_config();
+
+    if let Err(e) = ensure_theme_installed(&theme_id, &theme_holder.inner).await {
+        tracing::error!("Failed to install remote theme {}: {:?}", theme_id, e);
+        return;
+    }
+
+    match theme_holder.inner.load_theme(theme_id.clone()) {
+        Ok(theme) => {
+            let mut pref_item = (*ACTIVE_THEME_ID).clone();
+            pref_item.value = Some(PreferenceValue {
+                value: Some(preference_value::Value::StringValue(theme_id.clone())),
+            });
+            if let Err(e) = preference_config.inner.save(pref_item) {
+                tracing::error!("Failed to save active theme preference: {:?}", e);
+            }
+            theme_holder.inner.on_theme_changed.emit(theme.clone());
+
+            let theme_id = theme_id.clone();
+            let _ = slint::invoke_from_event_loop(move || {
+                if let Some(main_window) = main_window_weak.upgrade() {
+                    main_window
+                        .global::<ThemesPageProps>()
+                        .set_active_theme_id(theme_id.into());
+                    ThemesPageHandler::apply_theme(&main_window, &theme);
+                }
+            });
+        }
+        Err(e) => {
+            tracing::error!("Failed to load theme {}: {:?}", theme_id, e);
+        }
+    }
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
 fn setup_select_preset_theme(main_window: &MainWindow, state_manager: &'static StateManager) {
     main_window
         .global::<crate::AppCallbacks>()
         .on_select_preset_theme({
             let main_window_weak = main_window.as_weak();
             move |theme_id| {
-                let theme_id = theme_id.to_string();
-                let main_window_weak = main_window_weak.clone();
-
                 tokio::spawn(
-                    async move {
-                        tracing::debug!("Selecting preset theme: {}", theme_id);
-                        let theme_holder = state_manager.get_theme_holder();
-                        let preference_config = state_manager.get_preference_config();
-
-                        match theme_holder.inner.load_theme(theme_id.clone()) {
-                            Ok(theme) => {
-                                let mut pref_item = (*ACTIVE_THEME_ID).clone();
-                                pref_item.value = Some(PreferenceValue {
-                                    value: Some(preference_value::Value::StringValue(
-                                        theme_id.clone(),
-                                    )),
-                                });
-                                if let Err(e) = preference_config.inner.save(pref_item) {
-                                    tracing::error!(
-                                        "Failed to save active theme preference: {:?}",
-                                        e
-                                    );
-                                }
-                                theme_holder.inner.on_theme_changed.emit(theme.clone());
-
-                                let theme_id = theme_id.clone();
-                                let _ = slint::invoke_from_event_loop(move || {
-                                    if let Some(main_window) = main_window_weak.upgrade() {
-                                        main_window
-                                            .global::<ThemesPageProps>()
-                                            .set_active_theme_id(theme_id.into());
-                                        ThemesPageHandler::apply_theme(&main_window, &theme);
-                                    }
-                                });
-                            }
-                            Err(e) => {
-                                tracing::error!("Failed to load theme {}: {:?}", theme_id, e);
-                            }
-                        }
-                    }
+                    select_preset_theme(
+                        theme_id.to_string(),
+                        main_window_weak.clone(),
+                        state_manager,
+                    )
                     .instrument(tracing::debug_span!("slint_cb_on_select_preset_theme")),
                 );
             }
@@ -506,7 +601,7 @@ async fn save_custom_theme(
         tracing::error!("Failed to save active theme preference: {:?}", e);
     }
 
-    let themes_list = ThemesPageHandler::get_all_themes_list(&theme_holder.inner);
+    let configs = ThemesPageHandler::get_all_theme_configs(&theme_holder.inner);
 
     let _ = slint::invoke_from_event_loop(move || {
         let Some(main_window) = main_window_weak.upgrade() else {
@@ -517,8 +612,8 @@ async fn save_custom_theme(
         ThemesPageHandler::apply_theme(&main_window, &theme);
 
         let vec_model = slint::VecModel::default();
-        for t in themes_list {
-            vec_model.push(ThemesPageHandler::map_theme_to_config(&t));
+        for c in configs {
+            vec_model.push(c);
         }
         themes_props.set_available_themes(slint::ModelRc::new(vec_model));
     });
@@ -546,6 +641,78 @@ fn setup_save_custom_theme(main_window: &MainWindow, state_manager: &'static Sta
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
+fn update_available_themes(
+    main_window_weak: slint::Weak<MainWindow>,
+    state_manager: &'static StateManager,
+) {
+    let theme_holder = state_manager.get_theme_holder();
+    let configs = ThemesPageHandler::get_all_theme_configs(&theme_holder.inner);
+    let update_ui = move |main_window: &MainWindow| {
+        let vec_model = VecModel::default();
+        for c in configs {
+            vec_model.push(c);
+        }
+        main_window
+            .global::<ThemesPageProps>()
+            .set_available_themes(ModelRc::new(vec_model));
+    };
+
+    if let Some(main_window) = main_window_weak.upgrade() {
+        update_ui(&main_window);
+    } else {
+        let _ = slint::invoke_from_event_loop(move || {
+            if let Some(main_window) = main_window_weak.upgrade() {
+                update_ui(&main_window);
+            }
+        });
+    }
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn handle_theme_changed(
+    changed_theme: ThemeDetails,
+    main_window_weak: slint::Weak<MainWindow>,
+    state_manager: &'static StateManager,
+) {
+    let preference_config = state_manager.get_preference_config();
+    let active_theme_id = preference_config
+        .inner
+        .load(&ACTIVE_THEME_ID)
+        .value::<String>()
+        .unwrap_or_else(|| "default".to_string());
+
+    if changed_theme.id == active_theme_id {
+        let changed_theme = changed_theme.clone();
+        let mw_weak = main_window_weak.clone();
+        let _ = slint::invoke_from_event_loop(move || {
+            if let Some(main_window) = mw_weak.upgrade() {
+                ThemesPageHandler::apply_theme(&main_window, &changed_theme);
+            }
+        });
+    }
+
+    update_available_themes(main_window_weak, state_manager);
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn setup_themes_updated_listener(
+    main_window_weak: slint::Weak<MainWindow>,
+    state_manager: &'static StateManager,
+) -> types::subscription::CancelHandle {
+    let theme_holder = state_manager.get_theme_holder();
+    theme_holder.on_themes_updated.listen(move |_| {
+        let main_window_weak = main_window_weak.clone();
+        tokio::spawn(
+            async move {
+                update_available_themes(main_window_weak.clone(), state_manager);
+                ThemesPageHandler::refresh_preferences(main_window_weak, state_manager);
+            }
+            .in_current_span(),
+        );
+    })
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
 fn listen_theme_holder_changed(
     state_manager: &'static StateManager,
     main_window_weak: slint::Weak<MainWindow>,
@@ -553,50 +720,21 @@ fn listen_theme_holder_changed(
     tokio::spawn({
         async move {
             let theme_holder = state_manager.get_theme_holder();
-            let main_window_weak = main_window_weak.clone();
-
-            theme_holder.on_theme_changed.listen(move |changed_theme| {
-                let changed_theme = changed_theme.clone();
-                let main_window_weak = main_window_weak.clone();
-
-                tokio::spawn(
-                    async move {
-                        let theme_holder = state_manager.get_theme_holder();
-                        let preference_config = state_manager.get_preference_config();
-
-                        let active_theme_id = preference_config
-                            .inner
-                            .load(&ACTIVE_THEME_ID)
-                            .value::<String>()
-                            .unwrap_or_else(|| "default".to_string());
-
-                        if changed_theme.id == active_theme_id {
-                            let changed_theme = changed_theme.clone();
-                            let main_window_weak = main_window_weak.clone();
-                            let _ = slint::invoke_from_event_loop(move || {
-                                if let Some(main_window) = main_window_weak.upgrade() {
-                                    ThemesPageHandler::apply_theme(&main_window, &changed_theme);
-                                }
-                            });
+            let mw_weak1 = main_window_weak.clone();
+            let _cancel_theme_changed =
+                theme_holder.on_theme_changed.listen(move |changed_theme| {
+                    let changed_theme = changed_theme.clone();
+                    let mw_weak = mw_weak1.clone();
+                    tokio::spawn(
+                        async move {
+                            handle_theme_changed(changed_theme, mw_weak, state_manager);
                         }
+                        .in_current_span(),
+                    );
+                });
 
-                        let themes_list =
-                            ThemesPageHandler::get_all_themes_list(&theme_holder.inner);
-                        let _ = slint::invoke_from_event_loop(move || {
-                            if let Some(main_window) = main_window_weak.upgrade() {
-                                let vec_model = slint::VecModel::default();
-                                for t in themes_list {
-                                    vec_model.push(ThemesPageHandler::map_theme_to_config(&t));
-                                }
-                                main_window
-                                    .global::<ThemesPageProps>()
-                                    .set_available_themes(slint::ModelRc::new(vec_model));
-                            }
-                        });
-                    }
-                    .in_current_span(),
-                );
-            });
+            let _cancel_themes_updated =
+                setup_themes_updated_listener(main_window_weak, state_manager);
         }
         .in_current_span()
     });
@@ -607,10 +745,25 @@ impl PageHandler for ThemesPageHandler {
     fn initialize(&self) {
         let main_window_weak = self.main_window.as_weak();
 
+        ThemesPageHandler::refresh_preferences(main_window_weak.clone(), self.state_manager);
         listen_active_theme_preference(self.state_manager, main_window_weak.clone());
         setup_select_preset_theme(self.main_window, self.state_manager);
         setup_theme_constant_changed(self.main_window, self.state_manager);
         setup_save_custom_theme(self.main_window, self.state_manager);
         listen_theme_holder_changed(self.state_manager, main_window_weak);
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn on_show(&self) {
+        tracing::info!("ThemesPageHandler: on_show");
+        let state_manager = self.state_manager;
+        let main_window_weak = self.main_window.as_weak();
+        tokio::spawn(
+            async move {
+                update_available_themes(main_window_weak.clone(), state_manager);
+                ThemesPageHandler::refresh_preferences(main_window_weak, state_manager);
+            }
+            .in_current_span(),
+        );
     }
 }

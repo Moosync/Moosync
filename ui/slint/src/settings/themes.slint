@@ -13,6 +13,7 @@ import { AppCallbacks } from "../callbacks.slint";
 import { SaveThemeState } from "../common/save_theme_modal_props.slint";
 import { SettingsPageLayout } from "settings_page_layout.slint";
 import { ThemesPageProps } from "themes_props.slint";
+import { PreferenceList } from "preference_list.slint";
 
 
 component FullColorPicker inherits VerticalLayout {
@@ -358,7 +359,7 @@ export component ThemeCard inherits TouchArea {
             Rectangle {
                 height: Theme.themeCardPreviewHeight;
                 border-radius: Theme.borderRadiusLg;
-                background: rgba(config.preview_bg.r, config.preview_bg.g, config.preview_bg.b, config.preview_bg.a);
+                background: rgba(config.tertiary.r, config.tertiary.g, config.tertiary.b, config.tertiary.a);
                 border-width: Theme.borderWidth;
                 border-color: Theme.textSecondary.transparentize(Theme.percent50);
                 clip: true;
@@ -410,6 +411,25 @@ export component ThemeCard inherits TouchArea {
                         text: config.author;
                         font-size: Theme.caption;
                         color: Theme.textSecondary;
+                    }
+                }
+
+                if config.registry != "": Rectangle {
+                    border-radius: Theme.borderRadiusSm;
+                    background: Theme.accent.transparentize(0.85);
+                    horizontal-stretch: 0;
+                    HorizontalLayout {
+                        padding-left: Theme.paddingXs;
+                        padding-right: Theme.paddingXs;
+                        padding-top: Theme.spacingTiny;
+                        padding-bottom: Theme.spacingTiny;
+                        Text {
+                            text: config.registry;
+                            font-size: Theme.caption;
+                            color: Theme.accent;
+                            vertical-alignment: center;
+                            overflow: elide;
+                        }
                     }
                 }
             }
@@ -618,5 +638,9 @@ export component ThemesPage inherits SettingsPageLayout {
                 }
             }
         }
+    }
+
+    if (ThemesPageProps.static_preferences.length > 0): PreferenceList {
+        items: ThemesPageProps.static_preferences;
     }
 }

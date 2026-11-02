@@ -36,4 +36,7 @@ pub enum ThemesError {
 
     #[error("Failed to parse theme")]
     ParseThemeFailed,
+
+    #[error("Invalid theme response: {0}")]
+    InvalidResponse(String),
 }

@@ -391,7 +391,9 @@ export component QueuePageMobile inherits Rectangle {
                         song: PlayerProps.current_song;
                     }
 
-                    PlaybackProgressBarMobile { }
+                    PlaybackProgressBarMobile {
+                        vertical-stretch: 0;
+                    }
 
                     PlaybackControlsMobile { }
                 }

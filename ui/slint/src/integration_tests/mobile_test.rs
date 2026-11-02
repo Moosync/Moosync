@@ -662,6 +662,52 @@ async fn do_mobile_context_menu_drag_fills_bottom(
     assert!(initial_y > 0.0);
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_mobile_progress_bar_tap_bounds(
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) {
+    let s1 = create_test_song("mob_seek1", "Seek Track", "Seek Album", "Seek Artist");
+    let database = state_manager.get_database();
+    database.insert_songs(vec![s1.clone()]).unwrap();
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_play_song(SongModel::from(s1));
+    let playing = wait_until(|| main_window.global::<PlayerProps>().get_playing()).await;
+    assert!(playing);
+
+    main_window.global::<QueuePageProps>().set_show_queue(true);
+    main_window.global::<QueuePageProps>().set_active_tab(0);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_queue_toggled(true);
+
+    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+
+    let found_slider = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Playback Progress").count() > 0
+    })
+    .await;
+    assert!(found_slider);
+
+    let slider_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Playback Progress").collect();
+    assert_eq!(slider_handles.len(), 1);
+
+    slider_handles[0]
+        .single_click(slint::platform::PointerEventButton::Left)
+        .await;
+    tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+
+    let pos = state_manager
+        .get_player_handler()
+        .get_current_pos()
+        .unwrap()
+        .as_secs();
+    assert!(pos > 0);
+}
+
 parameterized_test!(
     do_mobile_bottom_nav_target,
     (
@@ -706,4 +752,5 @@ integration_test!(
     test_mobile_close_all_modals => do_mobile_close_all_modals,
     test_mobile_context_menu_drag_handle_click => do_mobile_context_menu_drag_handle_click,
     test_mobile_context_menu_drag_fills_bottom => do_mobile_context_menu_drag_fills_bottom,
+    test_mobile_progress_bar_tap_bounds => do_mobile_progress_bar_tap_bounds,
 );

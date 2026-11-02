@@ -7,13 +7,17 @@ export component PlaybackProgressBarMobile inherits VerticalLayout {
     property <int> total_duration: PlayerProps.current_song.duration-s;
     property <float> progress: root.current_duration / Math.max(root.total_duration, 1);
 
+    vertical-stretch: 0;
     spacing: Theme.spacingXs;
 
     // Scrubber track container
     Rectangle {
+        vertical-stretch: 0;
         height: Theme.mobileSliderHeight;
 
         touch := TouchArea {
+            accessible-role: slider;
+            accessible-label: "Playback Progress";
             width: 100%;
             height: 100%;
 

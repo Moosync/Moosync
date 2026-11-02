@@ -39,7 +39,7 @@ mod android_bridge;
 pub mod error;
 mod main_content;
 mod pages;
-mod settings;
+pub mod settings;
 #[cfg(not(target_os = "android"))]
 pub mod test_utils;
 pub mod utils;
@@ -86,6 +86,8 @@ pub fn run() {
         }
         .in_current_span(),
     );
+
+    settings::apply_saved_language(state_manager);
 
     main_window.show().unwrap();
 
@@ -151,6 +153,8 @@ pub fn run() {
             }
             .in_current_span(),
         );
+
+        settings::apply_saved_language(state_manager);
     }
 
     main_window.show().unwrap();

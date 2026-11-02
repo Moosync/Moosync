@@ -458,4 +458,95 @@ async fn do_preference_language_translation_switch(
 integration_test!(
     test_preference_extension_registries => do_preference_extension_registries,
     test_preference_language_translation_switch => do_preference_language_translation_switch,
+    test_language_dropdown_ui_selection => do_language_dropdown_ui_selection,
 );
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_language_dropdown_ui_selection(
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) {
+    main_window
+        .global::<SettingsState>()
+        .set_show_settings(true);
+    main_window
+        .global::<SettingsState>()
+        .set_active_page(SettingsPages::System);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_toggled(true);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_active_page_changed(SettingsPages::System);
+
+    let system_loaded = wait_until(|| {
+        let items = main_window.global::<AppPreferences>().get_system_items();
+        items.row_count() == 6
+    })
+    .await;
+    assert!(system_loaded);
+
+    let language_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Language").collect();
+    assert!(!language_handles.is_empty());
+
+    let dropdown_trigger = language_handles
+        .into_iter()
+        .find(|h| h.accessible_role() == Some(i_slint_backend_testing::AccessibleRole::Combobox))
+        .expect("Language combobox not found");
+
+    dropdown_trigger.invoke_accessible_default_action();
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_preference_changed(PreferenceChange {
+            id: "i18n_language".into(),
+            value_string: "fr_FR".into(),
+            value_bool: false,
+            value_number: 0.0,
+            value_list: ModelRc::default(),
+        });
+
+    let config = state_manager.get_preference_config();
+    let saved = wait_until(|| {
+        config
+            .load(&I18N_LANGUAGE)
+            .value::<String>()
+            .is_some_and(|val| val == "fr_FR")
+    })
+    .await;
+    assert!(saved);
+
+    let items_updated = wait_until(|| {
+        let items = main_window.global::<AppPreferences>().get_system_items();
+        items
+            .iter()
+            .any(|item| item.id == "i18n_language" && item.value_string == "fr_FR")
+    })
+    .await;
+    assert!(items_updated);
+
+    let translated = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Paramètres système").count() > 0
+    })
+    .await;
+    assert!(translated);
+
+    let mut german_item = config.load(&I18N_LANGUAGE);
+    german_item.value = Some(preferences_proto::moosync::types::PreferenceValue {
+        value: Some(
+            preferences_proto::moosync::types::preference_value::Value::StringValue(
+                "de_DE".to_string(),
+            ),
+        ),
+    });
+    config.save(german_item).unwrap();
+
+    slint_app::settings::apply_saved_language(state_manager);
+
+    let german_translated = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Einstellungssystem").count() > 0
+    })
+    .await;
+    assert!(german_translated);
+}

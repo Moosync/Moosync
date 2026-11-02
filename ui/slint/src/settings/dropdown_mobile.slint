@@ -2,130 +2,149 @@ import { Theme } from "../constants_mobile.slint";
 import { WindowInfo } from "../window_info.slint";
 import { PreferenceItem, PreferenceOption } from "preferences.slint";
 import { AppCallbacks } from "../callbacks.slint";
+import { ListView } from "std-widgets.slint";
 
-export component DropdownGroupMobile inherits VerticalLayout {
+export component DropdownGroupMobile inherits Rectangle {
     in property <PreferenceItem> preference;
     in property <string> title: root.preference.title;
     in property <string> subtitle: root.preference.subtitle;
     in property <[PreferenceOption]> options: root.preference.options;
-    in-out property <string> current_value: root.preference.value_string;
-    property <string> selected_id: root.current_value != "" ? root.current_value : (root.options.length > 0 ? root.options[0].id : "");
+    in-out property <string> selected_id: root.preference.value_string != "" ? root.preference.value_string : (root.options.length > 0 ? root.options[0].id : "");
     callback changed(string);
 
-    spacing: Theme.spacingSm;
-    alignment: start;
+    height: content_layout.preferred-height;
 
-    VerticalLayout {
-        spacing: Theme.borderWidthLg;
-        Text {
-            text: root.title;
-            font-size: Theme.modelTitle;
-            font-weight: 600;
-            color: Theme.textPrimary;
-        }
+    content_layout := VerticalLayout {
+        spacing: Theme.spacingSm;
+        alignment: start;
 
-        if (root.subtitle != ""): Text {
-            text: root.subtitle;
-            font-size: Theme.caption;
-            wrap: word-wrap;
-            color: Theme.textSecondary;
-        }
-    }
+        VerticalLayout {
+            spacing: Theme.borderWidthLg;
+            Text {
+                text: root.title;
+                font-size: Theme.modelTitle;
+                font-weight: 600;
+                color: Theme.textPrimary;
+            }
 
-    touch := TouchArea {
-        height: Theme.size4Xl;
-        clicked => {
-            popup.show();
-        }
-
-        Rectangle {
-            border-radius: Theme.borderRadiusMd;
-            background: Theme.tertiary;
-
-            HorizontalLayout {
-                padding-left: Theme.paddingMd;
-                padding-right: Theme.paddingMd;
-
-                for option in root.options: HorizontalLayout {
-                    horizontal-stretch: option.id == root.selected_id ? 1 : 0;
-                    if option.id == root.selected_id: Text {
-                        text: option.label != "" ? option.label : option.id;
-                        vertical-alignment: center;
-                        color: Theme.textPrimary;
-                        font-size: Theme.body;
-                    }
-                }
-
-                VerticalLayout {
-                    alignment: center;
-                    Text {
-                        text: "▼";
-                        font-size: Theme.sizeSm;
-                        color: Theme.textSecondary;
-                    }
-                }
+            if (root.subtitle != ""): Text {
+                text: root.subtitle;
+                font-size: Theme.caption;
+                wrap: word-wrap;
+                color: Theme.textSecondary;
             }
         }
 
-        popup := PopupWindow {
-            x: -root.absolute-position.x;
-            y: -root.absolute-position.y;
-            width: WindowInfo.window-width;
-            height: WindowInfo.window-height;
+        trigger := TouchArea {
+            height: Theme.size4Xl;
+            accessible-role: combobox;
+            accessible-label: root.title;
+            clicked => {
+                popup.show();
+            }
 
-            TouchArea {
+            Rectangle {
                 width: 100%;
                 height: 100%;
-                clicked => { popup.close(); }
-            }
+                border-radius: Theme.borderRadiusMd;
+                background: Theme.tertiary;
 
-            popup_sheet := Rectangle {
-                y: parent.height - self.height;
-                width: 100%;
-                height: Math.min(WindowInfo.window-height * 0.55, (root.options.length * Theme.mobileQueueDragHandleHeight) + Theme.size6Xl);
-                background: Theme.secondary;
-                border-top-left-radius: Theme.borderRadiusXl;
-                border-top-right-radius: Theme.borderRadiusXl;
-                clip: true;
+                HorizontalLayout {
+                    padding-left: Theme.paddingMd;
+                    padding-right: Theme.paddingMd;
 
-                VerticalLayout {
-                    padding: Theme.paddingMd;
-                    spacing: Theme.spacingSm;
-
-                    HorizontalLayout {
-                        alignment: center;
-                        padding-top: Theme.spacingXs;
-                        padding-bottom: Theme.spacingXs;
-                        Rectangle {
-                            width: Theme.searchBarHeight;
-                            height: Theme.sizeXxs;
-                            border-radius: Theme.borderWidthLg;
-                            background: Theme.textSecondary.with-alpha(0.4);
+                    for option in root.options: HorizontalLayout {
+                        visible: option.id == root.selected_id;
+                        horizontal-stretch: option.id == root.selected_id ? 1 : 0;
+                        if option.id == root.selected_id: Text {
+                            accessible-role: none;
+                            text: option.label != "" ? option.label : option.id;
+                            vertical-alignment: center;
+                            color: Theme.textPrimary;
+                            font-size: Theme.body;
                         }
                     }
 
-                    Text {
-                        text: root.title;
-                        font-size: Theme.modelTitle;
-                        font-weight: 700;
-                        color: Theme.textPrimary;
+                    VerticalLayout {
+                        alignment: center;
+                        Text {
+                            accessible-role: none;
+                            text: "▼";
+                            font-size: Theme.sizeSm;
+                            color: Theme.textSecondary;
+                        }
                     }
+                }
+            }
+        }
+    }
+
+    popup := PopupWindow {
+        x: -root.absolute-position.x;
+        y: -root.absolute-position.y;
+        width: WindowInfo.window-width;
+        height: WindowInfo.window-height;
+        close-policy: PopupClosePolicy.close-on-click-outside;
+
+        TouchArea {
+            width: 100%;
+            height: 100%;
+            clicked => { popup.close(); }
+        }
+
+        popup_sheet := Rectangle {
+            y: parent.height - self.height;
+            width: 100%;
+            height: Math.min(WindowInfo.window-height * 0.55, (root.options.length * Theme.mobileQueueDragHandleHeight) + Theme.size6Xl);
+            background: Theme.secondary;
+            border-top-left-radius: Theme.borderRadiusXl;
+            border-top-right-radius: Theme.borderRadiusXl;
+            clip: true;
+
+            VerticalLayout {
+                padding: Theme.paddingMd;
+                spacing: Theme.spacingSm;
+
+                HorizontalLayout {
+                    alignment: center;
+                    padding-top: Theme.spacingXs;
+                    padding-bottom: Theme.spacingXs;
+                    Rectangle {
+                        width: Theme.searchBarHeight;
+                        height: Theme.sizeXxs;
+                        border-radius: Theme.borderWidthLg;
+                        background: Theme.textSecondary.with-alpha(0.4);
+                    }
+                }
+
+                Text {
+                    text: root.title;
+                    font-size: Theme.modelTitle;
+                    font-weight: 700;
+                    color: Theme.textPrimary;
+                }
+
+                ListView {
+                    width: 100%;
+                    vertical-stretch: 1;
 
                     for option in root.options: TouchArea {
                         height: Theme.mobileQueueDragHandleHeight;
+                        accessible-role: list-item;
+                        accessible-label: option.label != "" ? option.label : option.id;
                         clicked => {
                             popup.close();
-                            root.current_value = option.id != "" ? option.id : option.label;
+                            root.selected_id = option.id != "" ? option.id : option.label;
                             if (root.preference.id != "") {
                                 AppCallbacks.preference_changed({
                                     id: root.preference.id,
-                                    value_string: root.current_value,
+                                    value_string: root.selected_id,
                                     value_bool: false,
                                     value_number: 0.0,
                                     value_list: []
                                 });
                             }
-                            root.changed(root.current_value);
+                            root.changed(root.selected_id);
                         }
 
                         Rectangle {
@@ -138,6 +157,7 @@ export component DropdownGroupMobile inherits VerticalLayout {
                                 alignment: center;
 
                                 Text {
+                                    accessible-role: none;
                                     text: option.label != "" ? option.label : option.id;
                                     font-size: Theme.body;
                                     color: (option.id == root.selected_id) ? Theme.accent : Theme.textPrimary;

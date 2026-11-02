@@ -1,127 +1,166 @@
 import { Theme } from "../constants.slint";
 import { PreferenceItem, PreferenceOption } from "preferences.slint";
 import { AppCallbacks } from "../callbacks.slint";
+import { ListView } from "std-widgets.slint";
 
-export component DropdownGroup inherits VerticalLayout {
+export component DropdownGroup inherits Rectangle {
     in property <PreferenceItem> preference;
     in property <string> title: root.preference.title;
     in property <string> subtitle: root.preference.subtitle;
     in property <[PreferenceOption]> options: root.preference.options;
-    in-out property <string> current_value: root.preference.value_string;
-    property <string> selected_id: root.current_value != "" ? root.current_value : "en_US";
+    in-out property <string> selected_id: root.preference.value_string != "" ? root.preference.value_string : "en_US";
     callback changed(string);
 
-    spacing: Theme.spacingMd;
-    alignment: start;
+    width: 100%;
+    height: content_layout.preferred-height;
 
-    VerticalLayout {
-        Text {
-            text: root.title;
-            font-size: Theme.modelTitle;
-            font-weight: 600;
-            color: Theme.textPrimary;
+    content_layout := VerticalLayout {
+        width: 100%;
+        spacing: Theme.spacingMd;
+        alignment: start;
+
+        VerticalLayout {
+            Text {
+                text: root.title;
+                font-size: Theme.modelTitle;
+                font-weight: 600;
+                color: Theme.textPrimary;
+            }
+
+            if (root.subtitle != ""): Text {
+                text: root.subtitle;
+                font-size: Theme.caption;
+                wrap: word-wrap;
+                color: Theme.textSecondary;
+            }
         }
 
-        if (root.subtitle != ""): Text {
-            text: root.subtitle;
-            font-size: Theme.caption;
-            wrap: word-wrap;
-            color: Theme.textSecondary;
-        }
-    }
+        trigger := TouchArea {
+            width: 100%;
+            height: Theme.dropdownHeight;
+            accessible-role: combobox;
+            accessible-label: root.title;
+            mouse-cursor: pointer;
+            clicked => {
+                popup.show();
+            }
+            accessible-action-default => {
+                popup.show();
+            }
 
-    touch := TouchArea {
-        height: Theme.dropdownHeight;
-        mouse-cursor: pointer;
-        clicked => {
-            popup.show();
-        }
+            Rectangle {
+                width: 100%;
+                height: 100%;
+                border-radius: Theme.borderRadiusXl;
+                border-color: trigger.has-hover ? Theme.accent : Theme.textSecondary;
+                border-width: Theme.borderWidth;
 
-        Rectangle {
-            border-radius: Theme.borderRadiusXl;
-            border-color: touch.has-hover ? Theme.accent : Theme.textSecondary;
-            border-width: Theme.borderWidth;
+                HorizontalLayout {
+                    padding-left: Theme.paddingMd;
+                    padding-right: Theme.paddingMd;
 
-            HorizontalLayout {
-                padding-left: Theme.paddingMd;
-                padding-right: Theme.paddingMd;
-
-                for option in root.options: HorizontalLayout {
-                    if option.id == root.selected_id || (root.current_value == "" && option.id == root.options[0].id): Text {
-                        text: option.label != "" ? option.label : option.id;
-                        vertical-alignment: center;
-                        horizontal-stretch: 1;
-                        color: Theme.textPrimary;
+                    for option in root.options: HorizontalLayout {
+                        visible: option.id == root.selected_id;
+                        if option.id == root.selected_id: Text {
+                            accessible-role: none;
+                            text: option.label != "" ? option.label : option.id;
+                            vertical-alignment: center;
+                            horizontal-stretch: 1;
+                            color: Theme.textPrimary;
+                        }
                     }
-                }
 
-                VerticalLayout {
-                    alignment: center;
-                    Text {
-                        text: "▼";
-                        font-size: Theme.extraSmall;
-                        color: Theme.textPrimary;
+                    VerticalLayout {
+                        alignment: center;
+                        Text {
+                            accessible-role: none;
+                            text: "▼";
+                            font-size: Theme.extraSmall;
+                            color: Theme.textPrimary;
+                        }
                     }
                 }
             }
         }
+    }
 
-        popup := PopupWindow {
-            x: 0px;
-            y: touch.height + Theme.sizeXxs;
-            width: touch.width;
+    popup := PopupWindow {
+        x: trigger.x;
+        y: trigger.y + trigger.height + Theme.sizeXxs;
+        width: trigger.width;
+        height: Math.min(240px, root.options.length * (Theme.dropdownOptionHeight + Theme.spacingSm) + Theme.paddingMd * 2);
+        close-policy: PopupClosePolicy.close-on-click-outside;
 
-            Rectangle {
-                border-radius: Theme.borderRadiusXl;
-                border-width: Theme.borderWidth;
-                border-color: Theme.textSecondary;
-                background: Theme.secondary;
+        Rectangle {
+            border-radius: Theme.borderRadiusXl;
+            border-width: Theme.borderWidth;
+            border-color: Theme.textSecondary;
+            background: Theme.secondary;
+            clip: true;
 
-                VerticalLayout {
-                    padding: Theme.paddingMd;
-                    spacing: Theme.spacingSm;
+            ListView {
+                width: 100%;
+                height: 100%;
 
-                    for option in root.options: option_touch := TouchArea {
-                        height: Theme.dropdownOptionHeight;
-                        mouse-cursor: pointer;
-                        clicked => {
-                            popup.close();
-                            root.current_value = option.id != "" ? option.id : option.label;
-                            if (root.preference.id != "") {
-                                AppCallbacks.preference_changed({
-                                    id: root.preference.id,
-                                    value_string: root.current_value,
-                                    value_bool: false,
-                                    value_number: 0.0,
-                                    value_list: []
-                                });
+                for option in root.options: option_touch := TouchArea {
+                    height: Theme.dropdownOptionHeight;
+                    mouse-cursor: pointer;
+                    accessible-role: list-item;
+                    accessible-label: option.label != "" ? option.label : option.id;
+                    clicked => {
+                        popup.close();
+                        root.selected_id = option.id != "" ? option.id : option.label;
+                        if (root.preference.id != "") {
+                            AppCallbacks.preference_changed({
+                                id: root.preference.id,
+                                value_string: root.selected_id,
+                                value_bool: false,
+                                value_number: 0.0,
+                                value_list: []
+                            });
+                        }
+                        root.changed(root.selected_id);
+                    }
+                    accessible-action-default => {
+                        popup.close();
+                        root.selected_id = option.id != "" ? option.id : option.label;
+                        if (root.preference.id != "") {
+                            AppCallbacks.preference_changed({
+                                id: root.preference.id,
+                                value_string: root.selected_id,
+                                value_bool: false,
+                                value_number: 0.0,
+                                value_list: []
+                            });
+                        }
+                        root.changed(root.selected_id);
+                    }
+
+                    HorizontalLayout {
+                        padding-left: Theme.paddingMd;
+                        padding-right: Theme.paddingMd;
+                        spacing: Theme.spacingMd;
+                        alignment: start;
+
+                        VerticalLayout {
+                            alignment: center;
+                            Rectangle {
+                                width: Theme.borderWidthXxl;
+                                height: Theme.subtitle;
+                                border-radius: Theme.borderRadiusSm;
+                                background: (root.selected_id == option.id || root.selected_id == option.label) ? Theme.accent : transparent;
+
+                                animate background { duration: Theme.durationFast; }
                             }
-                            root.changed(root.current_value);
                         }
 
-                        HorizontalLayout {
-                            spacing: Theme.spacingMd;
-                            alignment: start;
+                        Text {
+                            accessible-role: none;
+                            text: option.label != "" ? option.label : option.id;
+                            vertical-alignment: center;
+                            color: option_touch.has-hover ? Theme.accent : Theme.textPrimary;
 
-                            VerticalLayout {
-                                alignment: center;
-                                Rectangle {
-                                    width: Theme.borderWidthXxl;
-                                    height: Theme.subtitle;
-                                    border-radius: Theme.borderRadiusSm;
-                                    background: (root.selected_id == option.id || root.selected_id == option.label) ? Theme.accent : transparent;
-
-                                    animate background { duration: Theme.durationFast; }
-                                }
-                            }
-
-                            Text {
-                                text: option.label != "" ? option.label : option.id;
-                                vertical-alignment: center;
-                                color: option_touch.has-hover ? Theme.accent : Theme.textPrimary;
-
-                                animate color { duration: Theme.durationFast; }
-                            }
+                            animate color { duration: Theme.durationFast; }
                         }
                     }
                 }

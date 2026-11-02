@@ -362,13 +362,20 @@ pub async fn handle_preference_change(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-pub fn setup_settings(main_window: &'static MainWindow, state_manager: &'static StateManager) {
-    let initial_lang = state_manager
+pub fn apply_saved_language(state_manager: &'static StateManager) {
+    let lang = state_manager
         .get_preference_config()
         .load(&I18N_LANGUAGE)
         .value::<String>()
         .unwrap_or_else(|| "en_US".to_string());
-    let _ = slint::select_bundled_translation(&initial_lang);
+    if let Err(e) = slint::select_bundled_translation(&lang) {
+        tracing::error!("Failed to select bundled translation {}: {:?}", lang, e);
+    }
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn setup_settings(main_window: &'static MainWindow, state_manager: &'static StateManager) {
+    apply_saved_language(state_manager);
 
     let auto_startup_enabled = state_manager
         .get_preference_config()

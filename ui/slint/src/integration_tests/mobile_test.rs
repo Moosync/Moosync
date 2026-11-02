@@ -5,7 +5,7 @@ use slint::{ComponentHandle, Model, ModelRc, VecModel};
 use slint_app::{
     AccountsProps, AllSongsPageProps, AppCallbacks, AppProps, ExtensionDetailsState, MainWindow,
     OAuthState, Pages, PlayerProps, QueuePageProps, SavePlaylistState, SaveThemeState,
-    SettingsPages, SettingsState, SongModel,
+    SettingsPages, SettingsState, SongModel, SongSelectionState,
     test_utils::integration::{
         click_element, create_test_song, integration_test, parameterized_test, wait_until,
         wait_until_timeout,
@@ -474,40 +474,120 @@ async fn do_mobile_song_selection_toggle(
     .await;
     assert!(songs_loaded);
 
-    let loaded = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Select songs").count() > 0
+    // 1. Verify "Select songs" button no longer exists beside sort button
+    assert_eq!(
+        ElementHandle::find_by_accessible_label(main_window, "Select songs").count(),
+        0
+    );
+
+    // Initial selection mode is false
+    assert!(
+        !main_window
+            .global::<SongSelectionState>()
+            .get_selection_mode()
+    );
+
+    // 2. Long press / right-click on song item toggles selection mode
+    let song_loaded = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Selection Track").count() > 0
     })
     .await;
-    assert!(loaded);
+    assert!(song_loaded);
 
-    let select_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Select songs").collect();
-    assert_eq!(select_handles.len(), 1);
-    assert!(select_handles[0].is_valid());
+    let song_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Selection Track").collect();
+    assert_eq!(song_handles.len(), 1);
 
-    click_element(&select_handles[0]).await;
+    song_handles[0]
+        .single_click(slint::platform::PointerEventButton::Right)
+        .await;
 
     let selection_active = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Cancel selection").count() > 0
+        main_window
+            .global::<SongSelectionState>()
+            .get_selection_mode()
     })
     .await;
     assert!(selection_active);
+    assert_eq!(
+        main_window
+            .global::<SongSelectionState>()
+            .get_selected_count(),
+        1
+    );
 
-    let cancel_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Cancel selection").collect();
-    assert_eq!(cancel_handles.len(), 1);
-    assert!(cancel_handles[0].is_valid());
+    // 4. Top bar replaced by selection count text and select all icon
+    let count_text_loaded = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Selection Count").count() > 0
+    })
+    .await;
+    assert!(count_text_loaded);
 
-    click_element(&cancel_handles[0]).await;
+    let select_all_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Select all").collect();
+    assert_eq!(select_all_handles.len(), 1);
 
+    // Single click while in selection mode deselects song
+    song_handles[0]
+        .single_click(slint::platform::PointerEventButton::Left)
+        .await;
+
+    // 3. Selection mode cancelled by deselecting all songs
     let selection_cancelled = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Select songs").count() > 0
+        !main_window
+            .global::<SongSelectionState>()
+            .get_selection_mode()
     })
     .await;
     assert!(selection_cancelled);
-    assert_eq!(
-        ElementHandle::find_by_accessible_label(main_window, "Cancel selection").count(),
-        0
+
+    // Test "Select all" in top bar:
+    // Re-enable selection mode
+    song_handles[0]
+        .single_click(slint::platform::PointerEventButton::Right)
+        .await;
+    let selection_active_again = wait_until(|| {
+        main_window
+            .global::<SongSelectionState>()
+            .get_selection_mode()
+    })
+    .await;
+    assert!(selection_active_again);
+
+    let select_all_btn: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Select all").collect();
+    assert_eq!(select_all_btn.len(), 1);
+
+    // Clicking "Select all" when all songs are selected toggles / deselects all
+    select_all_btn[0]
+        .single_click(slint::platform::PointerEventButton::Left)
+        .await;
+    let selection_cleared_by_all = wait_until(|| {
+        !main_window
+            .global::<SongSelectionState>()
+            .get_selection_mode()
+    })
+    .await;
+    assert!(selection_cleared_by_all);
+
+    // 3. Test back cancels selection mode
+    song_handles[0]
+        .single_click(slint::platform::PointerEventButton::Right)
+        .await;
+    let selection_for_back = wait_until(|| {
+        main_window
+            .global::<SongSelectionState>()
+            .get_selection_mode()
+    })
+    .await;
+    assert!(selection_for_back);
+
+    let closed = main_window.invoke_close_all_modals();
+    assert!(closed);
+    assert!(
+        !main_window
+            .global::<SongSelectionState>()
+            .get_selection_mode()
     );
 }
 
@@ -523,11 +603,17 @@ async fn do_mobile_close_all_modals(
         .global::<SettingsState>()
         .set_show_settings(true);
     main_window.global::<QueuePageProps>().set_show_queue(true);
+    main_window
+        .global::<SongSelectionState>()
+        .set_selection_mode(true);
 
     let all_open = wait_until(|| {
         main_window.global::<AccountsProps>().get_show_accounts()
             && main_window.global::<SettingsState>().get_show_settings()
             && main_window.global::<QueuePageProps>().get_show_queue()
+            && main_window
+                .global::<SongSelectionState>()
+                .get_selection_mode()
     })
     .await;
     assert!(all_open);
@@ -539,12 +625,20 @@ async fn do_mobile_close_all_modals(
         !main_window.global::<AccountsProps>().get_show_accounts()
             && !main_window.global::<SettingsState>().get_show_settings()
             && !main_window.global::<QueuePageProps>().get_show_queue()
+            && !main_window
+                .global::<SongSelectionState>()
+                .get_selection_mode()
     })
     .await;
     assert!(all_closed);
     assert!(!main_window.global::<AccountsProps>().get_show_accounts());
     assert!(!main_window.global::<SettingsState>().get_show_settings());
     assert!(!main_window.global::<QueuePageProps>().get_show_queue());
+    assert!(
+        !main_window
+            .global::<SongSelectionState>()
+            .get_selection_mode()
+    );
 }
 
 #[tracing::instrument(level = "debug", skip_all)]

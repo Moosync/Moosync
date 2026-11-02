@@ -83,6 +83,7 @@ import {
 import {
     ExtensionDetailsState,
 } from "common/extension_details_modal_props.slint";
+import { SongSelectionState } from "common/selection_props.slint";
 import { PlayerProps } from "bottombar/playback_props.slint";
 import { AppProps } from "app_props.slint";
 import { QueuePageProps } from "main_content/queue_props.slint";
@@ -120,6 +121,7 @@ export {
     SavePlaylistState,
     SaveThemeState,
     ExtensionDetailsState,
+    SongSelectionState,
     ExtensionPathPermission,
     ProviderScope,
     WindowInfo,
@@ -199,7 +201,7 @@ export component MainWindow inherits Window {
     }
 
     public function close_all_modals() -> bool {
-        let any_open = AccountsProps.show_accounts || SettingsState.show_settings || SavePlaylistState.show_modal || SaveThemeState.show_modal || OAuthState.show_oauth_modal || ExtensionDetailsState.show_modal || QueuePageProps.show_queue;
+        let any_open = AccountsProps.show_accounts || SettingsState.show_settings || SavePlaylistState.show_modal || SaveThemeState.show_modal || OAuthState.show_oauth_modal || ExtensionDetailsState.show_modal || QueuePageProps.show_queue || SongSelectionState.selection_mode;
         AccountsProps.show_accounts = false;
         SettingsState.show_settings = false;
         SavePlaylistState.show_modal = false;
@@ -207,6 +209,9 @@ export component MainWindow inherits Window {
         OAuthState.show_oauth_modal = false;
         ExtensionDetailsState.show_modal = false;
         QueuePageProps.show_queue = false;
+        if (SongSelectionState.selection_mode) {
+            SongSelectionState.trigger_clear_selection();
+        }
         return any_open;
     }
 

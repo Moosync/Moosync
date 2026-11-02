@@ -1,0 +1,16 @@
+export global SongSelectionState {
+    in-out property <bool> selection_mode: false;
+    in-out property <int> selected_count: 0;
+    in-out property <bool> select_all_trigger: false;
+    in-out property <bool> clear_selection_trigger: false;
+
+    public function trigger_select_all() {
+        self.select_all_trigger = !self.select_all_trigger;
+    }
+
+    public function trigger_clear_selection() {
+        self.clear_selection_trigger = !self.clear_selection_trigger;
+        self.selection_mode = false;
+        self.selected_count = 0;
+    }
+}

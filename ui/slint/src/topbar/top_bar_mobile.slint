@@ -5,6 +5,7 @@ import { AppProps } from "../app_props.slint";
 import { AccountsProps } from "../common/accounts_props.slint";
 import { SearchPageProps } from "../main_content/search_props.slint";
 import { SearchBarMobile } from "search_bar_mobile.slint";
+import { SongSelectionState } from "../common/selection_props.slint";
 
 export component TopBarMobile inherits Rectangle {
     property <bool> is_search_open: false;
@@ -18,6 +19,45 @@ export component TopBarMobile inherits Rectangle {
         background: Theme.divider;
     }
 
+    // Selection Mode Top Bar Content
+    HorizontalLayout {
+        x: 0px;
+        y: 0px;
+        width: 100%;
+        height: 100%;
+        padding-left: Theme.paddingLg;
+        padding-right: Theme.paddingMd;
+        alignment: space-between;
+        visible: SongSelectionState.selection_mode;
+
+        VerticalLayout {
+            alignment: center;
+            Text {
+                accessible-role: text;
+                accessible-label: "Selection Count";
+                text: @tr("{} selected", SongSelectionState.selected_count);
+                font-size: Theme.modelTitle;
+                font-weight: 700;
+                color: Theme.accent;
+                vertical-alignment: center;
+            }
+        }
+
+        VerticalLayout {
+            alignment: center;
+            IconButton {
+                accessible-label: @tr("Select all");
+                icon_source: @image-url("../icons/select_all.svg");
+                icon_size: Theme.iconSizeLg;
+                width: Theme.mobileIconButtonSize;
+                height: Theme.mobileIconButtonSize;
+                clicked => {
+                    SongSelectionState.trigger_select_all();
+                }
+            }
+        }
+    }
+
     // Default action buttons
     HorizontalLayout {
         x: 0px;
@@ -28,7 +68,7 @@ export component TopBarMobile inherits Rectangle {
         padding-right: Theme.paddingMd;
         spacing: Theme.spacingSm;
         opacity: root.is_search_open ? 0.0 : 1.0;
-        visible: !root.is_search_open;
+        visible: !root.is_search_open && !SongSelectionState.selection_mode;
 
         animate opacity {
             duration: Theme.durationFast;
@@ -81,7 +121,7 @@ export component TopBarMobile inherits Rectangle {
         padding-right: Theme.paddingLg;
         spacing: Theme.spacingSm;
         opacity: root.is_search_open ? 1.0 : 0.0;
-        visible: root.is_search_open;
+        visible: root.is_search_open && !SongSelectionState.selection_mode;
 
         animate x, opacity {
             duration: Theme.durationNormal;

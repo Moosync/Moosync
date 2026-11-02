@@ -42,9 +42,13 @@ fi
 export RUNFILES_MANIFEST_FILE="$MANIFEST"
 export BUILD_WORKSPACE_DIRECTORY="$WORKSPACE_DIR"
 
+find_rlocation() {
+  grep -m1 "$1" "$MANIFEST" | cut -d' ' -f1
+}
+
 exec "$WORKSPACE_DIR/tools/format.sh" \
-  "rules_rust+/tools/upstream_wrapper/rustfmt" \
-  "rules_rust++_crate+++crates+crates__slint-lsp-1.17.1/slint-lsp__bin" \
-  "buildifier_prebuilt+/buildifier/buildifier.bash" \
-  "rules_buf++buf+rules_buf_toolchains/buf" \
+  "$(find_rlocation "upstream_wrapper/rustfmt")" \
+  "$(find_rlocation "slint-lsp")" \
+  "$(find_rlocation "buildifier/buildifier")" \
+  "$(find_rlocation "rules_buf_toolchains/buf")" \
   --fix "$1"

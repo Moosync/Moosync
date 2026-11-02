@@ -19,28 +19,34 @@ BUILDIFIER_PATH=$(rlocation "$3")
 BUF_PATH=$(rlocation "$4")
 shift 4
 
-if [[ -z "$RUSTFMT_PATH" ]] || [[ ! -f "$RUSTFMT_PATH" ]]; then
-  echo "ERROR: Could not resolve hermetic rustfmt path" >&2
-  exit 1
-fi
+check_rustfmt() {
+  if [[ -z "$RUSTFMT_PATH" ]] || [[ ! -f "$RUSTFMT_PATH" ]]; then
+    echo "ERROR: Could not resolve hermetic rustfmt path" >&2
+    exit 1
+  fi
+}
 
-if [[ -z "$SLINT_LSP_PATH" ]] || [[ ! -f "$SLINT_LSP_PATH" ]]; then
-  echo "ERROR: Could not resolve hermetic slint-lsp path" >&2
-  exit 1
-fi
+check_slint_lsp() {
+  if [[ -z "$SLINT_LSP_PATH" ]] || [[ ! -f "$SLINT_LSP_PATH" ]]; then
+    echo "ERROR: Could not resolve hermetic slint-lsp path" >&2
+    exit 1
+  fi
+}
 
-if [[ -z "$BUILDIFIER_PATH" ]] || [[ ! -f "$BUILDIFIER_PATH" ]]; then
-  echo "ERROR: Could not resolve hermetic buildifier path" >&2
-  exit 1
-fi
+check_buildifier() {
+  if [[ -z "$BUILDIFIER_PATH" ]] || [[ ! -f "$BUILDIFIER_PATH" ]]; then
+    echo "ERROR: Could not resolve hermetic buildifier path" >&2
+    exit 1
+  fi
+}
 
-if [[ -z "$BUF_PATH" ]] || [[ ! -f "$BUF_PATH" ]]; then
-  echo "ERROR: Could not resolve hermetic buf path" >&2
-  exit 1
-fi
-
-# Ensure buf is executable
-chmod +x "$BUF_PATH" 2>/dev/null || true
+check_buf() {
+  if [[ -z "$BUF_PATH" ]] || [[ ! -f "$BUF_PATH" ]]; then
+    echo "ERROR: Could not resolve hermetic buf path" >&2
+    exit 1
+  fi
+  chmod +x "$BUF_PATH" 2>/dev/null || true
+}
 
 # Get the root of the workspace
 WORKSPACE_DIR="${BUILD_WORKSPACE_DIRECTORY:-$(pwd)}"
@@ -51,18 +57,22 @@ if [[ "${1:-}" = "--fix" ]]; then
   file="${1:-}"
   case "$file" in
     *.rs)
+      check_rustfmt
       "$RUSTFMT_PATH" --edition 2024 --emit stdout
       ;;
     *.slint)
+      check_slint_lsp
       TMP=$(mktemp --suffix=.slint)
       trap 'rm -f "$TMP"' EXIT
       cat > "$TMP"
       "$SLINT_LSP_PATH" format "$TMP"
       ;;
     *BUILD|*BUILD.bazel|*WORKSPACE|*WORKSPACE.bazel|*MODULE.bazel|*.bzl|*.bazel)
+      check_buildifier
       "$BUILDIFIER_PATH" -path "$file"
       ;;
     *.proto)
+      check_buf
       TMPDIR=$(mktemp -d)
       trap 'rm -rf "$TMPDIR"' EXIT
       TMP="$TMPDIR/$(basename "$file")"
@@ -75,6 +85,11 @@ if [[ "${1:-}" = "--fix" ]]; then
   esac
   exit 0
 fi
+
+check_rustfmt
+check_slint_lsp
+check_buildifier
+check_buf
 
 if [[ $# -gt 0 ]]; then
   # Format only the specified files (e.g. staged files)

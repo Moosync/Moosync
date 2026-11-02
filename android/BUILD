@@ -1,6 +1,6 @@
 load("@rules_android//rules:rules.bzl", "android_binary")
 load("@rules_cc//cc:defs.bzl", "cc_import")
-load("@rules_kotlin//kotlin:android.bzl", "kt_android_library")
+load("@rules_kotlin//kotlin:android.bzl", "kt_android_library", "kt_android_local_test")
 load("@rules_kotlin//kotlin:jvm.bzl", "kt_jvm_binary", "kt_jvm_import", "kt_jvm_library")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load("@rules_shell//shell:sh_test.bzl", "sh_test")
@@ -48,6 +48,34 @@ sh_test(
     srcs = ["test/run_scanner_kt_test.sh"],
     args = ["$(location :scanner_kt_runner)"],
     data = [":scanner_kt_runner"],
+)
+
+kt_android_local_test(
+    name = "handlers_test",
+    srcs = ["test/app/moosync/android/HandlerUnitTests.kt"],
+    custom_package = "app.moosync.android",
+    manifest = "AndroidManifest.xml",
+    resource_files = glob(["res/**"]),
+    test_class = "app.moosync.android.HandlerUnitTests",
+    deps = [
+        ":moosync_kt",
+        "@maven//:junit_junit",
+        "@maven//:org_mockito_mockito_core",
+    ],
+)
+
+kt_android_local_test(
+    name = "native_bridge_test",
+    srcs = ["test/app/moosync/android/NativeBridgeIntegrationTest.kt"],
+    custom_package = "app.moosync.android",
+    manifest = "AndroidManifest.xml",
+    resource_files = glob(["res/**"]),
+    test_class = "app.moosync.android.NativeBridgeIntegrationTest",
+    deps = [
+        ":moosync_kt",
+        "@maven//:junit_junit",
+        "@maven//:org_mockito_mockito_core",
+    ],
 )
 
 cc_import(

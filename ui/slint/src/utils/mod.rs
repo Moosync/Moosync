@@ -1,3 +1,5 @@
+#[cfg(target_os = "android")]
+pub mod android;
 pub mod autostart;
 pub mod context_menu;
 pub mod entity_content;
@@ -27,6 +29,8 @@ pub use queue::*;
 pub use selection::*;
 pub use validation::*;
 
+#[cfg(all(test, target_os = "android"))]
+mod android_test;
 #[cfg(test)]
 mod autostart_test;
 #[cfg(test)]

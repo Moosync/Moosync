@@ -3,6 +3,8 @@ use slint::{ComponentHandle, ModelRc, VecModel, Weak};
 use state_manager::StateManager;
 use tracing::Instrument;
 
+#[cfg(target_os = "android")]
+use crate::utils::android::get_android_context;
 use crate::{AccountItem, AccountsProps, AppCallbacks, MainWindow, OAuthState};
 
 pub struct AccountsHandler;
@@ -238,48 +240,68 @@ impl AccountsHandler {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn setup_uri_scheme(
-        _main_window: &'static MainWindow,
-        _state_manager: &'static StateManager,
+        main_window: &'static MainWindow,
+        state_manager: &'static StateManager,
     ) {
-        #[cfg(not(any(target_os = "android", test)))]
-        {
-            let mw_weak = _main_window.as_weak();
-            sysuri::register_handler(
-                "moosync",
-                sysuri::FnHandler::new(move |uri: &str| {
-                    if let Some(mw) = mw_weak.upgrade() {
-                        Self::handle_deep_link(uri, _state_manager, &mw);
-                    }
-                }),
-            );
+        Self::setup_deep_link(main_window, state_manager);
+    }
 
-            if let Ok(exe) = std::env::current_exe() {
-                let scheme = sysuri::UriScheme::new("moosync", "Moosync Protocol", exe);
-                let _ = sysuri::register(&scheme);
+    #[cfg(all(not(target_os = "android"), not(test)))]
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn setup_deep_link(main_window: &'static MainWindow, state_manager: &'static StateManager) {
+        let mw_weak = main_window.as_weak();
+        sysuri::register_handler(
+            "moosync",
+            sysuri::FnHandler::new(move |uri: &str| {
+                if let Some(mw) = mw_weak.upgrade() {
+                    Self::handle_deep_link(uri, state_manager, &mw);
+                }
+            }),
+        );
+
+        if let Ok(exe) = std::env::current_exe() {
+            let scheme = sysuri::UriScheme::new("moosync", "Moosync Protocol", exe);
+            if let Err(err) = sysuri::register(&scheme) {
+                tracing::error!("Failed to register sysuri scheme: {:?}", err);
             }
-
-            let _ = sysuri::should_handle_uri();
         }
 
-        #[cfg(target_os = "android")]
-        {
-            let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<String>();
-            *DEEP_LINK_TX.lock().unwrap() = Some(tx);
-            let mw_weak = _main_window.as_weak();
-            tokio::spawn(
-                async move {
-                    while let Some(url) = rx.recv().await {
-                        if let Some(mw) = mw_weak.upgrade() {
-                            Self::handle_deep_link(&url, _state_manager, &mw);
-                        }
+        if let Err(err) = sysuri::should_handle_uri() {
+            tracing::error!("Failed to check sysuri handle: {:?}", err);
+        }
+    }
+
+    #[cfg(all(not(target_os = "android"), test))]
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn setup_deep_link(_main_window: &'static MainWindow, _state_manager: &'static StateManager) {}
+
+    #[cfg(target_os = "android")]
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn setup_deep_link(main_window: &'static MainWindow, state_manager: &'static StateManager) {
+        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<String>();
+        match DEEP_LINK_TX.lock() {
+            Ok(mut guard) => {
+                *guard = Some(tx);
+            }
+            Err(err) => {
+                tracing::error!("DEEP_LINK_TX lock poisoned: {:?}", err);
+            }
+        }
+        let mw_weak = main_window.as_weak();
+        tokio::spawn(
+            async move {
+                while let Some(url) = rx.recv().await {
+                    if let Some(mw) = mw_weak.upgrade() {
+                        Self::handle_deep_link(&url, state_manager, &mw);
                     }
                 }
-                .in_current_span(),
-            );
-
-            if let Some(context) = crate::get_android_context() {
-                let _ = context.call_activity::<_, ()>("processPendingDeepLink", ());
             }
+            .in_current_span(),
+        );
+
+        let context = get_android_context();
+        if let Err(err) = context.call_activity::<_, ()>("processPendingDeepLink", ()) {
+            tracing::error!("Failed to process pending deep link via JNI: {:?}", err);
         }
     }
 
@@ -321,12 +343,21 @@ static DEEP_LINK_TX: std::sync::Mutex<Option<tokio::sync::mpsc::UnboundedSender<
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn on_deep_link(url: String) {
     tracing::info!("on_deep_link received: {}", url);
-    if let Some(tx) = DEEP_LINK_TX.lock().unwrap().as_ref() {
-        let _ = tx.send(url);
-    } else {
-        tracing::warn!(
-            "DEEP_LINK_TX not yet initialized when receiving deep link: {}",
-            url
-        );
+    match DEEP_LINK_TX.lock() {
+        Ok(guard) => {
+            if let Some(tx) = guard.as_ref() {
+                if let Err(err) = tx.send(url.clone()) {
+                    tracing::error!("Failed to forward deep link {}: {:?}", url, err);
+                }
+            } else {
+                tracing::warn!(
+                    "DEEP_LINK_TX not yet initialized when receiving deep link: {}",
+                    url
+                );
+            }
+        }
+        Err(err) => {
+            tracing::error!("DEEP_LINK_TX lock poisoned: {:?}", err);
+        }
     }
 }

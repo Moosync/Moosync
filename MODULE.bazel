@@ -36,6 +36,7 @@ bazel_dep(name = "nasm", version = "3.02")
 bazel_dep(name = "rules_cc", version = "0.2.27")
 bazel_dep(name = "rules_android", version = "0.8.0")
 bazel_dep(name = "rules_kotlin", version = "2.4.21")
+bazel_dep(name = "rules_jvm_external", version = "6.9")
 bazel_dep(name = "rules_pkg", version = "1.3.0")
 bazel_dep(name = "rules_appimage", version = "1.20.0")
 bazel_dep(name = "bazel_env.bzl", version = "0.10.0")
@@ -56,6 +57,7 @@ include("//modules:external_deps.MODULE.bazel")
 include("//modules:rust_toolchains.MODULE.bazel")
 include("//modules:crates.MODULE.bazel")
 include("//modules:android_toolchains.MODULE.bazel")
+include("//modules:maven.MODULE.bazel")
 
 register_toolchains(
     "//:shell_android_x86_64_toolchain",

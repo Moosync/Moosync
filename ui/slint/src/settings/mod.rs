@@ -25,6 +25,8 @@ use slint::{ComponentHandle, Model};
 use state_manager::StateManager;
 use tracing::Instrument;
 
+#[cfg(target_os = "android")]
+use crate::utils::android::get_android_context;
 use crate::{
     AppCallbacks, MainWindow,
     pages::PageHandler,
@@ -94,14 +96,10 @@ fn select_directory() -> String {
         *guard = Some(tx);
     }
 
-    if let Some(context) = crate::get_android_context() {
-        if let Err(err) = context.call_activity::<_, ()>("openDirectoryPicker", ()) {
-            tracing::error!("Failed to invoke openDirectoryPicker via JNI: {:?}", err);
-            return String::new();
-        }
-    } else {
-        tracing::error!("Android context not initialized");
-        return String::new();
+    let context = get_android_context();
+    if let Err(err) = context.call_activity::<_, ()>("openDirectoryPicker", ()) {
+        tracing::error!("Failed to invoke openDirectoryPicker via JNI: {:?}", err);
+        panic!("openDirectoryPicker failed: {:?}", err);
     }
 
     rx.recv_timeout(std::time::Duration::from_secs(120))
@@ -117,14 +115,10 @@ fn select_file(filter: String) -> String {
         *guard = Some(tx);
     }
 
-    if let Some(context) = crate::get_android_context() {
-        if let Err(err) = context.call_activity::<_, ()>("openFilePicker", filter.as_str()) {
-            tracing::error!("Failed to invoke openFilePicker via JNI: {:?}", err);
-            return String::new();
-        }
-    } else {
-        tracing::error!("Android context not initialized");
-        return String::new();
+    let context = get_android_context();
+    if let Err(err) = context.call_activity::<_, ()>("openFilePicker", filter.as_str()) {
+        tracing::error!("Failed to invoke openFilePicker via JNI: {:?}", err);
+        panic!("openFilePicker failed: {:?}", err);
     }
 
     rx.recv_timeout(std::time::Duration::from_secs(120))
@@ -135,8 +129,19 @@ fn select_file(filter: String) -> String {
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn on_directory_picked(path: String) {
     tracing::info!("on_directory_picked: {}", path);
-    if let Some(tx) = DIRECTORY_PICKER_TX.lock().unwrap().take() {
-        let _ = tx.send(path);
+    match DIRECTORY_PICKER_TX.lock() {
+        Ok(mut guard) => {
+            if let Some(tx) = guard.take() {
+                if let Err(err) = tx.send(path) {
+                    tracing::error!("Failed to send picked directory to channel: {:?}", err);
+                }
+            } else {
+                tracing::warn!("No pending directory picker receiver found");
+            }
+        }
+        Err(err) => {
+            tracing::error!("DIRECTORY_PICKER_TX lock poisoned: {:?}", err);
+        }
     }
 }
 
@@ -144,8 +149,19 @@ pub fn on_directory_picked(path: String) {
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn on_file_picked(path: String) {
     tracing::info!("on_file_picked: {}", path);
-    if let Some(tx) = FILE_PICKER_TX.lock().unwrap().take() {
-        let _ = tx.send(path);
+    match FILE_PICKER_TX.lock() {
+        Ok(mut guard) => {
+            if let Some(tx) = guard.take() {
+                if let Err(err) = tx.send(path) {
+                    tracing::error!("Failed to send picked file to channel: {:?}", err);
+                }
+            } else {
+                tracing::warn!("No pending file picker receiver found");
+            }
+        }
+        Err(err) => {
+            tracing::error!("FILE_PICKER_TX lock poisoned: {:?}", err);
+        }
     }
 }
 

@@ -4,7 +4,8 @@ import android.content.Intent
 import android.util.Log
 
 class DeepLinkHandler {
-    private var pendingDeepLink: String? = null
+    var pendingDeepLink: String? = null
+        private set
 
     fun handleIntent(intent: Intent?) {
         if (intent == null) return

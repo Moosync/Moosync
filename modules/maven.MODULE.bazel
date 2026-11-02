@@ -1,0 +1,16 @@
+maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
+maven.install(
+    artifacts = [
+        "junit:junit:4.13.2",
+        "org.mockito:mockito-core:5.11.0",
+    ],
+    known_contributing_modules = [
+        "moosync",
+        "protobuf",
+    ],
+    repositories = [
+        "https://repo1.maven.org/maven2",
+        "https://maven.google.com",
+    ],
+)
+use_repo(maven, "maven")

@@ -26,7 +26,7 @@ pub extern "system" fn native_on_deep_link(mut env: EnvUnowned, _class: JClass, 
         crate::accounts::on_deep_link(url_str);
         Ok(())
     });
-    let _ = outcome.resolve::<jni::errors::ThrowRuntimeExAndDefault>();
+    outcome.resolve::<jni::errors::ThrowRuntimeExAndDefault>();
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -40,7 +40,7 @@ pub extern "system" fn native_on_directory_picked(
         crate::settings::on_directory_picked(path_str);
         Ok(())
     });
-    let _ = outcome.resolve::<jni::errors::ThrowRuntimeExAndDefault>();
+    outcome.resolve::<jni::errors::ThrowRuntimeExAndDefault>();
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -50,7 +50,7 @@ pub extern "system" fn native_on_file_picked(mut env: EnvUnowned, _class: JClass
         crate::settings::on_file_picked(path_str);
         Ok(())
     });
-    let _ = outcome.resolve::<jni::errors::ThrowRuntimeExAndDefault>();
+    outcome.resolve::<jni::errors::ThrowRuntimeExAndDefault>();
 }
 
 #[tracing::instrument(level = "debug", skip_all)]

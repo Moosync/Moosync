@@ -4,10 +4,9 @@ use jni::{
     Env,
     errors::Error as JniError,
     jni_sig, jni_str,
-    objects::{Global, JByteArray, JClass, JObject, JString, JValue, JValueOwned},
+    objects::{Global, JClass, JObject, JValue},
     signature::{MethodSignature, RuntimeMethodSignature},
     strings::JNIString,
-    sys::{jboolean, jint, jlong},
 };
 
 #[derive(Debug, Clone)]
@@ -55,6 +54,73 @@ pub mod args;
 pub use args::*;
 
 impl AndroidJNIContext {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn get_object_class<'local>(
+        &self,
+        env: &mut Env<'local>,
+        obj: &JObject,
+    ) -> Result<JClass<'local>, JniError> {
+        let class_obj = env
+            .call_method(
+                obj,
+                jni_str!("getClass"),
+                jni_sig!("()Ljava/lang/Class;"),
+                &[],
+            )?
+            .l()?;
+        Ok(unsafe { JClass::from_raw(env, class_obj.as_raw().cast()) })
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn get_class_loader<'local>(
+        &self,
+        env: &mut Env<'local>,
+        class: &JClass,
+    ) -> Result<JObject<'local>, JniError> {
+        env.call_method(
+            class,
+            jni_str!("getClassLoader"),
+            jni_sig!("()Ljava/lang/ClassLoader;"),
+            &[],
+        )?
+        .l()
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn from_activity(
+        vm: Arc<jni::JavaVM>,
+        activity_ptr: *mut std::ffi::c_void,
+    ) -> Result<Self, JniError> {
+        let activity = vm.attach_current_thread(|env| {
+            let act_obj = unsafe { JObject::from_raw(env, activity_ptr.cast()) };
+            env.new_global_ref(act_obj)
+        })?;
+
+        let mut context = Self {
+            jvm: vm,
+            activity: Arc::new(activity),
+            class_loader: Arc::new(Global::null()),
+            service_class: Arc::new(Global::null()),
+        };
+
+        let class_loader = context.with_env(|env, this| {
+            let class_obj = this.get_object_class(env, &this.activity)?;
+            let loader = this.get_class_loader(env, &class_obj)?;
+            let loader_ref = env.new_global_ref(loader)?;
+            Ok(loader_ref)
+        })?;
+        context.class_loader = Arc::new(class_loader);
+
+        let service_class = context.with_env(|env, this| {
+            let cls = this.load_class(env, "app.moosync.android.services.MoosyncService")?;
+            let service_ref = env.new_global_ref(JObject::from(cls))?;
+            Ok(service_ref)
+        })?;
+        context.service_class = Arc::new(service_class);
+
+        Ok(context)
+    }
+
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn with_env<T, F>(&self, f: F) -> Result<T, JniError>
     where

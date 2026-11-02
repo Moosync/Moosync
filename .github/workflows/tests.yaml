@@ -37,7 +37,7 @@ jobs:
 
       - name: Run Tests & Collect Coverage
         continue-on-error: true
-        run: bazel coverage --combined_report=lcov --instrumentation_filter='^//core/' //:core_tests
+        run: bazel coverage --combined_report=lcov --instrumentation_filter='^//core/' //:all_tests
 
       - name: Convert Coverage to XML
         run: |

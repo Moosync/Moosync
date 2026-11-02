@@ -28,7 +28,7 @@ export component TopBarMobile inherits Rectangle {
         padding-right: Theme.paddingMd;
         spacing: Theme.spacingSm;
         opacity: root.is_search_open ? 0.0 : 1.0;
-        visible: self.opacity > 0.01;
+        visible: !root.is_search_open;
 
         animate opacity {
             duration: Theme.durationFast;
@@ -81,6 +81,7 @@ export component TopBarMobile inherits Rectangle {
         padding-right: Theme.paddingLg;
         spacing: Theme.spacingSm;
         opacity: root.is_search_open ? 1.0 : 0.0;
+        visible: root.is_search_open;
 
         animate x, opacity {
             duration: Theme.durationNormal;

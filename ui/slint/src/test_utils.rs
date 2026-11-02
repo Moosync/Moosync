@@ -383,17 +383,26 @@ pub mod integration {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub async fn wait_until<F>(mut condition: F) -> bool
+    pub async fn wait_until_timeout<F>(timeout: Duration, mut condition: F) -> bool
     where
         F: FnMut() -> bool,
     {
-        for _ in 0..1400 {
+        let iterations = (timeout.as_millis() / 10).max(1);
+        for _ in 0..iterations {
             if condition() {
                 return true;
             }
             tokio::time::sleep(Duration::from_millis(10)).await;
         }
         condition()
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub async fn wait_until<F>(condition: F) -> bool
+    where
+        F: FnMut() -> bool,
+    {
+        wait_until_timeout(Duration::from_secs(14), condition).await
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

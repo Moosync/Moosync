@@ -78,6 +78,15 @@ kt_android_local_test(
     ],
 )
 
+test_suite(
+    name = "android_tests",
+    tests = [
+        ":handlers_test",
+        ":native_bridge_test",
+        ":scanner_kt_test",
+    ],
+)
+
 cc_import(
     name = "libcxx_shared",
     shared_library = select({

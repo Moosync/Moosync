@@ -231,11 +231,28 @@ rust_test(
     ],
 )
 
+rust_test(
+    name = "slint_mobile_test",
+    size = "large",
+    srcs = ["src/integration_tests/mobile_test.rs"],
+    deps = [
+        ":slint_app_lib_mobile",
+        "//core/state_manager",
+        "//core/types/protos:songs_rs",
+        "@crates//:i-slint-backend-testing",
+        "@crates//:slint",
+        "@crates//:tokio",
+        "@crates//:tracing",
+        "@crates//:tracing-test",
+    ],
+)
+
 test_suite(
     name = "slint_tests",
     tests = [
         ":slint_accounts_test",
         ":slint_extensions_test",
+        ":slint_mobile_test",
         ":slint_navigation_test",
         ":slint_playback_test",
         ":slint_queue_test",
@@ -513,6 +530,61 @@ cargo_build_script(
     deps = ["@crates//:slint-build"],
 )
 
+cargo_build_script(
+    name = "build_script_mobile",
+    srcs = ["build.rs"],
+    build_script_env = {
+        "CARGO_PKG_NAME": "slint_app",
+        "SLINT_EMIT_DEBUG_INFO": "1",
+        "SLINT_ENTRY_FILE": "src/app_mobile.slint",
+    },
+    data = SLINT_DATA,
+    deps = ["@crates//:slint-build"],
+)
+
+COMMON_DEPS = [
+    "//core/database",
+    "//core/extensions",
+    "//core/preferences",
+    "//core/state_manager",
+    "//core/themes",
+    "//core/types",
+    "//core/types/protos:extensions_rs",
+    "//core/types/protos:player_rs",
+    "//core/types/protos:preferences_rs",
+    "//core/types/protos:songs_rs",
+    "//core/types/protos:themes_rs",
+    "@crates//:csscolorparser",
+    "@crates//:futures",
+    "@crates//:i-slint-backend-testing",
+    "@crates//:image",
+    "@crates//:open",
+    "@crates//:platform-dirs",
+    "@crates//:prost",
+    "@crates//:prost-types",
+    "@crates//:regex",
+    "@crates//:reqwest",
+    "@crates//:rstest",
+    "@crates//:slint",
+    "@crates//:tempdir",
+    "@crates//:thiserror",
+    "@crates//:tokio",
+    "@crates//:tracing",
+    "@crates//:tracing-appender",
+    "@crates//:tracing-subscriber",
+    "@crates//:uuid",
+] + select({
+    "@platforms//os:android": [
+        "@crates//:jni",
+    ],
+    "//conditions:default": [
+        "@crates//:auto-launch",
+        "@crates//:rfd",
+        "@crates//:sysuri",
+        "@crates//:tracing-tracy",
+    ],
+})
+
 rust_library(
     name = "slint_app_lib",
     srcs = SRC_LIST,
@@ -523,49 +595,20 @@ rust_library(
         "//core/theme_macro",
         "@crates//:async-trait",
     ],
-    deps = [
-        ":build_script",
-        "//core/database",
-        "//core/extensions",
-        "//core/preferences",
-        "//core/state_manager",
-        "//core/themes",
-        "//core/types",
-        "//core/types/protos:extensions_rs",
-        "//core/types/protos:player_rs",
-        "//core/types/protos:preferences_rs",
-        "//core/types/protos:songs_rs",
-        "//core/types/protos:themes_rs",
-        "@crates//:csscolorparser",
-        "@crates//:futures",
-        "@crates//:i-slint-backend-testing",
-        "@crates//:image",
-        "@crates//:open",
-        "@crates//:platform-dirs",
-        "@crates//:prost",
-        "@crates//:prost-types",
-        "@crates//:regex",
-        "@crates//:reqwest",
-        "@crates//:rstest",
-        "@crates//:slint",
-        "@crates//:tempdir",
-        "@crates//:thiserror",
-        "@crates//:tokio",
-        "@crates//:tracing",
-        "@crates//:tracing-appender",
-        "@crates//:tracing-subscriber",
-        "@crates//:uuid",
-    ] + select({
-        "@platforms//os:android": [
-            "@crates//:jni",
-        ],
-        "//conditions:default": [
-            "@crates//:auto-launch",
-            "@crates//:rfd",
-            "@crates//:sysuri",
-            "@crates//:tracing-tracy",
-        ],
-    }),
+    deps = [":build_script"] + COMMON_DEPS,
+)
+
+rust_library(
+    name = "slint_app_lib_mobile",
+    srcs = SRC_LIST,
+    compile_data = SLINT_DATA,
+    crate_name = "slint_app",
+    edition = "2021",
+    proc_macro_deps = [
+        "//core/theme_macro",
+        "@crates//:async-trait",
+    ],
+    deps = [":build_script_mobile"] + COMMON_DEPS,
 )
 
 rust_binary(

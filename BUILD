@@ -216,6 +216,14 @@ test_suite(
         "//core/theme_macro:theme_macro_test",
         "//core/themes:themes_test",
         "//core/types:types_test",
+    ],
+)
+
+test_suite(
+    name = "all_tests",
+    tests = [
+        ":core_tests",
+        "//android:android_tests",
         "//ui/slint:slint_tests",
     ],
 )

@@ -57,6 +57,15 @@ class MoosyncService : Service() {
             }
         )
 
+        val pendingMeta = pendingMetadata
+        if (pendingMeta != null) {
+            notificationHandler.updateMetadata(
+                pendingMeta.title,
+                pendingMeta.artistName,
+                pendingMeta.albumName
+            )
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(
                 NOTIFICATION_ID,
@@ -68,6 +77,19 @@ class MoosyncService : Service() {
         }
 
         instance = this
+
+        if (pendingMeta != null) {
+            updateMetadata(
+                pendingMeta.title,
+                pendingMeta.artistName,
+                pendingMeta.albumName,
+                pendingMeta.durationMs,
+                pendingMeta.thumbnailUri
+            )
+        }
+        pendingPlayerState?.let {
+            updatePlayerState(it.isPlaying, it.positionMs)
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -113,8 +135,23 @@ class MoosyncService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    private data class MetadataArgs(
+        val title: String?,
+        val artistName: String?,
+        val albumName: String?,
+        val durationMs: Long,
+        val thumbnailUri: String?
+    )
+
+    private data class PlayerStateArgs(
+        val isPlaying: Boolean,
+        val positionMs: Long
+    )
+
     companion object {
         @Volatile private var instance: MoosyncService? = null
+        @Volatile private var pendingMetadata: MetadataArgs? = null
+        @Volatile private var pendingPlayerState: PlayerStateArgs? = null
 
         @JvmStatic
         fun updateMetadata(
@@ -124,10 +161,13 @@ class MoosyncService : Service() {
             durationMs: Long,
             thumbnailUri: String?
         ) {
-            val svc = instance ?: run {
-                Log.w("MoosyncAndroid", "updateMetadata: service not running")
+            val svc = instance
+            if (svc == null) {
+                Log.w("MoosyncAndroid", "updateMetadata: service not running, caching pending metadata")
+                pendingMetadata = MetadataArgs(title, artistName, albumName, durationMs, thumbnailUri)
                 return
             }
+            pendingMetadata = null
             svc.notificationHandler.updateMetadata(title, artistName, albumName)
             svc.mediaSessionHandler.updateMetadata(
                 title,
@@ -142,16 +182,21 @@ class MoosyncService : Service() {
 
         @JvmStatic
         fun updatePlayerState(isPlaying: Boolean, positionMs: Long) {
-            val svc = instance ?: run {
-                Log.w("MoosyncAndroid", "updatePlayerState: service not running")
+            val svc = instance
+            if (svc == null) {
+                Log.w("MoosyncAndroid", "updatePlayerState: service not running, caching pending state")
+                pendingPlayerState = PlayerStateArgs(isPlaying, positionMs)
                 return
             }
+            pendingPlayerState = null
             svc.mediaSessionHandler.updatePlayerState(isPlaying, positionMs)
             svc.notificationHandler.updatePlayerState(isPlaying)
         }
 
         @JvmStatic
         fun clearNotification() {
+            pendingMetadata = null
+            pendingPlayerState = null
             val svc = instance
             if (svc != null) {
                 svc.notificationHandler.clearNotification()

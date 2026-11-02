@@ -118,3 +118,27 @@ async fn test_mpris_hook_player_events(state_manager_context: TestStateManagerCo
         event: Some(Event::TimeUpdate(Default::default())),
     });
 }
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_mpris_hook_startup_registers_persisted_song(
+    state_manager_context: TestStateManagerContext,
+) {
+    let TestStateManagerContext { state_manager, .. } = state_manager_context;
+    let player_handler = state_manager.plugins.get::<PlayerHandler>();
+    let song = Song {
+        song: Some(InnerSong {
+            id: Some("persisted_1".into()),
+            title: Some("Persisted Title".into()),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+    player_handler.add_to_queue(vec![song]).await;
+
+    let hook = MprisHook::new();
+    let startup_result = hook.on_startup(&state_manager).await;
+    assert_ok!(startup_result);
+}

@@ -38,6 +38,20 @@ impl MprisHook {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn bind_mpris(player_handler: &Arc<PlayerHandler>, mpris_holder: &Arc<MprisHolder>) {
+        if let Some(song) = player_handler.current_song() {
+            if let Err(e) = mpris_holder.set_metadata(&song) {
+                tracing::error!(
+                    "Failed to update MPRIS metadata for current song on startup: {:?}",
+                    e
+                );
+            }
+            if let Err(e) = mpris_holder.set_playback_state(PlayerState::Paused) {
+                tracing::error!(
+                    "Failed to update MPRIS playback state for current song on startup: {:?}",
+                    e
+                );
+            }
+        }
         Self::bind_mpris_song_change(player_handler, mpris_holder);
         Self::bind_mpris_player_event(player_handler, mpris_holder);
         Self::bind_mpris_controls(player_handler, mpris_holder);

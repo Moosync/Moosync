@@ -10,6 +10,7 @@ import android.graphics.Bitmap
 import android.media.session.MediaSession
 import android.media.session.PlaybackState
 import android.view.KeyEvent
+import app.moosync.android.R
 import app.moosync.android.services.Constants.NOTIFICATION_CHANNEL_ID
 import app.moosync.android.services.Constants.NOTIFICATION_ID
 
@@ -125,7 +126,7 @@ class NotificationHandler(
                 ).build()
             )
             .setVisibility(Notification.VISIBILITY_PUBLIC)
-            .setSmallIcon(android.R.drawable.ic_media_play)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentIntent(clickIntent)
             .setDeleteIntent(deleteIntent)
             .setShowWhen(false)

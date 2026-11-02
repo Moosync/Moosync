@@ -11,6 +11,8 @@ kt_android_library(
     name = "moosync_kt",
     srcs = glob(["src/**/*.kt"]),
     custom_package = "app.moosync.android",
+    manifest = "AndroidManifest.xml",
+    resource_files = glob(["res/**"]),
     deps = [
         "//core/types/protos:android_scanner_java_proto_lite",
         "//core/types/protos:songs_java_proto_lite",

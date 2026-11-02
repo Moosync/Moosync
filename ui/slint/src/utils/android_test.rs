@@ -19,6 +19,11 @@ fn test_android_context_lifecycle() {
     let retrieved = get_android_context();
     assert!(Arc::strong_count(&retrieved.jvm) >= 1);
 
+    let second_ctx = AndroidJNIContext::default();
+    init_android_context(second_ctx);
+    let updated = get_android_context();
+    assert!(Arc::strong_count(&updated.jvm) >= 1);
+
     reset_android_context();
 
     let post_reset = std::panic::catch_unwind(|| {

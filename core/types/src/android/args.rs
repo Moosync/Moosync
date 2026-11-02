@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use jni::{
     Env,
@@ -139,6 +139,34 @@ impl ToJniArg for Arc<Global<JObject<'static>>> {
         env: &mut Env<'local>,
     ) -> Result<JValueOwned<'local>, JniError> {
         let local_ref = env.new_local_ref(self.as_obj())?;
+        Ok(JValueOwned::Object(local_ref))
+    }
+}
+
+impl ToJniArg for &Arc<RwLock<Global<JObject<'static>>>> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn sig() -> &'static str { "Landroid/content/Context;" }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn to_jvalue_owned<'local>(
+        &self,
+        env: &mut Env<'local>,
+    ) -> Result<JValueOwned<'local>, JniError> {
+        let lock = self.read().unwrap();
+        let local_ref = env.new_local_ref(lock.as_obj())?;
+        Ok(JValueOwned::Object(local_ref))
+    }
+}
+
+impl ToJniArg for Arc<RwLock<Global<JObject<'static>>>> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn sig() -> &'static str { "Landroid/content/Context;" }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn to_jvalue_owned<'local>(
+        &self,
+        env: &mut Env<'local>,
+    ) -> Result<JValueOwned<'local>, JniError> {
+        let lock = self.read().unwrap();
+        let local_ref = env.new_local_ref(lock.as_obj())?;
         Ok(JValueOwned::Object(local_ref))
     }
 }

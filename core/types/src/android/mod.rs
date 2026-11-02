@@ -1,18 +1,23 @@
-use std::sync::Arc;
+use std::{
+    ffi::c_void,
+    mem,
+    sync::{Arc, Mutex, RwLock},
+};
 
 use jni::{
-    Env,
+    Env, JavaVM,
     errors::Error as JniError,
     jni_sig, jni_str,
     objects::{Global, JClass, JObject, JValue},
     signature::{MethodSignature, RuntimeMethodSignature},
     strings::JNIString,
 };
+use tokio::sync::oneshot::Sender;
 
 #[derive(Debug, Clone)]
 pub struct AndroidJNIContext {
-    pub jvm: Arc<jni::JavaVM>,
-    pub activity: Arc<Global<JObject<'static>>>,
+    pub jvm: Arc<JavaVM>,
+    pub activity: Arc<RwLock<Global<JObject<'static>>>>,
     pub class_loader: Arc<Global<JObject<'static>>>,
     pub service_class: Arc<Global<JObject<'static>>>,
 }
@@ -21,19 +26,18 @@ pub struct AndroidJNIContext {
 impl Default for AndroidJNIContext {
     fn default() -> Self {
         Self {
-            jvm: unsafe { Arc::new(jni::JavaVM::from_raw(1 as *mut _).unwrap()) },
-            activity: Arc::new(Global::null()),
+            jvm: unsafe { Arc::new(JavaVM::from_raw(1 as *mut _).unwrap()) },
+            activity: Arc::new(RwLock::new(Global::null())),
             class_loader: Arc::new(Global::null()),
             service_class: Arc::new(Global::null()),
         }
     }
 }
 
-static PERMISSION_TX: std::sync::Mutex<Option<tokio::sync::oneshot::Sender<bool>>> =
-    std::sync::Mutex::new(None);
+static PERMISSION_TX: Mutex<Option<Sender<bool>>> = Mutex::new(None);
 
 #[tracing::instrument(level = "debug", skip_all)]
-pub fn set_permission_waiter(tx: tokio::sync::oneshot::Sender<bool>) {
+pub fn set_permission_waiter(tx: Sender<bool>) {
     if let Ok(mut guard) = PERMISSION_TX.lock() {
         *guard = Some(tx);
     }
@@ -87,10 +91,7 @@ impl AndroidJNIContext {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn from_activity(
-        vm: Arc<jni::JavaVM>,
-        activity_ptr: *mut std::ffi::c_void,
-    ) -> Result<Self, JniError> {
+    pub fn from_activity(vm: Arc<JavaVM>, activity_ptr: *mut c_void) -> Result<Self, JniError> {
         let activity = vm.attach_current_thread(|env| {
             let act_obj = unsafe { JObject::from_raw(env, activity_ptr.cast()) };
             env.new_global_ref(act_obj)
@@ -98,13 +99,14 @@ impl AndroidJNIContext {
 
         let mut context = Self {
             jvm: vm,
-            activity: Arc::new(activity),
+            activity: Arc::new(RwLock::new(activity)),
             class_loader: Arc::new(Global::null()),
             service_class: Arc::new(Global::null()),
         };
 
         let class_loader = context.with_env(|env, this| {
-            let class_obj = this.get_object_class(env, &this.activity)?;
+            let activity_lock = this.activity.read().unwrap();
+            let class_obj = this.get_object_class(env, &activity_lock)?;
             let loader = this.get_class_loader(env, &class_obj)?;
             let loader_ref = env.new_global_ref(loader)?;
             Ok(loader_ref)
@@ -119,6 +121,22 @@ impl AndroidJNIContext {
         context.service_class = Arc::new(service_class);
 
         Ok(context)
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn update_activity(&self, new_activity: Global<JObject<'static>>) {
+        if let Ok(mut lock) = self.activity.write() {
+            *lock = new_activity;
+        }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn take_activity(&self) -> Global<JObject<'static>> {
+        if let Ok(mut lock) = self.activity.write() {
+            mem::replace(&mut *lock, Global::null())
+        } else {
+            Global::null()
+        }
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -176,7 +194,8 @@ impl AndroidJNIContext {
         args: Args,
     ) -> Result<Ret, JniError> {
         self.with_env(|env, this| {
-            let activity = this.activity.as_obj();
+            let activity_lock = this.activity.read().unwrap();
+            let activity = activity_lock.as_obj();
             let method_jni_str = JNIString::from(method_name);
             let sig_string = format!("({}){}", Args::sig(), Ret::sig());
             let runtime_sig = sig_string.parse::<RuntimeMethodSignature>()?;

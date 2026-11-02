@@ -119,7 +119,8 @@ fn start_foreground_service(
     env: &mut Env,
     context: &AndroidJNIContext,
 ) -> Result<(), jni::errors::Error> {
-    let activity = context.activity.as_obj();
+    let activity_lock = context.activity.read().unwrap();
+    let activity = activity_lock.as_obj();
     let intent_class = env.find_class(jni_str!("android/content/Intent"))?;
     let service_class = context.service_class.as_obj();
 

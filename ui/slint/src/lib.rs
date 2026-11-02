@@ -2,6 +2,8 @@
 // slint::include_modules!();
 include!(concat!(env!("OUT_DIR"), "/app.rs"));
 
+#[cfg(target_os = "android")]
+use std::sync::OnceLock;
 use std::{path::PathBuf, thread::available_parallelism, time::Duration};
 
 use extensions_proto::moosync::types::{
@@ -14,6 +16,8 @@ use slint::{Image, Model, ModelRc, VecModel};
 use songs_proto::moosync::types::Song;
 use state_manager::StateManager;
 use tokio::runtime::Builder;
+#[cfg(target_os = "android")]
+use tokio::runtime::Runtime;
 use tracing::{Instrument, debug, trace};
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt};
 #[cfg(not(target_os = "android"))]
@@ -50,6 +54,7 @@ mod window_info_test;
 
 pub use window_info::{WINDOW_EVENTS, WindowEvents};
 
+#[cfg(not(target_os = "android"))]
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn run() {
     let threads = available_parallelism()
@@ -62,29 +67,17 @@ pub fn run() {
         .build()
         .expect("Failed to build Tokio runtime");
 
-    #[cfg(target_os = "android")]
-    let runtime = Box::leak(Box::new(runtime));
-
     let _guard = runtime.enter();
 
     setup_tracing();
     debug!("Starting Moosync...");
 
-    #[cfg(target_os = "android")]
-    let android_context = get_android_context();
-
     let main_window = Box::leak(Box::new(MainWindow::new().unwrap()));
     let state_manager = Box::leak(Box::new(
-        StateManager::new(
-            #[cfg(target_os = "android")]
-            android_context,
-        )
-        .expect("StateManager::new failed"),
+        StateManager::new().expect("StateManager::new failed"),
     ));
 
     setup_ui(main_window, state_manager);
-
-    #[cfg(not(target_os = "android"))]
     setup_tray(main_window, state_manager);
 
     runtime.block_on(
@@ -111,6 +104,67 @@ pub fn run() {
         }
         .in_current_span(),
     );
+}
+
+#[cfg(target_os = "android")]
+static TOKIO_RUNTIME: OnceLock<Runtime> = OnceLock::new();
+
+#[cfg(target_os = "android")]
+static STATE_MANAGER: OnceLock<StateManager> = OnceLock::new();
+
+#[cfg(target_os = "android")]
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn run() {
+    let is_first_run = TOKIO_RUNTIME.get().is_none();
+    let runtime = TOKIO_RUNTIME.get_or_init(|| {
+        let threads = available_parallelism()
+            .map(|parallelism| parallelism.get().clamp(2, 4))
+            .unwrap_or(4);
+
+        Builder::new_multi_thread()
+            .worker_threads(threads)
+            .enable_all()
+            .build()
+            .expect("Failed to build Tokio runtime")
+    });
+
+    let _guard = runtime.enter();
+
+    if is_first_run {
+        setup_tracing();
+        debug!("Starting Moosync Android...");
+    }
+
+    let android_context = get_android_context();
+
+    let state_manager = STATE_MANAGER
+        .get_or_init(|| StateManager::new(android_context).expect("StateManager::new failed"));
+
+    let main_window = Box::leak(Box::new(MainWindow::new().unwrap()));
+
+    setup_ui(main_window, state_manager);
+
+    if is_first_run {
+        runtime.block_on(
+            async {
+                state_manager.setup().await;
+            }
+            .in_current_span(),
+        );
+    }
+
+    main_window.show().unwrap();
+
+    if is_first_run {
+        runtime.block_on(
+            async {
+                state_manager.delayed_setup().await;
+            }
+            .in_current_span(),
+        );
+    }
+
+    slint::run_event_loop().unwrap();
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -533,11 +587,26 @@ fn setup_player_listener(main_window: &'static MainWindow, state_manager: &'stat
 
             let repeat_mode = player_handler.get_repeat_mode();
             let current_song = player_handler.get_current_song();
+            let player_state = player_handler.get_player_state();
+            let is_playing =
+                player_state == extensions_proto::moosync::types::PlayerState::Playing as i32;
+            let current_pos = player_handler.get_current_pos().unwrap_or_default();
+            let queue = player_handler.get_queue();
+
             let mw_weak_init = main_window_weak.clone();
             let _ = slint::invoke_from_event_loop(move || {
                 if let Some(main_window) = mw_weak_init.upgrade() {
                     let player_props = main_window.global::<PlayerProps>();
                     player_props.set_repeat_mode(repeat_mode as i32);
+                    player_props.set_playing(is_playing);
+                    player_props.set_current_duration(current_pos.as_secs() as i32);
+                    player_props
+                        .set_current_pos_str(format_duration(current_pos.as_secs() as i64).into());
+
+                    let queue_props = main_window.global::<QueuePageProps>();
+                    let queue_models: Vec<SongModel> =
+                        queue.into_iter().map(SongModel::from).collect();
+                    queue_props.set_queue(ModelRc::new(VecModel::from(queue_models)));
                 }
             });
             apply_current_song(main_window_weak.clone(), state_manager, current_song);

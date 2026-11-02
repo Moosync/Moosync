@@ -11,7 +11,11 @@ pub fn init_android_context(context: AndroidJNIContext) {
     let mut lock = ANDROID_CONTEXT
         .write()
         .expect("ANDROID_CONTEXT lock poisoned");
-    *lock = Some(context);
+    if let Some(existing) = lock.as_ref() {
+        existing.update_activity(context.take_activity());
+    } else {
+        *lock = Some(context);
+    }
 }
 
 #[tracing::instrument(level = "debug", skip_all)]

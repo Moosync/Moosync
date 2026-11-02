@@ -28,6 +28,8 @@ use crate::{
 pub mod accounts;
 #[cfg(test)]
 mod accounts_test;
+#[cfg(target_os = "android")]
+mod android_bridge;
 pub mod error;
 mod main_content;
 mod pages;
@@ -51,6 +53,16 @@ static ANDROID_APP: std::sync::RwLock<Option<slint::android::AndroidApp>> =
     std::sync::RwLock::new(None);
 
 #[cfg(target_os = "android")]
+static ANDROID_CONTEXT: std::sync::RwLock<Option<types::android::AndroidJNIContext>> =
+    std::sync::RwLock::new(None);
+
+#[cfg(target_os = "android")]
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn get_android_context() -> Option<types::android::AndroidJNIContext> {
+    ANDROID_CONTEXT.read().ok().and_then(|guard| guard.clone())
+}
+
+#[cfg(target_os = "android")]
 #[unsafe(no_mangle)]
 #[tracing::instrument(level = "debug", skip_all)]
 fn android_main(app: slint::android::AndroidApp) {
@@ -59,26 +71,6 @@ fn android_main(app: slint::android::AndroidApp) {
         *lock = Some(app);
     }
     run();
-}
-
-#[cfg(target_os = "android")]
-#[unsafe(no_mangle)]
-#[allow(non_snake_case)]
-#[tracing::instrument(level = "debug", skip_all)]
-pub unsafe extern "C" fn Java_app_moosync_android_MainActivity_nativeOnBackPressed(
-    _env: jni::EnvUnowned,
-    _class: jni::objects::JClass,
-) -> bool {
-    let (tx, rx) = std::sync::mpsc::channel();
-    let res = slint::invoke_from_event_loop(move || {
-        let handled = pages::handle_native_back_press();
-        let _ = tx.send(handled);
-    });
-    if res.is_err() {
-        return false;
-    }
-    rx.recv_timeout(std::time::Duration::from_millis(500))
-        .unwrap_or(false)
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -99,6 +91,10 @@ pub fn run() {
 
     #[cfg(target_os = "android")]
     let android_context = setup_android();
+    #[cfg(target_os = "android")]
+    if let Ok(mut lock) = ANDROID_CONTEXT.write() {
+        *lock = Some(android_context.clone());
+    }
 
     let main_window = Box::leak(Box::new(MainWindow::new().unwrap()));
     let state_manager = Box::leak(Box::new(
@@ -769,7 +765,7 @@ fn setup_android() -> types::android::AndroidJNIContext {
     // Safety: vm_as_ptr() returns the raw *mut JavaVM for this process.
     let vm = unsafe { jni::JavaVM::from_raw(app.vm_as_ptr().cast()) };
 
-    let (activity, service_class) = vm
+    let (activity, class_loader, service_class) = vm
         .attach_current_thread(|env| {
             let act_ptr = app.activity_as_ptr() as jni::sys::jobject;
             let act_obj = unsafe { jni::objects::JObject::from_raw(env, act_ptr) };
@@ -795,11 +791,13 @@ fn setup_android() -> types::android::AndroidJNIContext {
                 )?
                 .l()?;
 
+            let class_loader_ref = env.new_global_ref(class_loader)?;
+
             let class_name_jstr = env.new_string("app.moosync.android.services.MoosyncService")?;
 
             let cls_obj = env
                 .call_method(
-                    &class_loader,
+                    class_loader_ref.as_obj(),
                     jni::jni_str!("loadClass"),
                     jni::jni_sig!("(Ljava/lang/String;)Ljava/lang/Class;"),
                     &[jni::objects::JValue::Object(&class_name_jstr)],
@@ -808,13 +806,14 @@ fn setup_android() -> types::android::AndroidJNIContext {
 
             let service_class_ref = env.new_global_ref(cls_obj)?;
 
-            Ok::<_, jni::errors::Error>((activity_ref, service_class_ref))
+            Ok::<_, jni::errors::Error>((activity_ref, class_loader_ref, service_class_ref))
         })
         .expect("JNI setup_android failed");
 
     types::android::AndroidJNIContext {
         jvm: std::sync::Arc::new(vm),
         activity: std::sync::Arc::new(activity),
+        class_loader: std::sync::Arc::new(class_loader),
         service_class: std::sync::Arc::new(service_class),
     }
 }

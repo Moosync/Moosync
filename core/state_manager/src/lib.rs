@@ -11,6 +11,9 @@ use types::plugin::{PluginContext, PluginRegistry};
 pub mod error;
 pub use crate::error::StateManagerError;
 
+#[cfg(target_os = "android")]
+pub mod android;
+
 pub mod hooks;
 pub mod interceptors;
 pub mod oauth;

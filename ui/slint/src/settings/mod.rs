@@ -88,38 +88,19 @@ static FILE_PICKER_TX: std::sync::Mutex<Option<std::sync::mpsc::Sender<String>>>
 #[cfg(target_os = "android")]
 #[tracing::instrument(level = "debug", skip_all)]
 fn select_directory() -> String {
-    let app = match crate::ANDROID_APP.read() {
-        Ok(guard) => match guard.as_ref().cloned() {
-            Some(app) => app,
-            None => return String::new(),
-        },
-        Err(err) => {
-            tracing::error!("Failed to acquire ANDROID_APP read lock: {:?}", err);
-            return String::new();
-        }
-    };
-
     let (tx, rx) = std::sync::mpsc::channel();
     {
         let mut guard = DIRECTORY_PICKER_TX.lock().unwrap();
         *guard = Some(tx);
     }
 
-    let vm = unsafe { jni::JavaVM::from_raw(app.vm_as_ptr().cast()) };
-    let res = vm.attach_current_thread(|env| {
-        let act_ptr = app.activity_as_ptr() as jni::sys::jobject;
-        let act_obj = unsafe { jni::objects::JObject::from_raw(env, act_ptr) };
-        env.call_method(
-            &act_obj,
-            jni::jni_str!("openDirectoryPicker"),
-            jni::jni_sig!("()V"),
-            &[],
-        )?;
-        Ok::<_, jni::errors::Error>(())
-    });
-
-    if res.is_err() {
-        tracing::error!("Failed to invoke openDirectoryPicker via JNI: {:?}", res);
+    if let Some(context) = crate::get_android_context() {
+        if let Err(err) = context.call_activity::<_, ()>("openDirectoryPicker", ()) {
+            tracing::error!("Failed to invoke openDirectoryPicker via JNI: {:?}", err);
+            return String::new();
+        }
+    } else {
+        tracing::error!("Android context not initialized");
         return String::new();
     }
 
@@ -130,39 +111,19 @@ fn select_directory() -> String {
 #[cfg(target_os = "android")]
 #[tracing::instrument(level = "debug", skip_all)]
 fn select_file(filter: String) -> String {
-    let app = match crate::ANDROID_APP.read() {
-        Ok(guard) => match guard.as_ref().cloned() {
-            Some(app) => app,
-            None => return String::new(),
-        },
-        Err(err) => {
-            tracing::error!("Failed to acquire ANDROID_APP read lock: {:?}", err);
-            return String::new();
-        }
-    };
-
     let (tx, rx) = std::sync::mpsc::channel();
     {
         let mut guard = FILE_PICKER_TX.lock().unwrap();
         *guard = Some(tx);
     }
 
-    let vm = unsafe { jni::JavaVM::from_raw(app.vm_as_ptr().cast()) };
-    let res = vm.attach_current_thread(|env| {
-        let act_ptr = app.activity_as_ptr() as jni::sys::jobject;
-        let act_obj = unsafe { jni::objects::JObject::from_raw(env, act_ptr) };
-        let filter_jstr = env.new_string(&filter)?;
-        env.call_method(
-            &act_obj,
-            jni::jni_str!("openFilePicker"),
-            jni::jni_sig!("(Ljava/lang/String;)V"),
-            &[jni::objects::JValue::Object(&filter_jstr)],
-        )?;
-        Ok::<_, jni::errors::Error>(())
-    });
-
-    if res.is_err() {
-        tracing::error!("Failed to invoke openFilePicker via JNI: {:?}", res);
+    if let Some(context) = crate::get_android_context() {
+        if let Err(err) = context.call_activity::<_, ()>("openFilePicker", filter.as_str()) {
+            tracing::error!("Failed to invoke openFilePicker via JNI: {:?}", err);
+            return String::new();
+        }
+    } else {
+        tracing::error!("Android context not initialized");
         return String::new();
     }
 
@@ -171,43 +132,21 @@ fn select_file(filter: String) -> String {
 }
 
 #[cfg(target_os = "android")]
-#[unsafe(no_mangle)]
-#[allow(non_snake_case)]
 #[tracing::instrument(level = "debug", skip_all)]
-pub unsafe extern "C" fn Java_app_moosync_android_MainActivity_nativeOnDirectoryPicked<'local>(
-    mut env: jni::EnvUnowned<'local>,
-    _class: jni::objects::JClass<'local>,
-    path: jni::objects::JString<'local>,
-) {
-    let outcome = env.with_env(|_env| -> Result<(), jni::errors::Error> {
-        let path_str = path.to_string();
-        tracing::info!("nativeOnDirectoryPicked: {}", path_str);
-        if let Some(tx) = DIRECTORY_PICKER_TX.lock().unwrap().take() {
-            let _ = tx.send(path_str);
-        }
-        Ok(())
-    });
-    let _ = outcome.resolve::<jni::errors::ThrowRuntimeExAndDefault>();
+pub fn on_directory_picked(path: String) {
+    tracing::info!("on_directory_picked: {}", path);
+    if let Some(tx) = DIRECTORY_PICKER_TX.lock().unwrap().take() {
+        let _ = tx.send(path);
+    }
 }
 
 #[cfg(target_os = "android")]
-#[unsafe(no_mangle)]
-#[allow(non_snake_case)]
 #[tracing::instrument(level = "debug", skip_all)]
-pub unsafe extern "C" fn Java_app_moosync_android_MainActivity_nativeOnFilePicked<'local>(
-    mut env: jni::EnvUnowned<'local>,
-    _class: jni::objects::JClass<'local>,
-    path: jni::objects::JString<'local>,
-) {
-    let outcome = env.with_env(|_env| -> Result<(), jni::errors::Error> {
-        let path_str = path.to_string();
-        tracing::info!("nativeOnFilePicked: {}", path_str);
-        if let Some(tx) = FILE_PICKER_TX.lock().unwrap().take() {
-            let _ = tx.send(path_str);
-        }
-        Ok(())
-    });
-    let _ = outcome.resolve::<jni::errors::ThrowRuntimeExAndDefault>();
+pub fn on_file_picked(path: String) {
+    tracing::info!("on_file_picked: {}", path);
+    if let Some(tx) = FILE_PICKER_TX.lock().unwrap().take() {
+        let _ = tx.send(path);
+    }
 }
 
 #[tracing::instrument(level = "debug", skip_all)]

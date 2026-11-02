@@ -4,6 +4,7 @@ load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library", "rust_shared_l
 SRC_LIST = [
     "src/accounts.rs",
     "src/accounts_test.rs",
+    "src/android_bridge.rs",
     "src/error.rs",
     "src/lib.rs",
     "src/lib_test.rs",

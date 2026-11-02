@@ -277,27 +277,8 @@ impl AccountsHandler {
                 .in_current_span(),
             );
 
-            let app = match crate::ANDROID_APP.read() {
-                Ok(guard) => guard.as_ref().cloned(),
-                Err(err) => {
-                    tracing::error!("Failed to acquire ANDROID_APP read lock: {:?}", err);
-                    None
-                }
-            };
-
-            if let Some(app) = app {
-                let vm = unsafe { jni::JavaVM::from_raw(app.vm_as_ptr().cast()) };
-                let _ = vm.attach_current_thread(|env| {
-                    let act_ptr = app.activity_as_ptr() as jni::sys::jobject;
-                    let act_obj = unsafe { jni::objects::JObject::from_raw(env, act_ptr) };
-                    env.call_method(
-                        &act_obj,
-                        jni::jni_str!("processPendingDeepLink"),
-                        jni::jni_sig!("()V"),
-                        &[],
-                    )?;
-                    Ok::<_, jni::errors::Error>(())
-                });
+            if let Some(context) = crate::get_android_context() {
+                let _ = context.call_activity::<_, ()>("processPendingDeepLink", ());
             }
         }
     }
@@ -337,26 +318,15 @@ static DEEP_LINK_TX: std::sync::Mutex<Option<tokio::sync::mpsc::UnboundedSender<
     std::sync::Mutex::new(None);
 
 #[cfg(target_os = "android")]
-#[unsafe(no_mangle)]
-#[allow(non_snake_case)]
 #[tracing::instrument(level = "debug", skip_all)]
-pub unsafe extern "C" fn Java_app_moosync_android_MainActivity_nativeOnDeepLink<'local>(
-    mut env: jni::EnvUnowned<'local>,
-    _class: jni::objects::JClass<'local>,
-    url: jni::objects::JString<'local>,
-) {
-    let outcome = env.with_env(|_env| -> Result<(), jni::errors::Error> {
-        let url_str = url.to_string();
-        tracing::info!("nativeOnDeepLink received: {}", url_str);
-        if let Some(tx) = DEEP_LINK_TX.lock().unwrap().as_ref() {
-            let _ = tx.send(url_str);
-        } else {
-            tracing::warn!(
-                "DEEP_LINK_TX not yet initialized when receiving deep link: {}",
-                url_str
-            );
-        }
-        Ok(())
-    });
-    let _ = outcome.resolve::<jni::errors::ThrowRuntimeExAndDefault>();
+pub fn on_deep_link(url: String) {
+    tracing::info!("on_deep_link received: {}", url);
+    if let Some(tx) = DEEP_LINK_TX.lock().unwrap().as_ref() {
+        let _ = tx.send(url);
+    } else {
+        tracing::warn!(
+            "DEEP_LINK_TX not yet initialized when receiving deep link: {}",
+            url
+        );
+    }
 }

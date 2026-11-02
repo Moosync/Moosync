@@ -14,6 +14,7 @@ rust_test(
 rust_library(
     name = "state_manager",
     srcs = [
+        "src/android.rs",
         "src/error.rs",
         "src/hooks/extensions.rs",
         "src/hooks/extensions_test.rs",

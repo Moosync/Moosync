@@ -83,7 +83,7 @@ pub enum SeekDirection {
 // ─────────────────────────────────────────────────────────────────────── //
 
 #[cfg(target_os = "android")]
-mod mpris_android;
+pub mod mpris_android;
 
 #[cfg(test)]
 mod lib_test;

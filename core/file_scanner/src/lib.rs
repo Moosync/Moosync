@@ -28,7 +28,7 @@ use types::plugin::{Plugin, PluginContext};
 pub mod error;
 use crate::error::ScannerError;
 
-mod context;
+pub mod context;
 #[cfg(target_os = "android")]
 pub use crate::context::AndroidScannerContext;
 #[cfg(not(target_os = "android"))]

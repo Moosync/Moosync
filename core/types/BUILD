@@ -5,6 +5,7 @@ package(default_visibility = ["//visibility:public"])
 rust_library(
     name = "types",
     srcs = [
+        "src/android/args.rs",
         "src/android/mod.rs",
         "src/canvaz.rs",
         "src/errors/mod.rs",

@@ -252,8 +252,8 @@ async fn test_util_callbacks_selection_and_validation(
     assert_eq!(selected.row_data(1).unwrap().id.as_str(), "s3");
 
     let empty_indices = ModelRc::default();
-    let all = util_callbacks.invoke_get_selected_songs(display_songs, empty_indices);
-    assert_eq!(all.row_count(), 3);
+    let empty = util_callbacks.invoke_get_selected_songs(display_songs, empty_indices);
+    assert_eq!(empty.row_count(), 0);
 
     let is_valid = util_callbacks.invoke_validate_input("123".into(), "^[0-9]+$".into());
     assert!(is_valid);

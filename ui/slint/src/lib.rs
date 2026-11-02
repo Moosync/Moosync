@@ -295,7 +295,7 @@ fn setup_song_list_helper(main_window: &MainWindow, state_manager: &'static Stat
     main_window.global::<UtilCallbacks>().on_get_selected_songs(
         move |display_songs, selected_indices| {
             if selected_indices.row_count() == 0 {
-                return display_songs;
+                return ModelRc::default();
             }
             let songs: Vec<SongModel> = (0..selected_indices.row_count())
                 .filter_map(|i| selected_indices.row_data(i))

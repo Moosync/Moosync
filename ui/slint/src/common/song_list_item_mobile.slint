@@ -106,9 +106,9 @@ export component SongListItemMobile inherits Rectangle {
     }
 
     context_menu := ContextMenuMobile {
-        items: ContextMenuCallbacks.get_song_menu_items(root.get_selected_songs().length > 0 ? root.get_selected_songs() : [root.song]);
+        items: ContextMenuCallbacks.get_song_menu_items((root.is_selected && root.get_selected_songs().length > 0) ? root.get_selected_songs() : [root.song]);
         selected(id) => {
-            ContextMenuCallbacks.song_action(root.get_selected_songs().length > 0 ? root.get_selected_songs() : [root.song], id);
+            ContextMenuCallbacks.song_action((root.is_selected && root.get_selected_songs().length > 0) ? root.get_selected_songs() : [root.song], id);
         }
     }
 }

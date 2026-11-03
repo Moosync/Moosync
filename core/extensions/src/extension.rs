@@ -15,7 +15,8 @@ use extensions_proto::moosync::types::{
     PlaylistAddedResponse, PlaylistRemovedRequest, PlaylistRemovedResponse,
     PreferenceChangedRequest, PreferenceChangedResponse, RequestedAlbumSongsRequest,
     RequestedAlbumSongsResponse, RequestedArtistSongsRequest, RequestedArtistSongsResponse,
-    RequestedLyricsRequest, RequestedLyricsResponse, RequestedPlaylistContextMenuRequest,
+    RequestedCoverArtRequest, RequestedCoverArtResponse, RequestedLyricsRequest,
+    RequestedLyricsResponse, RequestedPlaylistContextMenuRequest,
     RequestedPlaylistContextMenuResponse, RequestedPlaylistFromUrlRequest,
     RequestedPlaylistFromUrlResponse, RequestedPlaylistSongsRequest,
     RequestedPlaylistSongsResponse, RequestedPlaylistsRequest, RequestedPlaylistsResponse,
@@ -376,6 +377,12 @@ impl Extension {
         PerformAccountLogin,
         PerformAccountLoginRequest,
         PerformAccountLoginResponse
+    );
+    delegate_command!(
+        get_cover_art,
+        RequestedCoverArt,
+        RequestedCoverArtRequest,
+        RequestedCoverArtResponse
     );
 
     #[tracing::instrument(level = "debug", skip_all)]

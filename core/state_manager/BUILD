@@ -3,11 +3,16 @@ load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
 rust_test(
     name = "state_manager_test",
     crate = ":state_manager",
+    data = [
+        "//sample_extensions/default:sample_extension",
+        "//sample_extensions/default:sample_extension_msxt",
+    ],
     deps = [
         "@crates//:assertables",
         "@crates//:rstest",
         "@crates//:tempdir",
         "@crates//:tracing-test",
+        "@crates//:wiremock",
     ],
 )
 
@@ -16,6 +21,9 @@ rust_library(
     srcs = [
         "src/android.rs",
         "src/error.rs",
+        "src/hooks/cover_art.rs",
+        "src/hooks/cover_art_integration_test.rs",
+        "src/hooks/cover_art_test.rs",
         "src/hooks/extensions.rs",
         "src/hooks/extensions_test.rs",
         "src/hooks/mod.rs",
@@ -66,6 +74,8 @@ rust_library(
         "@crates//:prost",
         "@crates//:prost-types",
         "@crates//:hex",
+        "@crates//:image",
+        "@crates//:reqwest",
         "@crates//:url",
         "@crates//:uuid",
         "//core/mpris",

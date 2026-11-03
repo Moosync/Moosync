@@ -4,12 +4,17 @@ use async_trait::async_trait;
 
 use crate::StateManager;
 
+pub mod cover_art;
 pub mod extensions;
 pub mod mpris;
 pub mod player;
 pub mod registries;
 pub mod scanner;
 
+#[cfg(test)]
+mod cover_art_integration_test;
+#[cfg(test)]
+mod cover_art_test;
 #[cfg(test)]
 mod extensions_test;
 #[cfg(test)]

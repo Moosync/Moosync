@@ -1072,7 +1072,7 @@ macro_rules! generate_sample_tests {
     };
 }
 
-generate_sample_tests!(sample_rs, "default", "rs.sample", vec![0, 9]);
+generate_sample_tests!(sample_rs, "default", "rs.sample", vec![0, 9, 18]);
 
 mod sample_empty {
     use super::*;

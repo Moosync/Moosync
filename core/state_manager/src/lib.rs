@@ -125,6 +125,7 @@ impl StateManager {
             Arc::new(hooks::player::PlayerHook::new()),
             Arc::new(hooks::scanner::ScannerHook::new()),
             Arc::new(hooks::mpris::MprisHook::new()),
+            Arc::new(hooks::cover_art::CoverArtHook::new()),
         ];
         let hooks = Arc::new(tokio::sync::Mutex::new(hooks_vec));
         let oauth = oauth::OAuthManager::new();

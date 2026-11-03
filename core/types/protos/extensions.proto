@@ -40,6 +40,7 @@ message ExtensionCommand {
     ContextMenuActionRequest context_menu_action = 29;
     GetProviderScopesRequest get_provider_scopes = 30;
     PerformAccountLoginRequest perform_account_login = 31;
+    RequestedCoverArtRequest requested_cover_art = 32;
   }
 }
 
@@ -75,6 +76,7 @@ message ExtensionCommandResponse {
     ContextMenuActionResponse context_menu_action = 28;
     GetProviderScopesResponse get_provider_scopes = 29;
     PerformAccountLoginResponse perform_account_login = 30;
+    RequestedCoverArtResponse requested_cover_art = 31;
   }
 }
 
@@ -307,6 +309,18 @@ message PerformAccountLoginRequest {
 
 message PerformAccountLoginResponse {
   string status = 1;
+}
+
+message RequestedCoverArtRequest {
+  oneof item {
+    Song song = 1;
+    Album album = 2;
+    Artist artist = 3;
+  }
+}
+
+message RequestedCoverArtResponse {
+  repeated string cover_urls = 1;
 }
 
 message MainCommand {
@@ -651,6 +665,7 @@ enum ExtensionProviderScope {
   DATABASE_PLAYLIST_EVENTS = 15;
   PLAYER_UI_EVENTS = 16;
   PLAYER_DATA_EVENTS = 17;
+  COVER_ART = 18;
 }
 
 message ProviderStatus {

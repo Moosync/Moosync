@@ -5,37 +5,17 @@ use std::{
 };
 
 use extensions_proto::moosync::types::ExtensionDetail;
-use image::{DynamicImage, ImageFormat, guess_format, load_from_memory, open};
+use image::{DynamicImage, load_from_memory, open};
 use slint::{Image, Rgba8Pixel, SharedPixelBuffer};
 use tokio::{fs, task::spawn_blocking};
 use tracing::Instrument;
-
-pub const LOW_RES_THUMBNAIL_SIZE: u32 = 80;
-pub const HIGH_RES_THUMBNAIL_SIZE: u32 = 800;
+pub use types::image::{
+    HIGH_RES_THUMBNAIL_SIZE, LOW_RES_THUMBNAIL_SIZE, find_cached_low_path,
+    find_cached_or_local_path, find_cached_path, get_extension_from_bytes, get_safe_name,
+    resize_image,
+};
 
 static HTTP_CLIENT: LazyLock<reqwest::Client> = LazyLock::new(reqwest::Client::new);
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn get_safe_name(cover_url: &str) -> String {
-    cover_url
-        .chars()
-        .map(|c| if c.is_alphanumeric() { c } else { '_' })
-        .collect()
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn get_extension_from_bytes(bytes: &[u8]) -> &'static str {
-    match guess_format(bytes) {
-        Ok(ImageFormat::Jpeg) => "jpg",
-        Ok(ImageFormat::WebP) => "webp",
-        Ok(ImageFormat::Gif) => "gif",
-        Ok(ImageFormat::Bmp) => "bmp",
-        Ok(ImageFormat::Avif) => "avif",
-        Ok(ImageFormat::Ico) => "ico",
-        Ok(ImageFormat::Tiff) => "tiff",
-        _ => "png",
-    }
-}
 
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn dynamic_image_to_pixel_buffer(
@@ -52,64 +32,12 @@ pub fn dynamic_image_to_pixel_buffer(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn resize_image(image: DynamicImage, max_size: u32) -> DynamicImage {
-    if image.width() > max_size || image.height() > max_size {
-        image.thumbnail(max_size, max_size)
-    } else {
-        image
-    }
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
 pub fn load_image(path: impl AsRef<Path>) -> Image {
     let p = path.as_ref();
     if p.as_os_str().is_empty() {
         return Image::default();
     }
     Image::load_from_path(p).unwrap_or_default()
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-pub fn find_cached_path(cover_url: &str, cache_dir: &Path, low_res: bool) -> Option<PathBuf> {
-    if cover_url.is_empty() {
-        return None;
-    }
-    if !cover_url.starts_with("http://") && !cover_url.starts_with("https://") {
-        let path = PathBuf::from(cover_url);
-        return path.exists().then_some(path);
-    }
-
-    let safe_name = get_safe_name(cover_url);
-    let img_cache_dir = cache_dir.join("image_cache");
-    const EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "webp", "gif", "avif", "ico", "bmp"];
-
-    if low_res {
-        for ext in EXTENSIONS {
-            let path = img_cache_dir.join(format!("{safe_name}-low.{ext}"));
-            if path.exists() {
-                return Some(path);
-            }
-        }
-    }
-
-    for ext in EXTENSIONS {
-        let path = img_cache_dir.join(format!("{safe_name}.{ext}"));
-        if path.exists() {
-            return Some(path);
-        }
-    }
-
-    None
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-pub fn find_cached_or_local_path(cover_url: &str, cache_dir: &Path) -> Option<PathBuf> {
-    find_cached_path(cover_url, cache_dir, false)
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-pub fn find_cached_low_path(cover_url: &str, cache_dir: &Path) -> Option<PathBuf> {
-    find_cached_path(cover_url, cache_dir, true)
 }
 
 #[tracing::instrument(level = "debug", skip_all)]

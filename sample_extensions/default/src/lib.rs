@@ -11,12 +11,12 @@ use moosync_edk::{
     PerformAccountLoginRequest, PlaybackDetailsRequestedRequest, PlayerStateChangedRequest,
     Playlist, PlaylistAddedRequest, PlaylistRemovedRequest, PreferenceChangedRequest,
     PreferenceData, RequestedAlbumSongsRequest, RequestedArtistSongsRequest,
-    RequestedLyricsRequest, RequestedPlaylistContextMenuRequest, RequestedPlaylistFromUrlRequest,
-    RequestedPlaylistSongsRequest, RequestedPlaylistsRequest, RequestedRecommendationsRequest,
-    RequestedSearchResultRequest, RequestedSongContextMenuRequest, RequestedSongFromIdRequest,
-    RequestedSongFromUrlRequest, ScrobbleRequest, SearchResult, SeekedRequest, Song,
-    SongAddedRequest, SongChangedRequest, SongQueueChangedRequest, SongRemovedRequest,
-    VolumeChangedRequest,
+    RequestedCoverArtRequest, RequestedLyricsRequest, RequestedPlaylistContextMenuRequest,
+    RequestedPlaylistFromUrlRequest, RequestedPlaylistSongsRequest, RequestedPlaylistsRequest,
+    RequestedRecommendationsRequest, RequestedSearchResultRequest, RequestedSongContextMenuRequest,
+    RequestedSongFromIdRequest, RequestedSongFromUrlRequest, ScrobbleRequest, SearchResult,
+    SeekedRequest, Song, SongAddedRequest, SongChangedRequest, SongQueueChangedRequest,
+    SongRemovedRequest, VolumeChangedRequest,
     api::{
         self, Accounts, ContextMenu, CustomRequestReturnType, DatabaseEvents, Extension,
         PlaybackDetailsReturnType, PlayerEvents, PreferenceEvents, Provider,
@@ -28,7 +28,7 @@ use moosync_edk::{
             set_account, unregister_user_preferences, write_sock,
         },
     },
-    info,
+    info, requested_cover_art_request,
 };
 
 static LOGGED_IN: AtomicBool = AtomicBool::new(false);
@@ -453,6 +453,54 @@ impl Provider for SampleExtension {
             lines,
             is_synced: true,
         }))
+    }
+
+    fn get_cover_art(&self, req: RequestedCoverArtRequest) -> api::MoosyncResult<Vec<String>> {
+        info!("get_cover_art called");
+        let url = match req.item {
+            Some(requested_cover_art_request::Item::Song(song)) => {
+                if let Some(inner) = &song.song
+                    && let Some(playback_url) = &inner.playback_url
+                    && playback_url.starts_with("http")
+                {
+                    playback_url.clone()
+                } else {
+                    let id = song
+                        .song
+                        .as_ref()
+                        .and_then(|s| s.id.as_deref())
+                        .unwrap_or("sample_song");
+                    format!("http://127.0.0.1:8080/covers/song_{id}.png")
+                }
+            }
+            Some(requested_cover_art_request::Item::Album(album)) => {
+                if let Some(artist) = &album.album_artist
+                    && artist.starts_with("http")
+                {
+                    artist.clone()
+                } else {
+                    let id = album.album_id.as_deref().unwrap_or("sample_album");
+                    format!("http://127.0.0.1:8080/covers/album_{id}.png")
+                }
+            }
+            Some(requested_cover_art_request::Item::Artist(artist)) => {
+                if let Some(id) = &artist.artist_id
+                    && id.starts_with("http")
+                {
+                    id.clone()
+                } else if let Some(name) = &artist.artist_name
+                    && name.starts_with("http")
+                {
+                    name.clone()
+                } else {
+                    let id = artist.artist_id.as_deref().unwrap_or("sample_artist");
+                    format!("http://127.0.0.1:8080/covers/artist_{id}.png")
+                }
+            }
+            None => return Ok(vec![]),
+        };
+
+        Ok(vec![url])
     }
 }
 

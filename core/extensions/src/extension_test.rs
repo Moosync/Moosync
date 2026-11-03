@@ -722,6 +722,29 @@ impl crate::context::ExtensionContext for MockExtCtx {
             ) => extension_command_response::Response::RequestedSongFromUrl(
                 extensions_proto::moosync::types::RequestedSongFromUrlResponse { song: None },
             ),
+            Some(
+                extensions_proto::moosync::types::extension_command::Event::RequestedCoverArt(_),
+            ) => extension_command_response::Response::RequestedCoverArt(
+                extensions_proto::moosync::types::RequestedCoverArtResponse {
+                    cover_urls: vec![
+                        "https://example.com/cover_high.png".to_string(),
+                        "https://example.com/cover_low.png".to_string(),
+                    ],
+                },
+            ),
+            Some(extensions_proto::moosync::types::extension_command::Event::RequestedLyrics(
+                _,
+            )) => extension_command_response::Response::RequestedLyrics(
+                extensions_proto::moosync::types::RequestedLyricsResponse {
+                    lyrics: Some(songs_proto::moosync::types::Lyrics {
+                        is_synced: true,
+                        lines: vec![songs_proto::moosync::types::LyricLine {
+                            text: "Yesterday all my troubles seemed so far away".to_string(),
+                            time_ms: 12500,
+                        }],
+                    }),
+                },
+            ),
             _ => extension_command_response::Response::RequestedPlaylists(
                 extensions_proto::moosync::types::RequestedPlaylistsResponse { playlists: vec![] },
             ),
@@ -812,4 +835,144 @@ async fn test_extension_accounts_and_delegated_commands() {
         .get_artist_songs(extensions_proto::moosync::types::RequestedArtistSongsRequest::default())
         .await;
     assert!(invalid_res.is_err());
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_extension_get_cover_art_api() {
+    let temp_dir = TempDir::new("moosync_ext_cover_art_test").unwrap();
+    let manifest = extensions_proto::moosync::types::ExtensionManifest {
+        name: "cover_art.test".to_string(),
+        display_name: "Cover Art Test Extension".to_string(),
+        version: "1.0.0".to_string(),
+        extension_entry: "main.wasm".to_string(),
+        scopes: vec![extensions_proto::moosync::types::ExtensionProviderScope::CoverArt as i32],
+        ..Default::default()
+    };
+    let manifest_path = temp_dir.path().join("manifest.pb");
+    fs::write(&manifest_path, prost::Message::encode_to_vec(&manifest)).unwrap();
+    fs::write(temp_dir.path().join("main.wasm"), b"wasm bytes").unwrap();
+
+    let ext = Extension::new(
+        &manifest_path,
+        Arc::new(DummyReply),
+        temp_dir.path().join("cache"),
+        Arc::new(AtomicBool::new(false)),
+    )
+    .unwrap();
+    ext.context
+        .set(Ok(Arc::new(MockExtCtx { should_fail: false })));
+
+    let test_song = Song {
+        song: Some(InnerSong {
+            id: Some("song_cover_123".to_string()),
+            title: Some("Yesterday".to_string()),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+    let req = extensions_proto::moosync::types::RequestedCoverArtRequest {
+        item: Some(
+            extensions_proto::moosync::types::requested_cover_art_request::Item::Song(test_song),
+        ),
+    };
+
+    let result = ext.get_cover_art(req).await;
+
+    assert!(result.is_ok());
+    let response = result.unwrap();
+    assert_eq!(response.cover_urls.len(), 2);
+    assert_eq!(response.cover_urls[0], "https://example.com/cover_high.png");
+    assert_eq!(response.cover_urls[1], "https://example.com/cover_low.png");
+
+    let failing_ext = Extension::new(
+        &manifest_path,
+        Arc::new(DummyReply),
+        temp_dir.path().join("cache_failing"),
+        Arc::new(AtomicBool::new(false)),
+    )
+    .unwrap();
+    failing_ext
+        .context
+        .set(Ok(Arc::new(MockExtCtx { should_fail: true })));
+
+    let fail_result = failing_ext
+        .get_cover_art(extensions_proto::moosync::types::RequestedCoverArtRequest::default())
+        .await;
+
+    assert!(fail_result.is_err());
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_extension_get_lyrics_api() {
+    let temp_dir = TempDir::new("moosync_ext_lyrics_test").unwrap();
+    let manifest = extensions_proto::moosync::types::ExtensionManifest {
+        name: "lyrics.test".to_string(),
+        display_name: "Lyrics Test Extension".to_string(),
+        version: "1.0.0".to_string(),
+        extension_entry: "main.wasm".to_string(),
+        scopes: vec![extensions_proto::moosync::types::ExtensionProviderScope::Lyrics as i32],
+        ..Default::default()
+    };
+    let manifest_path = temp_dir.path().join("manifest.pb");
+    fs::write(&manifest_path, prost::Message::encode_to_vec(&manifest)).unwrap();
+    fs::write(temp_dir.path().join("main.wasm"), b"wasm bytes").unwrap();
+
+    let ext = Extension::new(
+        &manifest_path,
+        Arc::new(DummyReply),
+        temp_dir.path().join("cache"),
+        Arc::new(AtomicBool::new(false)),
+    )
+    .unwrap();
+    ext.context
+        .set(Ok(Arc::new(MockExtCtx { should_fail: false })));
+
+    let test_song = Song {
+        song: Some(InnerSong {
+            id: Some("song_lyrics_123".to_string()),
+            title: Some("Yesterday".to_string()),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+    let req = extensions_proto::moosync::types::RequestedLyricsRequest {
+        song: Some(test_song),
+    };
+
+    let result = ext.get_lyrics(req).await;
+
+    assert!(result.is_ok());
+    let response = result.unwrap();
+    assert!(response.lyrics.is_some());
+    let lyrics = response.lyrics.unwrap();
+    assert!(lyrics.is_synced);
+    assert_eq!(lyrics.lines.len(), 1);
+    assert_eq!(
+        lyrics.lines[0].text,
+        "Yesterday all my troubles seemed so far away"
+    );
+    assert_eq!(lyrics.lines[0].time_ms, 12500);
+
+    let failing_ext = Extension::new(
+        &manifest_path,
+        Arc::new(DummyReply),
+        temp_dir.path().join("cache_failing"),
+        Arc::new(AtomicBool::new(false)),
+    )
+    .unwrap();
+    failing_ext
+        .context
+        .set(Ok(Arc::new(MockExtCtx { should_fail: true })));
+
+    let fail_result = failing_ext
+        .get_lyrics(extensions_proto::moosync::types::RequestedLyricsRequest::default())
+        .await;
+
+    assert!(fail_result.is_err());
 }

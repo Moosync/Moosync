@@ -16,6 +16,7 @@
 
 pub mod canvaz;
 pub mod errors;
+pub mod image;
 pub mod plugin;
 pub mod preferences;
 pub mod providers;
@@ -23,6 +24,8 @@ pub mod subscription;
 pub mod ui;
 pub mod window;
 
+#[cfg(test)]
+mod image_test;
 #[cfg(test)]
 mod lib_test;
 #[cfg(test)]

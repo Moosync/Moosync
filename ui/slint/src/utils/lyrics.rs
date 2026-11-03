@@ -59,6 +59,9 @@ pub async fn fetch_song_lyrics(state_manager: &StateManager, song: &Song) -> Opt
             Ok(resp) => {
                 if let Some(lyrics) = resp.lyrics {
                     if !lyrics.lines.is_empty() {
+                        if let Err(e) = db.update_lyrics(&song_id, &lyrics) {
+                            tracing::error!("Failed to cache lyrics in database: {e:?}");
+                        }
                         return Some(lyrics);
                     }
                 }

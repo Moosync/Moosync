@@ -18,6 +18,7 @@ rust_extension(
     scopes = [
         PROVIDER_SCOPES.SEARCH,
         PROVIDER_SCOPES.PLAYBACK_DETAILS,
+        PROVIDER_SCOPES.COVER_ART,
     ],
     version = "1.0.0",
 )

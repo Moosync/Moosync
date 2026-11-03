@@ -1041,6 +1041,38 @@ impl Database {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
+    pub fn update_lyrics(&self, id: &str, lyrics: &Lyrics) -> Result<(), DatabaseError> {
+        trace!("Updating lyrics for song {id}");
+        let conn = self.pool.get().unwrap();
+        let lyrics_bytes = lyrics.encode_to_vec();
+        conn.execute(
+            "UPDATE allsongs SET lyrics = ?1 WHERE _id = ?2",
+            rusqlite::params![lyrics_bytes, id],
+        )
+        .map_err(DatabaseError::Query)?;
+        info!("Updated lyrics for song {id}");
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn update_song_cover(
+        &self,
+        id: &str,
+        cover_high: Option<&str>,
+        cover_low: Option<&str>,
+    ) -> Result<(), DatabaseError> {
+        trace!("Updating cover for song {id}");
+        let conn = self.pool.get().unwrap();
+        conn.execute(
+            "UPDATE allsongs SET song_coverpath_high = ?1, song_coverpath_low = ?2 WHERE _id = ?3",
+            rusqlite::params![cover_high, cover_low, id],
+        )
+        .map_err(DatabaseError::Query)?;
+        info!("Updated cover for song {id}");
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn increment_play_count(&self, id: &str) -> Result<(), DatabaseError> {
         trace!("Incrementing play count");
         let conn = self.pool.get().unwrap();

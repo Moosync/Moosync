@@ -1,0 +1,64 @@
+// Moosync
+// Copyright (C) 2024, 2025  Moosync <support@moosync.app>
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+use std::path::PathBuf;
+
+use image::{DynamicImage, RgbaImage};
+
+use super::image::{
+    find_cached_low_path, find_cached_or_local_path, find_cached_path, get_extension_from_bytes,
+    get_safe_name, resize_image,
+};
+
+#[test]
+fn test_get_safe_name() {
+    assert_eq!(
+        get_safe_name("https://example.com/art.jpg"),
+        "https___example_com_art_jpg"
+    );
+    assert_eq!(get_safe_name("simple_name"), "simple_name");
+}
+
+#[test]
+fn test_get_extension_from_bytes() {
+    assert_eq!(get_extension_from_bytes(&[0xFF, 0xD8, 0xFF]), "jpg");
+    assert_eq!(
+        get_extension_from_bytes(&[0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A]),
+        "png"
+    );
+    assert_eq!(get_extension_from_bytes(&[0, 0, 0]), "png");
+}
+
+#[test]
+fn test_resize_image() {
+    let img = DynamicImage::ImageRgba8(RgbaImage::new(1000, 500));
+    let resized = resize_image(img, 200);
+    assert_eq!(resized.width(), 200);
+    assert_eq!(resized.height(), 100);
+
+    let small = DynamicImage::ImageRgba8(RgbaImage::new(50, 50));
+    let not_resized = resize_image(small, 200);
+    assert_eq!(not_resized.width(), 50);
+    assert_eq!(not_resized.height(), 50);
+}
+
+#[test]
+fn test_find_cached_path_empty() {
+    let cache_dir = PathBuf::from("/tmp");
+    assert_eq!(find_cached_path("", &cache_dir, false), None);
+    assert_eq!(find_cached_or_local_path("", &cache_dir), None);
+    assert_eq!(find_cached_low_path("", &cache_dir), None);
+}

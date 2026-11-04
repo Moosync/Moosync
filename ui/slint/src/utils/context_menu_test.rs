@@ -2,9 +2,12 @@ use rstest::rstest;
 use slint::{ComponentHandle, Model, ModelRc};
 use tracing_test::traced_test;
 
-use super::{build_queue_context_menu_items, build_song_context_menu_items};
+use super::{
+    build_playlist_context_menu_items, build_queue_context_menu_items,
+    build_song_context_menu_items, handle_extension_context_action,
+};
 use crate::{
-    MainWindow,
+    MainWindow, PlaylistModel,
     test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
 };
 
@@ -131,4 +134,49 @@ async fn test_dispatch_song_context_action_playlist_and_nav(
     super::dispatch_song_context_action(&weak, state_manager, &song_models, "goto_artist:art_test");
 
     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_build_playlist_context_menu_items(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let state_manager = Box::leak(Box::new(sm));
+    let playlist = PlaylistModel {
+        id: "pl_1".into(),
+        title: "Favorites".into(),
+        ..Default::default()
+    };
+    let playlist_models = ModelRc::new(slint::VecModel::from(vec![playlist]));
+
+    let items = build_playlist_context_menu_items(&main_window, state_manager, &playlist_models);
+
+    assert_eq!(items.row_count(), 3);
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_handle_extension_context_action_prefixes(
+    _main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let state_manager = Box::leak(Box::new(sm));
+
+    let handled_native = handle_extension_context_action(state_manager, "play_now").await;
+    assert!(!handled_native);
+
+    let handled_bad_prefix =
+        handle_extension_context_action(state_manager, "extension:no_colon").await;
+    assert!(!handled_bad_prefix);
+
+    let handled_ext =
+        handle_extension_context_action(state_manager, "extension:unknown_pkg:my_action").await;
+    assert!(handled_ext);
 }

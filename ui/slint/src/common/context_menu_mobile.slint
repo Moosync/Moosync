@@ -146,6 +146,16 @@ export component ContextMenuMobile inherits Rectangle {
                         horizontal-scrollbar-policy: always-off;
                         vertical-scrollbar-policy: main_scroll_activity.active ? as-needed : always-off;
                         for item[idx] in root.items: TouchArea {
+                            accessible-role: button;
+                            accessible-label: item.title;
+                            accessible-action-default => {
+                                if (item.has_sub_menu || item.sub_items.length > 0) {
+                                    root.active_submenu_index = idx;
+                                } else {
+                                    root.selected(item.action_id);
+                                    root.hide();
+                                }
+                            }
                             height: Theme.size3Xl;
                             clicked => {
                                 if (item.has_sub_menu || item.sub_items.length > 0) {
@@ -229,6 +239,12 @@ export component ContextMenuMobile inherits Rectangle {
                         horizontal-scrollbar-policy: always-off;
                         vertical-scrollbar-policy: sub_scroll_activity.active ? as-needed : always-off;
                         for sub_item in root.items[root.active_submenu_index].sub_items: TouchArea {
+                            accessible-role: button;
+                            accessible-label: sub_item.title;
+                            accessible-action-default => {
+                                root.selected(sub_item.action_id);
+                                root.hide();
+                            }
                             height: Theme.size3Xl;
                             clicked => {
                                 root.selected(sub_item.action_id);

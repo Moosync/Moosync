@@ -510,7 +510,11 @@ impl ContextMenu for SampleExtension {
         _req: RequestedSongContextMenuRequest,
     ) -> api::MoosyncResult<Vec<ContextMenuReturnType>> {
         info!("get_song_context_menu");
-        Ok(vec![])
+        Ok(vec![ContextMenuReturnType {
+            action_id: "sample_song_action".to_string(),
+            name: "Sample Song Action".to_string(),
+            icon: String::new(),
+        }])
     }
 
     fn get_playlist_context_menu(
@@ -518,13 +522,28 @@ impl ContextMenu for SampleExtension {
         _req: RequestedPlaylistContextMenuRequest,
     ) -> api::MoosyncResult<Vec<ContextMenuReturnType>> {
         info!("get_playlist_context_menu");
-        Ok(vec![])
+        Ok(vec![ContextMenuReturnType {
+            action_id: "sample_playlist_action".to_string(),
+            name: "Sample Playlist Action".to_string(),
+            icon: String::new(),
+        }])
     }
 
     fn on_context_menu_action(&self, req: ContextMenuActionRequest) -> api::MoosyncResult<()> {
         let action = req.action_id;
         info!("on_context_menu_action: {}", action);
-        if action == "add_test" {
+        if action == "sample_song_action" {
+            let _ = add_songs(vec![mock_sample_song(
+                "ctx_action_song",
+                "Context Action Song",
+            )]);
+        } else if action == "sample_playlist_action" {
+            let _ = add_playlist(Playlist {
+                playlist_id: Some("ctx_action_playlist".to_string()),
+                playlist_name: "Context Action Playlist".to_string(),
+                ..Default::default()
+            });
+        } else if action == "add_test" {
             let _ = add_playlist(Playlist::default());
             let _ = add_songs(vec![]);
             let _ = add_to_playlist(AddToPlaylistRequest::default());

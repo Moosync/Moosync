@@ -164,7 +164,8 @@ async fn test_playlists_page_handler_initialize_and_context_menu(
     let items = callbacks.invoke_get_playlist_menu_items(models.clone());
     assert!(items.row_count() > 0);
 
-    callbacks.invoke_playlist_action(models, "other_action".into());
+    callbacks.invoke_playlist_action(models.clone(), "other_action".into());
+    callbacks.invoke_playlist_action(models, "extension:sample_pkg:test_action".into());
     tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 }
 

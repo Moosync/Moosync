@@ -551,6 +551,8 @@ pub mod integration {
                     ExtensionProviderScope::ArtistSongs as i32,
                     ExtensionProviderScope::AlbumSongs as i32,
                     ExtensionProviderScope::Lyrics as i32,
+                    ExtensionProviderScope::SongContextMenu as i32,
+                    ExtensionProviderScope::PlaylistContextMenu as i32,
                 ]
             };
 

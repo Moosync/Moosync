@@ -93,6 +93,20 @@ export component ContextMenu inherits TouchArea {
                 spacing: Theme.spacingTiny;
 
                 for item[idx] in root.items: item_touch := TouchArea {
+                    accessible-role: button;
+                    accessible-label: item.title;
+                    accessible-action-default => {
+                        if (item.has_sub_menu || item.sub_items.length > 0) {
+                            if (root.active_submenu_index == idx) {
+                                root.active_submenu_index = -1;
+                            } else {
+                                root.active_submenu_index = idx;
+                            }
+                        } else {
+                            root.selected(item.action_id);
+                            popup.close();
+                        }
+                    }
                     height: root.item_height;
 
                     pointer-event(event) => {
@@ -189,6 +203,12 @@ export component ContextMenu inherits TouchArea {
                 spacing: Theme.spacingTiny;
 
                 for sub_item in root.items[root.active_submenu_index].sub_items: sub_touch := TouchArea {
+                    accessible-role: button;
+                    accessible-label: sub_item.title;
+                    accessible-action-default => {
+                        root.selected(sub_item.action_id);
+                        popup.close();
+                    }
                     height: root.item_height;
 
                     clicked => {

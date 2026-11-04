@@ -940,6 +940,37 @@ macro_rules! generate_sample_tests {
 
             #[tokio::test]
             #[tracing::instrument(level = "debug", skip_all)]
+            async fn test_context_menu_action_prefixed() {
+                let (handler, pkg, captured_commands, _guard) = setup().await;
+                let ext = {
+                    let map = handler.extensions_map.read().unwrap();
+                    map.get(&pkg).unwrap().clone()
+                };
+                let _res = ext
+                    .context_menu_action(ContextMenuActionRequest {
+                        action_id: format!("extension:{}:add_test", pkg),
+                    })
+                    .await
+                    .unwrap();
+
+                let cmds = captured_commands.lock().unwrap();
+                assert_eq!(cmds.len(), 3);
+                assert!(matches!(
+                    cmds[0].command,
+                    Some(main_command::Command::AddPlaylist(_))
+                ));
+                assert!(matches!(
+                    cmds[1].command,
+                    Some(main_command::Command::AddSongs(_))
+                ));
+                assert!(matches!(
+                    cmds[2].command,
+                    Some(main_command::Command::AddToPlaylist(_))
+                ));
+            }
+
+            #[tokio::test]
+            #[tracing::instrument(level = "debug", skip_all)]
             async fn test_preference_changed() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
                 let ext = {
@@ -1072,7 +1103,7 @@ macro_rules! generate_sample_tests {
     };
 }
 
-generate_sample_tests!(sample_rs, "default", "rs.sample", vec![0, 9, 18]);
+generate_sample_tests!(sample_rs, "default", "rs.sample", vec![0, 9, 11, 12, 18]);
 
 mod sample_empty {
     use super::*;

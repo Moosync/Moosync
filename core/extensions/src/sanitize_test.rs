@@ -16,10 +16,12 @@
 
 use assertables::{assert_is_empty, assert_len_eq_x, assert_none, assert_some_eq_x};
 use extensions_proto::moosync::types::{
-    ExtensionCommandResponse, RequestedAlbumSongsResponse, RequestedArtistSongsResponse,
-    RequestedPlaylistFromUrlResponse, RequestedPlaylistSongsResponse, RequestedPlaylistsResponse,
-    RequestedRecommendationsResponse, RequestedSearchResultResponse, RequestedSongFromIdResponse,
-    RequestedSongFromUrlResponse, extension_command_response,
+    ContextMenuActionRequest, ContextMenuReturnType, ExtensionCommand, ExtensionCommandResponse,
+    RequestedAlbumSongsResponse, RequestedArtistSongsResponse,
+    RequestedPlaylistContextMenuResponse, RequestedPlaylistFromUrlResponse,
+    RequestedPlaylistSongsResponse, RequestedPlaylistsResponse, RequestedRecommendationsResponse,
+    RequestedSearchResultResponse, RequestedSongContextMenuResponse, RequestedSongFromIdResponse,
+    RequestedSongFromUrlResponse, extension_command, extension_command_response,
 };
 use songs_proto::moosync::types::{Album, Artist, InnerSong, Playlist, Song};
 use tracing_test::traced_test;
@@ -382,4 +384,114 @@ fn test_sanitize_entities_and_account() {
     assert_some_eq_x!(playlist.playlist_id.as_deref(), "ext:p1");
     assert_some_eq_x!(playlist.extension.as_deref(), "ext");
     assert_eq!(account.package_name, "ext");
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_sanitize_requested_song_context_menu() {
+    let response = ExtensionCommandResponse {
+        response: Some(
+            extension_command_response::Response::RequestedSongContextMenu(
+                RequestedSongContextMenuResponse {
+                    menu: Some(ContextMenuReturnType {
+                        name: "Custom Action".to_string(),
+                        icon: "icon.png".to_string(),
+                        action_id: "action_1".to_string(),
+                    }),
+                },
+            ),
+        ),
+    };
+
+    let sanitized = response.sanitize("sample_pkg");
+
+    let Some(extension_command_response::Response::RequestedSongContextMenu(r)) =
+        sanitized.response
+    else {
+        panic!("Expected RequestedSongContextMenu");
+    };
+    let menu = r.menu.expect("Expected menu item");
+    assert_eq!(menu.name, "Custom Action");
+    assert_eq!(menu.action_id, "extension:sample_pkg:action_1");
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_sanitize_requested_playlist_context_menu() {
+    let response = ExtensionCommandResponse {
+        response: Some(
+            extension_command_response::Response::RequestedPlaylistContextMenu(
+                RequestedPlaylistContextMenuResponse {
+                    menu: Some(ContextMenuReturnType {
+                        name: "Playlist Action".to_string(),
+                        icon: "".to_string(),
+                        action_id: "action_2".to_string(),
+                    }),
+                },
+            ),
+        ),
+    };
+
+    let sanitized = response.sanitize("sample_pkg");
+
+    let Some(extension_command_response::Response::RequestedPlaylistContextMenu(r)) =
+        sanitized.response
+    else {
+        panic!("Expected RequestedPlaylistContextMenu");
+    };
+    let menu = r.menu.expect("Expected menu item");
+    assert_eq!(menu.name, "Playlist Action");
+    assert_eq!(menu.action_id, "extension:sample_pkg:action_2");
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_sanitize_context_menu_already_prefixed() {
+    let response = ExtensionCommandResponse {
+        response: Some(
+            extension_command_response::Response::RequestedSongContextMenu(
+                RequestedSongContextMenuResponse {
+                    menu: Some(ContextMenuReturnType {
+                        name: "Custom Action".to_string(),
+                        icon: "".to_string(),
+                        action_id: "extension:sample_pkg:action_1".to_string(),
+                    }),
+                },
+            ),
+        ),
+    };
+
+    let sanitized = response.sanitize("sample_pkg");
+
+    let Some(extension_command_response::Response::RequestedSongContextMenu(r)) =
+        sanitized.response
+    else {
+        panic!("Expected RequestedSongContextMenu");
+    };
+    let menu = r.menu.expect("Expected menu item");
+    assert_eq!(menu.action_id, "extension:sample_pkg:action_1");
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_sanitize_context_menu_action_command() {
+    let cmd = ExtensionCommand {
+        package_name: "sample_pkg".to_string(),
+        event: Some(extension_command::Event::ContextMenuAction(
+            ContextMenuActionRequest {
+                action_id: "extension:sample_pkg:action_1".to_string(),
+            },
+        )),
+    };
+
+    let sanitized = cmd.sanitize("sample_pkg");
+
+    let Some(extension_command::Event::ContextMenuAction(req)) = sanitized.event else {
+        panic!("Expected ContextMenuAction");
+    };
+    assert_eq!(req.action_id, "action_1");
 }

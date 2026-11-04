@@ -176,7 +176,8 @@ macro_rules! delegate_command {
             let cmd = ExtensionCommand {
                 package_name: self.get_package_name().to_string(),
                 event: Some(extension_command::Event::$variant(req)),
-            };
+            }
+            .sanitize(self.get_package_name());
             self.execute_command(cmd)
                 .await?
                 .sanitize(self.get_package_name())

@@ -3,12 +3,15 @@ use std::time::Duration;
 use i_slint_backend_testing::ElementHandle;
 use slint::{ComponentHandle, Model};
 use slint_app::{
-    AlbumContentPageProps, AlbumModel, AlbumsPageProps, AppCallbacks, ArtistContentPageProps,
-    ArtistModel, ArtistsPageProps, ExtensionDetailsState, ExtensionsPageProps, MainWindow, Pages,
-    PlaylistContentPageProps, PlaylistModel, PlaylistsPageProps, SettingsPages, SettingsState,
+    AlbumContentPageProps, AlbumModel, AlbumsPageProps, AllSongsPageProps, AppCallbacks, AppProps,
+    ArtistContentPageProps, ArtistModel, ArtistsPageProps, ExtensionDetailsState,
+    ExtensionsPageProps, MainWindow, Pages, PlaylistContentPageProps, PlaylistModel,
+    PlaylistsPageProps, SettingsPages, SettingsState,
     test_utils::integration::{ExtensionFixture, create_test_song, integration_test, wait_until},
 };
-use songs_proto::moosync::types::{GetSongOptions, Playlist, SearchableSong};
+use songs_proto::moosync::types::{
+    GetEntityOptions, GetSongOptions, Playlist, SearchableSong, entity_result,
+};
 use state_manager::StateManager;
 
 // TODO: Re-enable extension preference tests once nested preference rendering
@@ -253,6 +256,24 @@ async fn do_playlists_extension_integration(
             .row_count(),
         3
     );
+
+    let found_local = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Local Playlist").count() > 0
+    })
+    .await;
+    assert!(found_local);
+
+    let found_ext1 = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Extension Playlist 1").count() > 0
+    })
+    .await;
+    assert!(found_ext1);
+
+    let found_ext2 = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Extension Playlist 2").count() > 0
+    })
+    .await;
+    assert!(found_ext2);
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -438,6 +459,12 @@ async fn do_extension_content_toggle_provider_on(
         songs.row_data(1).map(|s| s.title),
         Some("Playlist Song 1".into())
     );
+
+    let found_song1 = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Playlist Song 1").count() > 0
+    })
+    .await;
+    assert!(found_song1);
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -507,6 +534,12 @@ async fn do_artist_content_extension_toggle_and_open(
             .row_count()
             >= 26
     );
+
+    let found_artist_song = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Artist Song 1").count() > 0
+    })
+    .await;
+    assert!(found_artist_song);
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -576,6 +609,12 @@ async fn do_album_content_extension_toggle_and_open(
             .row_count()
             >= 26
     );
+
+    let found_album_song = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Album Song 1").count() > 0
+    })
+    .await;
+    assert!(found_album_song);
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -606,6 +645,12 @@ async fn do_extension_content_pagination_load_more(
     })
     .await;
     assert!(loaded);
+
+    let found_song1 = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Playlist Song 1").count() > 0
+    })
+    .await;
+    assert!(found_song1);
 
     main_window
         .global::<AppCallbacks>()
@@ -679,6 +724,12 @@ async fn do_multiple_extensions_pagination_integration(
     })
     .await;
     assert!(initial_loaded);
+
+    let found_song1 = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Playlist Song 1").count() > 0
+    })
+    .await;
+    assert!(found_song1);
 
     main_window
         .global::<AppCallbacks>()
@@ -905,12 +956,28 @@ async fn do_extension_details_modal_lifecycle(
     .await;
     assert!(lyrics_scope_found);
 
+    let song_menu_scope_found = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Scope: Song Context Menu")
+            .next()
+            .is_some()
+    })
+    .await;
+    assert!(song_menu_scope_found);
+
+    let playlist_menu_scope_found = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Scope: Playlist Context Menu")
+            .next()
+            .is_some()
+    })
+    .await;
+    assert!(playlist_menu_scope_found);
+
     assert_eq!(details_state.get_item().network_permissions.row_count(), 2);
     assert_eq!(
         details_state.get_item().filesystem_permissions.row_count(),
         2
     );
-    assert_eq!(details_state.get_item().scopes.row_count(), 7);
+    assert_eq!(details_state.get_item().scopes.row_count(), 9);
 
     let ext_handler = state_manager.get_extension_handler();
     assert!(ext_handler.get_extension("rs.sample").is_ok());
@@ -982,6 +1049,169 @@ async fn do_extension_get_lyrics(
     assert_eq!(lyrics_val.lines[1].time_ms, 500);
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_extension_song_context_menu(
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) {
+    let database = state_manager.get_database();
+    let song = create_test_song(
+        "ctx_target_song",
+        "Context Target Song",
+        "Context Album",
+        "Context Artist",
+    );
+    database.insert_songs(vec![song]).unwrap();
+
+    let _ext = ExtensionFixture::new(state_manager).await;
+
+    if main_window.global::<AppProps>().get_active_page() == Pages::AllSongs {
+        main_window
+            .global::<AppCallbacks>()
+            .invoke_active_page_changed(Pages::Explore);
+        let _ = wait_until(|| main_window.global::<AppProps>().get_active_page() == Pages::Explore)
+            .await;
+    }
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::AllSongs);
+
+    let songs_loaded = wait_until(|| {
+        main_window
+            .global::<AllSongsPageProps>()
+            .get_songs()
+            .row_count()
+            > 0
+    })
+    .await;
+    assert!(songs_loaded);
+
+    let song_found = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Context Target Song").count() > 0
+    })
+    .await;
+    assert!(song_found);
+
+    let song_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Context Target Song").collect();
+    assert_eq!(song_handles.len(), 1);
+    assert!(song_handles[0].is_valid());
+
+    song_handles[0]
+        .single_click(slint::platform::PointerEventButton::Right)
+        .await;
+
+    let action_found = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Sample Song Action").count() > 0
+    })
+    .await;
+    assert!(action_found);
+
+    let action_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Sample Song Action").collect();
+    assert_eq!(action_handles.len(), 1);
+    assert!(action_handles[0].is_valid());
+
+    action_handles[0].invoke_accessible_default_action();
+
+    let action_executed = wait_until(|| {
+        database
+            .get_songs_by_options(GetSongOptions {
+                song: Some(SearchableSong {
+                    id: Some("rs.sample:ctx_action_song".into()),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            })
+            .is_ok_and(|songs| {
+                songs.len() == 1
+                    && songs[0].song.as_ref().and_then(|s| s.title.as_deref())
+                        == Some("Context Action Song")
+            })
+    })
+    .await;
+    assert!(action_executed);
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_extension_playlist_context_menu(
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) {
+    let database = state_manager.get_database();
+    let playlist = Playlist {
+        playlist_id: Some("ctx_target_playlist".into()),
+        playlist_name: "Context Target Playlist".into(),
+        ..Default::default()
+    };
+    database.create_playlist(playlist).unwrap();
+
+    let _ext = ExtensionFixture::new(state_manager).await;
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::Playlists);
+
+    let playlists_loaded = wait_until(|| {
+        main_window
+            .global::<PlaylistsPageProps>()
+            .get_playlists()
+            .row_count()
+            > 0
+    })
+    .await;
+    assert!(playlists_loaded);
+
+    let playlist_found = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Context Target Playlist").count() > 0
+    })
+    .await;
+    assert!(playlist_found);
+
+    let playlist_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Context Target Playlist").collect();
+    assert_eq!(playlist_handles.len(), 1);
+    assert!(playlist_handles[0].is_valid());
+
+    playlist_handles[0]
+        .single_click(slint::platform::PointerEventButton::Right)
+        .await;
+
+    let action_found = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Sample Playlist Action").count() > 0
+    })
+    .await;
+    assert!(action_found);
+
+    let action_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Sample Playlist Action").collect();
+    assert_eq!(action_handles.len(), 1);
+    assert!(action_handles[0].is_valid());
+
+    action_handles[0].invoke_accessible_default_action();
+
+    let action_executed = wait_until(|| {
+        database
+            .get_entity_by_options(GetEntityOptions {
+                playlist: Some(Playlist {
+                    playlist_id: Some("rs.sample:ctx_action_playlist".into()),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            })
+            .is_ok_and(|res| match res.result {
+                Some(entity_result::Result::Playlists(list)) => {
+                    list.playlists.len() == 1
+                        && list.playlists[0].playlist_name == "Context Action Playlist"
+                }
+                _ => false,
+            })
+    })
+    .await;
+    assert!(action_executed);
+}
+
 integration_test!(
     test_playlists_extension_integration => do_playlists_extension_integration,
     test_extension_content_toggle_provider_off => do_extension_content_toggle_provider_off,
@@ -994,4 +1224,6 @@ integration_test!(
     // test_extension_preference_toggle => do_extension_preference_toggle,
     test_extension_details_modal_lifecycle => do_extension_details_modal_lifecycle,
     test_extension_get_lyrics => do_extension_get_lyrics,
+    test_extension_song_context_menu => do_extension_song_context_menu,
+    test_extension_playlist_context_menu => do_extension_playlist_context_menu,
 );

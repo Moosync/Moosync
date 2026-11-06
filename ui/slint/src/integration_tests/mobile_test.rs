@@ -757,6 +757,71 @@ async fn do_mobile_context_menu_drag_fills_bottom(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
+async fn do_mobile_context_menu_submenu_navigation(
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) {
+    let song = create_test_song("mob_ctx_sub", "Submenu Track", "Sub Album", "Sub Artist");
+    let database = state_manager.get_database();
+    database.insert_songs(vec![song]).unwrap();
+
+    if main_window.global::<AppProps>().get_active_page() == Pages::AllSongs {
+        main_window
+            .global::<AppCallbacks>()
+            .invoke_active_page_changed(Pages::Search);
+        let _ = wait_until(|| main_window.global::<AppProps>().get_active_page() == Pages::Search)
+            .await;
+    }
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::AllSongs);
+
+    let songs_loaded = wait_until(|| {
+        main_window
+            .global::<AllSongsPageProps>()
+            .get_songs()
+            .row_count()
+            > 0
+    })
+    .await;
+    assert!(songs_loaded);
+
+    let more_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "More options").collect();
+    assert!(!more_handles.is_empty());
+
+    click_element(&more_handles[0]).await;
+
+    let submenu_item_ready = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Go to artists").count() > 0
+    })
+    .await;
+    assert!(submenu_item_ready);
+    tokio::time::sleep(std::time::Duration::from_millis(400)).await;
+
+    let goto_artists_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Go to artists").collect();
+    click_element(&goto_artists_handles[0]).await;
+
+    let back_button_ready =
+        wait_until(|| ElementHandle::find_by_accessible_label(main_window, "Back").count() > 0)
+            .await;
+    assert!(back_button_ready);
+    tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+    assert!(ElementHandle::find_by_accessible_label(main_window, "Sub Artist").count() > 0);
+
+    let back_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Back").collect();
+    click_element(&back_handles[0]).await;
+
+    let returned_to_main =
+        wait_until(|| ElementHandle::find_by_accessible_label(main_window, "Play Now").count() > 0)
+            .await;
+    assert!(returned_to_main);
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
 async fn do_mobile_progress_bar_tap_bounds(
     main_window: &'static MainWindow,
     state_manager: &'static StateManager,
@@ -846,5 +911,6 @@ integration_test!(
     test_mobile_close_all_modals => do_mobile_close_all_modals,
     test_mobile_context_menu_drag_handle_click => do_mobile_context_menu_drag_handle_click,
     test_mobile_context_menu_drag_fills_bottom => do_mobile_context_menu_drag_fills_bottom,
+    test_mobile_context_menu_submenu_navigation => do_mobile_context_menu_submenu_navigation,
     test_mobile_progress_bar_tap_bounds => do_mobile_progress_bar_tap_bounds,
 );

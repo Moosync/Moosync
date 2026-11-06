@@ -73,6 +73,14 @@ async fn test_build_song_context_menu_items_with_album_and_artists(
     let items = build_song_context_menu_items(&main_window, state_manager, &song_models);
 
     assert!(items.row_count() >= 5);
+    for i in 0..items.row_count() {
+        let item = items.row_data(i).unwrap();
+        assert!(item.icon.size().width > 0);
+        for j in 0..item.sub_items.row_count() {
+            let sub = item.sub_items.row_data(j).unwrap();
+            assert!(sub.icon.size().width > 0);
+        }
+    }
 }
 
 #[rstest]

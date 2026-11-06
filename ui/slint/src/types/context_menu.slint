@@ -25,14 +25,14 @@ export global ContextMenuItems {
             {
                 action_id: "play_next",
                 title: @tr("Play Next"),
-                icon: @image-url(""),
+                icon: @image-url("../icons/next.svg"),
                 has_sub_menu: false,
                 sub_items: [],
             },
             {
                 action_id: "clear_queue_and_play",
                 title: @tr("Clear queue and play"),
-                icon: @image-url(""),
+                icon: @image-url("../icons/plain_play.svg"),
                 has_sub_menu: false,
                 sub_items: [],
             },
@@ -58,7 +58,7 @@ export global ContextMenuItems {
             {
                 action_id: "remove_from_queue",
                 title: @tr("Remove from Queue"),
-                icon: @image-url(""),
+                icon: @image-url("../icons/cross.svg"),
                 has_sub_menu: false,
                 sub_items: [],
             },
@@ -77,14 +77,14 @@ export global ContextMenuItems {
             {
                 action_id: "play_next",
                 title: @tr("Play Next"),
-                icon: @image-url(""),
+                icon: @image-url("../icons/next.svg"),
                 has_sub_menu: false,
                 sub_items: [],
             },
             {
                 action_id: "clear_queue_and_play",
                 title: @tr("Clear queue and play"),
-                icon: @image-url(""),
+                icon: @image-url("../icons/plain_play.svg"),
                 has_sub_menu: false,
                 sub_items: [],
             },
@@ -98,7 +98,7 @@ export global ContextMenuItems {
             {
                 action_id: "remove_from_playlist",
                 title: @tr("Remove from Playlist"),
-                icon: @image-url(""),
+                icon: @image-url("../icons/cross.svg"),
                 has_sub_menu: false,
                 sub_items: [],
             },
@@ -110,21 +110,21 @@ export global ContextMenuItems {
             {
                 action_id: "delete_playlist",
                 title: @tr("Delete Playlist"),
-                icon: @image-url(""),
+                icon: @image-url("../icons/cross.svg"),
                 has_sub_menu: false,
                 sub_items: [],
             },
             {
                 action_id: "export_playlist",
                 title: @tr("Export Playlist"),
-                icon: @image-url(""),
+                icon: @image-url("../icons/folder.svg"),
                 has_sub_menu: false,
                 sub_items: [],
             },
             {
                 action_id: "save_playlist",
                 title: @tr("Save Playlist"),
-                icon: @image-url(""),
+                icon: @image-url("../icons/playlists.svg"),
                 has_sub_menu: false,
                 sub_items: [],
             },
@@ -145,6 +145,30 @@ export global ContextMenuItems {
 
     pure public function get_remove_from_playlist_title() -> string {
         return @tr("Remove from Playlist");
+    }
+
+    pure public function get_playlist_icon() -> image {
+        return @image-url("../icons/playlists.svg");
+    }
+
+    pure public function get_album_icon() -> image {
+        return @image-url("../icons/albums.svg");
+    }
+
+    pure public function get_artist_icon() -> image {
+        return @image-url("../icons/artists.svg");
+    }
+
+    pure public function get_remove_icon() -> image {
+        return @image-url("../icons/cross.svg");
+    }
+
+    pure public function get_extension_icon() -> image {
+        return @image-url("../icons/extensions.svg");
+    }
+
+    pure public function get_plus_icon() -> image {
+        return @image-url("../icons/plus.svg");
     }
 
     pure public function get_sort_items() -> [ContextMenuItem] {

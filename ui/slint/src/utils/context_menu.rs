@@ -1,4 +1,4 @@
-use std::{rc::Rc, sync::Arc};
+use std::{path::Path, rc::Rc, sync::Arc};
 
 use database::Database;
 use extensions::{Extension, ExtensionError, ExtensionGroupExt};
@@ -36,11 +36,12 @@ enum ExtensionMenuRequest {
 fn make_context_menu_item(
     action_id: impl Into<SharedString>,
     title: impl Into<SharedString>,
+    icon: Image,
 ) -> ContextMenuItem {
     ContextMenuItem {
         action_id: action_id.into(),
         title: title.into(),
-        icon: Image::default(),
+        icon,
         has_sub_menu: false,
         sub_items: ModelRc::default(),
     }
@@ -51,11 +52,12 @@ fn make_context_menu_item(
 fn make_context_sub_item(
     action_id: impl Into<SharedString>,
     title: impl Into<SharedString>,
+    icon: Image,
 ) -> ContextSubMenuItem {
     ContextSubMenuItem {
         action_id: action_id.into(),
         title: title.into(),
-        icon: Image::default(),
+        icon,
     }
 }
 
@@ -64,12 +66,13 @@ fn make_context_sub_item(
 fn make_context_submenu_item(
     action_id: impl Into<SharedString>,
     title: impl Into<SharedString>,
+    icon: Image,
     sub_items: Vec<ContextSubMenuItem>,
 ) -> ContextMenuItem {
     ContextMenuItem {
         action_id: action_id.into(),
         title: title.into(),
-        icon: Image::default(),
+        icon,
         has_sub_menu: true,
         sub_items: ModelRc::new(VecModel::from(sub_items)),
     }
@@ -86,29 +89,36 @@ fn populate_navigation_items(
     let Some(first_song) = song_models.row_data(0) else {
         return;
     };
+    let menu_items = main_window.global::<ContextMenuItems>();
 
     if !first_song.album_name.is_empty() {
-        let title = main_window
-            .global::<ContextMenuItems>()
-            .invoke_get_goto_album_title(first_song.album_name.clone());
+        let title = menu_items.invoke_get_goto_album_title(first_song.album_name.clone());
+        let icon = menu_items.invoke_get_album_icon();
         items.push(make_context_menu_item(
             format!("goto_album:{}", first_song.album_id),
             title,
+            icon,
         ));
     }
 
+    let artist_icon = menu_items.invoke_get_artist_icon();
     let artist_sub_items: Vec<ContextSubMenuItem> = (0..first_song.artists.row_count())
         .filter_map(|i| first_song.artists.row_data(i))
-        .map(|a| make_context_sub_item(format!("goto_artist:{}", a.id), a.title))
+        .map(|a| {
+            make_context_sub_item(
+                format!("goto_artist:{}", a.id),
+                a.title,
+                artist_icon.clone(),
+            )
+        })
         .collect();
 
     if !artist_sub_items.is_empty() {
-        let title = main_window
-            .global::<ContextMenuItems>()
-            .invoke_get_goto_artists_title();
+        let title = menu_items.invoke_get_goto_artists_title();
         items.push(make_context_submenu_item(
             "goto_artist",
             title,
+            artist_icon,
             artist_sub_items,
         ));
     }
@@ -150,18 +160,23 @@ fn attach_playlist_submenu(
                 return;
             };
 
+            let menu_items = window.global::<ContextMenuItems>();
+            let playlist_icon = menu_items.invoke_get_playlist_icon();
             let sub_items = playlists
                 .into_iter()
                 .map(|p| {
                     let pid = p.playlist_id.unwrap_or_default();
-                    make_context_sub_item(format!("add_to_playlist:{pid}"), p.playlist_name)
+                    make_context_sub_item(
+                        format!("add_to_playlist:{pid}"),
+                        p.playlist_name,
+                        playlist_icon.clone(),
+                    )
                 })
                 .collect();
 
-            let title = window
-                .global::<ContextMenuItems>()
-                .invoke_get_add_to_playlist_title();
-            let item = make_context_submenu_item("add_to_playlist", title, sub_items);
+            let title = menu_items.invoke_get_add_to_playlist_title();
+            let item =
+                make_context_submenu_item("add_to_playlist", title, playlist_icon, sub_items);
             let insert_idx = (0..vec_model.row_count())
                 .position(|i| {
                     vec_model
@@ -204,6 +219,7 @@ async fn fetch_extension_menu(
 #[tracing::instrument(level = "debug", skip_all)]
 fn attach_extension_menu_items(
     vec_model: Rc<VecModel<ContextMenuItem>>,
+    default_ext_icon: Image,
     state_manager: &'static StateManager,
     request: ExtensionMenuRequest,
 ) {
@@ -236,7 +252,13 @@ fn attach_extension_menu_items(
             while let Some(Ok((ext, res))) = tasks.next().await {
                 match res {
                     Ok(Some(menu)) if !menu.action_id.is_empty() && !menu.name.is_empty() => {
-                        vec_model.push(make_context_menu_item(menu.action_id, menu.name));
+                        let icon = if !menu.icon.is_empty() {
+                            Image::load_from_path(Path::new(&menu.icon))
+                                .unwrap_or_else(|_| default_ext_icon.clone())
+                        } else {
+                            default_ext_icon.clone()
+                        };
+                        vec_model.push(make_context_menu_item(menu.action_id, menu.name, icon));
                     }
                     Ok(_) => {}
                     Err(e) => {
@@ -271,7 +293,15 @@ fn finalize_song_context_menu(
 
     let songs: Vec<Song> = song_models.into_vec().into_iter().map(Song::from).collect();
     if !songs.is_empty() {
-        attach_extension_menu_items(vec_model, state_manager, ExtensionMenuRequest::Songs(songs));
+        let ext_icon = main_window
+            .global::<ContextMenuItems>()
+            .invoke_get_extension_icon();
+        attach_extension_menu_items(
+            vec_model,
+            ext_icon,
+            state_manager,
+            ExtensionMenuRequest::Songs(songs),
+        );
     }
 
     model_rc
@@ -284,17 +314,17 @@ pub fn build_playlist_context_menu_items(
     state_manager: &'static StateManager,
     playlist_models: &ModelRc<PlaylistModel>,
 ) -> ModelRc<ContextMenuItem> {
-    let all_items = main_window
-        .global::<ContextMenuItems>()
-        .invoke_get_playlists_items()
-        .into_vec();
+    let menu_items = main_window.global::<ContextMenuItems>();
+    let all_items = menu_items.invoke_get_playlists_items().into_vec();
 
     let vec_model = Rc::new(VecModel::from(all_items));
     let model_rc = ModelRc::new(vec_model.clone());
 
     if let Some(first_playlist) = playlist_models.row_data(0) {
+        let ext_icon = menu_items.invoke_get_extension_icon();
         attach_extension_menu_items(
             vec_model,
+            ext_icon,
             state_manager,
             ExtensionMenuRequest::Playlist(Playlist::from(first_playlist)),
         );
@@ -310,16 +340,13 @@ pub fn build_song_context_menu_items(
     state_manager: &'static StateManager,
     song_models: &ModelRc<SongModel>,
 ) -> ModelRc<ContextMenuItem> {
-    let mut all_items = main_window
-        .global::<ContextMenuItems>()
-        .invoke_get_all_songs_items()
-        .into_vec();
+    let menu_items = main_window.global::<ContextMenuItems>();
+    let mut all_items = menu_items.invoke_get_all_songs_items().into_vec();
 
     if main_window.global::<AppProps>().get_active_page() == Pages::PlaylistContent {
-        let title = main_window
-            .global::<ContextMenuItems>()
-            .invoke_get_remove_from_playlist_title();
-        all_items.push(make_context_menu_item("remove_from_playlist", title));
+        let title = menu_items.invoke_get_remove_from_playlist_title();
+        let icon = menu_items.invoke_get_remove_icon();
+        all_items.push(make_context_menu_item("remove_from_playlist", title, icon));
     }
 
     finalize_song_context_menu(main_window, state_manager, song_models, all_items)

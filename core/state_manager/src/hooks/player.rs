@@ -4,6 +4,8 @@ use async_trait::async_trait;
 use extensions::ExtensionGroupExt;
 use extensions_proto::moosync::types::{
     ExtensionProviderScope, PlaybackDetailsRequestedRequest, PlaybackDetailsRequestedResponse,
+    PlayerState, PlayerStateChangedRequest, QueueState, SeekedRequest, SongChangedRequest,
+    SongQueueChangedRequest, VolumeChangedRequest, player_event::Event as ProtoPlayerEvent,
 };
 use futures::StreamExt;
 use player::{PlayerHandler, SourceResolver, error::PlayerError};
@@ -24,6 +26,158 @@ impl Default for PlayerHook {
 impl PlayerHook {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn new() -> Self { Self }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn bind_player_data_events(state_manager: &StateManager, player_handler: &Arc<PlayerHandler>) {
+        let sm_song = state_manager.clone();
+        player_handler.on_song_changed.listen(move |song| {
+            let sm = sm_song.clone();
+            tokio::spawn(
+                async move {
+                    let extensions = sm
+                        .get_extension_handler()
+                        .get_extensions_with_scope(ExtensionProviderScope::PlayerDataEvents)
+                        .await;
+                    for ext in extensions {
+                        if let Err(err) = ext
+                            .song_changed(SongChangedRequest { song: song.clone() })
+                            .await
+                        {
+                            error!(
+                                "Failed to notify extension {} of song_changed: {:?}",
+                                ext.get_package_name(),
+                                err
+                            );
+                        }
+                    }
+                }
+                .in_current_span(),
+            );
+        });
+
+        let sm_queue = state_manager.clone();
+        player_handler.on_queue_updated.listen(move |songs| {
+            let sm = sm_queue.clone();
+            let index = sm.get_player_handler().get_current_idx() as u64;
+            tokio::spawn(
+                async move {
+                    let extensions = sm
+                        .get_extension_handler()
+                        .get_extensions_with_scope(ExtensionProviderScope::PlayerDataEvents)
+                        .await;
+                    let queue_state = Some(QueueState { songs, index });
+                    for ext in extensions {
+                        if let Err(err) = ext
+                            .song_queue_changed(SongQueueChangedRequest {
+                                queue_state: queue_state.clone(),
+                            })
+                            .await
+                        {
+                            error!(
+                                "Failed to notify extension {} of song_queue_changed: {:?}",
+                                ext.get_package_name(),
+                                err
+                            );
+                        }
+                    }
+                }
+                .in_current_span(),
+            );
+        });
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn bind_player_ui_events(state_manager: &StateManager, player_handler: &Arc<PlayerHandler>) {
+        let sm_state = state_manager.clone();
+        player_handler.on_player_event.listen(move |player_event| {
+            let Some(event) = player_event.event else {
+                return;
+            };
+            let state = match event {
+                ProtoPlayerEvent::Play(_) => PlayerState::Playing,
+                ProtoPlayerEvent::Pause(_) => PlayerState::Paused,
+                ProtoPlayerEvent::Ended(_) => PlayerState::Stopped,
+                ProtoPlayerEvent::Loading(_) => PlayerState::Loading,
+                ProtoPlayerEvent::TimeUpdate(_) | ProtoPlayerEvent::Error(_) => return,
+            };
+            let sm = sm_state.clone();
+            tokio::spawn(
+                async move {
+                    let extensions = sm
+                        .get_extension_handler()
+                        .get_extensions_with_scope(ExtensionProviderScope::PlayerUiEvents)
+                        .await;
+                    for ext in extensions {
+                        if let Err(err) = ext
+                            .player_state_changed(PlayerStateChangedRequest {
+                                state: state as i32,
+                            })
+                            .await
+                        {
+                            error!(
+                                "Failed to notify extension {} of player_state_changed: {:?}",
+                                ext.get_package_name(),
+                                err
+                            );
+                        }
+                    }
+                }
+                .in_current_span(),
+            );
+        });
+
+        let sm_vol = state_manager.clone();
+        player_handler.on_volume_changed.listen(move |volume| {
+            let sm = sm_vol.clone();
+            tokio::spawn(
+                async move {
+                    let extensions = sm
+                        .get_extension_handler()
+                        .get_extensions_with_scope(ExtensionProviderScope::PlayerUiEvents)
+                        .await;
+                    for ext in extensions {
+                        if let Err(err) = ext
+                            .volume_changed(VolumeChangedRequest {
+                                volume: volume as f64,
+                            })
+                            .await
+                        {
+                            error!(
+                                "Failed to notify extension {} of volume_changed: {:?}",
+                                ext.get_package_name(),
+                                err
+                            );
+                        }
+                    }
+                }
+                .in_current_span(),
+            );
+        });
+
+        let sm_seek = state_manager.clone();
+        player_handler.on_seeked.listen(move |pos| {
+            let sm = sm_seek.clone();
+            let position = pos.as_secs_f64();
+            tokio::spawn(
+                async move {
+                    let extensions = sm
+                        .get_extension_handler()
+                        .get_extensions_with_scope(ExtensionProviderScope::PlayerUiEvents)
+                        .await;
+                    for ext in extensions {
+                        if let Err(err) = ext.seeked(SeekedRequest { position }).await {
+                            error!(
+                                "Failed to notify extension {} of seeked: {:?}",
+                                ext.get_package_name(),
+                                err
+                            );
+                        }
+                    }
+                }
+                .in_current_span(),
+            );
+        });
+    }
 }
 
 struct ExtensionSourceResolver {
@@ -79,10 +233,11 @@ impl Hook for PlayerHook {
         state_manager: &StateManager,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let player_handler = state_manager.plugins.get::<PlayerHandler>();
-        // TODO: Bind source resolver to extensions
         player_handler.set_resolver(Arc::new(ExtensionSourceResolver {
             state_manager: state_manager.clone(),
         }));
+        Self::bind_player_data_events(state_manager, &player_handler);
+        Self::bind_player_ui_events(state_manager, &player_handler);
 
         Ok(())
     }

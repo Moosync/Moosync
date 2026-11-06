@@ -14,8 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use std::{sync::Arc, time::Duration};
+
 use assertables::{assert_is_empty, assert_len_eq_x, assert_none, assert_ok, assert_some_eq_x};
 use extensions::ReplyHandler;
+use extensions_proto::moosync::types::PlayerState;
 use rstest::{fixture, rstest};
 use songs_proto::moosync::types::{
     GetEntityOptions, GetSongOptions, InnerSong, Playlist, SearchableSong, Song,
@@ -563,4 +566,73 @@ async fn test_reply_handler_cache_expiry(reply_context: TestReplyContext) {
         .unwrap();
     assert_ok!(&get_res);
     assert_eq!(get_res.unwrap(), None);
+}
+
+#[rstest]
+#[tokio::test(flavor = "multi_thread")]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_reply_handler_player_getters_when_active(reply_context: TestReplyContext) {
+    let TestReplyContext { sm, handler, .. } = reply_context;
+    let handler = Arc::new(handler);
+    let player = sm.get_player_handler();
+    let song1 = Song {
+        song: Some(InnerSong {
+            id: Some("reply_song_1".to_string()),
+            title: Some("Reply Song 1".to_string()),
+            playback_url: Some("https://example.com/reply1".to_string()),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+    let song2 = Song {
+        song: Some(InnerSong {
+            id: Some("reply_song_2".to_string()),
+            title: Some("Reply Song 2".to_string()),
+            playback_url: Some("https://example.com/reply2".to_string()),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+    player.play_now(vec![song1, song2]).await;
+    player.set_volume(72);
+    player.seek(Duration::from_secs(18));
+
+    let h1 = handler.clone();
+    let current_song = tokio::task::spawn_blocking(move || h1.get_current_song("pkg"))
+        .await
+        .unwrap()
+        .unwrap();
+    let h2 = handler.clone();
+    let state = tokio::task::spawn_blocking(move || h2.get_player_state("pkg"))
+        .await
+        .unwrap()
+        .unwrap();
+    let h3 = handler.clone();
+    let volume = tokio::task::spawn_blocking(move || h3.get_volume("pkg"))
+        .await
+        .unwrap()
+        .unwrap();
+    let h4 = handler.clone();
+    let time = tokio::task::spawn_blocking(move || h4.get_time("pkg"))
+        .await
+        .unwrap()
+        .unwrap();
+    let (queue, idx) = tokio::task::spawn_blocking(move || handler.get_queue("pkg"))
+        .await
+        .unwrap()
+        .unwrap();
+
+    assert_some_eq_x!(
+        current_song
+            .as_ref()
+            .and_then(|s| s.song.as_ref())
+            .and_then(|s| s.id.as_deref()),
+        "reply_song_1"
+    );
+    assert_eq!(state, PlayerState::Playing as i32);
+    assert_eq!(volume, 72.0);
+    assert!(time >= 18.0);
+    assert_len_eq_x!(&queue, 2);
+    assert_eq!(idx, 0);
 }

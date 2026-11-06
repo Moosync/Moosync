@@ -74,6 +74,8 @@ pub struct PlayerHandler {
     pub on_queue_updated: SubscriberList<Vec<Song>>,
     pub on_repeat_changed: SubscriberList<RepeatMode>,
     pub on_player_event: SubscriberList<PlayerEvent>,
+    pub on_volume_changed: SubscriberList<u8>,
+    pub on_seeked: SubscriberList<Duration>,
 }
 
 #[plugin_macro::generate]
@@ -119,6 +121,8 @@ impl PlayerHandler {
             on_queue_updated: SubscriberList::new(),
             on_repeat_changed: SubscriberList::new(),
             on_player_event: SubscriberList::new(),
+            on_volume_changed: SubscriberList::new(),
+            on_seeked: SubscriberList::new(),
         }
     }
 
@@ -297,17 +301,20 @@ impl PlayerHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn set_volume(&self, volume: u8) {
         if let Err(e) = self.player.set_volume(volume) {
-            tracing::error!("Failed to set volume: {:?}", e)
+            tracing::error!("Failed to set volume: {:?}", e);
+            return;
         }
+        self.on_volume_changed.emit(volume);
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn seek(&self, pos: Duration) {
         if let Err(e) = self.player.seek(pos) {
-            tracing::error!("Failed to seek: {:?}", e)
+            tracing::error!("Failed to seek: {:?}", e);
         }
         if let Ok(pos) = self.player.get_current_pos() {
             self.trigger_player_event(Event::TimeUpdate(core_to_proto_duration(pos)));
+            self.on_seeked.emit(pos);
         }
     }
 

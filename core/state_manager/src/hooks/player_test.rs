@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use std::time::Duration;
+
 use assertables::assert_ok;
 use player::PlayerHandler;
 use preferences::keys::CLEAR_QUEUE;
@@ -75,6 +77,9 @@ async fn test_player_hook_on_startup(sm_context: TestSmContext) {
         ..Default::default()
     };
     player_handler.play_now(vec![test_song]).await;
+    player_handler.set_volume(55);
+    player_handler.seek(Duration::from_secs(12));
+    let _ = player_handler.pause();
     let current_song = player_handler.get_current_song();
     assert!(current_song.is_some());
     assert_eq!(

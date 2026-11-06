@@ -1083,3 +1083,28 @@ async fn test_update_song_in_queue(player_handler: PlayerHandler) {
         Some("/cover/high.webp")
     );
 }
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_on_volume_changed_and_on_seeked_emitted(player_handler: PlayerHandler) {
+    let volumes = Arc::new(Mutex::new(Vec::new()));
+    let volumes_clone = volumes.clone();
+    player_handler.on_volume_changed.listen(move |vol| {
+        volumes_clone.lock().unwrap().push(vol);
+    });
+    let seeks = Arc::new(Mutex::new(Vec::new()));
+    let seeks_clone = seeks.clone();
+    player_handler.on_seeked.listen(move |pos| {
+        seeks_clone.lock().unwrap().push(pos);
+    });
+    let song = create_mock_song("1", "Song One");
+    player_handler.play_now(vec![song]).await;
+
+    player_handler.set_volume(65);
+    player_handler.seek(Duration::from_secs(42));
+
+    assert_eq!(*volumes.lock().unwrap(), vec![65]);
+    assert_eq!(*seeks.lock().unwrap(), vec![Duration::from_secs(42)]);
+}

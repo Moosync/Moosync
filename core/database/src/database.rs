@@ -49,6 +49,10 @@ const ALLSONGS_COLUMNS: &str = "a._id, a.path, a.size, a.inode, a.deviceno, a.ti
 pub struct Database {
     pub pool: r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>,
     pub on_songs_added: SubscriberList<Vec<Song>>,
+    pub on_song_updated: SubscriberList<Song>,
+    pub on_album_updated: SubscriberList<Album>,
+    pub on_artist_updated: SubscriberList<Artist>,
+    pub on_playlist_updated: SubscriberList<Playlist>,
 }
 
 #[plugin_macro::generate]
@@ -63,6 +67,10 @@ impl Database {
         let db = Self {
             pool: Self::connect(path.join("songs.db")),
             on_songs_added: SubscriberList::new(),
+            on_song_updated: SubscriberList::new(),
+            on_album_updated: SubscriberList::new(),
+            on_artist_updated: SubscriberList::new(),
+            on_playlist_updated: SubscriberList::new(),
         };
 
         let mut conn = db.pool.get().expect("Failed to get connection to DB");
@@ -367,7 +375,6 @@ impl Database {
     pub fn update_song(&self, song: &InnerSong) -> Result<(), DatabaseError> {
         trace!("Updating song");
         if let Some(id) = song.id.as_ref() {
-            let conn = self.pool.get().unwrap();
             let song_type = song_type_to_str(song.r#type);
             let params: &[&dyn rusqlite::ToSql] = &[
                 &song.path,
@@ -398,17 +405,24 @@ impl Database {
                 &None::<bool>,
                 id,
             ];
-            conn.execute(
-                "UPDATE allsongs SET
-                    path = ?1, size = ?2, inode = ?3, deviceno = ?4, title = ?5, date = ?6,
-                    year = ?7, lyrics = ?8, releasetype = ?9, bitrate = ?10, codec = ?11,
-                    container = ?12, duration = ?13, samplerate = ?14, hash = ?15, type = ?16,
-                    url = ?17, song_coverpath_high = ?18, playbackurl = ?19, song_coverpath_low = ?20,
-                    date_added = ?21, provider_extension = ?22, icon = ?23, show_in_library = ?24,
-                    track_no = ?25, library_item = ?26
-                 WHERE _id = ?27",
-                params,
-            ).map_err(DatabaseError::Query)?;
+            {
+                let conn = self.pool.get().unwrap();
+                conn.execute(
+                    "UPDATE allsongs SET
+                        path = ?1, size = ?2, inode = ?3, deviceno = ?4, title = ?5, date = ?6,
+                        year = ?7, lyrics = ?8, releasetype = ?9, bitrate = ?10, codec = ?11,
+                        container = ?12, duration = ?13, samplerate = ?14, hash = ?15, type = ?16,
+                        url = ?17, song_coverpath_high = ?18, playbackurl = ?19, song_coverpath_low = ?20,
+                        date_added = ?21, provider_extension = ?22, icon = ?23, show_in_library = ?24,
+                        track_no = ?25, library_item = ?26
+                     WHERE _id = ?27",
+                    params,
+                ).map_err(DatabaseError::Query)?;
+            }
+            self.emit_song_updated(Song {
+                song: Some(song.clone()),
+                ..Default::default()
+            });
             debug!("Updated song");
         } else {
             debug!("Song does not have an ID");
@@ -884,24 +898,26 @@ impl Database {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn update_album(&self, album: Album) -> Result<(), DatabaseError> {
         trace!("Updating album");
-        let conn = self.pool.get().unwrap();
-
-        conn.execute(
-            "UPDATE albums SET
-                album_name = ?1, album_artist = ?2, album_coverpath_high = ?3,
-                album_song_count = ?4, year = ?5, album_coverpath_low = ?6
-             WHERE album_id = ?7",
-            (
-                &album.album_name,
-                &album.album_artist,
-                &album.album_coverpath_high,
-                &album.album_song_count,
-                &album.year,
-                &album.album_coverpath_low,
-                &album.album_id,
-            ),
-        )
-        .map_err(DatabaseError::Query)?;
+        {
+            let conn = self.pool.get().unwrap();
+            conn.execute(
+                "UPDATE albums SET
+                    album_name = ?1, album_artist = ?2, album_coverpath_high = ?3,
+                    album_song_count = ?4, year = ?5, album_coverpath_low = ?6
+                 WHERE album_id = ?7",
+                (
+                    &album.album_name,
+                    &album.album_artist,
+                    &album.album_coverpath_high,
+                    &album.album_song_count,
+                    &album.year,
+                    &album.album_coverpath_low,
+                    &album.album_id,
+                ),
+            )
+            .map_err(DatabaseError::Query)?;
+        }
+        self.on_album_updated.emit(album);
 
         info!("Updated album");
         Ok(())
@@ -910,23 +926,25 @@ impl Database {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn update_artist(&self, artist: Artist) -> Result<(), DatabaseError> {
         trace!("Updating artist");
-        let conn = self.pool.get().unwrap();
-
-        conn.execute(
-            "UPDATE artists SET
-                artist_mbid = ?1, artist_name = ?2, artist_coverpath = ?3,
-                artist_song_count = ?4, sanitized_artist_name = ?5
-             WHERE artist_id = ?6",
-            (
-                &artist.artist_mbid,
-                &artist.artist_name,
-                &artist.artist_coverpath,
-                &artist.artist_song_count,
-                &artist.sanitized_artist_name,
-                &artist.artist_id,
-            ),
-        )
-        .map_err(DatabaseError::Query)?;
+        {
+            let conn = self.pool.get().unwrap();
+            conn.execute(
+                "UPDATE artists SET
+                    artist_mbid = ?1, artist_name = ?2, artist_coverpath = ?3,
+                    artist_song_count = ?4, sanitized_artist_name = ?5
+                 WHERE artist_id = ?6",
+                (
+                    &artist.artist_mbid,
+                    &artist.artist_name,
+                    &artist.artist_coverpath,
+                    &artist.artist_song_count,
+                    &artist.sanitized_artist_name,
+                    &artist.artist_id,
+                ),
+            )
+            .map_err(DatabaseError::Query)?;
+        }
+        self.on_artist_updated.emit(artist);
         info!("Updated artist");
         Ok(())
     }
@@ -934,25 +952,28 @@ impl Database {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn update_playlist(&self, playlist: Playlist) -> Result<(), DatabaseError> {
         trace!("Updating playlist");
-        let conn = self.pool.get().unwrap();
-        conn.execute(
-            "UPDATE playlists SET
-                playlist_name = ?1, playlist_coverpath = ?2, playlist_song_count = ?3,
-                playlist_desc = ?4, playlist_path = ?5, extension = ?6, icon = ?7, library_item = ?8
-             WHERE playlist_id = ?9",
-            (
-                &playlist.playlist_name,
-                &playlist.playlist_coverpath,
-                &playlist.playlist_song_count,
-                &playlist.playlist_desc,
-                &playlist.playlist_path,
-                &playlist.extension,
-                &playlist.icon,
-                &playlist.library_item,
-                &playlist.playlist_id,
-            ),
-        )
-        .map_err(DatabaseError::Query)?;
+        {
+            let conn = self.pool.get().unwrap();
+            conn.execute(
+                "UPDATE playlists SET
+                    playlist_name = ?1, playlist_coverpath = ?2, playlist_song_count = ?3,
+                    playlist_desc = ?4, playlist_path = ?5, extension = ?6, icon = ?7, library_item = ?8
+                 WHERE playlist_id = ?9",
+                (
+                    &playlist.playlist_name,
+                    &playlist.playlist_coverpath,
+                    &playlist.playlist_song_count,
+                    &playlist.playlist_desc,
+                    &playlist.playlist_path,
+                    &playlist.extension,
+                    &playlist.icon,
+                    &playlist.library_item,
+                    &playlist.playlist_id,
+                ),
+            )
+            .map_err(DatabaseError::Query)?;
+        }
+        self.on_playlist_updated.emit(playlist);
         info!("Updated playlist");
         Ok(())
     }
@@ -960,16 +981,15 @@ impl Database {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn update_songs(&self, songs: Vec<Song>) -> Result<(), DatabaseError> {
         trace!("Updating songs");
-        let conn = self.pool.get().unwrap();
 
-        for song in songs {
-            if let Some(inner_song) = song.song {
-                if let Some(album) = song.album {
-                    self.update_album(album)?;
+        for song in &songs {
+            if let Some(inner_song) = &song.song {
+                if let Some(album) = &song.album {
+                    self.update_album(album.clone())?;
                 }
 
-                for a in song.artists {
-                    self.update_artist(a)?;
+                for a in &song.artists {
+                    self.update_artist(a.clone())?;
                 }
 
                 let song_type = song_type_to_str(inner_song.r#type);
@@ -1003,18 +1023,24 @@ impl Database {
                     &inner_song.id,
                 ];
 
-                conn.execute(
-                    "UPDATE allsongs SET
-                        path = ?1, size = ?2, inode = ?3, deviceno = ?4, title = ?5, date = ?6,
-                        year = ?7, lyrics = ?8, releasetype = ?9, bitrate = ?10, codec = ?11,
-                        container = ?12, duration = ?13, samplerate = ?14, hash = ?15, type = ?16,
-                        url = ?17, song_coverpath_high = ?18, playbackurl = ?19, song_coverpath_low = ?20,
-                        date_added = ?21, provider_extension = ?22, icon = ?23, show_in_library = ?24,
-                        track_no = ?25, library_item = ?26
-                     WHERE _id = ?27",
-                    params,
-                ).map_err(DatabaseError::Query)?;
+                {
+                    let conn = self.pool.get().unwrap();
+                    conn.execute(
+                        "UPDATE allsongs SET
+                            path = ?1, size = ?2, inode = ?3, deviceno = ?4, title = ?5, date = ?6,
+                            year = ?7, lyrics = ?8, releasetype = ?9, bitrate = ?10, codec = ?11,
+                            container = ?12, duration = ?13, samplerate = ?14, hash = ?15, type = ?16,
+                            url = ?17, song_coverpath_high = ?18, playbackurl = ?19, song_coverpath_low = ?20,
+                            date_added = ?21, provider_extension = ?22, icon = ?23, show_in_library = ?24,
+                            track_no = ?25, library_item = ?26
+                         WHERE _id = ?27",
+                        params,
+                    ).map_err(DatabaseError::Query)?;
+                }
             }
+        }
+        for song in songs {
+            self.emit_song_updated(song);
         }
         info!("Updated songs");
         Ok(())
@@ -1049,13 +1075,23 @@ impl Database {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn update_lyrics(&self, id: &str, lyrics: &Lyrics) -> Result<(), DatabaseError> {
         trace!("Updating lyrics for song {id}");
-        let conn = self.pool.get().unwrap();
         let lyrics_bytes = lyrics.encode_to_vec();
-        conn.execute(
-            "UPDATE allsongs SET lyrics = ?1 WHERE _id = ?2",
-            rusqlite::params![lyrics_bytes, id],
-        )
-        .map_err(DatabaseError::Query)?;
+        {
+            let conn = self.pool.get().unwrap();
+            conn.execute(
+                "UPDATE allsongs SET lyrics = ?1 WHERE _id = ?2",
+                rusqlite::params![lyrics_bytes, id],
+            )
+            .map_err(DatabaseError::Query)?;
+        }
+        self.emit_song_updated(Song {
+            song: Some(InnerSong {
+                id: Some(id.to_string()),
+                lyrics: Some(lyrics.clone()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        });
         info!("Updated lyrics for song {id}");
         Ok(())
     }
@@ -1068,15 +1104,29 @@ impl Database {
         cover_low: Option<&str>,
     ) -> Result<(), DatabaseError> {
         trace!("Updating cover for song {id}");
-        let conn = self.pool.get().unwrap();
-        conn.execute(
-            "UPDATE allsongs SET song_coverpath_high = ?1, song_coverpath_low = ?2 WHERE _id = ?3",
-            rusqlite::params![cover_high, cover_low, id],
-        )
-        .map_err(DatabaseError::Query)?;
+        {
+            let conn = self.pool.get().unwrap();
+            conn.execute(
+                "UPDATE allsongs SET song_coverpath_high = ?1, song_coverpath_low = ?2 WHERE _id = ?3",
+                rusqlite::params![cover_high, cover_low, id],
+            )
+            .map_err(DatabaseError::Query)?;
+        }
+        self.emit_song_updated(Song {
+            song: Some(InnerSong {
+                id: Some(id.to_string()),
+                song_cover_path_high: cover_high.map(ToString::to_string),
+                song_cover_path_low: cover_low.map(ToString::to_string),
+                ..Default::default()
+            }),
+            ..Default::default()
+        });
         info!("Updated cover for song {id}");
         Ok(())
     }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn emit_song_updated(&self, song: Song) { self.on_song_updated.emit(song); }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn increment_play_count(&self, id: &str) -> Result<(), DatabaseError> {

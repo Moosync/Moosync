@@ -5,7 +5,9 @@ use songs_proto::moosync::types::Album;
 use tempdir::TempDir;
 use tracing_test::traced_test;
 
-use super::lazy_model::{LazyModel, LazySongVecModel, make_lazy_card_model, make_lazy_song_model};
+use super::lazy_model::{
+    LazyModel, LazySongVecModel, make_lazy_card_model, make_lazy_song_model, update_lazy_model_item,
+};
 use crate::{
     AlbumModel, ArtistModel, ExtensionItem, GenreModel, MainWindow, PlaylistModel, SongModel,
     test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
@@ -155,4 +157,48 @@ fn test_lazy_model_trait_implementations() {
     assert_eq!(ext.get_cover_url().as_str(), "http://ext.png");
     ext.set_cover(Image::default());
     let _ = ext.get_image();
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_update_lazy_model_item_single_row(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let song1 = SongModel {
+        id: "s1".into(),
+        title: "Old Title 1".into(),
+        ..Default::default()
+    };
+    let song2 = SongModel {
+        id: "s2".into(),
+        title: "Old Title 2".into(),
+        ..Default::default()
+    };
+    let model = make_lazy_song_model(&main_window, &sm, vec![song1, song2]);
+
+    let updated = update_lazy_model_item(
+        &model,
+        SongModel {
+            id: "s2".into(),
+            title: "New Title 2".into(),
+            ..Default::default()
+        },
+    );
+    let missing = update_lazy_model_item(
+        &model,
+        SongModel {
+            id: "s99".into(),
+            title: "Missing".into(),
+            ..Default::default()
+        },
+    );
+
+    assert!(updated);
+    assert!(!missing);
+    assert_eq!(model.row_data(0).unwrap().title.as_str(), "Old Title 1");
+    assert_eq!(model.row_data(1).unwrap().title.as_str(), "New Title 2");
 }

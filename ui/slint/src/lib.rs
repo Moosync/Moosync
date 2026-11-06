@@ -28,7 +28,7 @@ use types::prelude::format_duration;
 use crate::utils::android::get_android_context;
 use crate::{
     pages::{NavigationManager, PageLifecycleManager},
-    utils::{find_cached_or_local_image, load_image, resolve_image},
+    utils::{find_cached_or_local_image, load_image, resolve_image, update_lazy_model_item},
 };
 
 pub mod accounts;
@@ -63,6 +63,7 @@ pub fn run() {
 
     let runtime = Builder::new_multi_thread()
         .worker_threads(threads)
+        .max_blocking_threads(threads * 2)
         .enable_all()
         .build()
         .expect("Failed to build Tokio runtime");
@@ -125,6 +126,7 @@ pub fn run() {
 
         Builder::new_multi_thread()
             .worker_threads(threads)
+            .max_blocking_threads(threads * 2)
             .enable_all()
             .build()
             .expect("Failed to build Tokio runtime")
@@ -712,6 +714,192 @@ fn setup_player_bottom_bar_callbacks(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
+pub(crate) fn apply_updated_song_to_ui(
+    main_window: &MainWindow,
+    state_manager: &'static StateManager,
+    song_model: SongModel,
+) {
+    update_lazy_model_item(
+        &main_window.global::<AllSongsPageProps>().get_songs(),
+        song_model.clone(),
+    );
+    update_lazy_model_item(
+        &main_window.global::<AlbumContentPageProps>().get_songs(),
+        song_model.clone(),
+    );
+    update_lazy_model_item(
+        &main_window.global::<ArtistContentPageProps>().get_songs(),
+        song_model.clone(),
+    );
+    update_lazy_model_item(
+        &main_window.global::<PlaylistContentPageProps>().get_songs(),
+        song_model.clone(),
+    );
+    update_lazy_model_item(
+        &main_window.global::<GenreContentPageProps>().get_songs(),
+        song_model.clone(),
+    );
+    update_lazy_model_item(
+        &main_window.global::<QueuePageProps>().get_queue(),
+        song_model.clone(),
+    );
+    for result in main_window
+        .global::<SearchPageProps>()
+        .get_provider_results()
+        .iter()
+    {
+        update_lazy_model_item(&result.songs, song_model.clone());
+    }
+
+    let current = main_window.global::<PlayerProps>().get_current_song();
+    if !song_model.id.is_empty() && current.id == song_model.id {
+        main_window
+            .global::<PlayerProps>()
+            .set_current_song(song_model.clone());
+        resolve_current_song_covers(main_window, state_manager, song_model);
+    }
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn setup_entity_update_listeners(
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) {
+    let database = state_manager.get_database();
+
+    let mw_song = main_window.as_weak();
+    database.on_song_updated.listen(move |updated_song| {
+        state_manager
+            .get_player_handler()
+            .update_song_in_queue(&updated_song);
+        let mw_weak = mw_song.clone();
+        let _ = slint::invoke_from_event_loop(move || {
+            let Some(main_window) = mw_weak.upgrade() else {
+                return;
+            };
+            let song_model = SongModel::from(updated_song);
+            apply_updated_song_to_ui(&main_window, state_manager, song_model);
+        });
+    });
+
+    let mw_album = main_window.as_weak();
+    database.on_album_updated.listen(move |updated_album| {
+        let mw_weak = mw_album.clone();
+        let _ = slint::invoke_from_event_loop(move || {
+            let Some(main_window) = mw_weak.upgrade() else {
+                return;
+            };
+            let mut album_model = AlbumModel::from(updated_album);
+            update_lazy_model_item(
+                &main_window.global::<AlbumsPageProps>().get_albums(),
+                album_model.clone(),
+            );
+            for result in main_window
+                .global::<SearchPageProps>()
+                .get_provider_results()
+                .iter()
+            {
+                update_lazy_model_item(&result.albums, album_model.clone());
+            }
+            if !album_model.id.is_empty()
+                && main_window
+                    .global::<AlbumsPageProps>()
+                    .get_selected_album()
+                    .id
+                    == album_model.id
+            {
+                album_model.coverPath = find_cached_or_local_image(
+                    album_model.coverPathUrl.as_str(),
+                    &state_manager.get_cache_dir(),
+                )
+                .unwrap_or_default();
+                main_window
+                    .global::<AlbumsPageProps>()
+                    .set_selected_album(album_model);
+            }
+        });
+    });
+
+    let mw_artist = main_window.as_weak();
+    database.on_artist_updated.listen(move |updated_artist| {
+        let mw_weak = mw_artist.clone();
+        let _ = slint::invoke_from_event_loop(move || {
+            let Some(main_window) = mw_weak.upgrade() else {
+                return;
+            };
+            let mut artist_model = ArtistModel::from(updated_artist);
+            update_lazy_model_item(
+                &main_window.global::<ArtistsPageProps>().get_artists(),
+                artist_model.clone(),
+            );
+            for result in main_window
+                .global::<SearchPageProps>()
+                .get_provider_results()
+                .iter()
+            {
+                update_lazy_model_item(&result.artists, artist_model.clone());
+            }
+            if !artist_model.id.is_empty()
+                && main_window
+                    .global::<ArtistsPageProps>()
+                    .get_selected_artist()
+                    .id
+                    == artist_model.id
+            {
+                artist_model.coverPath = find_cached_or_local_image(
+                    artist_model.coverPathUrl.as_str(),
+                    &state_manager.get_cache_dir(),
+                )
+                .unwrap_or_default();
+                main_window
+                    .global::<ArtistsPageProps>()
+                    .set_selected_artist(artist_model);
+            }
+        });
+    });
+
+    let mw_playlist = main_window.as_weak();
+    database
+        .on_playlist_updated
+        .listen(move |updated_playlist| {
+            let mw_weak = mw_playlist.clone();
+            let _ = slint::invoke_from_event_loop(move || {
+                let Some(main_window) = mw_weak.upgrade() else {
+                    return;
+                };
+                let mut playlist_model = PlaylistModel::from(updated_playlist);
+                update_lazy_model_item(
+                    &main_window.global::<PlaylistsPageProps>().get_playlists(),
+                    playlist_model.clone(),
+                );
+                for result in main_window
+                    .global::<SearchPageProps>()
+                    .get_provider_results()
+                    .iter()
+                {
+                    update_lazy_model_item(&result.playlists, playlist_model.clone());
+                }
+                if !playlist_model.id.is_empty()
+                    && main_window
+                        .global::<PlaylistsPageProps>()
+                        .get_selected_playlist()
+                        .id
+                        == playlist_model.id
+                {
+                    playlist_model.coverPath = find_cached_or_local_image(
+                        playlist_model.coverPathUrl.as_str(),
+                        &state_manager.get_cache_dir(),
+                    )
+                    .unwrap_or_default();
+                    main_window
+                        .global::<PlaylistsPageProps>()
+                        .set_selected_playlist(playlist_model);
+                }
+            });
+        });
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
 fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static StateManager) {
     // Clear default values on load
     main_window
@@ -723,6 +911,7 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
 
     setup_player_listener(main_window, state_manager);
     setup_player_bottom_bar_callbacks(main_window, state_manager);
+    setup_entity_update_listeners(main_window, state_manager);
 }
 
 #[tracing::instrument(level = "debug", skip_all)]

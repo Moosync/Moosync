@@ -14,7 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::path::PathBuf;
+use std::{
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
 
 use assertables::{
     assert_err, assert_len_eq_x, assert_none, assert_ok, assert_some, assert_some_eq_x,
@@ -1760,7 +1763,7 @@ fn test_get_entities_by_mbid_and_id(db_context: TestDbContext) {
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_on_songs_added_emitted_on_insert(db_context: TestDbContext) {
     let TestDbContext { db, .. } = db_context;
-    let emitted = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    let emitted = Arc::new(Mutex::new(Vec::new()));
     let emitted_clone = emitted.clone();
     db.on_songs_added.listen(move |songs| {
         emitted_clone.lock().unwrap().extend(songs);
@@ -1776,4 +1779,89 @@ fn test_on_songs_added_emitted_on_insert(db_context: TestDbContext) {
         captured[0].song.as_ref().and_then(|s| s.title.as_deref()),
         Some("Notified Song")
     );
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_on_entity_updated_emitted(db_context: TestDbContext) {
+    let TestDbContext { db, .. } = db_context;
+    let updated_songs = Arc::new(Mutex::new(Vec::new()));
+    let updated_songs_clone = updated_songs.clone();
+    db.on_song_updated.listen(move |song| {
+        updated_songs_clone.lock().unwrap().push(song);
+    });
+    let updated_albums = Arc::new(Mutex::new(Vec::new()));
+    let updated_albums_clone = updated_albums.clone();
+    db.on_album_updated.listen(move |album| {
+        updated_albums_clone.lock().unwrap().push(album);
+    });
+    let updated_artists = Arc::new(Mutex::new(Vec::new()));
+    let updated_artists_clone = updated_artists.clone();
+    db.on_artist_updated.listen(move |artist| {
+        updated_artists_clone.lock().unwrap().push(artist);
+    });
+    let updated_playlists = Arc::new(Mutex::new(Vec::new()));
+    let updated_playlists_clone = updated_playlists.clone();
+    db.on_playlist_updated.listen(move |playlist| {
+        updated_playlists_clone.lock().unwrap().push(playlist);
+    });
+
+    let mut song = create_test_song("Original Song", "/original.mp3");
+    song.album = Some(Album {
+        album_name: Some("Album A".to_string()),
+        ..Default::default()
+    });
+    song.artists = vec![Artist {
+        artist_name: Some("Artist A".to_string()),
+        ..Default::default()
+    }];
+    let inserted = db.insert_songs(vec![song]).unwrap();
+    let song_id = inserted[0].song.as_ref().unwrap().id.clone().unwrap();
+    let mut album = inserted[0].album.clone().unwrap();
+    album.album_coverpath_high = Some("/album_high.webp".to_string());
+    let mut artist = inserted[0].artists[0].clone();
+    artist.artist_coverpath = Some("/artist.webp".to_string());
+    let playlist_id = db
+        .create_playlist(Playlist {
+            playlist_name: "Playlist A".to_string(),
+            ..Default::default()
+        })
+        .unwrap();
+
+    db.update_song_cover(&song_id, Some("/song_high.webp"), Some("/song_low.webp"))
+        .unwrap();
+    db.update_album(album).unwrap();
+    db.update_artist(artist).unwrap();
+    db.update_playlist(Playlist {
+        playlist_id: Some(playlist_id),
+        playlist_name: "Playlist A Renamed".to_string(),
+        ..Default::default()
+    })
+    .unwrap();
+
+    let songs_captured = updated_songs.lock().unwrap();
+    assert_len_eq_x!(&*songs_captured, 1);
+    assert_eq!(
+        songs_captured[0]
+            .song
+            .as_ref()
+            .and_then(|s| s.song_cover_path_high.as_deref()),
+        Some("/song_high.webp")
+    );
+    let albums_captured = updated_albums.lock().unwrap();
+    assert_len_eq_x!(&*albums_captured, 1);
+    assert_eq!(
+        albums_captured[0].album_coverpath_high.as_deref(),
+        Some("/album_high.webp")
+    );
+    let artists_captured = updated_artists.lock().unwrap();
+    assert_len_eq_x!(&*artists_captured, 1);
+    assert_eq!(
+        artists_captured[0].artist_coverpath.as_deref(),
+        Some("/artist.webp")
+    );
+    let playlists_captured = updated_playlists.lock().unwrap();
+    assert_len_eq_x!(&*playlists_captured, 1);
+    assert_eq!(playlists_captured[0].playlist_name, "Playlist A Renamed");
 }

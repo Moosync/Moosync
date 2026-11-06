@@ -1,6 +1,6 @@
 use std::{
     cell::{Cell, RefCell},
-    collections::VecDeque,
+    collections::{HashSet, VecDeque},
     path::PathBuf,
     rc::Rc,
 };
@@ -50,10 +50,29 @@ pub fn make_lazy_card_model<T: LazyModel + 'static>(
 }
 
 pub trait LazyModel: Clone {
+    fn get_id(&self) -> &SharedString;
     fn set_cover(&mut self, image: Image);
     fn get_cover_url(&self) -> &SharedString;
     fn get_image(&self) -> &Image;
     fn has_image_set(&self) -> bool { !self.get_image().size().is_empty() }
+    fn update_from(&mut self, updated: Self);
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn update_lazy_model_item<T: LazyModel + 'static>(model: &ModelRc<T>, updated: T) -> bool {
+    let target_id = updated.get_id();
+    if target_id.is_empty() {
+        return false;
+    }
+    for row in 0..model.row_count() {
+        if let Some(item) = model.row_data(row) {
+            if item.get_id() == target_id {
+                model.set_row_data(row, updated);
+                return true;
+            }
+        }
+    }
+    false
 }
 
 pub struct LazySongVecModel<T: LazyModel> {
@@ -61,7 +80,9 @@ pub struct LazySongVecModel<T: LazyModel> {
     notify: Rc<ModelNotify>,
     max_items: Rc<Cell<usize>>,
     prefetch_count: Rc<Cell<usize>>,
-    allocated_rows: RefCell<VecDeque<usize>>,
+    allocated_rows: Rc<RefCell<VecDeque<usize>>>,
+    in_flight: Rc<RefCell<HashSet<usize>>>,
+    failed_rows: Rc<RefCell<HashSet<usize>>>,
     cache_dir: PathBuf,
     high_res: bool,
 }
@@ -116,25 +137,29 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
             notify,
             prefetch_count,
             max_items,
-            allocated_rows: RefCell::new(VecDeque::new()),
+            allocated_rows: Rc::new(RefCell::new(VecDeque::new())),
+            in_flight: Rc::new(RefCell::new(HashSet::new())),
+            failed_rows: Rc::new(RefCell::new(HashSet::new())),
             cache_dir,
             high_res,
         }
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn trim_allocated(&self, row: usize) {
-        let mut array = self.array.borrow_mut();
-        let mut allocated = self.allocated_rows.borrow_mut();
-        allocated.push_back(row);
-
-        while allocated.len() >= self.max_items.get() + (self.prefetch_count.get() * 2) {
-            if let Some(oldest_row) = allocated.pop_front() {
-                if let Some(model) = array.get_mut(oldest_row) {
-                    model.set_cover(Image::default());
-                }
-            }
+    pub fn update_item(&self, updated: T) -> bool {
+        let target_id = updated.get_id();
+        if target_id.is_empty() {
+            return false;
         }
+        let found_row = {
+            let array = self.array.borrow();
+            array.iter().position(|item| item.get_id() == target_id)
+        };
+        let Some(row) = found_row else {
+            return false;
+        };
+        self.set_row_data(row, updated);
+        true
     }
 }
 
@@ -151,15 +176,30 @@ impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {
             array.get(row)?.clone()
         };
 
-        if song_model.has_image_set() {
+        if song_model.has_image_set()
+            || self.in_flight.borrow().contains(&row)
+            || self.failed_rows.borrow().contains(&row)
+        {
             return Some(song_model);
         }
 
         let cover_url = song_model.get_cover_url().to_string();
+        if cover_url.is_empty() {
+            self.failed_rows.borrow_mut().insert(row);
+            return Some(song_model);
+        }
+
+        self.in_flight.borrow_mut().insert(row);
+
         let array = self.array.clone();
         let cache_dir = self.cache_dir.clone();
         let notify = self.notify.clone();
         let high_res = self.high_res;
+        let in_flight = self.in_flight.clone();
+        let failed_rows = self.failed_rows.clone();
+        let allocated_rows = self.allocated_rows.clone();
+        let max_items = self.max_items.clone();
+        let prefetch_count = self.prefetch_count.clone();
 
         let _ = slint::spawn_local(
             async move {
@@ -169,27 +209,41 @@ impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {
                 })
                 .await
                 .unwrap_or_default();
-                trace!(
-                    "Image fetched for row {}: {:?}",
-                    row,
-                    pixel_buffer.is_some()
-                );
+
+                in_flight.borrow_mut().remove(&row);
+
                 if let Some(buffer) = pixel_buffer {
                     let image = Image::from_rgba8(buffer);
                     trace!("Image loaded for row {}: (size: {:?})", row, image.size());
 
-                    {
-                        array.borrow_mut()[row].set_cover(image);
+                    let mut arr = array.borrow_mut();
+                    if let Some(item) = arr.get_mut(row) {
+                        item.set_cover(image);
                     }
+
+                    let mut rows = allocated_rows.borrow_mut();
+                    rows.retain(|&r| r != row);
+                    rows.push_back(row);
+
+                    let max_len = max_items.get() + prefetch_count.get() * 2;
+                    while rows.len() > max_len {
+                        if let Some(oldest) = rows.pop_front() {
+                            if let Some(model) = arr.get_mut(oldest) {
+                                model.set_cover(Image::default());
+                            }
+                        }
+                    }
+                    drop(rows);
+                    drop(arr);
 
                     notify.row_changed(row);
                     trace!("exiting");
+                } else {
+                    failed_rows.borrow_mut().insert(row);
                 }
             }
             .in_current_span(),
         );
-
-        self.trim_allocated(row);
 
         Some(song_model)
     }
@@ -200,8 +254,13 @@ impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {
             return;
         }
 
-        self.array.borrow_mut()[row] = data;
-        self.notify.row_changed(row);
+        self.failed_rows.borrow_mut().remove(&row);
+        let mut array = self.array.borrow_mut();
+        if let Some(item) = array.get_mut(row) {
+            item.update_from(data);
+            drop(array);
+            self.notify.row_changed(row);
+        }
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -213,6 +272,9 @@ impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {
 
 impl LazyModel for ExtensionItem {
     #[tracing::instrument(level = "debug", skip_all)]
+    fn get_id(&self) -> &SharedString { &self.package_name }
+
+    #[tracing::instrument(level = "debug", skip_all)]
     fn set_cover(&mut self, image: Image) { self.icon = image; }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -220,9 +282,23 @@ impl LazyModel for ExtensionItem {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_image(&self) -> &Image { &self.icon }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn update_from(&mut self, updated: Self) {
+        if !updated.name.is_empty() {
+            self.name = updated.name;
+        }
+        if !updated.icon_url.is_empty() && self.icon_url != updated.icon_url {
+            self.icon_url = updated.icon_url;
+            self.icon = Image::default();
+        }
+    }
 }
 
 impl LazyModel for SongModel {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_id(&self) -> &SharedString { &self.id }
+
     #[tracing::instrument(level = "debug", skip_all)]
     fn set_cover(&mut self, image: Image) { self.coverPathLow = image }
 
@@ -231,10 +307,50 @@ impl LazyModel for SongModel {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_image(&self) -> &Image { &self.coverPathLow }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn update_from(&mut self, updated: Self) {
+        if !updated.title.is_empty() {
+            self.title = updated.title;
+        }
+        if updated.duration_s > 0 {
+            self.duration_s = updated.duration_s;
+        }
+        if !updated.album_name.is_empty() {
+            self.album_name = updated.album_name;
+        }
+        if !updated.album_id.is_empty() {
+            self.album_id = updated.album_id;
+        }
+        if !updated.album_artist.is_empty() {
+            self.album_artist = updated.album_artist;
+        }
+        if !updated.playback_url.is_empty() {
+            self.playback_url = updated.playback_url;
+        }
+        if !updated.coverPathUrlLow.is_empty() && self.coverPathUrlLow != updated.coverPathUrlLow {
+            self.coverPathUrlLow = updated.coverPathUrlLow;
+            self.coverPathLow = Image::default();
+        }
+        if !updated.coverPathUrlHigh.is_empty() && self.coverPathUrlHigh != updated.coverPathUrlHigh
+        {
+            self.coverPathUrlHigh = updated.coverPathUrlHigh;
+            self.coverPathHigh = Image::default();
+        }
+        if updated.artists.row_count() > 0 {
+            self.artists = updated.artists;
+        }
+        if updated.genre.row_count() > 0 {
+            self.genre = updated.genre;
+        }
+    }
 }
 
 impl LazyModel for AlbumModel {
     #[tracing::instrument(level = "debug", skip_all)]
+    fn get_id(&self) -> &SharedString { &self.id }
+
+    #[tracing::instrument(level = "debug", skip_all)]
     fn set_cover(&mut self, image: Image) { self.coverPath = image; }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -242,10 +358,27 @@ impl LazyModel for AlbumModel {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_image(&self) -> &Image { &self.coverPath }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn update_from(&mut self, updated: Self) {
+        if !updated.title.is_empty() {
+            self.title = updated.title;
+        }
+        if updated.songs_count > 0 {
+            self.songs_count = updated.songs_count;
+        }
+        if !updated.coverPathUrl.is_empty() && self.coverPathUrl != updated.coverPathUrl {
+            self.coverPathUrl = updated.coverPathUrl;
+            self.coverPath = Image::default();
+        }
+    }
 }
 
 impl LazyModel for PlaylistModel {
     #[tracing::instrument(level = "debug", skip_all)]
+    fn get_id(&self) -> &SharedString { &self.id }
+
+    #[tracing::instrument(level = "debug", skip_all)]
     fn set_cover(&mut self, image: Image) { self.coverPath = image; }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -253,10 +386,27 @@ impl LazyModel for PlaylistModel {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_image(&self) -> &Image { &self.coverPath }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn update_from(&mut self, updated: Self) {
+        if !updated.title.is_empty() {
+            self.title = updated.title;
+        }
+        if updated.songs_count > 0 {
+            self.songs_count = updated.songs_count;
+        }
+        if !updated.coverPathUrl.is_empty() && self.coverPathUrl != updated.coverPathUrl {
+            self.coverPathUrl = updated.coverPathUrl;
+            self.coverPath = Image::default();
+        }
+    }
 }
 
 impl LazyModel for ArtistModel {
     #[tracing::instrument(level = "debug", skip_all)]
+    fn get_id(&self) -> &SharedString { &self.id }
+
+    #[tracing::instrument(level = "debug", skip_all)]
     fn set_cover(&mut self, image: Image) { self.coverPath = image; }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -264,10 +414,27 @@ impl LazyModel for ArtistModel {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_image(&self) -> &Image { &self.coverPath }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn update_from(&mut self, updated: Self) {
+        if !updated.title.is_empty() {
+            self.title = updated.title;
+        }
+        if updated.songs_count > 0 {
+            self.songs_count = updated.songs_count;
+        }
+        if !updated.coverPathUrl.is_empty() && self.coverPathUrl != updated.coverPathUrl {
+            self.coverPathUrl = updated.coverPathUrl;
+            self.coverPath = Image::default();
+        }
+    }
 }
 
 impl LazyModel for GenreModel {
     #[tracing::instrument(level = "debug", skip_all)]
+    fn get_id(&self) -> &SharedString { &self.id }
+
+    #[tracing::instrument(level = "debug", skip_all)]
     fn set_cover(&mut self, image: Image) { self.coverPath = image; }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -275,4 +442,18 @@ impl LazyModel for GenreModel {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_image(&self) -> &Image { &self.coverPath }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn update_from(&mut self, updated: Self) {
+        if !updated.title.is_empty() {
+            self.title = updated.title;
+        }
+        if updated.songs_count > 0 {
+            self.songs_count = updated.songs_count;
+        }
+        if !updated.coverPathUrl.is_empty() && self.coverPathUrl != updated.coverPathUrl {
+            self.coverPathUrl = updated.coverPathUrl;
+            self.coverPath = Image::default();
+        }
+    }
 }

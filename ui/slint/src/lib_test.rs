@@ -2,19 +2,22 @@ use extensions_proto::moosync::types::player_event::Event as PlayerEvent;
 use rstest::rstest;
 use slint::{ComponentHandle, Model, ModelRc, VecModel};
 use songs_proto::{
-    duration_proto::google::protobuf::Duration as ProtoDuration, moosync::types::Song,
+    duration_proto::google::protobuf::Duration as ProtoDuration,
+    moosync::types::{InnerSong, Song},
 };
 use state_manager::StateManager;
 use tracing_test::traced_test;
 
 use crate::{
-    AppCallbacks, AppProps, BottomBarCallbacks, CoverHelper, ExtensionProviderItem, MainWindow,
-    Pages, PlayerProps, SettingsPages, SongDetailAction, SongModel, SongSortCriterion, TopBarProps,
-    UtilCallbacks,
+    AllSongsPageProps, AppCallbacks, AppProps, BottomBarCallbacks, CoverHelper,
+    ExtensionProviderItem, MainWindow, Pages, PlayerProps, QueuePageProps, SettingsPages,
+    SongDetailAction, SongModel, SongSortCriterion, TopBarProps, UtilCallbacks,
+    apply_updated_song_to_ui,
     pages::PageLifecycleManager,
     setup_ui,
     test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
     update_player_event_props,
+    utils::lazy_model::LazySongVecModel,
 };
 
 #[rstest]
@@ -268,4 +271,64 @@ async fn test_util_callbacks_selection_and_validation(
 
     let no_providers = ModelRc::default();
     assert!(!util_callbacks.invoke_has_active_extension_providers(no_providers));
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_apply_updated_song_to_ui(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let state_manager: &'static StateManager = Box::leak(Box::new(sm));
+    let cache_dir = state_manager.get_cache_dir();
+    let initial_song = SongModel {
+        id: "song-1".into(),
+        title: "Old Title".into(),
+        song_cover_path_low: "".into(),
+        ..Default::default()
+    };
+    main_window
+        .global::<PlayerProps>()
+        .set_current_song(initial_song.clone());
+    main_window
+        .global::<AllSongsPageProps>()
+        .set_songs(ModelRc::new(LazySongVecModel::new(
+            vec![initial_song.clone()],
+            40,
+            40,
+            cache_dir.clone(),
+            false,
+        )));
+    main_window
+        .global::<QueuePageProps>()
+        .set_queue(ModelRc::new(LazySongVecModel::new(
+            vec![initial_song],
+            40,
+            40,
+            cache_dir,
+            false,
+        )));
+    let updated = Song {
+        song: Some(InnerSong {
+            id: Some("song-1".to_string()),
+            title: Some("New Title".to_string()),
+            song_cover_path_low: Some("/new/cover.webp".to_string()),
+            song_cover_path_high: Some("/new/cover_high.webp".to_string()),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    apply_updated_song_to_ui(&main_window, state_manager, SongModel::from(updated));
+
+    let current_song = main_window.global::<PlayerProps>().get_current_song();
+    assert_eq!(current_song.title.as_str(), "New Title");
+    assert_eq!(current_song.song_cover_path_low.as_str(), "/new/cover.webp");
+    let all_songs = main_window.global::<AllSongsPageProps>().get_songs();
+    assert_eq!(all_songs.row_data(0).unwrap().title.as_str(), "New Title");
+    let queue_songs = main_window.global::<QueuePageProps>().get_queue();
+    assert_eq!(queue_songs.row_data(0).unwrap().title.as_str(), "New Title");
 }

@@ -1054,3 +1054,32 @@ async fn test_player_handler_timer_lifecycle() {
     assert!(received_play);
     assert!(received_pause);
 }
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_update_song_in_queue(player_handler: PlayerHandler) {
+    let song1 = create_mock_song("1", "Song One");
+    let song2 = create_mock_song("2", "Song Two");
+    player_handler.add_to_queue(vec![song1, song2]).await;
+    let mut updated_song1 = create_mock_song("1", "Song One Updated");
+    if let Some(inner) = updated_song1.song.as_mut() {
+        inner.song_cover_path_high = Some("/cover/high.webp".to_string());
+    }
+
+    player_handler.update_song_in_queue(&updated_song1);
+
+    let current = player_handler.current_song().unwrap();
+    assert_eq!(
+        current.song.as_ref().and_then(|s| s.title.as_deref()),
+        Some("Song One Updated")
+    );
+    assert_eq!(
+        current
+            .song
+            .as_ref()
+            .and_then(|s| s.song_cover_path_high.as_deref()),
+        Some("/cover/high.webp")
+    );
+}

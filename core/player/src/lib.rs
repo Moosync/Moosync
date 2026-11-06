@@ -453,6 +453,37 @@ impl PlayerHandler {
             tracing::error!("Failed to persist player data: {}", e);
         }
     }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn update_song_in_queue(&self, updated_song: &Song) {
+        let Some(target_id) = updated_song.song.as_ref().and_then(|s| s.id.as_deref()) else {
+            return;
+        };
+        let mut is_current = false;
+        let mut changed = false;
+        {
+            let mut data = self.player_data.write().unwrap();
+            let current_idx = data.current_idx as usize;
+            for (idx, queued) in data.song_queue.iter_mut().enumerate() {
+                if queued.song.as_ref().and_then(|s| s.id.as_deref()) == Some(target_id) {
+                    *queued = updated_song.clone();
+                    changed = true;
+                    if idx == current_idx {
+                        is_current = true;
+                    }
+                }
+            }
+        }
+        if changed {
+            let pd = self.player_data.read().unwrap().clone();
+            if let Err(e) = self.persist_context.persist(&pd) {
+                tracing::error!("Failed to persist player data: {}", e);
+            }
+        }
+        if is_current {
+            self.on_song_changed.emit(Some(updated_song.clone()));
+        }
+    }
 }
 
 impl Plugin for PlayerHandler {

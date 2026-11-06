@@ -17,14 +17,13 @@
 use std::{num::NonZeroU32, path::Path};
 
 use fast_image_resize::{self as fr, FilterType, ResizeAlg::Convolution, ResizeOptions};
-use image::ColorType;
+use image::{ColorType, ImageFormat};
 
 use crate::error::ScannerError;
 
 pub struct ImageProcessor {
     raw_image: Result<image::DynamicImage, ScannerError>,
     dimensions: Option<u32>,
-    compressed: bool,
 }
 
 impl ImageProcessor {
@@ -34,29 +33,20 @@ impl ImageProcessor {
         Self {
             raw_image,
             dimensions: None,
-            compressed: false,
         }
     }
 
-    #[allow(dead_code)]
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn from_image(raw_image: image::DynamicImage) -> Self {
         Self {
             raw_image: Ok(raw_image),
             dimensions: None,
-            compressed: false,
         }
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn resize(mut self, size: u32) -> Self {
         self.dimensions = Some(size);
-        self
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub fn compress(mut self) -> Self {
-        self.compressed = true;
         self
     }
 
@@ -118,12 +108,13 @@ impl ImageProcessor {
             NonZeroU32::new(dimensions).ok_or_else(|| ScannerError::InvalidImageDimensions)?;
         let dst_height =
             NonZeroU32::new(dimensions).ok_or_else(|| ScannerError::InvalidImageDimensions)?;
-        image::save_buffer(
+        image::save_buffer_with_format(
             path,
             dst_image.buffer(),
             dst_width.get(),
             dst_height.get(),
             ColorType::Rgba8,
+            ImageFormat::WebP,
         )?;
         Ok(())
     }

@@ -103,7 +103,6 @@ pub(crate) async fn process_thumbnail(
     tokio::task::spawn_blocking(move || {
         ImageProcessor::new(&picture_data)
             .resize(size)
-            .compress()
             .save(&target_path)
     })
     .await
@@ -117,8 +116,8 @@ pub(crate) async fn store_picture(
 ) -> Result<(PathBuf, PathBuf), ScannerError> {
     let hash = blake3::hash(picture.data()).to_hex();
     let hash_str = hash.as_str();
-    let low_path = thumbnail_dir.join(format!("{}-low.png", hash_str));
-    let high_path = thumbnail_dir.join(format!("{}.png", hash_str));
+    let low_path = thumbnail_dir.join(format!("{}-low.webp", hash_str));
+    let high_path = thumbnail_dir.join(format!("{}.webp", hash_str));
 
     process_thumbnail(picture.data(), &high_path, 400).await?;
     process_thumbnail(picture.data(), &low_path, 80).await?;

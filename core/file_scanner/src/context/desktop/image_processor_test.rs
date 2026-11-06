@@ -52,10 +52,15 @@ fn create_synthetic_png_bytes(width: u32, height: u32) -> Vec<u8> {
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_image_processor_resize_and_save_synthetic_image(temp_dir_fixture: TempDir) {
     let png_bytes = create_synthetic_png_bytes(500, 300);
-    let out_path = temp_dir_fixture.path().join("resized_cover.png");
-    let processor = ImageProcessor::new(&png_bytes).resize(250).compress();
+    let out_path = temp_dir_fixture.path().join("resized_cover.webp");
+    let processor = ImageProcessor::new(&png_bytes).resize(250);
 
     assert_ok!(processor.save(&out_path));
+    let saved_bytes = std::fs::read(&out_path).unwrap();
+    assert_eq!(
+        image::guess_format(&saved_bytes).unwrap(),
+        ImageFormat::WebP
+    );
     let loaded = image::open(&out_path).unwrap();
     assert_eq!(loaded.width(), 250);
     assert_eq!(loaded.height(), 250);
@@ -67,7 +72,7 @@ fn test_image_processor_resize_and_save_synthetic_image(temp_dir_fixture: TempDi
 fn test_image_processor_from_image_default_dimension(temp_dir_fixture: TempDir) {
     let imgbuf = ImageBuffer::from_pixel(100, 100, Rgba([255, 0, 0, 255]));
     let dynamic = DynamicImage::ImageRgba8(imgbuf);
-    let out_path = temp_dir_fixture.path().join("default_dim_cover.png");
+    let out_path = temp_dir_fixture.path().join("default_dim_cover.webp");
     let processor = ImageProcessor::from_image(dynamic);
 
     assert_ok!(processor.save(&out_path));

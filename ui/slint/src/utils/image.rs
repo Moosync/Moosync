@@ -5,14 +5,14 @@ use std::{
 };
 
 use extensions_proto::moosync::types::ExtensionDetail;
-use image::{DynamicImage, load_from_memory, open};
+use image::{DynamicImage, ImageFormat, load_from_memory, open};
 use slint::{Image, Rgba8Pixel, SharedPixelBuffer};
 use tokio::{fs, task::spawn_blocking};
 use tracing::Instrument;
 pub use types::image::{
     HIGH_RES_THUMBNAIL_SIZE, LOW_RES_THUMBNAIL_SIZE, find_cached_low_path,
-    find_cached_or_local_path, find_cached_path, get_extension_from_bytes, get_safe_name,
-    resize_image,
+    find_cached_or_local_path, find_cached_path, get_safe_name, resize_image,
+    save_local_image_as_webp,
 };
 
 static HTTP_CLIENT: LazyLock<reqwest::Client> = LazyLock::new(reqwest::Client::new);
@@ -43,21 +43,6 @@ pub fn load_image(path: impl AsRef<Path>) -> Image {
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn find_cached_or_local_image(cover_url: &str, cache_dir: &Path) -> Option<Image> {
     find_cached_or_local_path(cover_url, cache_dir).and_then(|p| Image::load_from_path(&p).ok())
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-async fn migrate_unextended_file(img_cache_dir: &Path, safe_name: &str) -> Option<PathBuf> {
-    let unextended_path = img_cache_dir.join(safe_name);
-    if unextended_path.exists() {
-        if let Ok(bytes) = fs::read(&unextended_path).await {
-            let ext = get_extension_from_bytes(&bytes);
-            let target_path = img_cache_dir.join(format!("{safe_name}.{ext}"));
-            if fs::rename(&unextended_path, &target_path).await.is_ok() {
-                return Some(target_path);
-            }
-        }
-    }
-    None
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -109,14 +94,14 @@ async fn save_images_to_disk(
         let _ = fs::create_dir_all(&img_cache_dir).await;
     }
 
-    let low_path = img_cache_dir.join(format!("{safe_name}-low.png"));
-    let high_path = img_cache_dir.join(format!("{safe_name}.png"));
+    let low_path = img_cache_dir.join(format!("{safe_name}-low.webp"));
+    let high_path = img_cache_dir.join(format!("{safe_name}.webp"));
     let low_save = low_path.clone();
     let high_save = high_path.clone();
 
     let save_result = spawn_blocking(move || {
-        let low_res = low_image.save(&low_save);
-        let high_res = high_image.save(&high_save);
+        let low_res = low_image.save_with_format(&low_save, ImageFormat::WebP);
+        let high_res = high_image.save_with_format(&high_save, ImageFormat::WebP);
         (low_res, high_res)
     })
     .await;
@@ -132,10 +117,7 @@ async fn save_images_to_disk(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn load_and_resize_from_file(
-    path: PathBuf,
-    target_size: u32,
-) -> Option<SharedPixelBuffer<Rgba8Pixel>> {
+async fn load_from_file_unresized(path: PathBuf) -> Option<SharedPixelBuffer<Rgba8Pixel>> {
     let result = spawn_blocking(move || {
         let dynamic_image = match open(&path) {
             Ok(img) => img,
@@ -145,8 +127,7 @@ async fn load_and_resize_from_file(
             }
         };
 
-        let target_image = resize_image(dynamic_image, target_size);
-        Some(dynamic_image_to_pixel_buffer(&target_image))
+        Some(dynamic_image_to_pixel_buffer(&dynamic_image))
     })
     .await;
 
@@ -169,25 +150,49 @@ pub async fn resolve_image_buffer(
         return None;
     }
 
-    let target_size = if high_res {
-        HIGH_RES_THUMBNAIL_SIZE
-    } else {
-        LOW_RES_THUMBNAIL_SIZE
-    };
-
     if let Some(path) = find_cached_path(cover_url, cache_dir, !high_res) {
-        return load_and_resize_from_file(path, target_size).await;
-    }
-
-    if !cover_url.starts_with("http://") && !cover_url.starts_with("https://") {
-        return None;
+        return load_from_file_unresized(path).await;
     }
 
     let safe_name = get_safe_name(cover_url);
     let img_cache_dir = cache_dir.join("image_cache");
 
-    if let Some(migrated_path) = migrate_unextended_file(&img_cache_dir, &safe_name).await {
-        return load_and_resize_from_file(migrated_path, target_size).await;
+    let path = Path::new(cover_url);
+    if path.exists() {
+        let path_buf = path.to_path_buf();
+        let (low_image, high_image) = spawn_blocking(move || {
+            let dynamic = match open(&path_buf) {
+                Ok(img) => img,
+                Err(error) => {
+                    tracing::error!("Failed to open image from path {path_buf:?}: {error:?}");
+                    return None;
+                }
+            };
+            let low = resize_image(dynamic.clone(), LOW_RES_THUMBNAIL_SIZE);
+            let high = resize_image(dynamic, HIGH_RES_THUMBNAIL_SIZE);
+            Some((low, high))
+        })
+        .await
+        .ok()??;
+
+        let low_cache = low_image.clone();
+        let high_cache = high_image.clone();
+        let cache_dir_clone = img_cache_dir.clone();
+        let safe_name_clone = safe_name.clone();
+
+        tokio::spawn(
+            async move {
+                save_images_to_disk(cache_dir_clone, safe_name_clone, low_cache, high_cache).await;
+            }
+            .in_current_span(),
+        );
+
+        let target = if high_res { high_image } else { low_image };
+        return Some(dynamic_image_to_pixel_buffer(&target));
+    }
+
+    if !cover_url.starts_with("http://") && !cover_url.starts_with("https://") {
+        return None;
     }
 
     let (low_image, high_image) = fetch_and_decode(cover_url).await?;
@@ -213,19 +218,38 @@ pub async fn resolve_image(cover_url: &str, cache_dir: &Path) -> Option<PathBuf>
         return None;
     }
 
-    if let Some(path) = find_cached_or_local_path(cover_url, cache_dir) {
+    if let Some(path) = find_cached_path(cover_url, cache_dir, false) {
         return Some(path);
-    }
-
-    if !cover_url.starts_with("http://") && !cover_url.starts_with("https://") {
-        return None;
     }
 
     let safe_name = get_safe_name(cover_url);
     let img_cache_dir = cache_dir.join("image_cache");
 
-    if let Some(migrated_path) = migrate_unextended_file(&img_cache_dir, &safe_name).await {
-        return Some(migrated_path);
+    let path = Path::new(cover_url);
+    if path.exists() {
+        let path_buf = path.to_path_buf();
+        let (low_image, high_image) = spawn_blocking(move || {
+            let dynamic = match open(&path_buf) {
+                Ok(img) => img,
+                Err(error) => {
+                    tracing::error!("Failed to open image from path {path_buf:?}: {error:?}");
+                    return None;
+                }
+            };
+            let low = resize_image(dynamic.clone(), LOW_RES_THUMBNAIL_SIZE);
+            let high = resize_image(dynamic, HIGH_RES_THUMBNAIL_SIZE);
+            Some((low, high))
+        })
+        .await
+        .ok()??;
+
+        let (high_path, _) =
+            save_images_to_disk(img_cache_dir, safe_name, low_image, high_image).await;
+        return Some(high_path);
+    }
+
+    if !cover_url.starts_with("http://") && !cover_url.starts_with("https://") {
+        return None;
     }
 
     let (low_image, high_image) = fetch_and_decode(cover_url).await?;
@@ -263,7 +287,7 @@ pub fn generate_blurred_cover_disk_cache(
     if !img_cache_dir.exists() {
         let _ = create_dir_all(&img_cache_dir);
     }
-    let blurred_path = img_cache_dir.join(format!("blurred_{song_id}.png"));
+    let blurred_path = img_cache_dir.join(format!("blurred_{song_id}.webp"));
 
     if blurred_path.exists() {
         return Some(blurred_path);
@@ -272,7 +296,11 @@ pub fn generate_blurred_cover_disk_cache(
     let path = Path::new(cover_path_high);
     if path.exists() {
         if let Ok(img) = open(path) {
-            if img.fast_blur(5.0).save(&blurred_path).is_ok() {
+            if img
+                .fast_blur(5.0)
+                .save_with_format(&blurred_path, ImageFormat::WebP)
+                .is_ok()
+            {
                 return Some(blurred_path);
             }
         }

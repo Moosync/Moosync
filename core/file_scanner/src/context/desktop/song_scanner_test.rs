@@ -119,7 +119,7 @@ fn test_scan_directory_for_cover(temp_dir_fixture: TempDir) {
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_process_thumbnail_cache(temp_dir_fixture: TempDir) {
-    let target = temp_dir_fixture.path().join("thumb_test.png");
+    let target = temp_dir_fixture.path().join("thumb_test.webp");
     assert!(!target.exists());
 
     let res = process_thumbnail(TINY_PNG, &target, 100).await;

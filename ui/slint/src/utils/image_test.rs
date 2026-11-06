@@ -40,33 +40,6 @@ async fn test_resolve_image_existing_local(temp_dir_fixture: TempDir) {
 }
 
 #[rstest]
-#[tokio::test]
-#[traced_test]
-#[tracing::instrument(level = "debug", skip_all)]
-async fn test_resolve_image_migrates_unextended_file(temp_dir_fixture: TempDir) {
-    let img_cache_dir = temp_dir_fixture.path().join("image_cache");
-    std::fs::create_dir_all(&img_cache_dir).unwrap();
-    let png_bytes = [
-        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44,
-        0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1f,
-        0x15, 0xc4, 0x89, 0x00, 0x00, 0x00, 0x0a, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x63, 0x00,
-        0x01, 0x00, 0x00, 0x05, 0x00, 0x01, 0x0d, 0x0a, 0x2d, 0xb4, 0x00, 0x00, 0x00, 0x00, 0x49,
-        0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
-    ];
-    let safe_name = "https___example_com_image";
-    let unextended_file = img_cache_dir.join(safe_name);
-    std::fs::write(&unextended_file, png_bytes).unwrap();
-
-    let res = resolve_image("https://example.com/image", temp_dir_fixture.path()).await;
-
-    assert_some!(res.as_ref());
-    let path = res.unwrap();
-    assert_eq!(path.extension().and_then(|e| e.to_str()), Some("png"));
-    assert!(path.exists());
-    assert!(!unextended_file.exists());
-}
-
-#[rstest]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_find_cached_or_local_path_and_image(temp_dir_fixture: TempDir) {
@@ -80,15 +53,11 @@ fn test_find_cached_or_local_path_and_image(temp_dir_fixture: TempDir) {
 
     let img_cache_dir = temp_dir_fixture.path().join("image_cache");
     std::fs::create_dir_all(&img_cache_dir).unwrap();
-    let png_bytes = [
-        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44,
-        0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1f,
-        0x15, 0xc4, 0x89, 0x00, 0x00, 0x00, 0x0a, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x63, 0x00,
-        0x01, 0x00, 0x00, 0x05, 0x00, 0x01, 0x0d, 0x0a, 0x2d, 0xb4, 0x00, 0x00, 0x00, 0x00, 0x49,
-        0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
-    ];
-    let cached_file = img_cache_dir.join("https___example_com_cached.png");
-    std::fs::write(&cached_file, png_bytes).unwrap();
+    let cached_file = img_cache_dir.join("https___example_com_cached.webp");
+    let img = image::RgbaImage::new(1, 1);
+    image::DynamicImage::ImageRgba8(img)
+        .save_with_format(&cached_file, image::ImageFormat::WebP)
+        .unwrap();
 
     let found_path =
         find_cached_or_local_path("https://example.com/cached", temp_dir_fixture.path());

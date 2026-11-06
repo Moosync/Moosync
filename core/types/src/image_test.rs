@@ -16,11 +16,11 @@
 
 use std::path::PathBuf;
 
-use image::{DynamicImage, RgbaImage};
+use image::{DynamicImage, ImageFormat, RgbaImage};
 
 use super::image::{
     find_cached_low_path, find_cached_or_local_path, find_cached_path, get_extension_from_bytes,
-    get_safe_name, resize_image,
+    get_safe_name, resize_image, save_local_image_as_webp,
 };
 
 #[test]
@@ -61,4 +61,28 @@ fn test_find_cached_path_empty() {
     assert_eq!(find_cached_path("", &cache_dir, false), None);
     assert_eq!(find_cached_or_local_path("", &cache_dir), None);
     assert_eq!(find_cached_low_path("", &cache_dir), None);
+}
+
+#[test]
+fn test_save_local_image_as_webp() {
+    let base_dir = std::env::temp_dir().join("moosync_test_local_webp");
+    let _ = std::fs::remove_dir_all(&base_dir);
+    std::fs::create_dir_all(&base_dir).unwrap();
+    let src_path = base_dir.join("input.png");
+    let out_dir = base_dir.join("out");
+    let img = DynamicImage::ImageRgba8(RgbaImage::new(1000, 500));
+    img.save_with_format(&src_path, ImageFormat::Png).unwrap();
+
+    let saved = save_local_image_as_webp(&src_path, &out_dir);
+
+    assert!(saved.is_some());
+    let saved_path = saved.unwrap();
+    assert_eq!(
+        saved_path.extension().and_then(|e| e.to_str()),
+        Some("webp")
+    );
+    let loaded = image::open(&saved_path).unwrap();
+    assert_eq!(loaded.width(), 800);
+    assert_eq!(loaded.height(), 400);
+    let _ = std::fs::remove_dir_all(&base_dir);
 }

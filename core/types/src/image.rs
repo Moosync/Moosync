@@ -15,12 +15,12 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use std::{
-    fs::create_dir_all,
+    fs::{create_dir_all, read},
     path::{Path, PathBuf},
     sync::LazyLock,
 };
 
-use image::{DynamicImage, ImageFormat, guess_format, load_from_memory};
+use image::{DynamicImage, ImageFormat, guess_format, load_from_memory, open};
 use tracing::{debug, error};
 
 pub const LOW_RES_THUMBNAIL_SIZE: u32 = 80;
@@ -60,33 +60,62 @@ pub fn resize_image(image: DynamicImage, max_size: u32) -> DynamicImage {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
+pub fn save_local_image_as_webp(source_path: &Path, target_dir: &Path) -> Option<PathBuf> {
+    if !source_path.exists() {
+        return None;
+    }
+    if let Err(e) = create_dir_all(target_dir) {
+        error!("Failed to create target image directory {target_dir:?}: {e:?}");
+        return None;
+    }
+    let bytes = match read(source_path) {
+        Ok(b) => b,
+        Err(e) => {
+            error!("Failed to read local image {source_path:?}: {e:?}");
+            return None;
+        }
+    };
+    let decoded = match open(source_path).or_else(|_| load_from_memory(&bytes)) {
+        Ok(img) => img,
+        Err(e) => {
+            error!("Failed to decode local image {source_path:?}: {e:?}");
+            return None;
+        }
+    };
+    let safe_name = get_safe_name(&source_path.to_string_lossy());
+    let resized = resize_image(decoded, HIGH_RES_THUMBNAIL_SIZE);
+    let out_path = target_dir.join(format!("{safe_name}.webp"));
+    if let Err(e) = resized.save_with_format(&out_path, ImageFormat::WebP) {
+        error!("Failed to save local image as WebP to {out_path:?}: {e:?}");
+        return None;
+    }
+    Some(out_path)
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn find_cached_path(cover_url: &str, cache_dir: &Path, low_res: bool) -> Option<PathBuf> {
     if cover_url.is_empty() {
         return None;
     }
-    if !cover_url.starts_with("http://") && !cover_url.starts_with("https://") {
-        let path = PathBuf::from(cover_url);
-        return path.exists().then_some(path);
-    }
 
-    let safe_name = get_safe_name(cover_url);
     let img_cache_dir = cache_dir.join("image_cache");
-    const EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "webp", "gif", "avif", "ico", "bmp"];
+    let safe_name = get_safe_name(cover_url);
 
     if low_res {
-        for ext in EXTENSIONS {
-            let path = img_cache_dir.join(format!("{safe_name}-low.{ext}"));
-            if path.exists() {
-                return Some(path);
-            }
+        let low_path = img_cache_dir.join(format!("{safe_name}-low.webp"));
+        if low_path.exists() {
+            return Some(low_path);
         }
     }
 
-    for ext in EXTENSIONS {
-        let path = img_cache_dir.join(format!("{safe_name}.{ext}"));
-        if path.exists() {
-            return Some(path);
-        }
+    let high_path = img_cache_dir.join(format!("{safe_name}.webp"));
+    if high_path.exists() {
+        return Some(high_path);
+    }
+
+    let path = Path::new(cover_url);
+    if path.starts_with(cache_dir) && path.exists() {
+        return Some(path.to_path_buf());
     }
 
     None
@@ -94,7 +123,16 @@ pub fn find_cached_path(cover_url: &str, cache_dir: &Path, low_res: bool) -> Opt
 
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn find_cached_or_local_path(cover_url: &str, cache_dir: &Path) -> Option<PathBuf> {
-    find_cached_path(cover_url, cache_dir, false)
+    if let Some(cached) = find_cached_path(cover_url, cache_dir, false) {
+        return Some(cached);
+    }
+    if !cover_url.starts_with("http://") && !cover_url.starts_with("https://") {
+        let path = PathBuf::from(cover_url);
+        if path.exists() {
+            return Some(path);
+        }
+    }
+    None
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -136,21 +174,20 @@ pub async fn download_single_image(url: &str, img_cache_dir: &Path) -> Option<(P
         }
     };
 
-    let ext = get_extension_from_bytes(&bytes);
     let safe_name = get_safe_name(url);
 
     let high_image = resize_image(decoded_image.clone(), HIGH_RES_THUMBNAIL_SIZE);
     let low_image = resize_image(decoded_image, LOW_RES_THUMBNAIL_SIZE);
 
-    let high_path = img_cache_dir.join(format!("{safe_name}.{ext}"));
-    let low_path = img_cache_dir.join(format!("{safe_name}-low.{ext}"));
+    let high_path = img_cache_dir.join(format!("{safe_name}.webp"));
+    let low_path = img_cache_dir.join(format!("{safe_name}-low.webp"));
 
-    if let Err(e) = high_image.save(&high_path) {
+    if let Err(e) = high_image.save_with_format(&high_path, ImageFormat::WebP) {
         error!("Failed to save high resolution image to {high_path:?}: {e:?}");
         return None;
     }
 
-    if let Err(e) = low_image.save(&low_path) {
+    if let Err(e) = low_image.save_with_format(&low_path, ImageFormat::WebP) {
         error!("Failed to save low resolution image to {low_path:?}: {e:?}");
         return None;
     }

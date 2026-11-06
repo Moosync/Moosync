@@ -1,10 +1,10 @@
-use slint::{ComponentHandle, ModelRc};
+use slint::{ComponentHandle, ModelRc, Weak};
 use songs_proto::moosync::types::{GetSongOptions, SearchableSong, Song};
 use state_manager::StateManager;
 use tracing::Instrument;
 
 use crate::{
-    AllSongsPageProps, ContextMenuCallbacks, MainWindow,
+    AllSongsPageProps, AppProps, ContextMenuCallbacks, MainWindow, Pages,
     error::UiError,
     pages::PageHandler,
     utils::{build_song_context_menu_items, dispatch_song_context_action, make_lazy_song_model},
@@ -73,24 +73,22 @@ impl AllSongsPageHandler {
         let model = make_lazy_song_model(main_window, state_manager, songs_view);
         main_window.global::<AllSongsPageProps>().set_songs(model);
     }
-}
-
-impl PageHandler for AllSongsPageHandler {
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn initialize(&self) { self.register_context_menu_callbacks(); }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn on_show(&self) {
-        tracing::debug!("AllSongsPage: on_show triggered");
-        tokio::spawn({
-            let state_manager = self.state_manager;
-            let main_window_weak = self.main_window.as_weak();
+    pub(crate) fn refresh_songs(
+        main_window_weak: Weak<MainWindow>,
+        state_manager: &'static StateManager,
+    ) {
+        tokio::spawn(
             async move {
                 match Self::fetch_songs(state_manager).await {
                     Ok(songs) => {
                         tracing::debug!("AllSongsPage: fetched {} songs", songs.len());
                         let _ = main_window_weak.upgrade_in_event_loop(move |main_window| {
-                            Self::set_songs(&main_window, state_manager, songs);
+                            if main_window.global::<AppProps>().get_active_page() == Pages::AllSongs
+                            {
+                                Self::set_songs(&main_window, state_manager, songs);
+                            }
                         });
                     }
                     Err(e) => {
@@ -98,8 +96,30 @@ impl PageHandler for AllSongsPageHandler {
                     }
                 }
             }
-            .in_current_span()
-        });
+            .in_current_span(),
+        );
+    }
+}
+
+impl PageHandler for AllSongsPageHandler {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn initialize(&self) {
+        self.register_context_menu_callbacks();
+
+        let main_window_weak = self.main_window.as_weak();
+        let state_manager = self.state_manager;
+        self.state_manager
+            .get_database()
+            .on_songs_added
+            .listen(move |_| {
+                Self::refresh_songs(main_window_weak.clone(), state_manager);
+            });
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn on_show(&self) {
+        tracing::debug!("AllSongsPage: on_show triggered");
+        Self::refresh_songs(self.main_window.as_weak(), self.state_manager);
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

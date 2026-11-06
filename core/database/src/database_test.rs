@@ -1754,3 +1754,26 @@ fn test_get_entities_by_mbid_and_id(db_context: TestDbContext) {
     assert_len_eq_x!(&genres_by_id, 1);
     assert_eq!(genres_by_id[0].genre_id.as_ref(), Some(&genre_id));
 }
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_on_songs_added_emitted_on_insert(db_context: TestDbContext) {
+    let TestDbContext { db, .. } = db_context;
+    let emitted = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    let emitted_clone = emitted.clone();
+    db.on_songs_added.listen(move |songs| {
+        emitted_clone.lock().unwrap().extend(songs);
+    });
+    let song = create_test_song("Notified Song", "/notified.mp3");
+
+    let inserted = db.insert_songs(vec![song]).unwrap();
+
+    assert_len_eq_x!(&inserted, 1);
+    let captured = emitted.lock().unwrap();
+    assert_len_eq_x!(&*captured, 1);
+    assert_eq!(
+        captured[0].song.as_ref().and_then(|s| s.title.as_deref()),
+        Some("Notified Song")
+    );
+}

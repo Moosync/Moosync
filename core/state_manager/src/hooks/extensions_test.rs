@@ -69,3 +69,24 @@ async fn test_extensions_hook_on_startup(sm_context: TestSmContext) {
     let received = tokio::time::timeout(std::time::Duration::from_millis(500), rx.recv()).await;
     assert!(received.is_ok());
 }
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_extensions_hook_on_songs_added_listener(sm_context: TestSmContext) {
+    let TestSmContext { sm, .. } = sm_context;
+    let hook = ExtensionsHook::new();
+    assert_ok!(hook.on_startup(&sm).await);
+
+    let song = songs_proto::moosync::types::Song {
+        song: Some(songs_proto::moosync::types::InnerSong {
+            id: Some("hook_song_1".into()),
+            title: Some("Hook Song".into()),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+    let inserted = sm.get_database().insert_songs(vec![song]);
+    assert_ok!(inserted);
+}

@@ -27,6 +27,7 @@ use tracing::{debug, info, trace, warn};
 use types::{
     plugin::{Plugin, PluginContext},
     prelude::SongsExt,
+    subscription::SubscriberList,
 };
 use uuid::Uuid;
 
@@ -44,9 +45,10 @@ const ALLSONGS_COLUMNS: &str = "a._id, a.path, a.size, a.inode, a.deviceno, a.ti
                                 a.song_coverpath_high, a.playbackurl, a.song_coverpath_low, a.date_added, \
                                 a.provider_extension, a.icon, a.show_in_library, a.track_no, a.library_item";
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Database {
     pub pool: r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>,
+    pub on_songs_added: SubscriberList<Vec<Song>>,
 }
 
 #[plugin_macro::generate]
@@ -60,6 +62,7 @@ impl Database {
 
         let db = Self {
             pool: Self::connect(path.join("songs.db")),
+            on_songs_added: SubscriberList::new(),
         };
 
         let mut conn = db.pool.get().expect("Failed to get connection to DB");
@@ -277,6 +280,9 @@ impl Database {
         )?;
 
         tx.commit().map_err(DatabaseError::Transaction)?;
+        if !songs.is_empty() {
+            self.on_songs_added.emit(songs.to_vec());
+        }
         info!("Inserted all songs");
         Ok(())
     }

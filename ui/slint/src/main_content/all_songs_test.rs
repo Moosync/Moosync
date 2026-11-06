@@ -169,3 +169,37 @@ async fn test_all_songs_on_song_action(
     let queue = state_manager.get_player_handler().get_queue();
     assert_eq!(queue.len(), 1);
 }
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_all_songs_refresh_on_songs_added(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let main_window = Box::leak(Box::new(main_window));
+    let state_manager = Box::leak(Box::new(sm));
+    let handler = AllSongsPageHandler::new(main_window, state_manager);
+    handler.initialize();
+
+    let song = Song {
+        song: Some(InnerSong {
+            id: Some("scan_song_1".into()),
+            title: Some("Scanned Song".into()),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+    state_manager
+        .get_database()
+        .insert_songs(vec![song])
+        .unwrap();
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+    let fetched = AllSongsPageHandler::fetch_songs(state_manager)
+        .await
+        .unwrap();
+    assert_eq!(fetched.len(), 1);
+}

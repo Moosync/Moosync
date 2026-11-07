@@ -203,3 +203,39 @@ async fn test_all_songs_refresh_on_songs_added(
         .unwrap();
     assert_eq!(fetched.len(), 1);
 }
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_all_songs_refresh_debounces_rapid_additions(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let main_window = Box::leak(Box::new(main_window));
+    let state_manager = Box::leak(Box::new(sm));
+    let handler = AllSongsPageHandler::new(main_window, state_manager);
+    handler.initialize();
+
+    for i in 0..5 {
+        let song = Song {
+            song: Some(InnerSong {
+                id: Some(format!("rapid_song_{}", i)),
+                title: Some(format!("Rapid Song {}", i)),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        state_manager
+            .get_database()
+            .insert_songs(vec![song])
+            .unwrap();
+    }
+    tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+
+    let fetched = AllSongsPageHandler::fetch_songs(state_manager)
+        .await
+        .unwrap();
+    assert_eq!(fetched.len(), 5);
+}

@@ -346,15 +346,19 @@ impl<'a> SongScanner<'a> {
         on_song: &OnSongScanned,
         on_progress: &OnProgressUpdated,
     ) {
+        let mut songs = Vec::new();
         for res in results {
             if let Ok(song) = res {
                 tracing::info!("Scanned song {:?}", song);
-                on_song(None, vec![song]).await;
+                songs.push(song);
             } else if let Err(e) = res {
                 tracing::error!("Scan error: {:?}", e);
             }
             *scanned_count += 1;
             update_scan_progress(total_songs, *scanned_count, on_progress);
+        }
+        if !songs.is_empty() {
+            on_song(None, songs).await;
         }
     }
 }

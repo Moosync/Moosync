@@ -1,3 +1,8 @@
+use std::{
+    sync::{Arc, Mutex},
+    time::Duration,
+};
+
 use slint::{ComponentHandle, ModelRc, Weak};
 use songs_proto::moosync::types::{GetSongOptions, SearchableSong, Song};
 use state_manager::StateManager;
@@ -79,6 +84,16 @@ impl AllSongsPageHandler {
         main_window_weak: Weak<MainWindow>,
         state_manager: &'static StateManager,
     ) {
+        let is_active = main_window_weak
+            .upgrade()
+            .map(|main_window| {
+                main_window.global::<AppProps>().get_active_page() == Pages::AllSongs
+            })
+            .unwrap_or(false);
+        if !is_active {
+            return;
+        }
+
         tokio::spawn(
             async move {
                 match Self::fetch_songs(state_manager).await {
@@ -108,11 +123,24 @@ impl PageHandler for AllSongsPageHandler {
 
         let main_window_weak = self.main_window.as_weak();
         let state_manager = self.state_manager;
+        let debounce_task = Arc::new(Mutex::new(None::<tokio::task::JoinHandle<()>>));
+
         self.state_manager
             .get_database()
             .on_songs_added
             .listen(move |_| {
-                Self::refresh_songs(main_window_weak.clone(), state_manager);
+                let main_window_weak = main_window_weak.clone();
+                let mut guard = debounce_task.lock().unwrap();
+                if let Some(handle) = guard.take() {
+                    handle.abort();
+                }
+                *guard = Some(tokio::spawn(
+                    async move {
+                        tokio::time::sleep(Duration::from_millis(150)).await;
+                        Self::refresh_songs(main_window_weak, state_manager);
+                    }
+                    .in_current_span(),
+                ));
             });
     }
 

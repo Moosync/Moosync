@@ -281,6 +281,10 @@ impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {
                     let max_len = max_items.get() + prefetch_count.get() * 2;
                     while rows.len() > max_len {
                         if let Some(oldest) = rows.pop_front() {
+                            trace!(
+                                "LazySongVecModel: Evicting image for row {} (max_len: {}, remaining allocated: {})",
+                                oldest, max_len, rows.len()
+                            );
                             if let Some(model) = arr.get_mut(oldest) {
                                 model.set_cover(Image::default());
                             }

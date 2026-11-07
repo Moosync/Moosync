@@ -1,10 +1,10 @@
 use extensions_proto::moosync::types::{
     ContextMenuActionRequest, ContextMenuReturnType, ExtensionCommand, ExtensionCommandResponse,
     RequestedAlbumSongsResponse, RequestedArtistSongsResponse,
-    RequestedPlaylistContextMenuResponse, RequestedPlaylistFromUrlResponse,
-    RequestedPlaylistSongsResponse, RequestedPlaylistsResponse, RequestedRecommendationsResponse,
-    RequestedSearchResultResponse, RequestedSongContextMenuResponse, RequestedSongFromIdResponse,
-    RequestedSongFromUrlResponse, extension_command, extension_command_response,
+    RequestedPlaylistContextMenuResponse, RequestedPlaylistSongsResponse,
+    RequestedPlaylistsResponse, RequestedRecommendationsResponse, RequestedSearchResultResponse,
+    RequestedSongContextMenuResponse, RequestedSongFromIdResponse, extension_command,
+    extension_command_response,
 };
 use songs_proto::moosync::types::{Album, Artist, Playlist, Song};
 
@@ -72,10 +72,6 @@ impl Sanitize for extension_command_response::Response {
             Self::RequestedSearchResult(resp) => {
                 Self::RequestedSearchResult(resp.sanitize(ext_name))
             }
-            Self::RequestedSongFromUrl(resp) => Self::RequestedSongFromUrl(resp.sanitize(ext_name)),
-            Self::RequestedPlaylistFromUrl(resp) => {
-                Self::RequestedPlaylistFromUrl(resp.sanitize(ext_name))
-            }
             Self::RequestedSongFromId(resp) => Self::RequestedSongFromId(resp.sanitize(ext_name)),
             Self::RequestedRecommendations(resp) => {
                 Self::RequestedRecommendations(resp.sanitize(ext_name))
@@ -142,32 +138,6 @@ impl Sanitize for RequestedSearchResultResponse {
         }
         for album in &mut self.albums {
             sanitize_album(album, ext_name);
-        }
-        self
-    }
-}
-
-impl Sanitize for RequestedSongFromUrlResponse {
-    /// Sanitizes the song returned from a URL lookup response.
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn sanitize(mut self, ext_name: &str) -> Self {
-        if let Some(song) = &mut self.song {
-            sanitize_song(song, ext_name);
-        }
-        self
-    }
-}
-
-impl Sanitize for RequestedPlaylistFromUrlResponse {
-    /// Sanitizes the playlist and its songs returned from a URL lookup
-    /// response.
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn sanitize(mut self, ext_name: &str) -> Self {
-        if let Some(playlist) = &mut self.playlist {
-            sanitize_playlist(playlist, ext_name);
-        }
-        for song in &mut self.songs {
-            sanitize_song(song, ext_name);
         }
         self
     }

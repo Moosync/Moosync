@@ -17,17 +17,15 @@ use extensions_proto::moosync::types::{
     RequestedAlbumSongsResponse, RequestedArtistSongsRequest, RequestedArtistSongsResponse,
     RequestedCoverArtRequest, RequestedCoverArtResponse, RequestedLyricsRequest,
     RequestedLyricsResponse, RequestedPlaylistContextMenuRequest,
-    RequestedPlaylistContextMenuResponse, RequestedPlaylistFromUrlRequest,
-    RequestedPlaylistFromUrlResponse, RequestedPlaylistSongsRequest,
+    RequestedPlaylistContextMenuResponse, RequestedPlaylistSongsRequest,
     RequestedPlaylistSongsResponse, RequestedPlaylistsRequest, RequestedPlaylistsResponse,
     RequestedRecommendationsRequest, RequestedRecommendationsResponse,
     RequestedSearchResultRequest, RequestedSearchResultResponse, RequestedSongContextMenuRequest,
     RequestedSongContextMenuResponse, RequestedSongFromIdRequest, RequestedSongFromIdResponse,
-    RequestedSongFromUrlRequest, RequestedSongFromUrlResponse, ScrobbleRequest, ScrobbleResponse,
-    SeekedRequest, SeekedResponse, SongAddedRequest, SongAddedResponse, SongChangedRequest,
-    SongChangedResponse, SongQueueChangedRequest, SongQueueChangedResponse, SongRemovedRequest,
-    SongRemovedResponse, VolumeChangedRequest, VolumeChangedResponse, extension_command,
-    extension_command_response,
+    ScrobbleRequest, ScrobbleResponse, SeekedRequest, SeekedResponse, SongAddedRequest,
+    SongAddedResponse, SongChangedRequest, SongChangedResponse, SongQueueChangedRequest,
+    SongQueueChangedResponse, SongRemovedRequest, SongRemovedResponse, VolumeChangedRequest,
+    VolumeChangedResponse, extension_command, extension_command_response,
 };
 use preferences_proto::moosync::types::PreferenceItem;
 use prost::Message;
@@ -280,18 +278,6 @@ impl Extension {
         CustomRequest,
         CustomRequest,
         CustomRequestResponse
-    );
-    delegate_command!(
-        get_song_from_url,
-        RequestedSongFromUrl,
-        RequestedSongFromUrlRequest,
-        RequestedSongFromUrlResponse
-    );
-    delegate_command!(
-        get_playlist_from_url,
-        RequestedPlaylistFromUrl,
-        RequestedPlaylistFromUrlRequest,
-        RequestedPlaylistFromUrlResponse
     );
     delegate_command!(
         get_search_result,

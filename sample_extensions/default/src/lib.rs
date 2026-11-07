@@ -12,11 +12,10 @@ use moosync_edk::{
     Playlist, PlaylistAddedRequest, PlaylistRemovedRequest, PreferenceChangedRequest,
     PreferenceData, RequestedAlbumSongsRequest, RequestedArtistSongsRequest,
     RequestedCoverArtRequest, RequestedLyricsRequest, RequestedPlaylistContextMenuRequest,
-    RequestedPlaylistFromUrlRequest, RequestedPlaylistSongsRequest, RequestedPlaylistsRequest,
-    RequestedRecommendationsRequest, RequestedSearchResultRequest, RequestedSongContextMenuRequest,
-    RequestedSongFromIdRequest, RequestedSongFromUrlRequest, ScrobbleRequest, SearchResult,
-    SeekedRequest, Song, SongAddedRequest, SongChangedRequest, SongQueueChangedRequest,
-    SongRemovedRequest, VolumeChangedRequest,
+    RequestedPlaylistSongsRequest, RequestedPlaylistsRequest, RequestedRecommendationsRequest,
+    RequestedSearchResultRequest, RequestedSongContextMenuRequest, RequestedSongFromIdRequest,
+    ScrobbleRequest, SearchResult, SeekedRequest, Song, SongAddedRequest, SongChangedRequest,
+    SongQueueChangedRequest, SongRemovedRequest, VolumeChangedRequest,
     api::{
         self, Accounts, ContextMenu, CustomRequestReturnType, DatabaseEvents, Extension,
         PlaybackDetailsReturnType, PlayerEvents, PreferenceEvents, Provider,
@@ -248,14 +247,6 @@ impl Provider for SampleExtension {
         })
     }
 
-    fn get_playlist_from_url(
-        &self,
-        req: RequestedPlaylistFromUrlRequest,
-    ) -> api::MoosyncResult<Option<Playlist>> {
-        info!("get_playlist_from_url: {}", req.url);
-        Ok(None)
-    }
-
     fn get_playback_details(
         &self,
         req: PlaybackDetailsRequestedRequest,
@@ -327,14 +318,6 @@ impl Provider for SampleExtension {
     ) -> api::MoosyncResult<Vec<Song>> {
         info!("get_recommendations");
         Ok(vec![])
-    }
-
-    fn get_song_from_url(
-        &self,
-        req: RequestedSongFromUrlRequest,
-    ) -> api::MoosyncResult<Option<Song>> {
-        info!("get_song_from_url: {}", req.url);
-        Ok(None)
     }
 
     fn handle_custom_request(

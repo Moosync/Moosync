@@ -7,12 +7,11 @@ use moosync_edk::{
     OauthCallbackRequest, PerformAccountLoginRequest, PlaybackDetailsRequestedRequest,
     PlayerStateChangedRequest, Playlist, PlaylistAddedRequest, PlaylistRemovedRequest,
     PreferenceChangedRequest, RequestedAlbumSongsRequest, RequestedArtistSongsRequest,
-    RequestedLyricsRequest, RequestedPlaylistContextMenuRequest, RequestedPlaylistFromUrlRequest,
-    RequestedPlaylistSongsRequest, RequestedPlaylistsRequest, RequestedRecommendationsRequest,
-    RequestedSearchResultRequest, RequestedSongContextMenuRequest, RequestedSongFromIdRequest,
-    RequestedSongFromUrlRequest, ScrobbleRequest, SearchResult, SeekedRequest, Song,
-    SongAddedRequest, SongChangedRequest, SongQueueChangedRequest, SongRemovedRequest,
-    VolumeChangedRequest,
+    RequestedLyricsRequest, RequestedPlaylistContextMenuRequest, RequestedPlaylistSongsRequest,
+    RequestedPlaylistsRequest, RequestedRecommendationsRequest, RequestedSearchResultRequest,
+    RequestedSongContextMenuRequest, RequestedSongFromIdRequest, ScrobbleRequest, SearchResult,
+    SeekedRequest, Song, SongAddedRequest, SongChangedRequest, SongQueueChangedRequest,
+    SongRemovedRequest, VolumeChangedRequest,
     api::{
         self, Accounts, ContextMenu, CustomRequestReturnType, DatabaseEvents, Extension,
         PlaybackDetailsReturnType, PlayerEvents, PreferenceEvents, Provider,
@@ -112,13 +111,6 @@ impl Provider for EmptySampleExtension {
         Ok(empty_songs_with_page_token())
     }
 
-    fn get_playlist_from_url(
-        &self,
-        _req: RequestedPlaylistFromUrlRequest,
-    ) -> api::MoosyncResult<Option<Playlist>> {
-        Ok(None)
-    }
-
     fn get_playback_details(
         &self,
         _req: PlaybackDetailsRequestedRequest,
@@ -140,13 +132,6 @@ impl Provider for EmptySampleExtension {
         _req: RequestedRecommendationsRequest,
     ) -> api::MoosyncResult<Vec<Song>> {
         Ok(vec![])
-    }
-
-    fn get_song_from_url(
-        &self,
-        _req: RequestedSongFromUrlRequest,
-    ) -> api::MoosyncResult<Option<Song>> {
-        Ok(None)
     }
 
     fn handle_custom_request(

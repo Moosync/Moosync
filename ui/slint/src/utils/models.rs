@@ -455,8 +455,6 @@ impl From<ExtensionProviderScope> for ProviderScope {
             ExtensionProviderScope::AlbumSongs => ProviderScope::AlbumSongs,
             ExtensionProviderScope::Recommendations => ProviderScope::Recommendations,
             ExtensionProviderScope::Scrobble => ProviderScope::Scrobble,
-            ExtensionProviderScope::PlaylistFromUrl => ProviderScope::PlaylistFromUrl,
-            ExtensionProviderScope::SongFromUrl => ProviderScope::SongFromUrl,
             ExtensionProviderScope::PlaybackDetails => ProviderScope::PlaybackDetails,
             ExtensionProviderScope::Lyrics => ProviderScope::Lyrics,
             ExtensionProviderScope::SongContextMenu => ProviderScope::SongContextMenu,

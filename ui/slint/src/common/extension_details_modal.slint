@@ -33,12 +33,6 @@ export component ExtensionDetailsModal inherits Modal {
         if scope == ProviderScope.scrobble {
             return @tr("Scrobble");
         }
-        if scope == ProviderScope.playlist_from_url {
-            return @tr("Playlist from URL");
-        }
-        if scope == ProviderScope.song_from_url {
-            return @tr("Song from URL");
-        }
         if scope == ProviderScope.playback_details {
             return @tr("Playback Details");
         }

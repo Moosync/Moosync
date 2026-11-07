@@ -14,14 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use assertables::{assert_is_empty, assert_len_eq_x, assert_none, assert_some_eq_x};
+use assertables::{assert_len_eq_x, assert_none, assert_some_eq_x};
 use extensions_proto::moosync::types::{
     ContextMenuActionRequest, ContextMenuReturnType, ExtensionCommand, ExtensionCommandResponse,
     RequestedAlbumSongsResponse, RequestedArtistSongsResponse,
-    RequestedPlaylistContextMenuResponse, RequestedPlaylistFromUrlResponse,
-    RequestedPlaylistSongsResponse, RequestedPlaylistsResponse, RequestedRecommendationsResponse,
-    RequestedSearchResultResponse, RequestedSongContextMenuResponse, RequestedSongFromIdResponse,
-    RequestedSongFromUrlResponse, extension_command, extension_command_response,
+    RequestedPlaylistContextMenuResponse, RequestedPlaylistSongsResponse,
+    RequestedPlaylistsResponse, RequestedRecommendationsResponse, RequestedSearchResultResponse,
+    RequestedSongContextMenuResponse, RequestedSongFromIdResponse, extension_command,
+    extension_command_response,
 };
 use songs_proto::moosync::types::{Album, Artist, InnerSong, Playlist, Song};
 use tracing_test::traced_test;
@@ -161,19 +161,7 @@ fn test_sanitize_songs_responses() {
 #[test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_sanitize_song_from_url_and_id() {
-    let from_url = ExtensionCommandResponse {
-        response: Some(extension_command_response::Response::RequestedSongFromUrl(
-            RequestedSongFromUrlResponse {
-                song: Some(create_test_song("url_song")),
-            },
-        )),
-    };
-    let from_url_empty = ExtensionCommandResponse {
-        response: Some(extension_command_response::Response::RequestedSongFromUrl(
-            RequestedSongFromUrlResponse { song: None },
-        )),
-    };
+fn test_sanitize_song_from_id() {
     let from_id = ExtensionCommandResponse {
         response: Some(extension_command_response::Response::RequestedSongFromId(
             RequestedSongFromIdResponse {
@@ -187,34 +175,8 @@ fn test_sanitize_song_from_url_and_id() {
         )),
     };
 
-    let sanitized_url = from_url.sanitize("my_ext");
-    let sanitized_url_empty = from_url_empty.sanitize("my_ext");
     let sanitized_id = from_id.sanitize("my_ext");
     let sanitized_id_empty = from_id_empty.sanitize("my_ext");
-
-    let Some(extension_command_response::Response::RequestedSongFromUrl(r1)) =
-        sanitized_url.response
-    else {
-        panic!("Expected RequestedSongFromUrl");
-    };
-    assert_some_eq_x!(
-        r1.song
-            .as_ref()
-            .unwrap()
-            .song
-            .as_ref()
-            .unwrap()
-            .id
-            .as_deref(),
-        "my_ext:url_song"
-    );
-
-    let Some(extension_command_response::Response::RequestedSongFromUrl(r2)) =
-        sanitized_url_empty.response
-    else {
-        panic!("Expected RequestedSongFromUrl empty");
-    };
-    assert_none!(&r2.song);
 
     let Some(extension_command_response::Response::RequestedSongFromId(r3)) = sanitized_id.response
     else {
@@ -238,57 +200,6 @@ fn test_sanitize_song_from_url_and_id() {
         panic!("Expected RequestedSongFromId empty");
     };
     assert_none!(&r4.song);
-}
-
-#[test]
-#[traced_test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_sanitize_playlist_from_url() {
-    let response = ExtensionCommandResponse {
-        response: Some(
-            extension_command_response::Response::RequestedPlaylistFromUrl(
-                RequestedPlaylistFromUrlResponse {
-                    playlist: Some(create_test_playlist("pl_url")),
-                    songs: vec![create_test_song("pl_song")],
-                },
-            ),
-        ),
-    };
-    let empty_response = ExtensionCommandResponse {
-        response: Some(
-            extension_command_response::Response::RequestedPlaylistFromUrl(
-                RequestedPlaylistFromUrlResponse {
-                    playlist: None,
-                    songs: vec![],
-                },
-            ),
-        ),
-    };
-
-    let sanitized = response.sanitize("plug");
-    let sanitized_empty = empty_response.sanitize("plug");
-
-    let Some(extension_command_response::Response::RequestedPlaylistFromUrl(r1)) =
-        sanitized.response
-    else {
-        panic!("Expected RequestedPlaylistFromUrl");
-    };
-    assert_some_eq_x!(
-        r1.playlist.as_ref().unwrap().playlist_id.as_deref(),
-        "plug:pl_url"
-    );
-    assert_some_eq_x!(
-        r1.songs[0].song.as_ref().unwrap().id.as_deref(),
-        "plug:pl_song"
-    );
-
-    let Some(extension_command_response::Response::RequestedPlaylistFromUrl(r2)) =
-        sanitized_empty.response
-    else {
-        panic!("Expected RequestedPlaylistFromUrl empty");
-    };
-    assert_none!(&r2.playlist);
-    assert_is_empty!(&r2.songs);
 }
 
 #[test]

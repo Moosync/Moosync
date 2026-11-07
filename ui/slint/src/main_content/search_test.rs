@@ -245,3 +245,35 @@ async fn test_search_page_handler_update_provider_result(
         "Test Ext Display"
     );
 }
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_search_page_handler_auto_switches_tab(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let main_window = Box::leak(Box::new(main_window));
+    let state_manager = Box::leak(Box::new(sm));
+
+    main_window
+        .global::<SearchPageProps>()
+        .set_provider_results(slint::ModelRc::new(slint::VecModel::default()));
+    main_window.global::<SearchPageProps>().set_active_tab(0);
+
+    let res = ProtoSearchResult {
+        playlists: vec![songs_proto::moosync::types::Playlist {
+            playlist_id: Some("pl_auto".to_string()),
+            playlist_name: "Auto Switch Playlist".to_string(),
+            ..Default::default()
+        }],
+        ..Default::default()
+    };
+
+    let cache_dir = state_manager.get_cache_dir();
+    SearchPageHandler::update_provider_result(main_window, &cache_dir, res, None, false, false);
+
+    assert_eq!(main_window.global::<SearchPageProps>().get_active_tab(), 3);
+}

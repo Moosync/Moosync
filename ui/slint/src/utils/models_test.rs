@@ -355,11 +355,6 @@ fn test_extension_path_permission_from_ref_tuple() {
 )]
 #[case(ExtensionProviderScope::Scrobble, ProviderScope::Scrobble)]
 #[case(
-    ExtensionProviderScope::PlaylistFromUrl,
-    ProviderScope::PlaylistFromUrl
-)]
-#[case(ExtensionProviderScope::SongFromUrl, ProviderScope::SongFromUrl)]
-#[case(
     ExtensionProviderScope::PlaybackDetails,
     ProviderScope::PlaybackDetails
 )]

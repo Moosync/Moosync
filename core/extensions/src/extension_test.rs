@@ -718,11 +718,6 @@ impl crate::context::ExtensionContext for MockExtCtx {
                 extensions_proto::moosync::types::RequestedPlaylistsResponse { playlists: vec![] },
             ),
             Some(
-                extensions_proto::moosync::types::extension_command::Event::RequestedSongFromUrl(_),
-            ) => extension_command_response::Response::RequestedSongFromUrl(
-                extensions_proto::moosync::types::RequestedSongFromUrlResponse { song: None },
-            ),
-            Some(
                 extensions_proto::moosync::types::extension_command::Event::RequestedCoverArt(_),
             ) => extension_command_response::Response::RequestedCoverArt(
                 extensions_proto::moosync::types::RequestedCoverArtResponse {
@@ -825,11 +820,6 @@ async fn test_extension_accounts_and_delegated_commands() {
         .get_playlists(extensions_proto::moosync::types::RequestedPlaylistsRequest::default())
         .await;
     assert!(playlists_res.is_ok());
-
-    let song_url_res = ext
-        .get_song_from_url(extensions_proto::moosync::types::RequestedSongFromUrlRequest::default())
-        .await;
-    assert!(song_url_res.is_ok());
 
     let invalid_res = ext
         .get_artist_songs(extensions_proto::moosync::types::RequestedArtistSongsRequest::default())

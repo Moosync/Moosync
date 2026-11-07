@@ -11,7 +11,7 @@ use extensions_proto::moosync::types::{
     ExtensionDetail, ExtensionProviderScope, RequestedSearchResultRequest,
 };
 use futures::StreamExt;
-use slint::{ComponentHandle, ModelRc, VecModel, Weak};
+use slint::{ComponentHandle, Model, ModelRc, VecModel, Weak};
 use songs_proto::moosync::types::SearchResult as ProtoSearchResult;
 use state_manager::StateManager;
 use tracing::Instrument;
@@ -166,7 +166,28 @@ impl SearchPageHandler {
             list.push(result_model);
         }
 
-        props.set_provider_results(ModelRc::new(VecModel::from(list)));
+        props.set_provider_results(ModelRc::new(VecModel::from(list.clone())));
+
+        let current_tab = props.get_active_tab();
+        let has_items_in_tab = |tab: i32| -> bool {
+            list.iter().any(|r| match tab {
+                0 => r.songs.row_count() > 0,
+                1 => r.albums.row_count() > 0,
+                2 => r.artists.row_count() > 0,
+                3 => r.playlists.row_count() > 0,
+                4 => r.genres.row_count() > 0,
+                _ => false,
+            })
+        };
+
+        if !has_items_in_tab(current_tab) {
+            for tab in 0..=4 {
+                if has_items_in_tab(tab) {
+                    props.set_active_tab(tab);
+                    break;
+                }
+            }
+        }
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

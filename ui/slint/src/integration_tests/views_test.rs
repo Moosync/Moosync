@@ -445,6 +445,37 @@ async fn do_has_active_extension_providers(
     );
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_context_menu_add_to_playlist_new(
+    main_window: &'static MainWindow,
+    _state_manager: &'static StateManager,
+) {
+    let song = create_test_song("s_new_pl", "Song New PL", "Album Alpha", "Artist Alpha");
+    let song_model = SongModel::from(song);
+    let song_models = ModelRc::new(VecModel::from(vec![song_model]));
+
+    let callbacks = main_window.global::<slint_app::ContextMenuCallbacks>();
+    let items = callbacks.invoke_get_song_menu_items(song_models.clone());
+    assert!(items.row_count() > 0);
+
+    callbacks.invoke_song_action(song_models, "add_to_playlist:__new__".into());
+
+    let opened = wait_until(|| {
+        main_window
+            .global::<slint_app::SavePlaylistState>()
+            .get_show_modal()
+    })
+    .await;
+    assert!(opened);
+    assert_eq!(
+        main_window
+            .global::<slint_app::SavePlaylistState>()
+            .get_songs()
+            .row_count(),
+        1
+    );
+}
+
 integration_test!(
     test_view_all_songs => do_view_all_songs,
     test_view_playlists => do_view_playlists,
@@ -458,4 +489,5 @@ integration_test!(
     test_select_range_songs_shift => do_select_range_songs_shift,
     test_get_selected_songs => do_get_selected_songs,
     test_has_active_extension_providers => do_has_active_extension_providers,
+    test_context_menu_add_to_playlist_new => do_context_menu_add_to_playlist_new,
 );

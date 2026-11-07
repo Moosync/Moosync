@@ -9,7 +9,7 @@ import {
 } from "../types/song_view.slint";
 import { SongListViewMobile } from "../common/song_list_view_mobile.slint";
 import { GridListViewMobile } from "../common/grid_list_view_mobile.slint";
-import { AppCallbacks } from "../callbacks.slint";
+import { AppCallbacks, ContextMenuCallbacks } from "../callbacks.slint";
 import { Button } from "../common/button_mobile.slint";
 import { Utils, DefaultIconType } from "../utils.slint";
 import { AccountsProps } from "../common/accounts_props.slint";
@@ -164,6 +164,7 @@ export component SearchPageMobile inherits Rectangle {
 
             if (!res_container.current_res.loading && root.active_tab == 1): GridListViewMobile {
                 total_items: res_container.current_res.albums.length;
+                enable_context_menu: true;
                 item_title(idx) => { res_container.current_res.albums[idx].title }
                 item_cover(idx) => { res_container.current_res.albums[idx].coverPath }
                 item_extension(idx) => { res_container.current_res.albums[idx].extension }
@@ -172,10 +173,17 @@ export component SearchPageMobile inherits Rectangle {
                     AlbumsPageProps.selected_album = res_container.current_res.albums[idx];
                     AppProps.active_page = Pages.AlbumContent;
                 }
+                get_context_menu_items(idx) => {
+                    ContextMenuCallbacks.get_album_menu_items([res_container.current_res.albums[idx]])
+                }
+                context_menu_action(idx, action_id) => {
+                    ContextMenuCallbacks.album_action([res_container.current_res.albums[idx]], action_id)
+                }
             }
 
             if (!res_container.current_res.loading && root.active_tab == 2): GridListViewMobile {
                 total_items: res_container.current_res.artists.length;
+                enable_context_menu: true;
                 item_title(idx) => { res_container.current_res.artists[idx].title }
                 item_cover(idx) => { res_container.current_res.artists[idx].coverPath }
                 item_extension(idx) => { res_container.current_res.artists[idx].extension }
@@ -184,10 +192,17 @@ export component SearchPageMobile inherits Rectangle {
                     ArtistsPageProps.selected_artist = res_container.current_res.artists[idx];
                     AppProps.active_page = Pages.ArtistContent;
                 }
+                get_context_menu_items(idx) => {
+                    ContextMenuCallbacks.get_artist_menu_items([res_container.current_res.artists[idx]])
+                }
+                context_menu_action(idx, action_id) => {
+                    ContextMenuCallbacks.artist_action([res_container.current_res.artists[idx]], action_id)
+                }
             }
 
             if (!res_container.current_res.loading && root.active_tab == 3): GridListViewMobile {
                 total_items: res_container.current_res.playlists.length;
+                enable_context_menu: true;
                 item_title(idx) => { res_container.current_res.playlists[idx].title }
                 item_cover(idx) => { res_container.current_res.playlists[idx].coverPath }
                 item_extension(idx) => { res_container.current_res.playlists[idx].extension }
@@ -196,12 +211,25 @@ export component SearchPageMobile inherits Rectangle {
                     PlaylistsPageProps.selected_playlist = res_container.current_res.playlists[idx];
                     AppProps.active_page = Pages.PlaylistContent;
                 }
+                get_context_menu_items(idx) => {
+                    ContextMenuCallbacks.get_playlist_menu_items([res_container.current_res.playlists[idx]])
+                }
+                context_menu_action(idx, action_id) => {
+                    ContextMenuCallbacks.playlist_action([res_container.current_res.playlists[idx]], action_id)
+                }
             }
 
             if (!res_container.current_res.loading && root.active_tab == 4): GridListViewMobile {
                 total_items: res_container.current_res.genres.length;
+                enable_context_menu: true;
                 item_title(idx) => { res_container.current_res.genres[idx].title }
                 item_cover(idx) => { res_container.current_res.genres[idx].coverPath }
+                get_context_menu_items(idx) => {
+                    ContextMenuCallbacks.get_genre_menu_items([res_container.current_res.genres[idx]])
+                }
+                context_menu_action(idx, action_id) => {
+                    ContextMenuCallbacks.genre_action([res_container.current_res.genres[idx]], action_id)
+                }
             }
 
             if (!res_container.current_res.loading && SearchPageProps.search_query != "" && res_container.has_no_results): Rectangle {

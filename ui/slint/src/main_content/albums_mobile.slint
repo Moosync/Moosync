@@ -2,11 +2,13 @@ import { AlbumModel } from "../types/song_view.slint";
 import { GridPageLayoutMobile } from "../common/grid_page_layout_mobile.slint";
 import { Pages } from "../constants_mobile.slint";
 import { AppProps } from "../app_props.slint";
+import { ContextMenuCallbacks } from "../callbacks.slint";
 import { AlbumsPageProps } from "albums_props.slint";
 
 export component AlbumsPageMobile inherits Rectangle {
     GridPageLayoutMobile {
         total_items: AlbumsPageProps.albums.length;
+        enable_context_menu: true;
         item_title(idx) => { AlbumsPageProps.albums[idx].title }
         item_cover(idx) => { AlbumsPageProps.albums[idx].coverPath }
         item_extension(idx) => { AlbumsPageProps.albums[idx].extension }
@@ -14,6 +16,12 @@ export component AlbumsPageMobile inherits Rectangle {
         item_clicked(idx) => {
             AlbumsPageProps.selected-album = AlbumsPageProps.albums[idx];
             AppProps.active_page = Pages.AlbumContent;
+        }
+        get_context_menu_items(idx) => {
+            ContextMenuCallbacks.get_album_menu_items([AlbumsPageProps.albums[idx]])
+        }
+        context_menu_action(idx, action_id) => {
+            ContextMenuCallbacks.album_action([AlbumsPageProps.albums[idx]], action_id)
         }
     }
 }

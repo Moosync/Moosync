@@ -3,11 +3,16 @@ use slint::{ComponentHandle, Model, ModelRc};
 use tracing_test::traced_test;
 
 use super::{
+    ACTION_ADD_TO_PLAYLIST_NEW, ACTION_ADD_TO_QUEUE, ACTION_CLEAR_QUEUE_AND_PLAY, ACTION_PLAY_NEXT,
+    ACTION_PLAY_NOW, ACTION_REMOVE_FROM_PLAYLIST, PREFIX_ADD_TO_PLAYLIST, PREFIX_EXTENSION,
+    PREFIX_GOTO_ALBUM, PREFIX_GOTO_ARTIST, build_album_context_menu_items,
+    build_artist_context_menu_items, build_genre_context_menu_items,
     build_playlist_context_menu_items, build_queue_context_menu_items,
-    build_song_context_menu_items, handle_extension_context_action,
+    build_song_context_menu_items, dispatch_album_context_action, dispatch_artist_context_action,
+    dispatch_genre_context_action, handle_extension_context_action,
 };
 use crate::{
-    MainWindow, PlaylistModel,
+    AlbumModel, ArtistModel, GenreModel, MainWindow, PlaylistModel,
     test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
 };
 
@@ -102,10 +107,15 @@ async fn test_dispatch_song_context_action_playback(
     let song_models = ModelRc::new(slint::VecModel::from(vec![song]));
     let weak = main_window.as_weak();
 
-    super::dispatch_song_context_action(&weak, state_manager, &song_models, "play_now");
-    super::dispatch_song_context_action(&weak, state_manager, &song_models, "play_next");
-    super::dispatch_song_context_action(&weak, state_manager, &song_models, "clear_queue_and_play");
-    super::dispatch_song_context_action(&weak, state_manager, &song_models, "add_to_queue");
+    super::dispatch_song_context_action(&weak, state_manager, &song_models, ACTION_PLAY_NOW);
+    super::dispatch_song_context_action(&weak, state_manager, &song_models, ACTION_PLAY_NEXT);
+    super::dispatch_song_context_action(
+        &weak,
+        state_manager,
+        &song_models,
+        ACTION_CLEAR_QUEUE_AND_PLAY,
+    );
+    super::dispatch_song_context_action(&weak, state_manager, &song_models, ACTION_ADD_TO_QUEUE);
 
     tokio::time::sleep(std::time::Duration::from_millis(50)).await;
     let queue = state_manager.get_player_handler().get_queue();
@@ -135,11 +145,26 @@ async fn test_dispatch_song_context_action_playlist_and_nav(
         &weak,
         state_manager,
         &song_models,
-        "add_to_playlist:p_test",
+        &format!("{PREFIX_ADD_TO_PLAYLIST}p_test"),
     );
-    super::dispatch_song_context_action(&weak, state_manager, &song_models, "remove_from_playlist");
-    super::dispatch_song_context_action(&weak, state_manager, &song_models, "goto_album:alb_test");
-    super::dispatch_song_context_action(&weak, state_manager, &song_models, "goto_artist:art_test");
+    super::dispatch_song_context_action(
+        &weak,
+        state_manager,
+        &song_models,
+        ACTION_REMOVE_FROM_PLAYLIST,
+    );
+    super::dispatch_song_context_action(
+        &weak,
+        state_manager,
+        &song_models,
+        &format!("{PREFIX_GOTO_ALBUM}alb_test"),
+    );
+    super::dispatch_song_context_action(
+        &weak,
+        state_manager,
+        &song_models,
+        &format!("{PREFIX_GOTO_ARTIST}art_test"),
+    );
 
     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
 }
@@ -177,14 +202,99 @@ async fn test_handle_extension_context_action_prefixes(
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
     let state_manager = Box::leak(Box::new(sm));
 
-    let handled_native = handle_extension_context_action(state_manager, "play_now").await;
+    let handled_native = handle_extension_context_action(state_manager, ACTION_PLAY_NOW).await;
     assert!(!handled_native);
 
     let handled_bad_prefix =
-        handle_extension_context_action(state_manager, "extension:no_colon").await;
+        handle_extension_context_action(state_manager, &format!("{PREFIX_EXTENSION}no_colon"))
+            .await;
     assert!(!handled_bad_prefix);
 
-    let handled_ext =
-        handle_extension_context_action(state_manager, "extension:unknown_pkg:my_action").await;
+    let handled_ext = handle_extension_context_action(
+        state_manager,
+        &format!("{PREFIX_EXTENSION}unknown_pkg:my_action"),
+    )
+    .await;
     assert!(handled_ext);
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_dispatch_song_context_action_new_playlist(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let state_manager = Box::leak(Box::new(sm));
+
+    let song = crate::SongModel {
+        id: "song_new_pl".into(),
+        title: "Song New PL".into(),
+        ..Default::default()
+    };
+    let song_models = ModelRc::new(slint::VecModel::from(vec![song]));
+    let weak = main_window.as_weak();
+
+    super::dispatch_song_context_action(
+        &weak,
+        state_manager,
+        &song_models,
+        ACTION_ADD_TO_PLAYLIST_NEW,
+    );
+
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_build_entity_context_menu_items(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let state_manager = Box::leak(Box::new(sm));
+
+    let album_models = ModelRc::new(slint::VecModel::from(vec![AlbumModel::default()]));
+    let artist_models = ModelRc::new(slint::VecModel::from(vec![ArtistModel::default()]));
+    let genre_models = ModelRc::new(slint::VecModel::from(vec![GenreModel::default()]));
+
+    let album_items = build_album_context_menu_items(&main_window, state_manager, &album_models);
+    let artist_items = build_artist_context_menu_items(&main_window, state_manager, &artist_models);
+    let genre_items = build_genre_context_menu_items(&main_window, state_manager, &genre_models);
+
+    assert_eq!(album_items.row_count(), 4);
+    assert_eq!(artist_items.row_count(), 4);
+    assert_eq!(genre_items.row_count(), 4);
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_dispatch_entity_context_actions(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let state_manager = Box::leak(Box::new(sm));
+    let weak = main_window.as_weak();
+
+    let album_models = ModelRc::new(slint::VecModel::from(vec![AlbumModel::default()]));
+    let artist_models = ModelRc::new(slint::VecModel::from(vec![ArtistModel::default()]));
+    let genre_models = ModelRc::new(slint::VecModel::from(vec![GenreModel::default()]));
+
+    dispatch_album_context_action(
+        &weak,
+        state_manager,
+        &album_models,
+        ACTION_ADD_TO_PLAYLIST_NEW,
+    );
+    dispatch_artist_context_action(&weak, state_manager, &artist_models, ACTION_PLAY_NOW);
+    dispatch_genre_context_action(&weak, state_manager, &genre_models, ACTION_ADD_TO_QUEUE);
+
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 }

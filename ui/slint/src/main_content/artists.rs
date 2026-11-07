@@ -3,10 +3,13 @@ use songs_proto::moosync::types::{Artist, ArtistList, GetEntityOptions, entity_r
 use state_manager::StateManager;
 
 use crate::{
-    ArtistModel, ArtistsPageProps, MainWindow,
+    ArtistModel, ArtistsPageProps, ContextMenuCallbacks, MainWindow,
     error::UiError,
     pages::PageHandler,
-    utils::{EntityListCoordinator, EntityListProvider},
+    utils::{
+        EntityListCoordinator, EntityListProvider, build_artist_context_menu_items,
+        dispatch_artist_context_action,
+    },
 };
 
 pub struct ArtistListProvider;
@@ -48,6 +51,24 @@ pub struct ArtistsPageHandler {
 impl ArtistsPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(main_window: &'static MainWindow, state_manager: &'static StateManager) -> Self {
+        main_window
+            .global::<ContextMenuCallbacks>()
+            .on_get_artist_menu_items(move |artist_models| {
+                build_artist_context_menu_items(main_window, state_manager, &artist_models)
+            });
+
+        let main_window_weak = main_window.as_weak();
+        main_window
+            .global::<ContextMenuCallbacks>()
+            .on_artist_action(move |artist_models, action_id| {
+                dispatch_artist_context_action(
+                    &main_window_weak,
+                    state_manager,
+                    &artist_models,
+                    &action_id,
+                );
+            });
+
         Self {
             _main_window: main_window,
             coordinator: EntityListCoordinator::new(main_window, state_manager),

@@ -3,10 +3,13 @@ use songs_proto::moosync::types::{Genre, GenreList, GetEntityOptions, entity_res
 use state_manager::StateManager;
 
 use crate::{
-    GenreModel, GenresPageProps, MainWindow,
+    ContextMenuCallbacks, GenreModel, GenresPageProps, MainWindow,
     error::UiError,
     pages::PageHandler,
-    utils::{EntityListCoordinator, EntityListProvider},
+    utils::{
+        EntityListCoordinator, EntityListProvider, build_genre_context_menu_items,
+        dispatch_genre_context_action,
+    },
 };
 
 pub struct GenreListProvider;
@@ -48,6 +51,24 @@ pub struct GenresPageHandler {
 impl GenresPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(main_window: &'static MainWindow, state_manager: &'static StateManager) -> Self {
+        main_window
+            .global::<ContextMenuCallbacks>()
+            .on_get_genre_menu_items(move |genre_models| {
+                build_genre_context_menu_items(main_window, state_manager, &genre_models)
+            });
+
+        let main_window_weak = main_window.as_weak();
+        main_window
+            .global::<ContextMenuCallbacks>()
+            .on_genre_action(move |genre_models, action_id| {
+                dispatch_genre_context_action(
+                    &main_window_weak,
+                    state_manager,
+                    &genre_models,
+                    &action_id,
+                );
+            });
+
         Self {
             _main_window: main_window,
             coordinator: EntityListCoordinator::new(main_window, state_manager),

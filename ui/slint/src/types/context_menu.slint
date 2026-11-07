@@ -135,6 +135,10 @@ export global ContextMenuItems {
         return @tr("Add to Playlist");
     }
 
+    pure public function get_new_playlist_title() -> string {
+        return @tr("New Playlist…");
+    }
+
     pure public function get_goto_album_title(album_title: string) -> string {
         return @tr("Go to album") + " (" + album_title + ")";
     }

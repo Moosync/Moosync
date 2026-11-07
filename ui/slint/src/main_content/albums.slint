@@ -2,6 +2,7 @@ import { AlbumModel } from "../types/song_view.slint";
 import { GridPageLayout } from "../common/grid_page_layout.slint";
 import { Constants, Pages } from "../constants.slint";
 import { AppProps } from "../app_props.slint";
+import { ContextMenuCallbacks } from "../callbacks.slint";
 
 import { AlbumsPageProps } from "albums_props.slint";
 
@@ -9,6 +10,7 @@ export component AlbumsPage inherits Rectangle {
     GridPageLayout {
         title: @tr("Albums");
         total_items: AlbumsPageProps.albums.length;
+        enable_context_menu: true;
         item_title(idx) => {
             AlbumsPageProps.albums[idx].title
         }
@@ -24,6 +26,12 @@ export component AlbumsPage inherits Rectangle {
         item_clicked(idx) => {
             AlbumsPageProps.selected-album = AlbumsPageProps.albums[idx];
             AppProps.active_page = Pages.AlbumContent;
+        }
+        get_context_menu_items(idx) => {
+            ContextMenuCallbacks.get_album_menu_items([AlbumsPageProps.albums[idx]])
+        }
+        context_menu_action(idx, action_id) => {
+            ContextMenuCallbacks.album_action([AlbumsPageProps.albums[idx]], action_id)
         }
     }
 }

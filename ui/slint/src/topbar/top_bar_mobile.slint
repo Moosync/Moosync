@@ -6,6 +6,7 @@ import { AccountsProps } from "../common/accounts_props.slint";
 import { SearchPageProps } from "../main_content/search_props.slint";
 import { SearchBarMobile } from "search_bar_mobile.slint";
 import { SongSelectionState } from "../common/selection_props.slint";
+import { SavePlaylistState } from "../common/save_playlist_modal_props.slint";
 
 export component TopBarMobile inherits Rectangle {
     property <bool> is_search_open: false;
@@ -91,6 +92,22 @@ export component TopBarMobile inherits Rectangle {
                 height: Theme.mobileIconButtonSize;
                 clicked => {
                     root.is_search_open = true;
+                }
+            }
+        }
+
+        // New Playlist Quick Action (only on Playlists page)
+        if AppProps.active_page == Pages.Playlists: VerticalLayout {
+            alignment: center;
+            IconButton {
+                accessible-label: @tr("New Playlist");
+                icon_source: @image-url("../icons/plus.svg");
+                icon_size: Theme.iconSizeLg;
+                width: Theme.mobileIconButtonSize;
+                height: Theme.mobileIconButtonSize;
+                clicked => {
+                    SavePlaylistState.songs = [];
+                    SavePlaylistState.show_modal = true;
                 }
             }
         }

@@ -359,6 +359,41 @@ async fn do_mobile_save_playlist_modal_close(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
+async fn do_mobile_topbar_new_playlist(
+    main_window: &'static MainWindow,
+    _state_manager: &'static StateManager,
+) {
+    assert_eq!(
+        ElementHandle::find_by_accessible_label(main_window, "New Playlist").count(),
+        0
+    );
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::Playlists);
+    let shown = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "New Playlist").count() > 0
+    })
+    .await;
+    assert!(shown);
+
+    let handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "New Playlist").collect();
+    assert_eq!(handles.len(), 1);
+    click_element(&handles[0]).await;
+
+    let opened = wait_until(|| main_window.global::<SavePlaylistState>().get_show_modal()).await;
+    assert!(opened);
+    assert_eq!(
+        main_window
+            .global::<SavePlaylistState>()
+            .get_songs()
+            .row_count(),
+        0
+    );
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
 async fn do_mobile_save_theme_modal_close(
     main_window: &'static MainWindow,
     _state_manager: &'static StateManager,
@@ -904,6 +939,7 @@ integration_test!(
     test_mobile_queue_sheet_toggle => do_mobile_queue_sheet_toggle,
     test_mobile_settings_modal_navigation_and_close => do_mobile_settings_modal_navigation_and_close,
     test_mobile_save_playlist_modal_close => do_mobile_save_playlist_modal_close,
+    test_mobile_topbar_new_playlist => do_mobile_topbar_new_playlist,
     test_mobile_save_theme_modal_close => do_mobile_save_theme_modal_close,
     test_mobile_oauth_modal_close => do_mobile_oauth_modal_close,
     test_mobile_extension_details_modal_close => do_mobile_extension_details_modal_close,

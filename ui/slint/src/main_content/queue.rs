@@ -12,9 +12,10 @@ use types::{prelude::SongsExt, subscription::CancelHandle};
 
 use crate::{
     AppCallbacks, ContextMenuCallbacks, MainWindow, QueuePageProps, SongModel,
+    main_content::playlists::PlaylistsPageHandler,
     pages::PageHandler,
     utils::{
-        build_queue_context_menu_items, dispatch_song_context_action,
+        IntoVec, build_queue_context_menu_items, dispatch_song_context_action,
         generate_blurred_cover_disk_cache, load_image, make_lazy_song_model, save_queue,
     },
 };
@@ -110,9 +111,10 @@ impl QueuePageHandler {
                 },
             );
 
+        let mw_weak_save = self.main_window.as_weak();
         self.main_window
             .global::<AppCallbacks>()
-            .on_save_queue_as_playlist(move |name, desc| {
+            .on_save_queue_as_playlist(move |name, desc, cover, song_models| {
                 tracing::debug!(
                     "Queue action: save_queue_as_playlist '{}' ('{}')",
                     name,
@@ -120,9 +122,13 @@ impl QueuePageHandler {
                 );
                 let name_str = name.to_string();
                 let desc_str = desc.to_string();
+                let cover_str = cover.to_string();
+                let songs: Vec<Song> = song_models.into_vec().into_iter().map(Song::from).collect();
+                let weak = mw_weak_save.clone();
                 tokio::spawn(
                     async move {
-                        save_queue(state_manager, name_str, desc_str).await;
+                        save_queue(state_manager, name_str, desc_str, cover_str, songs).await;
+                        PlaylistsPageHandler::refresh_playlists(weak, state_manager).await;
                     }
                     .instrument(tracing::debug_span!("slint_cb_on_save_queue_as_playlist")),
                 );

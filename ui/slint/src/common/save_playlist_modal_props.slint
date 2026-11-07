@@ -1,3 +1,6 @@
+import { SongModel } from "../types/song_view.slint";
+
 export global SavePlaylistState {
     in-out property <bool> show_modal: false;
+    in-out property <[SongModel]> songs: [];
 }

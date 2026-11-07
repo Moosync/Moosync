@@ -115,7 +115,15 @@ async fn test_queue_save_queue_as_playlist(state_manager_fixture: TestSlintSmCon
         ph.add_to_queue(vec![song]).await;
     }
 
-    save_queue(&sm, "My Saved Queue".into(), "My Description".into()).await;
+    let queue = sm.get_player_handler().get_queue().to_vec();
+    save_queue(
+        &sm,
+        "My Saved Queue".into(),
+        "My Description".into(),
+        String::new(),
+        queue,
+    )
+    .await;
 
     let db = sm.get_database();
     let playlists_res = db.get_entity_by_options(GetEntityOptions {
@@ -245,7 +253,12 @@ async fn test_queue_page_handler_move_item_and_save_queue(
 
     main_window
         .global::<AppCallbacks>()
-        .invoke_save_queue_as_playlist("Saved Q".into(), "Q Desc".into());
+        .invoke_save_queue_as_playlist(
+            "Saved Q".into(),
+            "Q Desc".into(),
+            "".into(),
+            slint::ModelRc::default(),
+        );
     tokio::time::sleep(Duration::from_millis(50)).await;
 }
 

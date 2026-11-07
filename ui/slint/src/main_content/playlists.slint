@@ -1,5 +1,6 @@
 import { PlaylistModel } from "../types/song_view.slint";
 import { GridPageLayout } from "../common/grid_page_layout.slint";
+import { SavePlaylistState } from "../common/save_playlist_modal_props.slint";
 import { Constants, Pages } from "../constants.slint";
 import { ContextMenuCallbacks } from "../callbacks.slint";
 import { AppProps } from "../app_props.slint";
@@ -11,6 +12,12 @@ export component PlaylistsPage inherits Rectangle {
         title: @tr("Playlists");
         total_items: PlaylistsPageProps.playlists.length;
         enable_context_menu: true;
+        action_button_text: @tr("New Playlist");
+        action_button_icon: @image-url("../icons/plus.svg");
+        action_button_clicked => {
+            SavePlaylistState.songs = [];
+            SavePlaylistState.show_modal = true;
+        }
         item_title(idx) => {
             PlaylistsPageProps.playlists[idx].title
         }

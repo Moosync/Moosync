@@ -250,6 +250,7 @@ export component QueuePage inherits Rectangle {
                     text: @tr("Save as playlist");
                     clicked => {
                         if (QueuePageProps.queue.length > 0) {
+                            SavePlaylistState.songs = QueuePageProps.queue;
                             SavePlaylistState.show_modal = true;
                         }
                     }

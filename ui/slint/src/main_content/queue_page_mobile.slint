@@ -440,6 +440,7 @@ export component QueuePageMobile inherits Rectangle {
                             Button {
                                 text: @tr("Save");
                                 clicked => {
+                                    SavePlaylistState.songs = QueuePageProps.queue;
                                     SavePlaylistState.show_modal = true;
                                 }
                             }

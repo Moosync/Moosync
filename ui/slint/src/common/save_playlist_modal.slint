@@ -2,6 +2,7 @@ import { Theme } from "../constants.slint";
 import { AppCallbacks } from "../callbacks.slint";
 import { Modal, ModalSize } from "modal.slint";
 import { TextInputGroup } from "../settings/text_input.slint";
+import { SingleFileInput } from "../settings/single_file_input.slint";
 import { ButtonGroup } from "../settings/button_group.slint";
 
 import { SavePlaylistState } from "save_playlist_modal_props.slint";
@@ -9,6 +10,7 @@ import { SavePlaylistState } from "save_playlist_modal_props.slint";
 export component SavePlaylistModal inherits Modal {
     in-out property <string> playlist_name: "";
     in-out property <string> playlist_description: "";
+    in-out property <string> playlist_cover: "";
 
     modalSize: ModalSize.Md;
 
@@ -18,8 +20,8 @@ export component SavePlaylistModal inherits Modal {
         border-width: Theme.borderWidth;
         border-color: Theme.accent.transparentize(Theme.percent80);
         clip: true;
-        preferred-height: Theme.trackInfoWidth;
-        max-height: Theme.trackInfoWidth;
+        preferred-height: Theme.modalHeightMd;
+        max-height: Theme.modalHeightMd;
 
         VerticalLayout {
             padding: Theme.paddingMd;
@@ -56,6 +58,13 @@ export component SavePlaylistModal inherits Modal {
                 value <=> root.playlist_description;
             }
 
+            SingleFileInput {
+                title: @tr("Cover Image");
+                subtitle: "";
+                filter: "image";
+                value <=> root.playlist_cover;
+            }
+
             Rectangle {
                 vertical-stretch: 1;
             }
@@ -69,9 +78,11 @@ export component SavePlaylistModal inherits Modal {
                     ];
                     clicked(id) => {
                         if (id == "confirm") {
-                            AppCallbacks.save_queue_as_playlist(root.playlist_name, root.playlist_description);
+                            AppCallbacks.save_queue_as_playlist(root.playlist_name, root.playlist_description, root.playlist_cover, SavePlaylistState.songs);
                             root.playlist_name = "";
                             root.playlist_description = "";
+                            root.playlist_cover = "";
+                            SavePlaylistState.songs = [];
                         }
                         root.close();
                     }

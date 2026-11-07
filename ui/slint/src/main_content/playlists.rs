@@ -7,7 +7,7 @@ use state_manager::StateManager;
 use tracing::Instrument;
 
 use crate::{
-    ContextMenuCallbacks, MainWindow, PlaylistModel, PlaylistsPageProps,
+    AppProps, ContextMenuCallbacks, MainWindow, Pages, PlaylistModel, PlaylistsPageProps,
     error::UiError,
     pages::PageHandler,
     utils::{
@@ -154,9 +154,21 @@ impl PlaylistsPageHandler {
             }
         }
 
+        Self::refresh_playlists(weak, state_manager).await;
+    }
+
+    /// Re-fetches all playlists and updates the playlists page model.
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub(crate) async fn refresh_playlists(
+        weak: Weak<MainWindow>,
+        state_manager: &'static StateManager,
+    ) {
         match PlaylistListProvider::fetch_entities(state_manager).await {
             Ok(playlists) => {
                 let _ = weak.upgrade_in_event_loop(move |main_window| {
+                    if main_window.global::<AppProps>().get_active_page() != Pages::Playlists {
+                        return;
+                    }
                     let playlists: Vec<PlaylistModel> =
                         playlists.into_iter().map(PlaylistModel::from).collect();
                     let model = make_lazy_card_model(&main_window, state_manager, playlists);
@@ -166,7 +178,7 @@ impl PlaylistsPageHandler {
                 });
             }
             Err(e) => {
-                tracing::error!("Failed to refresh playlists after deletion: {:?}", e);
+                tracing::error!("Failed to refresh playlists: {:?}", e);
             }
         }
     }

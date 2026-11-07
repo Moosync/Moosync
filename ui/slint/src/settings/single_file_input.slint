@@ -7,6 +7,7 @@ export component SingleFileInput inherits VerticalLayout {
     in property <PreferenceItem> preference;
     in property <string> title: root.preference.title;
     in property <string> subtitle: root.preference.subtitle;
+    in property <string> filter: "";
     in-out property <string> value: root.preference.value_string;
 
     callback browse_clicked();
@@ -55,7 +56,7 @@ export component SingleFileInput inherits VerticalLayout {
                     icon_source: @image-url("../icons/folder.svg");
                     icon_color: Theme.textPrimary;
                     clicked => {
-                        let chosen = AppCallbacks.open_directory_picker();
+                        let chosen = root.filter != "" ? AppCallbacks.open_file_picker(root.filter) : AppCallbacks.open_directory_picker();
                         if (chosen != "") {
                             if (root.preference.id != "") {
                                 AppCallbacks.preference_changed({

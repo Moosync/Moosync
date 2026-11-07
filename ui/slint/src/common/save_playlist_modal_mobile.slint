@@ -2,11 +2,16 @@ import { Theme } from "../constants_mobile.slint";
 import { AppCallbacks } from "../callbacks.slint";
 import { ButtonMobile } from "button_mobile.slint";
 import { IconButtonMobile } from "icon_button_mobile.slint";
+import { TextInputGroupMobile } from "../settings/text_input_mobile.slint";
+import {
+    SingleFileInputMobile,
+} from "../settings/single_file_input_mobile.slint";
 import { SavePlaylistState } from "save_playlist_modal_props.slint";
 
 export component SavePlaylistModalMobile inherits Rectangle {
     in-out property <string> playlist_name: "";
     in-out property <string> playlist_description: "";
+    in-out property <string> playlist_cover: "";
     callback close();
 
     width: 100%;
@@ -57,54 +62,25 @@ export component SavePlaylistModalMobile inherits Rectangle {
                 spacing: Theme.spacingMd;
                 alignment: start;
 
-                VerticalLayout {
-                    spacing: Theme.spacingXs;
-                    Text {
-                        text: @tr("Playlist Name");
-                        font-size: Theme.caption;
-                        color: Theme.textSecondary;
-                    }
-
-                    Rectangle {
-                        height: Theme.mobileInputHeight;
-                        background: Theme.tertiary;
-                        border-radius: Theme.borderRadiusMd;
-                        HorizontalLayout {
-                            padding-left: Theme.paddingSm;
-                            padding-right: Theme.paddingSm;
-                            TextInput {
-                                text <=> root.playlist_name;
-                                font-size: Theme.body;
-                                color: Theme.textPrimary;
-                                vertical-alignment: center;
-                            }
-                        }
-                    }
+                TextInputGroupMobile {
+                    title: @tr("Playlist Name");
+                    subtitle: "";
+                    placeholder: @tr("e.g., My Queue Playlist");
+                    value <=> root.playlist_name;
                 }
 
-                VerticalLayout {
-                    spacing: Theme.spacingXs;
-                    Text {
-                        text: @tr("Description");
-                        font-size: Theme.caption;
-                        color: Theme.textSecondary;
-                    }
+                TextInputGroupMobile {
+                    title: @tr("Description");
+                    subtitle: "";
+                    placeholder: @tr("e.g., Chill vibes and favorites");
+                    value <=> root.playlist_description;
+                }
 
-                    Rectangle {
-                        height: Theme.mobileInputHeight;
-                        background: Theme.tertiary;
-                        border-radius: Theme.borderRadiusMd;
-                        HorizontalLayout {
-                            padding-left: Theme.paddingSm;
-                            padding-right: Theme.paddingSm;
-                            TextInput {
-                                text <=> root.playlist_description;
-                                font-size: Theme.body;
-                                color: Theme.textPrimary;
-                                vertical-alignment: center;
-                            }
-                        }
-                    }
+                SingleFileInputMobile {
+                    title: @tr("Cover Image");
+                    subtitle: "";
+                    filter: "image";
+                    value <=> root.playlist_cover;
                 }
             }
         }
@@ -119,9 +95,11 @@ export component SavePlaylistModalMobile inherits Rectangle {
                 width: 100%;
                 clicked => {
                     if (root.playlist_name != "") {
-                        AppCallbacks.save_queue_as_playlist(root.playlist_name, root.playlist_description);
+                        AppCallbacks.save_queue_as_playlist(root.playlist_name, root.playlist_description, root.playlist_cover, SavePlaylistState.songs);
                         root.playlist_name = "";
                         root.playlist_description = "";
+                        root.playlist_cover = "";
+                        SavePlaylistState.songs = [];
                     }
                     root.close();
                 }

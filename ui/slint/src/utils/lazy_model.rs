@@ -5,7 +5,9 @@ use std::{
     rc::Rc,
 };
 
-use slint::{ComponentHandle, Image, Model, ModelNotify, ModelRc, ModelTracker, SharedString};
+use slint::{
+    ComponentHandle, Image, Model, ModelNotify, ModelRc, ModelTracker, SharedString, Window,
+};
 use state_manager::StateManager;
 use tracing::{Instrument, trace};
 
@@ -23,12 +25,13 @@ pub fn make_lazy_song_model(
 ) -> ModelRc<SongModel> {
     let theme = main_window.global::<Theme>();
     let cache_dir = state_manager.get_cache_dir();
-    ModelRc::new(LazySongVecModel::new(
+    ModelRc::new(LazySongVecModel::new_with_window(
         songs,
         theme.get_songListItemHeight() as usize,
         theme.get_songListItemWidth() as usize,
         cache_dir,
         false,
+        Some(main_window.window()),
     ))
 }
 
@@ -40,13 +43,36 @@ pub fn make_lazy_card_model<T: LazyModel + 'static>(
 ) -> ModelRc<T> {
     let theme = main_window.global::<Theme>();
     let cache_dir = state_manager.get_cache_dir();
-    ModelRc::new(LazySongVecModel::new(
+    ModelRc::new(LazySongVecModel::new_with_window(
         items,
         theme.get_cardHeight() as usize,
         theme.get_cardWidth() as usize,
         cache_dir,
         true,
+        Some(main_window.window()),
     ))
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn calculate_window_limits(
+    width: usize,
+    height: usize,
+    item_width: usize,
+    item_height: usize,
+) -> (usize, usize) {
+    let columns = if item_width > 0 {
+        width.checked_div(item_width).map_or(1, |c| c.max(1))
+    } else {
+        1
+    };
+    let rows = if item_height > 0 {
+        height.checked_div(item_height).unwrap_or(0) + 2
+    } else {
+        1
+    };
+    let max_items = (rows * columns).max(20);
+    let prefetch = (2 * columns).max(4);
+    (max_items, prefetch)
 }
 
 pub trait LazyModel: Clone {
@@ -96,10 +122,37 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
         cache_dir: PathBuf,
         high_res: bool,
     ) -> Self {
+        Self::new_with_window(array, item_height, item_width, cache_dir, high_res, None)
+    }
+
+    #[tracing::instrument(level = "trace", skip_all)]
+    pub fn new_with_window(
+        array: Vec<T>,
+        item_height: usize,
+        item_width: usize,
+        cache_dir: PathBuf,
+        high_res: bool,
+        window: Option<&Window>,
+    ) -> Self {
+        let (initial_width, initial_height) = if let Some(w) = window {
+            let scale = w.scale_factor();
+            let width = (w.size().width as f32 / scale) as usize;
+            let height = (w.size().height as f32 / scale) as usize;
+            WINDOW_EVENTS.with(|we| we.set_last_size(width, height));
+            (width, height)
+        } else {
+            WINDOW_EVENTS
+                .with(|we| we.get_last_size())
+                .unwrap_or((800, 600))
+        };
+
+        let (initial_max, initial_prefetch) =
+            calculate_window_limits(initial_width, initial_height, item_width, item_height);
+
         let notify = Rc::new(ModelNotify::default());
-        let max_items = Rc::new(Cell::new(1));
+        let max_items = Rc::new(Cell::new(initial_max));
         let max_items_clone = Rc::downgrade(&max_items);
-        let prefetch_count = Rc::new(Cell::new(0));
+        let prefetch_count = Rc::new(Cell::new(initial_prefetch));
         let prefetch_count_clone = Rc::downgrade(&prefetch_count);
 
         WINDOW_EVENTS.with(move |window_events| {
@@ -117,18 +170,15 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
                 let height = (window.size().height as f32 / scale) as usize;
                 let width = (window.size().width as f32 / scale) as usize;
 
-                let columns = width.checked_div(item_width).map_or(1, |c| c.max(1));
-                let mut new_max_items = height.checked_div(item_height).unwrap_or(0);
-                if item_width > 0 {
-                    new_max_items *= columns;
-                }
+                let (new_max_items, new_prefetch) =
+                    calculate_window_limits(width, height, item_width, item_height);
 
                 trace!(
-                    "Window resized {}x{}, item size {}x{}, new max items: {}, columns: {}",
-                    width, height, item_width, item_height, new_max_items, columns
+                    "Window resized {}x{}, item size {}x{}, new max items: {}, prefetch: {}",
+                    width, height, item_width, item_height, new_max_items, new_prefetch
                 );
                 max_items.set(new_max_items);
-                prefetch_count.set(2 * columns);
+                prefetch_count.set(new_prefetch);
             }));
         });
 
@@ -161,6 +211,9 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
         self.set_row_data(row, updated);
         true
     }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn max_len(&self) -> usize { self.max_items.get() + self.prefetch_count.get() * 2 }
 }
 
 impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {

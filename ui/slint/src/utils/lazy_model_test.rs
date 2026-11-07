@@ -202,3 +202,52 @@ async fn test_update_lazy_model_item_single_row(
     assert_eq!(model.row_data(0).unwrap().title.as_str(), "Old Title 1");
     assert_eq!(model.row_data(1).unwrap().title.as_str(), "New Title 2");
 }
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_lazy_card_model_initializes_max_len_on_creation(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let album = AlbumModel {
+        id: "a1".into(),
+        title: "Album 1".into(),
+        ..Default::default()
+    };
+    let card_model = make_lazy_card_model(&main_window, &sm, vec![album]);
+    let lazy_model = card_model
+        .as_any()
+        .downcast_ref::<LazySongVecModel<AlbumModel>>()
+        .expect("downcast to LazySongVecModel");
+
+    assert!(
+        lazy_model.max_len() > 1,
+        "max_len was {} on creation; expected > 1",
+        lazy_model.max_len()
+    );
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_lazy_card_model_max_len_exceeds_visible_items(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let card_model = make_lazy_card_model(&main_window, &sm, Vec::<AlbumModel>::new());
+    let lazy_model = card_model
+        .as_any()
+        .downcast_ref::<LazySongVecModel<AlbumModel>>()
+        .expect("downcast to LazySongVecModel");
+
+    assert!(
+        lazy_model.max_len() >= 20,
+        "max_len was {}; expected >= 20 to prevent thrashing",
+        lazy_model.max_len()
+    );
+}

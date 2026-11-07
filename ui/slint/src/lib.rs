@@ -175,6 +175,12 @@ pub fn run() {
 
 #[tracing::instrument(level = "debug", skip_all)]
 fn setup_resize(main_window: &MainWindow) {
+    let window = main_window.window();
+    let scale = window.scale_factor();
+    let width = (window.size().width as f32 / scale) as usize;
+    let height = (window.size().height as f32 / scale) as usize;
+    WINDOW_EVENTS.with(|we| we.set_last_size(width, height));
+
     let main_window_weak = main_window.as_weak();
     main_window.global::<AppCallbacks>().on_resize(move || {
         if let Some(main_window) = main_window_weak.upgrade() {

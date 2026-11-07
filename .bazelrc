@@ -33,6 +33,8 @@ build:sonar --output_groups=+clippy_output
 # Android NDK/SDK configuration - propagate from host environment
 common --repo_env=ANDROID_NDK_HOME
 common --action_env=ANDROID_NDK_HOME
+common --repo_env=ANDROID_NDK
+common --action_env=ANDROID_NDK
 common --repo_env=ANDROID_HOME
 common --action_env=ANDROID_HOME
 common --repo_env=ANDROID_SDK_ROOT

@@ -186,6 +186,7 @@ jobs:
         env:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
           ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/29.0.13599879
+          ANDROID_NDK: ${{ env.ANDROID_HOME }}/ndk/29.0.13599879
 
       - name: Prepare Artifacts for Upload
         shell: bash

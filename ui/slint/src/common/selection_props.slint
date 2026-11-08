@@ -1,6 +1,10 @@
+import { SongModel } from "../types/song_view.slint";
+
 export global SongSelectionState {
     in-out property <bool> selection_mode: false;
     in-out property <int> selected_count: 0;
+    in-out property <int> total_count: 0;
+    in-out property <[SongModel]> selected_songs: [];
     in-out property <bool> select_all_trigger: false;
     in-out property <bool> clear_selection_trigger: false;
 
@@ -12,5 +16,7 @@ export global SongSelectionState {
         self.clear_selection_trigger = !self.clear_selection_trigger;
         self.selection_mode = false;
         self.selected_count = 0;
+        self.total_count = 0;
+        self.selected_songs = [];
     }
 }

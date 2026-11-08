@@ -95,6 +95,20 @@ async fn do_mobile_topbar_accounts_toggle(
 
     let opened = wait_until(|| main_window.global::<AccountsProps>().get_show_accounts()).await;
     assert!(opened);
+    tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+
+    let card_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Accounts Card").collect();
+    assert_eq!(card_handles.len(), 1);
+    let opacity_val: f32 = card_handles[0]
+        .accessible_value()
+        .expect("Accounts Card should have accessible value for opacity")
+        .parse()
+        .expect("opacity should be a valid float");
+    assert!(
+        opacity_val > 0.0,
+        "Accounts card opacity must be greater than 0"
+    );
 
     let close_handles: Vec<ElementHandle> =
         ElementHandle::find_by_accessible_label(main_window, "Close").collect();
@@ -707,6 +721,13 @@ async fn do_mobile_context_menu_drag_handle_click(
     .await;
     assert!(songs_loaded);
 
+    let song_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Context Track").collect();
+    assert_eq!(song_handles.len(), 1);
+    song_handles[0]
+        .single_click(slint::platform::PointerEventButton::Right)
+        .await;
+
     let loaded = wait_until(|| {
         ElementHandle::find_by_accessible_label(main_window, "More options").count() > 0
     })
@@ -737,6 +758,9 @@ async fn do_mobile_context_menu_drag_handle_click(
         ElementHandle::find_by_accessible_label(main_window, "Context Menu Drag Handle").count(),
         1
     );
+    main_window
+        .global::<SongSelectionState>()
+        .invoke_trigger_clear_selection();
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -770,6 +794,19 @@ async fn do_mobile_context_menu_drag_fills_bottom(
     .await;
     assert!(songs_loaded);
 
+    let song_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Context Track 2").collect();
+    assert_eq!(song_handles.len(), 1);
+    song_handles[0]
+        .single_click(slint::platform::PointerEventButton::Right)
+        .await;
+
+    let more_loaded = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "More options").count() > 0
+    })
+    .await;
+    assert!(more_loaded);
+
     let more_handles: Vec<ElementHandle> =
         ElementHandle::find_by_accessible_label(main_window, "More options").collect();
     assert!(!more_handles.is_empty());
@@ -789,6 +826,9 @@ async fn do_mobile_context_menu_drag_fills_bottom(
 
     let initial_y = handle[0].absolute_position().y;
     assert!(initial_y > 0.0);
+    main_window
+        .global::<SongSelectionState>()
+        .invoke_trigger_clear_selection();
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -822,6 +862,19 @@ async fn do_mobile_context_menu_submenu_navigation(
     .await;
     assert!(songs_loaded);
 
+    let song_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Submenu Track").collect();
+    assert_eq!(song_handles.len(), 1);
+    song_handles[0]
+        .single_click(slint::platform::PointerEventButton::Right)
+        .await;
+
+    let more_loaded = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "More options").count() > 0
+    })
+    .await;
+    assert!(more_loaded);
+
     let more_handles: Vec<ElementHandle> =
         ElementHandle::find_by_accessible_label(main_window, "More options").collect();
     assert!(!more_handles.is_empty());
@@ -854,6 +907,9 @@ async fn do_mobile_context_menu_submenu_navigation(
         wait_until(|| ElementHandle::find_by_accessible_label(main_window, "Play Now").count() > 0)
             .await;
     assert!(returned_to_main);
+    main_window
+        .global::<SongSelectionState>()
+        .invoke_trigger_clear_selection();
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -902,6 +958,160 @@ async fn do_mobile_progress_bar_tap_bounds(
     assert!(pos > 0);
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_mobile_multi_song_selection_and_context_menu(
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) {
+    let s1 = create_test_song("mob_msel1", "Multi Track 1", "Sel Alb", "Sel Art");
+    let s2 = create_test_song("mob_msel2", "Multi Track 2", "Sel Alb", "Sel Art");
+    let database = state_manager.get_database();
+    database.insert_songs(vec![s1, s2]).unwrap();
+
+    if main_window.global::<AppProps>().get_active_page() == Pages::AllSongs {
+        main_window
+            .global::<AppCallbacks>()
+            .invoke_active_page_changed(Pages::Search);
+        let _ = wait_until(|| main_window.global::<AppProps>().get_active_page() == Pages::Search)
+            .await;
+    }
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::AllSongs);
+
+    let songs_loaded = wait_until(|| {
+        main_window
+            .global::<AllSongsPageProps>()
+            .get_songs()
+            .row_count()
+            >= 2
+    })
+    .await;
+    assert!(songs_loaded);
+
+    let s1_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Multi Track 1").collect();
+    assert_eq!(s1_handles.len(), 1);
+
+    let s2_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Multi Track 2").collect();
+    assert_eq!(s2_handles.len(), 1);
+
+    s1_handles[0]
+        .single_click(slint::platform::PointerEventButton::Right)
+        .await;
+
+    let selection_active = wait_until(|| {
+        main_window
+            .global::<SongSelectionState>()
+            .get_selection_mode()
+    })
+    .await;
+    assert!(selection_active);
+    assert_eq!(
+        main_window
+            .global::<SongSelectionState>()
+            .get_selected_count(),
+        1
+    );
+
+    s2_handles[0]
+        .single_click(slint::platform::PointerEventButton::Left)
+        .await;
+
+    let two_selected = wait_until(|| {
+        main_window
+            .global::<SongSelectionState>()
+            .get_selected_count()
+            == 2
+    })
+    .await;
+    assert!(two_selected);
+
+    let more_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "More options").collect();
+    assert_eq!(more_handles.len(), 1);
+
+    s2_handles[0]
+        .single_click(slint::platform::PointerEventButton::Left)
+        .await;
+
+    let one_selected = wait_until(|| {
+        main_window
+            .global::<SongSelectionState>()
+            .get_selected_count()
+            == 1
+    })
+    .await;
+    assert!(one_selected);
+    assert!(
+        main_window
+            .global::<SongSelectionState>()
+            .get_selection_mode()
+    );
+
+    let select_all_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Select all").collect();
+    assert_eq!(select_all_handles.len(), 1);
+
+    click_element(&select_all_handles[0]).await;
+
+    let all_selected = wait_until(|| {
+        main_window
+            .global::<SongSelectionState>()
+            .get_selected_count()
+            == 2
+    })
+    .await;
+    assert!(all_selected);
+
+    s1_handles[0]
+        .single_click(slint::platform::PointerEventButton::Left)
+        .await;
+
+    let deselected_one = wait_until(|| {
+        main_window
+            .global::<SongSelectionState>()
+            .get_selected_count()
+            == 1
+    })
+    .await;
+    assert!(deselected_one);
+    assert!(
+        main_window
+            .global::<SongSelectionState>()
+            .get_selection_mode()
+    );
+
+    let select_all_again: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Select all").collect();
+    assert_eq!(select_all_again.len(), 1);
+    click_element(&select_all_again[0]).await;
+
+    let all_selected_again = wait_until(|| {
+        main_window
+            .global::<SongSelectionState>()
+            .get_selected_count()
+            == 2
+    })
+    .await;
+    assert!(all_selected_again);
+
+    let deselect_all_btn: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Select all").collect();
+    assert_eq!(deselect_all_btn.len(), 1);
+    click_element(&deselect_all_btn[0]).await;
+
+    let all_deselected = wait_until(|| {
+        !main_window
+            .global::<SongSelectionState>()
+            .get_selection_mode()
+    })
+    .await;
+    assert!(all_deselected);
+}
+
 parameterized_test!(
     do_mobile_bottom_nav_target,
     (
@@ -944,6 +1154,7 @@ integration_test!(
     test_mobile_oauth_modal_close => do_mobile_oauth_modal_close,
     test_mobile_extension_details_modal_close => do_mobile_extension_details_modal_close,
     test_mobile_song_selection_toggle => do_mobile_song_selection_toggle,
+    test_mobile_multi_song_selection_and_context_menu => do_mobile_multi_song_selection_and_context_menu,
     test_mobile_close_all_modals => do_mobile_close_all_modals,
     test_mobile_context_menu_drag_handle_click => do_mobile_context_menu_drag_handle_click,
     test_mobile_context_menu_drag_fills_bottom => do_mobile_context_menu_drag_fills_bottom,

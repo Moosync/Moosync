@@ -1,6 +1,7 @@
 import { Theme, Pages } from "../constants_mobile.slint";
 import { IconButton } from "../common/icon_button_mobile.slint";
-import { AppCallbacks } from "../callbacks.slint";
+import { AppCallbacks, ContextMenuCallbacks } from "../callbacks.slint";
+import { ContextMenuMobile } from "../common/context_menu_mobile.slint";
 import { AppProps } from "../app_props.slint";
 import { AccountsProps } from "../common/accounts_props.slint";
 import { SearchPageProps } from "../main_content/search_props.slint";
@@ -44,18 +45,52 @@ export component TopBarMobile inherits Rectangle {
             }
         }
 
-        VerticalLayout {
-            alignment: center;
-            IconButton {
-                accessible-label: @tr("Select all");
-                icon_source: @image-url("../icons/select_all.svg");
-                icon_size: Theme.iconSizeLg;
-                width: Theme.mobileIconButtonSize;
-                height: Theme.mobileIconButtonSize;
-                clicked => {
-                    SongSelectionState.trigger_select_all();
+        HorizontalLayout {
+            spacing: Theme.spacingSm;
+            alignment: end;
+
+            VerticalLayout {
+                alignment: center;
+                IconButton {
+                    accessible-label: @tr("Select all");
+                    icon_source: @image-url("../icons/select_all.svg");
+                    icon_size: Theme.iconSizeLg;
+                    width: Theme.mobileIconButtonSize;
+                    height: Theme.mobileIconButtonSize;
+                    clicked => {
+                        SongSelectionState.trigger_select_all();
+                    }
                 }
             }
+
+            VerticalLayout {
+                alignment: center;
+                IconButton {
+                    accessible-label: @tr("More options");
+                    icon_source: @image-url("../icons/ellipsis.svg");
+                    icon_size: Theme.iconSizeLg;
+                    width: Theme.mobileIconButtonSize;
+                    height: Theme.mobileIconButtonSize;
+                    clicked => {
+                        selection_context_menu.show();
+                    }
+                }
+            }
+        }
+    }
+
+    selection_context_menu := ContextMenuMobile {
+        items: ContextMenuCallbacks.get_song_menu_items(SongSelectionState.selected_songs);
+        selected(id) => {
+            ContextMenuCallbacks.song_action(SongSelectionState.selected_songs, id);
+            SongSelectionState.trigger_clear_selection();
+        }
+    }
+
+    property <bool> selection_mode: SongSelectionState.selection_mode;
+    changed selection_mode => {
+        if (!root.selection_mode) {
+            selection_context_menu.hide();
         }
     }
 

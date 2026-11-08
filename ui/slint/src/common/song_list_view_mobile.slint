@@ -38,12 +38,13 @@ export component SongListViewMobile inherits Rectangle {
     property <bool> clear_selection_trigger: SongSelectionState.clear_selection_trigger;
 
     changed select_all_trigger => {
-        if (root.selection_mode) {
+        if (root.selection_mode && root.display-songs.length > 0) {
             if (root.selected-indices.length == root.display-songs.length) {
                 root.cancel_selection();
             } else {
                 root.selected-indices = UtilCallbacks.select_all(root.display-songs.length);
                 SongSelectionState.selected_count = root.selected-indices.length;
+                SongSelectionState.selected_songs = root.selected-songs;
             }
         }
     }
@@ -53,9 +54,12 @@ export component SongListViewMobile inherits Rectangle {
     }
 
     changed selected-indices => {
-        SongSelectionState.selected_count = root.selected-indices.length;
-        if (root.selected-indices.length == 0 && root.selection_mode) {
-            root.cancel_selection();
+        if (root.selection_mode && root.display-songs.length > 0) {
+            SongSelectionState.selected_count = root.selected-indices.length;
+            SongSelectionState.selected_songs = root.selected-songs;
+            if (root.selected-indices.length == 0) {
+                root.cancel_selection();
+            }
         }
     }
 
@@ -64,12 +68,15 @@ export component SongListViewMobile inherits Rectangle {
         root.selection_mode = false;
         SongSelectionState.selection_mode = false;
         SongSelectionState.selected_count = 0;
+        SongSelectionState.total_count = 0;
+        SongSelectionState.selected_songs = [];
     }
 
     public function toggle_selection_mode(idx: int) {
         if (!root.selection_mode) {
             root.selection_mode = true;
             SongSelectionState.selection_mode = true;
+            SongSelectionState.total_count = root.display-songs.length;
             root.selected-indices = UtilCallbacks.update_selection(
                 [],
                 idx,
@@ -79,6 +86,7 @@ export component SongListViewMobile inherits Rectangle {
                 false,
                 root.display-songs.length);
             SongSelectionState.selected_count = root.selected-indices.length;
+            SongSelectionState.selected_songs = root.selected-songs;
         } else {
             root.cancel_selection();
         }
@@ -253,6 +261,8 @@ export component SongListViewMobile inherits Rectangle {
                                 false,
                                 false,
                                 root.display-songs.length);
+                            SongSelectionState.selected_count = root.selected-indices.length;
+                            SongSelectionState.selected_songs = root.selected-songs;
                         } else {
                             AppCallbacks.play-song(song);
                         }
@@ -261,9 +271,6 @@ export component SongListViewMobile inherits Rectangle {
                         if (event.kind == PointerEventKind.down && event.button == PointerEventButton.right) {
                             root.toggle_selection_mode(idx);
                         }
-                    }
-                    get_selected_songs => {
-                        return root.selected-songs;
                     }
                 }
             }

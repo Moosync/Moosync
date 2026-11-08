@@ -1,8 +1,6 @@
 import { SongModel } from "../types/song_view.slint";
 import { Constants, Theme } from "../constants_mobile.slint";
-import { AppCallbacks, ContextMenuCallbacks } from "../callbacks.slint";
-import { ContextMenuMobile } from "context_menu_mobile.slint";
-import { IconButton } from "icon_button_mobile.slint";
+import { AppCallbacks } from "../callbacks.slint";
 import {
     SongItemThumbnail,
     SongItemInfo,
@@ -15,7 +13,6 @@ export component SongListItemMobile inherits Rectangle {
     callback clicked();
     callback long_pressed();
     callback item_pressed(PointerEvent);
-    pure callback get_selected_songs() -> [SongModel];
 
     property <bool> is_long_press: false;
 
@@ -70,9 +67,11 @@ export component SongListItemMobile inherits Rectangle {
 
         SongItemThumbnail {
             song: root.song;
-            show_play_overlay: true;
+            show_play_overlay: !root.selection_mode;
             play_clicked => {
-                AppCallbacks.play-song(root.song);
+                if (!root.selection_mode) {
+                    AppCallbacks.play-song(root.song);
+                }
             }
         }
 
@@ -99,25 +98,7 @@ export component SongListItemMobile inherits Rectangle {
                     color: Theme.textSecondary;
                     vertical-alignment: center;
                 }
-
-                IconButton {
-                    accessible-label: @tr("More options");
-                    icon_source: @image-url("../icons/ellipsis.svg");
-                    icon_size: Theme.iconSizeMd;
-                    width: Theme.mobileButtonSize;
-                    height: Theme.mobileButtonSize;
-                    clicked => {
-                        context_menu.show();
-                    }
-                }
             }
-        }
-    }
-
-    context_menu := ContextMenuMobile {
-        items: ContextMenuCallbacks.get_song_menu_items((root.is_selected && root.get_selected_songs().length > 0) ? root.get_selected_songs() : [root.song]);
-        selected(id) => {
-            ContextMenuCallbacks.song_action((root.is_selected && root.get_selected_songs().length > 0) ? root.get_selected_songs() : [root.song], id);
         }
     }
 }

@@ -123,6 +123,50 @@ async fn do_mobile_topbar_accounts_toggle(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
+async fn do_mobile_accounts_popup_settings_click(
+    main_window: &'static MainWindow,
+    _state_manager: &'static StateManager,
+) {
+    main_window
+        .global::<AccountsProps>()
+        .set_show_accounts(true);
+    let opened = wait_until(|| main_window.global::<AccountsProps>().get_show_accounts()).await;
+    assert!(opened);
+
+    let settings_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Settings").collect();
+    assert_eq!(settings_handles.len(), 1);
+    assert!(settings_handles[0].is_valid());
+
+    let start_time = std::time::Instant::now();
+    click_element(&settings_handles[0]).await;
+
+    assert!(main_window.global::<SettingsState>().get_show_settings());
+    assert!(main_window.global::<AccountsProps>().get_show_accounts());
+
+    let settings_opened = wait_until(|| {
+        main_window.global::<SettingsState>().get_show_settings()
+            && !main_window.global::<AccountsProps>().get_show_accounts()
+            && ElementHandle::find_by_accessible_label(main_window, "Paths Settings").count() > 0
+    })
+    .await;
+    assert!(settings_opened);
+    assert!(
+        start_time.elapsed() >= std::time::Duration::from_millis(200),
+        "accounts popup must close after settings animation completes (took {:?})",
+        start_time.elapsed()
+    );
+    assert!(main_window.global::<SettingsState>().get_show_settings());
+    assert!(!main_window.global::<AccountsProps>().get_show_accounts());
+
+    main_window
+        .global::<SettingsState>()
+        .set_show_settings(false);
+    let closed = wait_until(|| !main_window.global::<SettingsState>().get_show_settings()).await;
+    assert!(closed);
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
 async fn do_mobile_bottombar_play_pause(
     main_window: &'static MainWindow,
     state_manager: &'static StateManager,
@@ -1314,6 +1358,7 @@ parameterized_test!(
 integration_test!(
     test_mobile_topbar_search_toggle => do_mobile_topbar_search_toggle,
     test_mobile_topbar_accounts_toggle => do_mobile_topbar_accounts_toggle,
+    test_mobile_accounts_popup_settings_click => do_mobile_accounts_popup_settings_click,
     test_mobile_bottombar_play_pause => do_mobile_bottombar_play_pause,
     test_mobile_now_playing_controls => do_mobile_now_playing_controls,
     test_mobile_queue_sheet_toggle => do_mobile_queue_sheet_toggle,

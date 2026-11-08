@@ -11,6 +11,18 @@ import { ScrollView } from "std-widgets.slint";
 export component AccountsPopupMobile inherits Rectangle {
     callback close();
 
+    property <bool> is_closing: false;
+
+    close_timer := Timer {
+        interval: Theme.durationMedium;
+        running: false;
+        triggered => {
+            self.running = false;
+            root.is_closing = false;
+            root.close();
+        }
+    }
+
     property <float> ease_progress: 0.0;
     animate ease_progress {
         duration: Theme.durationNormal;
@@ -34,7 +46,9 @@ export component AccountsPopupMobile inherits Rectangle {
             width: 100%;
             height: 100%;
             clicked => {
-                root.close();
+                if (!root.is_closing) {
+                    root.close();
+                }
             }
         }
     }
@@ -70,7 +84,9 @@ export component AccountsPopupMobile inherits Rectangle {
                     width: Theme.searchBarHeight;
                     height: Theme.searchBarHeight;
                     clicked => {
-                        root.close();
+                        if (!root.is_closing) {
+                            root.close();
+                        }
                     }
                 }
 
@@ -115,12 +131,14 @@ export component AccountsPopupMobile inherits Rectangle {
                         for item in AccountsProps.accounts: AccountItemButton {
                             item: item;
                             clicked => {
-                                if (item.logged_in) {
-                                    AppCallbacks.account_logout(item.package_name, item.id);
-                                } else {
-                                    AppCallbacks.account_login(item.package_name, item.id);
+                                if (!root.is_closing) {
+                                    if (item.logged_in) {
+                                        AppCallbacks.account_logout(item.package_name, item.id);
+                                    } else {
+                                        AppCallbacks.account_login(item.package_name, item.id);
+                                    }
+                                    root.close();
                                 }
-                                root.close();
                             }
                         }
                     }
@@ -133,13 +151,17 @@ export component AccountsPopupMobile inherits Rectangle {
                 padding-bottom: Theme.paddingXs;
 
                 PillButton {
+                    text: @tr("Settings");
                     has_custom_layout: true;
                     background: Theme.primary;
                     border-width: Theme.borderWidth;
                     border-color: Theme.divider;
                     clicked => {
-                        root.close();
-                        SettingsState.show_settings = true;
+                        if (!root.is_closing) {
+                            root.is_closing = true;
+                            SettingsState.show_settings = true;
+                            close_timer.running = true;
+                        }
                     }
 
                     HorizontalLayout {
@@ -159,6 +181,7 @@ export component AccountsPopupMobile inherits Rectangle {
                         }
 
                         Text {
+                            accessible-role: none;
                             text: @tr("Settings");
                             font-size: Theme.body;
                             font-weight: 600;

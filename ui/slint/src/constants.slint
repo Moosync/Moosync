@@ -12,9 +12,23 @@ import { ExtensionItem } from "./types/extension_view.slint";
 export global Constants {
     out property <duration> page-transition-duration: 250ms;
 
+    // Sort Criteria IDs
+    out property <string> sort_by_title: "title";
+    out property <string> sort_by_date: "date";
+    out property <string> sort_by_album: "album";
+    out property <string> sort_by_track: "track";
+    out property <string> sort_by_artist: "artist";
+
+    // Context Menu Action IDs
+    out property <string> action_play_all: "play_all";
+    out property <string> action_sort: "sort";
+    out property <string> action_extensions: "extensions";
+    out property <string> action_new_playlist: "new_playlist";
+    out property <string> action_save_playlist: "save_playlist";
+
     out property <[MenuItem]> sortMenuItems: [
         {
-            id: "title",
+            id: Constants.sort_by_title,
             title: @tr("Title"),
             icon: @image-url(""),
             is-selected: false,
@@ -22,7 +36,7 @@ export global Constants {
             is-danger: false,
         },
         {
-            id: "date",
+            id: Constants.sort_by_date,
             title: @tr("Date"),
             icon: @image-url(""),
             is-selected: false,
@@ -30,7 +44,7 @@ export global Constants {
             is-danger: false,
         },
         {
-            id: "album",
+            id: Constants.sort_by_album,
             title: @tr("Album"),
             icon: @image-url(""),
             is-selected: false,
@@ -38,7 +52,7 @@ export global Constants {
             is-danger: false,
         },
         {
-            id: "track",
+            id: Constants.sort_by_track,
             title: @tr("Track Number"),
             icon: @image-url(""),
             is-selected: false,
@@ -46,7 +60,7 @@ export global Constants {
             is-danger: false,
         },
         {
-            id: "artist",
+            id: Constants.sort_by_artist,
             title: @tr("Artist"),
             icon: @image-url(""),
             is-selected: false,

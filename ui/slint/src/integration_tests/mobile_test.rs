@@ -4,13 +4,15 @@ use i_slint_backend_testing::ElementHandle;
 use slint::{ComponentHandle, Model, ModelRc, VecModel};
 use slint_app::{
     AccountsProps, AllSongsPageProps, AppCallbacks, AppProps, ExtensionDetailsState, MainWindow,
-    OAuthState, Pages, PlayerProps, QueuePageProps, SavePlaylistState, SaveThemeState,
-    SettingsPages, SettingsState, SongModel, SongSelectionState,
+    OAuthState, Pages, PlayerProps, PlaylistContentPageProps, PlaylistModel, PlaylistsPageProps,
+    QueuePageProps, SavePlaylistState, SaveThemeState, SettingsPages, SettingsState, SongModel,
+    SongSelectionState,
     test_utils::integration::{
-        click_element, create_test_song, integration_test, parameterized_test, wait_until,
-        wait_until_timeout,
+        ExtensionFixture, click_element, create_test_song, integration_test, parameterized_test,
+        wait_until, wait_until_timeout,
     },
 };
+use songs_proto::moosync::types::{GetEntityOptions, Playlist, entity_result};
 use state_manager::StateManager;
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -1326,6 +1328,151 @@ async fn do_mobile_context_menu_close_animation_and_on_hide(
         .invoke_trigger_clear_selection();
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_mobile_topbar_context_menu_extensions(
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) {
+    let _ext = ExtensionFixture::new(state_manager).await;
+
+    let song = create_test_song(
+        "pl_ext_song",
+        "PL Ext Song",
+        "PL Ext Album",
+        "PL Ext Artist",
+    );
+    let database = state_manager.get_database();
+    database.insert_songs(vec![song.clone()]).unwrap();
+
+    let playlist = Playlist {
+        playlist_name: "Mobile Ext Playlist".into(),
+        ..Default::default()
+    };
+    let playlist_id = database.create_playlist(playlist).unwrap();
+    database
+        .add_to_playlist(&playlist_id, std::slice::from_ref(&song))
+        .unwrap();
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::Playlists);
+    let _ =
+        wait_until(|| main_window.global::<AppProps>().get_active_page() == Pages::Playlists).await;
+
+    main_window
+        .global::<PlaylistsPageProps>()
+        .set_selected_playlist(PlaylistModel {
+            id: playlist_id.into(),
+            title: "Mobile Ext Playlist".into(),
+            ..Default::default()
+        });
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::PlaylistContent);
+    let _ =
+        wait_until(|| main_window.global::<AppProps>().get_active_page() == Pages::PlaylistContent)
+            .await;
+
+    let providers_loaded = wait_until(|| {
+        main_window
+            .global::<PlaylistContentPageProps>()
+            .get_extension_providers()
+            .row_count()
+            >= 1
+    })
+    .await;
+    assert!(providers_loaded);
+
+    let more_loaded = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "More options").count() > 0
+    })
+    .await;
+    assert!(more_loaded);
+
+    let more_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "More options").collect();
+    assert_eq!(more_handles.len(), 1);
+    click_element(&more_handles[0]).await;
+
+    let dynamic_pl_item_loaded = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Sample Playlist Action").count() > 0
+    })
+    .await;
+    assert!(dynamic_pl_item_loaded);
+    tokio::time::sleep(std::time::Duration::from_millis(400)).await;
+
+    let pl_action_button =
+        ElementHandle::find_by_accessible_label(main_window, "Sample Playlist Action")
+            .find(|h| h.accessible_role() == Some(i_slint_backend_testing::AccessibleRole::Button))
+            .expect("Sample Playlist Action button found");
+    click_element(&pl_action_button).await;
+
+    let playlist_action_executed = wait_until(|| {
+        database
+            .get_entity_by_options(GetEntityOptions {
+                playlist: Some(Playlist {
+                    playlist_id: Some("rs.sample:ctx_action_playlist".into()),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            })
+            .is_ok_and(|res| match res.result {
+                Some(entity_result::Result::Playlists(list)) => {
+                    list.playlists.len() == 1
+                        && list.playlists[0].playlist_name == "Context Action Playlist"
+                }
+                _ => false,
+            })
+    })
+    .await;
+    assert!(playlist_action_executed);
+    tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+
+    let more_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "More options").collect();
+    assert_eq!(more_handles.len(), 1);
+    click_element(&more_handles[0]).await;
+
+    let ext_item_loaded = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Extensions")
+            .any(|h| h.accessible_role() == Some(i_slint_backend_testing::AccessibleRole::Button))
+    })
+    .await;
+    assert!(ext_item_loaded);
+    tokio::time::sleep(std::time::Duration::from_millis(400)).await;
+
+    let ext_button = ElementHandle::find_by_accessible_label(main_window, "Extensions")
+        .find(|h| h.accessible_role() == Some(i_slint_backend_testing::AccessibleRole::Button))
+        .expect("Extensions button found");
+    click_element(&ext_button).await;
+
+    let provider_item = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Sample Extension")
+            .any(|h| h.accessible_role() == Some(i_slint_backend_testing::AccessibleRole::Button))
+    })
+    .await;
+    assert!(provider_item);
+    tokio::time::sleep(std::time::Duration::from_millis(400)).await;
+
+    let provider_button = ElementHandle::find_by_accessible_label(main_window, "Sample Extension")
+        .find(|h| h.accessible_role() == Some(i_slint_backend_testing::AccessibleRole::Button))
+        .expect("Sample Extension button found");
+    click_element(&provider_button).await;
+
+    let toggled = wait_until(|| {
+        if let Some(p) = main_window
+            .global::<PlaylistContentPageProps>()
+            .get_extension_providers()
+            .row_data(0)
+        {
+            p.enabled
+        } else {
+            false
+        }
+    })
+    .await;
+    assert!(toggled);
+}
 parameterized_test!(
     do_mobile_bottom_nav_target,
     (
@@ -1376,4 +1523,5 @@ integration_test!(
     test_mobile_context_menu_submenu_navigation => do_mobile_context_menu_submenu_navigation,
     test_mobile_context_menu_close_animation_and_on_hide => do_mobile_context_menu_close_animation_and_on_hide,
     test_mobile_progress_bar_tap_bounds => do_mobile_progress_bar_tap_bounds,
+    test_mobile_topbar_context_menu_extensions => do_mobile_topbar_context_menu_extensions,
 );

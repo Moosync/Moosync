@@ -1,25 +1,27 @@
-import { Theme } from "../constants_mobile.slint";
+import { Theme, Constants } from "../constants_mobile.slint";
 import { WindowInfo } from "../window_info.slint";
 import {
     ContextMenuItem,
     ContextSubMenuItem,
 } from "../types/context_menu.slint";
 import { IconButton } from "icon_button_mobile.slint";
-import { ListView } from "std-widgets.slint";
+import { ScrollView, ListView } from "std-widgets.slint";
 import { ScrollActivity } from "scroll_activity_mobile.slint";
 
 export component ContextMenuMobile inherits Rectangle {
+    in-out property <[ContextMenuItem]> actions: [];
     in-out property <[ContextMenuItem]> items: [];
     in-out property <length> requested_x: 0px;
     in-out property <length> requested_y: 0px;
     in property <string> selected_id: "";
+    out property <bool> is_open: false;
 
     callback selected(string);
     callback clicked();
     callback on_hide();
 
-    property <bool> is_open: false;
     property <int> active_submenu_index: -1;
+    property <bool> active_submenu_is_action: false;
     property <bool> is_expanded: false;
     property <bool> is_dragging: false;
 
@@ -59,6 +61,7 @@ export component ContextMenuMobile inherits Rectangle {
     public function show() {
         close_timer.running = false;
         root.active_submenu_index = -1;
+        root.active_submenu_is_action = false;
         root.is_expanded = false;
         root.drag_offset = 0px;
         root.is_dragging = false;
@@ -149,7 +152,7 @@ export component ContextMenuMobile inherits Rectangle {
                     }
 
                     Text {
-                        text: root.items[root.active_submenu_index].title;
+                        text: root.active_submenu_is_action ? root.actions[root.active_submenu_index].title : root.items[root.active_submenu_index].title;
                         font-size: Theme.modelTitle;
                         font-weight: 700;
                         color: Theme.textPrimary;
@@ -157,99 +160,204 @@ export component ContextMenuMobile inherits Rectangle {
                     }
                 }
 
-                // Main Menu Items in scrollable ListView
+                // Main Menu Items in scrollable ScrollView
                 if root.active_submenu_index < 0: Rectangle {
                     vertical-stretch: 1;
                     main_scroll_activity := ScrollActivity {
-                        position: main_menu_list.content-y;
+                        position: main_scroll_view.content-y;
                     }
 
-                    main_menu_list := ListView {
+                    main_scroll_view := ScrollView {
                         width: 100%;
                         height: 100%;
                         horizontal-scrollbar-policy: always-off;
                         vertical-scrollbar-policy: main_scroll_activity.active ? as-needed : always-off;
-                        for item[idx] in root.items: TouchArea {
-                            enabled: root.is_open;
-                            accessible-role: button;
-                            accessible-label: item.title;
-                            accessible-action-default => {
-                                if (!root.is_open) {
-                                    return;
-                                }
-                                if (item.has_sub_menu || item.sub_items.length > 0) {
-                                    root.active_submenu_index = idx;
-                                } else {
-                                    root.selected(item.action_id);
-                                    root.hide();
-                                }
-                            }
-                            height: Theme.size3Xl;
-                            clicked => {
-                                if (!root.is_open) {
-                                    return;
-                                }
-                                if (item.has_sub_menu || item.sub_items.length > 0) {
-                                    root.active_submenu_index = idx;
-                                } else {
-                                    root.selected(item.action_id);
-                                    root.hide();
-                                }
-                            }
 
-                            Rectangle {
-                                background: (root.selected_id != "" && item.action_id == root.selected_id) ? Theme.accent.with-alpha(0.12) : (parent.has-hover ? Theme.primary.with-alpha(0.5) : transparent);
-                                border-radius: Theme.borderRadiusMd;
+                        VerticalLayout {
+                            spacing: Theme.borderWidthLg;
 
-                                HorizontalLayout {
-                                    padding-left: Theme.paddingMd;
-                                    padding-right: Theme.paddingMd;
-                                    spacing: Theme.spacingMd;
-                                    alignment: start;
+                            for action[idx] in root.actions: TouchArea {
+                                enabled: root.is_open;
+                                accessible-role: button;
+                                accessible-label: action.title;
+                                accessible-action-default => {
+                                    if (!root.is_open) {
+                                        return;
+                                    }
+                                    if (action.has_sub_menu || action.sub_items.length > 0) {
+                                        root.active_submenu_is_action = true;
+                                        root.active_submenu_index = idx;
+                                    } else {
+                                        root.selected(action.action_id);
+                                        if (action.action_id != Constants.action_extensions) {
+                                            root.hide();
+                                        }
+                                    }
+                                }
+                                height: Theme.size3Xl;
+                                clicked => {
+                                    if (!root.is_open) {
+                                        return;
+                                    }
+                                    if (action.has_sub_menu || action.sub_items.length > 0) {
+                                        root.active_submenu_is_action = true;
+                                        root.active_submenu_index = idx;
+                                    } else {
+                                        root.selected(action.action_id);
+                                        if (action.action_id != Constants.action_extensions) {
+                                            root.hide();
+                                        }
+                                    }
+                                }
 
-                                    VerticalLayout {
-                                        alignment: center;
-                                        Rectangle {
-                                            width: Theme.iconSizeMd;
-                                            height: Theme.iconSizeMd;
-                                            if item.icon.width > 0: Image {
-                                                width: 100%;
-                                                height: 100%;
-                                                source: item.icon;
+                                Rectangle {
+                                    background: (root.selected_id != "" && action.action_id == root.selected_id) ? Theme.accent.with-alpha(0.12) : (parent.has-hover ? Theme.primary.with-alpha(0.5) : transparent);
+                                    border-radius: Theme.borderRadiusMd;
+
+                                    HorizontalLayout {
+                                        padding-left: Theme.paddingMd;
+                                        padding-right: Theme.paddingMd;
+                                        spacing: Theme.spacingMd;
+                                        alignment: start;
+
+                                        VerticalLayout {
+                                            alignment: center;
+                                            Rectangle {
+                                                width: Theme.iconSizeMd;
+                                                height: Theme.iconSizeMd;
+                                                if action.icon.width > 0: Image {
+                                                    width: 100%;
+                                                    height: 100%;
+                                                    source: action.icon;
+                                                    image-fit: contain;
+                                                    colorize: (root.selected_id != "" && action.action_id == root.selected_id) ? Theme.accent : Theme.textPrimary;
+                                                }
+                                            }
+                                        }
+
+                                        Text {
+                                            text: action.title;
+                                            font-size: Theme.body;
+                                            font-weight: (root.selected_id != "" && action.action_id == root.selected_id) ? 700 : 500;
+                                            color: (root.selected_id != "" && action.action_id == root.selected_id) ? Theme.accent : Theme.textPrimary;
+                                            vertical-alignment: center;
+                                            horizontal-stretch: 1;
+                                        }
+
+                                        if (root.selected_id != "" && action.action_id == root.selected_id): VerticalLayout {
+                                            alignment: center;
+                                            Rectangle {
+                                                width: Theme.borderWidthXxl;
+                                                height: Theme.sizeLg;
+                                                border-radius: Theme.borderRadiusSm;
+                                                background: Theme.accent;
+                                            }
+                                        }
+
+                                        if (action.has_sub_menu || action.sub_items.length > 0): VerticalLayout {
+                                            alignment: center;
+                                            Image {
+                                                width: Theme.iconSizeSm;
+                                                height: Theme.iconSizeSm;
+                                                source: @image-url("../icons/nav_button.svg");
                                                 image-fit: contain;
-                                                colorize: (root.selected_id != "" && item.action_id == root.selected_id) ? Theme.accent : Theme.textPrimary;
+                                                colorize: Theme.textSecondary;
+                                                transform-rotation: Theme.angle180;
                                             }
                                         }
                                     }
+                                }
+                            }
 
-                                    Text {
-                                        text: item.title;
-                                        font-size: Theme.body;
-                                        font-weight: (root.selected_id != "" && item.action_id == root.selected_id) ? 700 : 500;
-                                        color: (root.selected_id != "" && item.action_id == root.selected_id) ? Theme.accent : Theme.textPrimary;
-                                        vertical-alignment: center;
-                                        horizontal-stretch: 1;
+                            if (root.actions.length > 0 && root.items.length > 0): Rectangle {
+                                height: Theme.borderWidth;
+                                background: Theme.divider;
+                            }
+
+                            for item[idx] in root.items: TouchArea {
+                                enabled: root.is_open;
+                                accessible-role: button;
+                                accessible-label: item.title;
+                                accessible-action-default => {
+                                    if (!root.is_open) {
+                                        return;
                                     }
+                                    if (item.has_sub_menu || item.sub_items.length > 0) {
+                                        root.active_submenu_is_action = false;
+                                        root.active_submenu_index = idx;
+                                    } else {
+                                        root.selected(item.action_id);
+                                        root.hide();
+                                    }
+                                }
+                                height: Theme.size3Xl;
+                                clicked => {
+                                    if (!root.is_open) {
+                                        return;
+                                    }
+                                    if (item.has_sub_menu || item.sub_items.length > 0) {
+                                        root.active_submenu_is_action = false;
+                                        root.active_submenu_index = idx;
+                                    } else {
+                                        root.selected(item.action_id);
+                                        root.hide();
+                                    }
+                                }
 
-                                    if (root.selected_id != "" && item.action_id == root.selected_id): VerticalLayout {
-                                        alignment: center;
-                                        Rectangle {
-                                            width: Theme.borderWidthXxl;
-                                            height: Theme.sizeLg;
-                                            border-radius: Theme.borderRadiusSm;
-                                            background: Theme.accent;
+                                Rectangle {
+                                    background: (root.selected_id != "" && item.action_id == root.selected_id) ? Theme.accent.with-alpha(0.12) : (parent.has-hover ? Theme.primary.with-alpha(0.5) : transparent);
+                                    border-radius: Theme.borderRadiusMd;
+
+                                    HorizontalLayout {
+                                        padding-left: Theme.paddingMd;
+                                        padding-right: Theme.paddingMd;
+                                        spacing: Theme.spacingMd;
+                                        alignment: start;
+
+                                        VerticalLayout {
+                                            alignment: center;
+                                            Rectangle {
+                                                width: Theme.iconSizeMd;
+                                                height: Theme.iconSizeMd;
+                                                if item.icon.width > 0: Image {
+                                                    width: 100%;
+                                                    height: 100%;
+                                                    source: item.icon;
+                                                    image-fit: contain;
+                                                    colorize: (root.selected_id != "" && item.action_id == root.selected_id) ? Theme.accent : Theme.textPrimary;
+                                                }
+                                            }
                                         }
-                                    }
 
-                                    if (item.has_sub_menu || item.sub_items.length > 0): VerticalLayout {
-                                        alignment: center;
-                                        Image {
-                                            width: Theme.iconSizeSm;
-                                            height: Theme.iconSizeSm;
-                                            source: @image-url("../icons/nav_button.svg");
-                                            image-fit: contain;
-                                            colorize: Theme.textSecondary;
-                                            transform-rotation: Theme.angle180;
+                                        Text {
+                                            text: item.title;
+                                            font-size: Theme.body;
+                                            font-weight: (root.selected_id != "" && item.action_id == root.selected_id) ? 700 : 500;
+                                            color: (root.selected_id != "" && item.action_id == root.selected_id) ? Theme.accent : Theme.textPrimary;
+                                            vertical-alignment: center;
+                                            horizontal-stretch: 1;
+                                        }
+
+                                        if (root.selected_id != "" && item.action_id == root.selected_id): VerticalLayout {
+                                            alignment: center;
+                                            Rectangle {
+                                                width: Theme.borderWidthXxl;
+                                                height: Theme.sizeLg;
+                                                border-radius: Theme.borderRadiusSm;
+                                                background: Theme.accent;
+                                            }
+                                        }
+
+                                        if (item.has_sub_menu || item.sub_items.length > 0): VerticalLayout {
+                                            alignment: center;
+                                            Image {
+                                                width: Theme.iconSizeSm;
+                                                height: Theme.iconSizeSm;
+                                                source: @image-url("../icons/nav_button.svg");
+                                                image-fit: contain;
+                                                colorize: Theme.textSecondary;
+                                                transform-rotation: Theme.angle180;
+                                            }
                                         }
                                     }
                                 }
@@ -270,7 +378,8 @@ export component ContextMenuMobile inherits Rectangle {
                         height: 100%;
                         horizontal-scrollbar-policy: always-off;
                         vertical-scrollbar-policy: sub_scroll_activity.active ? as-needed : always-off;
-                        for sub_item in root.items[root.active_submenu_index].sub_items: TouchArea {
+
+                        for sub_item in (root.active_submenu_is_action ? root.actions[root.active_submenu_index].sub_items : root.items[root.active_submenu_index].sub_items): TouchArea {
                             enabled: root.is_open;
                             accessible-role: button;
                             accessible-label: sub_item.title;
@@ -318,6 +427,7 @@ export component ContextMenuMobile inherits Rectangle {
                                     Text {
                                         text: sub_item.title;
                                         font-size: Theme.body;
+                                        font-weight: 500;
                                         color: Theme.textPrimary;
                                         vertical-alignment: center;
                                         horizontal-stretch: 1;

@@ -1,4 +1,9 @@
-import { SongModel } from "../types/song_view.slint";
+import { SongModel, SongSortCriterion } from "../types/song_view.slint";
+
+export global SongSortState {
+    in-out property <SongSortCriterion> sort_criterion: SongSortCriterion.Title;
+    in-out property <bool> sort_ascending: true;
+}
 
 export global SongSelectionState {
     in-out property <bool> selection_mode: false;

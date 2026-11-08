@@ -34,6 +34,7 @@ export component ExtensionProviderMenuMobile inherits Rectangle {
     height: 0px;
 
     popup := PopupWindow {
+        close-policy: PopupClosePolicy.no-auto-close;
         x: -root.absolute-position.x;
         y: -root.absolute-position.y;
         width: WindowInfo.window-width;
@@ -78,6 +79,8 @@ export component ExtensionProviderMenuMobile inherits Rectangle {
                 }
 
                 Text {
+                    accessible-role: text;
+                    accessible-label: "Filter by Extension";
                     text: @tr("Filter by Extension");
                     font-size: Theme.modelTitle;
                     font-weight: 700;
@@ -85,6 +88,8 @@ export component ExtensionProviderMenuMobile inherits Rectangle {
                 }
 
                 for item[idx] in root.providers: TouchArea {
+                    accessible-role: button;
+                    accessible-label: item.name;
                     height: Theme.mobileQueueDragHandleHeight;
                     clicked => {
                         root.providers[idx].enabled = !root.providers[idx].enabled;

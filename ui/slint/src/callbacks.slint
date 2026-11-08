@@ -74,34 +74,34 @@ export global AppCallbacks {
     pure callback get_active_lyric_index([LyricLineModel], int) -> int;
 
     pure public function decide_sort_criterion(id: string) -> SongSortCriterion {
-        if (id == "date") { return SongSortCriterion.Date; }
-        if (id == "album") { return SongSortCriterion.Album; }
-        if (id == "track") { return SongSortCriterion.TrackNumber; }
-        if (id == "artist") { return SongSortCriterion.Artist; }
+        if (id == Constants.sort_by_date) { return SongSortCriterion.Date; }
+        if (id == Constants.sort_by_album) { return SongSortCriterion.Album; }
+        if (id == Constants.sort_by_track) { return SongSortCriterion.TrackNumber; }
+        if (id == Constants.sort_by_artist) { return SongSortCriterion.Artist; }
         return SongSortCriterion.Title;
     }
 
     pure public function sort_criterion_to_id(criterion: SongSortCriterion) -> string {
-        if (criterion == SongSortCriterion.Date) { return "date"; }
-        if (criterion == SongSortCriterion.Album) { return "album"; }
-        if (criterion == SongSortCriterion.TrackNumber) { return "track"; }
-        if (criterion == SongSortCriterion.Artist) { return "artist"; }
-        return "title";
+        if (criterion == SongSortCriterion.Date) { return Constants.sort_by_date; }
+        if (criterion == SongSortCriterion.Album) { return Constants.sort_by_album; }
+        if (criterion == SongSortCriterion.TrackNumber) { return Constants.sort_by_track; }
+        if (criterion == SongSortCriterion.Artist) { return Constants.sort_by_artist; }
+        return Constants.sort_by_title;
     }
 
     pure public function decide_sort_ascending(current_criterion: SongSortCriterion, current_ascending: bool, id: string) -> bool {
-        if (id == "title" && current_criterion == SongSortCriterion.Title) { return !current_ascending; }
-        if (id == "date" && current_criterion == SongSortCriterion.Date) { return !current_ascending; }
-        if (id == "album" && current_criterion == SongSortCriterion.Album) { return !current_ascending; }
-        if (id == "track" && current_criterion == SongSortCriterion.TrackNumber) { return !current_ascending; }
-        if (id == "artist" && current_criterion == SongSortCriterion.Artist) { return !current_ascending; }
+        if (id == Constants.sort_by_title && current_criterion == SongSortCriterion.Title) { return !current_ascending; }
+        if (id == Constants.sort_by_date && current_criterion == SongSortCriterion.Date) { return !current_ascending; }
+        if (id == Constants.sort_by_album && current_criterion == SongSortCriterion.Album) { return !current_ascending; }
+        if (id == Constants.sort_by_track && current_criterion == SongSortCriterion.TrackNumber) { return !current_ascending; }
+        if (id == Constants.sort_by_artist && current_criterion == SongSortCriterion.Artist) { return !current_ascending; }
         return true;
     }
 
     pure public function get_sort_menu_items(active_criterion: SongSortCriterion) -> [MenuItem] {
         return [
             {
-                id: "title",
+                id: Constants.sort_by_title,
                 title: @tr("Title"),
                 icon: @image-url(""),
                 is-selected: active_criterion == SongSortCriterion.Title,
@@ -109,7 +109,7 @@ export global AppCallbacks {
                 is-danger: false,
             },
             {
-                id: "date",
+                id: Constants.sort_by_date,
                 title: @tr("Date"),
                 icon: @image-url(""),
                 is-selected: active_criterion == SongSortCriterion.Date,
@@ -117,7 +117,7 @@ export global AppCallbacks {
                 is-danger: false,
             },
             {
-                id: "album",
+                id: Constants.sort_by_album,
                 title: @tr("Album"),
                 icon: @image-url(""),
                 is-selected: active_criterion == SongSortCriterion.Album,
@@ -125,7 +125,7 @@ export global AppCallbacks {
                 is-danger: false,
             },
             {
-                id: "track",
+                id: Constants.sort_by_track,
                 title: @tr("Track Number"),
                 icon: @image-url(""),
                 is-selected: active_criterion == SongSortCriterion.TrackNumber,
@@ -133,7 +133,7 @@ export global AppCallbacks {
                 is-danger: false,
             },
             {
-                id: "artist",
+                id: Constants.sort_by_artist,
                 title: @tr("Artist"),
                 icon: @image-url(""),
                 is-selected: active_criterion == SongSortCriterion.Artist,

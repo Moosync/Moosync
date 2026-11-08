@@ -1,3 +1,5 @@
+import { Constants } from "../constants.slint";
+
 export struct ContextSubMenuItem {
     action_id: string,
     title: string,
@@ -175,38 +177,68 @@ export global ContextMenuItems {
         return @image-url("../icons/plus.svg");
     }
 
+    pure public function get_sort_sub_items() -> [ContextSubMenuItem] {
+        return [
+            {
+                action_id: Constants.sort_by_title,
+                title: @tr("Title"),
+                icon: @image-url(""),
+            },
+            {
+                action_id: Constants.sort_by_date,
+                title: @tr("Date"),
+                icon: @image-url(""),
+            },
+            {
+                action_id: Constants.sort_by_album,
+                title: @tr("Album"),
+                icon: @image-url(""),
+            },
+            {
+                action_id: Constants.sort_by_track,
+                title: @tr("Track Number"),
+                icon: @image-url(""),
+            },
+            {
+                action_id: Constants.sort_by_artist,
+                title: @tr("Artist"),
+                icon: @image-url(""),
+            },
+        ];
+    }
+
     pure public function get_sort_items() -> [ContextMenuItem] {
         return [
             {
-                action_id: "title",
+                action_id: Constants.sort_by_title,
                 title: @tr("Title"),
                 icon: @image-url(""),
                 has_sub_menu: false,
                 sub_items: [],
             },
             {
-                action_id: "date",
+                action_id: Constants.sort_by_date,
                 title: @tr("Date"),
                 icon: @image-url(""),
                 has_sub_menu: false,
                 sub_items: [],
             },
             {
-                action_id: "album",
+                action_id: Constants.sort_by_album,
                 title: @tr("Album"),
                 icon: @image-url(""),
                 has_sub_menu: false,
                 sub_items: [],
             },
             {
-                action_id: "track",
+                action_id: Constants.sort_by_track,
                 title: @tr("Track Number"),
                 icon: @image-url(""),
                 has_sub_menu: false,
                 sub_items: [],
             },
             {
-                action_id: "artist",
+                action_id: Constants.sort_by_artist,
                 title: @tr("Artist"),
                 icon: @image-url(""),
                 has_sub_menu: false,

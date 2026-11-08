@@ -1,13 +1,12 @@
 import { Theme, Pages } from "../constants_mobile.slint";
 import { IconButton } from "../common/icon_button_mobile.slint";
-import { AppCallbacks, ContextMenuCallbacks } from "../callbacks.slint";
-import { ContextMenuMobile } from "../common/context_menu_mobile.slint";
 import { AppProps } from "../app_props.slint";
 import { AccountsProps } from "../common/accounts_props.slint";
 import { SearchPageProps } from "../main_content/search_props.slint";
 import { SearchBarMobile } from "search_bar_mobile.slint";
 import { SongSelectionState } from "../common/selection_props.slint";
 import { SavePlaylistState } from "../common/save_playlist_modal_props.slint";
+import { TopBarContextMenuMobile } from "top_bar_context_menu_mobile.slint";
 
 export component TopBarMobile inherits Rectangle {
     property <bool> is_search_open: false;
@@ -20,6 +19,8 @@ export component TopBarMobile inherits Rectangle {
         height: Theme.borderWidth;
         background: Theme.divider;
     }
+
+    top_bar_context_menu := TopBarContextMenuMobile { }
 
     // Selection Mode Top Bar Content
     HorizontalLayout {
@@ -69,35 +70,14 @@ export component TopBarMobile inherits Rectangle {
                     accessible-label: @tr("More options");
                     icon_source: @image-url("../icons/ellipsis.svg");
                     icon_size: Theme.iconSizeLg;
+                    icon_rotation: Theme.angle90;
                     width: Theme.mobileIconButtonSize;
                     height: Theme.mobileIconButtonSize;
                     clicked => {
-                        selection_context_menu.show();
+                        top_bar_context_menu.show();
                     }
                 }
             }
-        }
-    }
-
-    selection_context_menu := ContextMenuMobile {
-        property <bool> has_selected_action: false;
-        items: ContextMenuCallbacks.get_song_menu_items(SongSelectionState.selected_songs);
-        selected(id) => {
-            self.has_selected_action = true;
-            ContextMenuCallbacks.song_action(SongSelectionState.selected_songs, id);
-        }
-        on_hide => {
-            if (self.has_selected_action) {
-                self.has_selected_action = false;
-                SongSelectionState.trigger_clear_selection();
-            }
-        }
-    }
-
-    property <bool> selection_mode: SongSelectionState.selection_mode;
-    changed selection_mode => {
-        if (!root.selection_mode) {
-            selection_context_menu.hide();
         }
     }
 
@@ -165,6 +145,22 @@ export component TopBarMobile inherits Rectangle {
                 height: Theme.mobileIconButtonSize;
                 clicked => {
                     AccountsProps.show_accounts = true;
+                }
+            }
+        }
+
+        // Context Menu Action (Always shown in top bar)
+        VerticalLayout {
+            alignment: center;
+            IconButton {
+                accessible-label: @tr("More options");
+                icon_source: @image-url("../icons/ellipsis.svg");
+                icon_size: Theme.iconSizeLg;
+                icon_rotation: Theme.angle90;
+                width: Theme.mobileIconButtonSize;
+                height: Theme.mobileIconButtonSize;
+                clicked => {
+                    top_bar_context_menu.show();
                 }
             }
         }

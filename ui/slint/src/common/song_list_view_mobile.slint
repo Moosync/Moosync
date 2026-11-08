@@ -4,9 +4,6 @@ import {
     SongSortCriterion,
 } from "../types/song_view.slint";
 import { ExtensionProviderItem } from "../types/extension_view.slint";
-import {
-    ExtensionProviderMenuMobile,
-} from "extension_provider_menu_mobile.slint";
 import { SongListItemMobile } from "song_list_item_mobile.slint";
 import { Theme, Constants } from "../constants_mobile.slint";
 import {
@@ -14,12 +11,8 @@ import {
     UtilCallbacks,
     ContextMenuCallbacks,
 } from "../callbacks.slint";
-import { ContextMenuMobile } from "context_menu_mobile.slint";
-import { ContextMenuItems } from "../types/context_menu.slint";
-import { IconButton } from "icon_button_mobile.slint";
-import { Button } from "button_mobile.slint";
 import { ScrollActivity } from "scroll_activity_mobile.slint";
-import { SongSelectionState } from "selection_props.slint";
+import { SongSelectionState, SongSortState } from "selection_props.slint";
 
 export component SongListViewMobile inherits Rectangle {
     in property <[SongModel]> songs: Constants.testSongs;
@@ -106,178 +99,49 @@ export component SongListViewMobile inherits Rectangle {
 
     out property <[SongModel]> selected-songs: UtilCallbacks.get_selected_songs(root.display-songs, root.selected-indices);
 
-    property <SongSortCriterion> sort-criterion: SongSortCriterion.Title;
-    property <bool> sort-ascending: true;
+    in-out property <SongSortCriterion> sort-criterion <=> SongSortState.sort_criterion;
+    in-out property <bool> sort-ascending <=> SongSortState.sort_ascending;
 
     scroll_activity := ScrollActivity {
         position: list_view.content-y;
     }
 
-    VerticalLayout {
-        spacing: Theme.spacingSm;
-
-        // Mobile Controls Row (Play All, Selection Toggle, and Sort)
-        if root.show-controls && !root.selection_mode && root.selected-indices.length == 0: HorizontalLayout {
+    list_view := ListView {
+        width: 100%;
+        height: 100%;
+        horizontal-scrollbar-policy: always-off;
+        vertical-scrollbar-policy: scroll_activity.active ? as-needed : always-off;
+        for song[idx] in root.display-songs: VerticalLayout {
+            padding-bottom: Theme.spacingXs;
             padding-left: Theme.paddingSm;
             padding-right: Theme.paddingSm;
-            spacing: Theme.spacingSm;
-            height: Theme.mobileButtonSize;
 
-            if root.show_play_all: VerticalLayout {
-                alignment: center;
-                horizontal-stretch: 1;
-                Button {
-                    text: @tr("Play All");
-                    icon: @image-url("../icons/plain_play.svg");
-                    clicked => {
-                        root.play_all();
+            SongListItemMobile {
+                song: song;
+                is_selected: UtilCallbacks.is_index_selected(root.selected-indices, idx);
+                selection_mode: root.selection_mode;
+                long_pressed => {
+                    root.toggle_selection_mode(idx);
+                }
+                clicked => {
+                    if (root.selection_mode) {
+                        root.selected-indices = UtilCallbacks.update_selection(
+                            root.selected-indices,
+                            idx,
+                            0,
+                            true,
+                            false,
+                            false,
+                            root.display-songs.length);
+                        SongSelectionState.selected_count = root.selected-indices.length;
+                        SongSelectionState.selected_songs = root.selected-songs;
+                    } else {
+                        AppCallbacks.play-song(song);
                     }
                 }
-            }
-
-            if !root.show_play_all: Rectangle {
-                horizontal-stretch: 1;
-            }
-
-            VerticalLayout {
-                alignment: center;
-                IconButton {
-                    accessible-label: @tr("Sort songs");
-                    icon_source: @image-url("../icons/sort.svg");
-                    active: root.sort-criterion != SongSortCriterion.Title || !root.sort-ascending;
-                    icon_rotation: !root.sort-ascending ? Theme.angle180 : Theme.angle0;
-                    width: Theme.mobileButtonSize;
-                    height: Theme.mobileButtonSize;
-                    clicked => {
-                        sort-popup.show();
-                    }
-                }
-            }
-
-            if (root.extension_providers.length > 0): VerticalLayout {
-                alignment: center;
-                IconButton {
-                    accessible-label: @tr("Filter extension providers");
-                    icon_source: @image-url("../icons/extensions.svg");
-                    active: UtilCallbacks.has_active_extension_providers(root.extension_providers);
-                    width: Theme.mobileButtonSize;
-                    height: Theme.mobileButtonSize;
-                    clicked => {
-                        ext-popup.show();
-                    }
-                }
-            }
-
-            sort-popup := ContextMenuMobile {
-                items: ContextMenuItems.get_sort_items();
-                selected_id: AppCallbacks.sort_criterion_to_id(root.sort-criterion);
-                selected(id) => {
-                    root.sort-ascending = AppCallbacks.decide_sort_ascending(root.sort-criterion, root.sort-ascending, id);
-                    root.sort-criterion = AppCallbacks.decide_sort_criterion(id);
-                }
-            }
-
-            ext-popup := ExtensionProviderMenuMobile {
-                providers <=> root.extension_providers;
-                toggled(id, enabled) => {
-                    root.provider_toggled(id, enabled);
-                }
-            }
-        }
-
-        // Selection Action Bar
-        if root.show-controls && root.selection_mode && root.selected-indices.length > 0: HorizontalLayout {
-            padding-left: Theme.paddingSm;
-            padding-right: Theme.paddingSm;
-            spacing: Theme.spacingSm;
-            height: Theme.mobileButtonSize;
-
-            Rectangle {
-                horizontal-stretch: 1;
-            }
-
-            VerticalLayout {
-                alignment: center;
-                IconButton {
-                    accessible-label: @tr("Add selected to queue");
-                    icon_source: @image-url("../icons/add_to_queue.svg");
-                    icon_size: Theme.iconSizeMd;
-                    width: Theme.mobileButtonSize;
-                    height: Theme.mobileButtonSize;
-                    clicked => {
-                        ContextMenuCallbacks.song_action(root.selected-songs, "add_to_queue");
-                        root.cancel_selection();
-                    }
-                }
-            }
-
-            VerticalLayout {
-                alignment: center;
-                IconButton {
-                    accessible-label: @tr("More actions for selected songs");
-                    icon_source: @image-url("../icons/ellipsis.svg");
-                    icon_size: Theme.iconSizeMd;
-                    width: Theme.mobileButtonSize;
-                    height: Theme.mobileButtonSize;
-                    clicked => {
-                        batch-context-menu.show();
-                    }
-                }
-            }
-
-            batch-context-menu := ContextMenuMobile {
-                property <bool> has_selected_action: false;
-                items: ContextMenuCallbacks.get_song_menu_items(root.selected-songs);
-                selected(id) => {
-                    self.has_selected_action = true;
-                    ContextMenuCallbacks.song_action(root.selected-songs, id);
-                }
-                on_hide => {
-                    if (self.has_selected_action) {
-                        self.has_selected_action = false;
-                        root.cancel_selection();
-                    }
-                }
-            }
-        }
-
-        // List View
-        list_view := ListView {
-            vertical-stretch: 1;
-            horizontal-scrollbar-policy: always-off;
-            vertical-scrollbar-policy: scroll_activity.active ? as-needed : always-off;
-            for song[idx] in root.display-songs: VerticalLayout {
-                padding-bottom: Theme.spacingXs;
-                padding-left: Theme.paddingSm;
-                padding-right: Theme.paddingSm;
-
-                SongListItemMobile {
-                    song: song;
-                    is_selected: UtilCallbacks.is_index_selected(root.selected-indices, idx);
-                    selection_mode: root.selection_mode;
-                    long_pressed => {
+                item_pressed(event) => {
+                    if (event.kind == PointerEventKind.down && event.button == PointerEventButton.right) {
                         root.toggle_selection_mode(idx);
-                    }
-                    clicked => {
-                        if (root.selection_mode) {
-                            root.selected-indices = UtilCallbacks.update_selection(
-                                root.selected-indices,
-                                idx,
-                                0,
-                                true,
-                                false,
-                                false,
-                                root.display-songs.length);
-                            SongSelectionState.selected_count = root.selected-indices.length;
-                            SongSelectionState.selected_songs = root.selected-songs;
-                        } else {
-                            AppCallbacks.play-song(song);
-                        }
-                    }
-                    item_pressed(event) => {
-                        if (event.kind == PointerEventKind.down && event.button == PointerEventButton.right) {
-                            root.toggle_selection_mode(idx);
-                        }
                     }
                 }
             }

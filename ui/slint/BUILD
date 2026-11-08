@@ -235,6 +235,9 @@ rust_test(
     name = "slint_mobile_test",
     size = "large",
     srcs = ["src/integration_tests/mobile_test.rs"],
+    data = [
+        "//sample_extensions/default:sample_extension",
+    ],
     deps = [
         ":slint_app_lib_mobile",
         "//core/state_manager",
@@ -509,6 +512,7 @@ SLINT_SOURCES = [
     "src/topbar/search_bar.slint",
     "src/topbar/search_bar_mobile.slint",
     "src/topbar/top_bar.slint",
+    "src/topbar/top_bar_context_menu_mobile.slint",
     "src/topbar/top_bar_mobile.slint",
     "src/topbar/top_bar_props.slint",
     "src/tray.slint",

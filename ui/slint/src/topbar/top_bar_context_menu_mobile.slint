@@ -1,0 +1,264 @@
+import { Theme, Pages, Constants } from "../constants_mobile.slint";
+import { AppCallbacks, ContextMenuCallbacks } from "../callbacks.slint";
+import { ContextMenuMobile } from "../common/context_menu_mobile.slint";
+import { AppProps } from "../app_props.slint";
+import {
+    SongSelectionState,
+    SongSortState,
+} from "../common/selection_props.slint";
+import { SavePlaylistState } from "../common/save_playlist_modal_props.slint";
+import { SongModel, SongDetailAction } from "../types/song_view.slint";
+import {
+    ContextMenuItem,
+    ContextSubMenuItem,
+    ContextMenuItems,
+} from "../types/context_menu.slint";
+import { ExtensionProviderItem } from "../types/extension_view.slint";
+import {
+    ExtensionProviderMenuMobile,
+} from "../common/extension_provider_menu_mobile.slint";
+import { AllSongsPageProps } from "../main_content/all_songs_props.slint";
+import {
+    PlaylistContentPageProps,
+} from "../main_content/playlist_content_props.slint";
+import {
+    AlbumContentPageProps,
+} from "../main_content/album_content_props.slint";
+import {
+    ArtistContentPageProps,
+} from "../main_content/artist_content_props.slint";
+import {
+    GenreContentPageProps,
+} from "../main_content/genre_content_props.slint";
+import { PlaylistsPageProps } from "../main_content/playlists_props.slint";
+import { AlbumsPageProps } from "../main_content/albums_props.slint";
+import { ArtistsPageProps } from "../main_content/artists_props.slint";
+import { GenresPageProps } from "../main_content/genres_props.slint";
+
+export component TopBarContextMenuMobile inherits Rectangle {
+    width: 0px;
+    height: 0px;
+
+    public function show() {
+        ext_popup.hide();
+        context_menu.show();
+    }
+
+    public function hide() {
+        context_menu.hide();
+        ext_popup.hide();
+    }
+
+    out property <bool> is_open: context_menu.is_open;
+
+    pure function is_songs_page() -> bool {
+        return AppProps.active_page == Pages.AllSongs
+            || AppProps.active_page == Pages.PlaylistContent
+            || AppProps.active_page == Pages.AlbumContent
+            || AppProps.active_page == Pages.ArtistContent
+            || AppProps.active_page == Pages.GenreContent;
+    }
+
+    function get_current_page_songs() -> [SongModel] {
+        if (AppProps.active_page == Pages.AllSongs) {
+            return AllSongsPageProps.songs;
+        }
+        if (AppProps.active_page == Pages.PlaylistContent) {
+            return PlaylistContentPageProps.songs;
+        }
+        if (AppProps.active_page == Pages.AlbumContent) {
+            return AlbumContentPageProps.songs;
+        }
+        if (AppProps.active_page == Pages.ArtistContent) {
+            return ArtistContentPageProps.songs;
+        }
+        if (AppProps.active_page == Pages.GenreContent) {
+            return GenreContentPageProps.songs;
+        }
+        return [];
+    }
+
+    pure function get_current_extension_providers() -> [ExtensionProviderItem] {
+        if (AppProps.active_page == Pages.PlaylistContent) {
+            return PlaylistContentPageProps.extension_providers;
+        }
+        if (AppProps.active_page == Pages.AlbumContent) {
+            return AlbumContentPageProps.extension_providers;
+        }
+        if (AppProps.active_page == Pages.ArtistContent) {
+            return ArtistContentPageProps.extension_providers;
+        }
+        return [];
+    }
+
+    function toggle_extension_provider(id: string, enabled: bool) {
+        if (AppProps.active_page == Pages.PlaylistContent) {
+            AppCallbacks.toggle_playlist_content_extension(id, enabled);
+        } else if (AppProps.active_page == Pages.AlbumContent) {
+            AppCallbacks.toggle_album_content_extension(id, enabled);
+        } else if (AppProps.active_page == Pages.ArtistContent) {
+            AppCallbacks.toggle_artist_content_extension(id, enabled);
+        }
+    }
+
+    pure function get_page_actions() -> [ContextMenuItem] {
+        if (SongSelectionState.selection_mode) {
+            return [];
+        }
+        if (root.is_songs_page()) {
+            if (root.get_current_extension_providers().length > 0) {
+                return [
+                    {
+                        action_id: Constants.action_play_all,
+                        title: @tr("Play All"),
+                        icon: @image-url("../icons/plain_play.svg"),
+                        has_sub_menu: false,
+                        sub_items: []
+                    },
+                    {
+                        action_id: Constants.action_sort,
+                        title: @tr("Sort"),
+                        icon: @image-url("../icons/sort.svg"),
+                        has_sub_menu: true,
+                        sub_items: ContextMenuItems.get_sort_sub_items()
+                    },
+                    {
+                        action_id: Constants.action_extensions,
+                        title: @tr("Extensions"),
+                        icon: @image-url("../icons/extensions.svg"),
+                        has_sub_menu: false,
+                        sub_items: []
+                    },
+                ];
+            }
+            return [
+                {
+                    action_id: Constants.action_play_all,
+                    title: @tr("Play All"),
+                    icon: @image-url("../icons/plain_play.svg"),
+                    has_sub_menu: false,
+                    sub_items: []
+                },
+                {
+                    action_id: Constants.action_sort,
+                    title: @tr("Sort"),
+                    icon: @image-url("../icons/sort.svg"),
+                    has_sub_menu: true,
+                    sub_items: ContextMenuItems.get_sort_sub_items()
+                },
+            ];
+        }
+        if (AppProps.active_page == Pages.Playlists) {
+            return [
+                {
+                    action_id: Constants.action_new_playlist,
+                    title: @tr("New Playlist"),
+                    icon: @image-url("../icons/plus.svg"),
+                    has_sub_menu: false,
+                    sub_items: []
+                },
+            ];
+        }
+        return [];
+    }
+
+    pure function get_dynamic_items() -> [ContextMenuItem] {
+        if (SongSelectionState.selection_mode) {
+            return ContextMenuCallbacks.get_song_menu_items(SongSelectionState.selected_songs);
+        }
+        if (AppProps.active_page == Pages.PlaylistContent) {
+            return ContextMenuCallbacks.get_playlist_menu_items([PlaylistsPageProps.selected-playlist]);
+        }
+        if (AppProps.active_page == Pages.AlbumContent) {
+            return ContextMenuCallbacks.get_album_menu_items([AlbumsPageProps.selected-album]);
+        }
+        if (AppProps.active_page == Pages.ArtistContent) {
+            return ContextMenuCallbacks.get_artist_menu_items([ArtistsPageProps.selected-artist]);
+        }
+        if (AppProps.active_page == Pages.GenreContent) {
+            return ContextMenuCallbacks.get_genre_menu_items([GenresPageProps.selected-genre]);
+        }
+        return [];
+    }
+
+    pure function is_sort_action(action: string) -> bool {
+        return action == Constants.sort_by_title
+            || action == Constants.sort_by_date
+            || action == Constants.sort_by_album
+            || action == Constants.sort_by_track
+            || action == Constants.sort_by_artist;
+    }
+
+    function handle_action(id: string) {
+        if (root.is_sort_action(id)) {
+            SongSortState.sort_ascending = AppCallbacks.decide_sort_ascending(SongSortState.sort_criterion, SongSortState.sort_ascending, id);
+            SongSortState.sort_criterion = AppCallbacks.decide_sort_criterion(id);
+            return;
+        }
+        if (id == Constants.action_play_all) {
+            let songs = root.get_current_page_songs();
+            if (songs.length > 0) {
+                AppCallbacks.song_detail_action(SongDetailAction.Play, songs);
+            }
+        } else if (id == Constants.action_extensions) {
+            ext_popup.show();
+        } else if (id == Constants.action_new_playlist) {
+            SavePlaylistState.songs = [];
+            SavePlaylistState.show_modal = true;
+        } else if (SongSelectionState.selection_mode) {
+            ContextMenuCallbacks.song_action(SongSelectionState.selected_songs, id);
+        } else if (AppProps.active_page == Pages.PlaylistContent) {
+            if (id == Constants.action_save_playlist) {
+                SavePlaylistState.songs = PlaylistContentPageProps.songs;
+                SavePlaylistState.show_modal = true;
+            } else {
+                ContextMenuCallbacks.playlist_action([PlaylistsPageProps.selected-playlist], id);
+            }
+        } else if (AppProps.active_page == Pages.AlbumContent) {
+            ContextMenuCallbacks.album_action([AlbumsPageProps.selected-album], id);
+        } else if (AppProps.active_page == Pages.ArtistContent) {
+            ContextMenuCallbacks.artist_action([ArtistsPageProps.selected-artist], id);
+        } else if (AppProps.active_page == Pages.GenreContent) {
+            ContextMenuCallbacks.genre_action([GenresPageProps.selected-genre], id);
+        }
+    }
+
+    context_menu := ContextMenuMobile {
+        property <bool> has_selected_action: false;
+        actions: root.get_page_actions();
+        items: root.get_dynamic_items();
+        selected(id) => {
+            if (SongSelectionState.selection_mode) {
+                self.has_selected_action = true;
+            }
+            root.handle_action(id);
+        }
+        on_hide => {
+            if (self.has_selected_action) {
+                self.has_selected_action = false;
+                SongSelectionState.trigger_clear_selection();
+            }
+        }
+    }
+
+    ext_popup := ExtensionProviderMenuMobile {
+        providers: root.get_current_extension_providers();
+        toggled(id, enabled) => {
+            root.toggle_extension_provider(id, enabled);
+        }
+    }
+
+    property <bool> selection_mode: SongSelectionState.selection_mode;
+    changed selection_mode => {
+        if (!root.selection_mode) {
+            context_menu.hide();
+            ext_popup.hide();
+        }
+    }
+
+    property <Pages> active_page: AppProps.active_page;
+    changed active_page => {
+        context_menu.hide();
+        ext_popup.hide();
+    }
+}

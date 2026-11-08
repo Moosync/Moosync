@@ -977,9 +977,10 @@ async fn do_mobile_context_menu_submenu_navigation(
         ElementHandle::find_by_accessible_label(main_window, "Back").collect();
     click_element(&back_handles[0]).await;
 
-    let returned_to_main =
-        wait_until(|| ElementHandle::find_by_accessible_label(main_window, "Play Now").count() > 0)
-            .await;
+    let returned_to_main = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Add to Queue").count() > 0
+    })
+    .await;
     assert!(returned_to_main);
     main_window
         .global::<SongSelectionState>()
@@ -1186,6 +1187,101 @@ async fn do_mobile_multi_song_selection_and_context_menu(
     assert!(all_deselected);
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_mobile_context_menu_close_animation_and_on_hide(
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) {
+    let song = create_test_song("mob_ctx_anim", "Anim Track", "Anim Album", "Anim Artist");
+    let database = state_manager.get_database();
+    database.insert_songs(vec![song]).unwrap();
+
+    if main_window.global::<AppProps>().get_active_page() == Pages::AllSongs {
+        main_window
+            .global::<AppCallbacks>()
+            .invoke_active_page_changed(Pages::Search);
+        let _ = wait_until(|| main_window.global::<AppProps>().get_active_page() == Pages::Search)
+            .await;
+    }
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::AllSongs);
+
+    let songs_loaded = wait_until(|| {
+        main_window
+            .global::<AllSongsPageProps>()
+            .get_songs()
+            .row_count()
+            > 0
+    })
+    .await;
+    assert!(songs_loaded);
+
+    let song_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Anim Track").collect();
+    assert_eq!(song_handles.len(), 1);
+    song_handles[0]
+        .single_click(slint::platform::PointerEventButton::Right)
+        .await;
+
+    let more_loaded = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "More options").count() > 0
+    })
+    .await;
+    assert!(more_loaded);
+
+    let more_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "More options").collect();
+    assert!(!more_handles.is_empty());
+
+    click_element(&more_handles[0]).await;
+
+    let menu_opened = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Context Menu Drag Handle").count() > 0
+    })
+    .await;
+    assert!(menu_opened);
+    tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+
+    let add_queue_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Add to Queue").collect();
+    assert!(!add_queue_handles.is_empty());
+
+    let start_time = std::time::Instant::now();
+    click_element(&add_queue_handles[0]).await;
+
+    assert!(
+        main_window
+            .global::<SongSelectionState>()
+            .get_selection_mode(),
+        "selection_mode must remain true while close animation is running"
+    );
+
+    let closed = wait_until(|| {
+        !main_window
+            .global::<SongSelectionState>()
+            .get_selection_mode()
+    })
+    .await;
+    assert!(closed);
+
+    let elapsed = start_time.elapsed();
+    assert!(
+        elapsed >= std::time::Duration::from_millis(130),
+        "on_hide must not be called before animation completes (took {:?})",
+        elapsed
+    );
+
+    let handle_count =
+        ElementHandle::find_by_accessible_label(main_window, "Context Menu Drag Handle").count();
+    assert_eq!(handle_count, 0);
+
+    main_window
+        .global::<SongSelectionState>()
+        .invoke_trigger_clear_selection();
+}
+
 parameterized_test!(
     do_mobile_bottom_nav_target,
     (
@@ -1233,5 +1329,6 @@ integration_test!(
     test_mobile_context_menu_drag_handle_click => do_mobile_context_menu_drag_handle_click,
     test_mobile_context_menu_drag_fills_bottom => do_mobile_context_menu_drag_fills_bottom,
     test_mobile_context_menu_submenu_navigation => do_mobile_context_menu_submenu_navigation,
+    test_mobile_context_menu_close_animation_and_on_hide => do_mobile_context_menu_close_animation_and_on_hide,
     test_mobile_progress_bar_tap_bounds => do_mobile_progress_bar_tap_bounds,
 );

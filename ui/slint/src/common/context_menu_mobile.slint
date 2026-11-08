@@ -16,14 +16,19 @@ export component ContextMenuMobile inherits Rectangle {
 
     callback selected(string);
     callback clicked();
+    callback on_hide();
 
     property <bool> is_open: false;
     property <int> active_submenu_index: -1;
     property <bool> is_expanded: false;
     property <bool> is_dragging: false;
-    property <duration> open_start_time: Theme.zeroDuration;
-    property <float> open_progress: Math.min(1.0, Math.max(0.0, (animation-tick() - root.open_start_time) / Theme.durationFast));
-    property <float> ease_progress: 1.0 - (1.0 - root.open_progress) * (1.0 - root.open_progress);
+
+    property <float> ease_progress: 0.0;
+    animate ease_progress {
+        duration: Theme.durationFast;
+        easing: ease-out;
+    }
+
     property <length> sheet_height: (root.is_expanded || root.active_submenu_index >= 0) ? Math.min(WindowInfo.window-height * 0.75, Theme.modalWidth) : Math.min(WindowInfo.window-height * 0.45, Theme.modalHeightMd);
     animate sheet_height {
         duration: Theme.durationFast;
@@ -41,14 +46,25 @@ export component ContextMenuMobile inherits Rectangle {
     width: 0px;
     height: 0px;
 
+    close_timer := Timer {
+        interval: Theme.durationFast;
+        running: false;
+        triggered => {
+            self.running = false;
+            popup.close();
+            root.on_hide();
+        }
+    }
+
     public function show() {
+        close_timer.running = false;
         root.active_submenu_index = -1;
         root.is_expanded = false;
         root.drag_offset = 0px;
         root.is_dragging = false;
-        root.open_start_time = animation-tick();
         root.is_open = true;
         popup.show();
+        root.ease_progress = 1.0;
     }
 
     public function show_at(x: length, y: length) {
@@ -58,8 +74,12 @@ export component ContextMenuMobile inherits Rectangle {
     }
 
     public function hide() {
+        if (!root.is_open) {
+            return;
+        }
         root.is_open = false;
-        popup.close();
+        root.ease_progress = 0.0;
+        close_timer.running = true;
     }
 
     popup := PopupWindow {
@@ -150,9 +170,13 @@ export component ContextMenuMobile inherits Rectangle {
                         horizontal-scrollbar-policy: always-off;
                         vertical-scrollbar-policy: main_scroll_activity.active ? as-needed : always-off;
                         for item[idx] in root.items: TouchArea {
+                            enabled: root.is_open;
                             accessible-role: button;
                             accessible-label: item.title;
                             accessible-action-default => {
+                                if (!root.is_open) {
+                                    return;
+                                }
                                 if (item.has_sub_menu || item.sub_items.length > 0) {
                                     root.active_submenu_index = idx;
                                 } else {
@@ -162,6 +186,9 @@ export component ContextMenuMobile inherits Rectangle {
                             }
                             height: Theme.size3Xl;
                             clicked => {
+                                if (!root.is_open) {
+                                    return;
+                                }
                                 if (item.has_sub_menu || item.sub_items.length > 0) {
                                     root.active_submenu_index = idx;
                                 } else {
@@ -244,14 +271,21 @@ export component ContextMenuMobile inherits Rectangle {
                         horizontal-scrollbar-policy: always-off;
                         vertical-scrollbar-policy: sub_scroll_activity.active ? as-needed : always-off;
                         for sub_item in root.items[root.active_submenu_index].sub_items: TouchArea {
+                            enabled: root.is_open;
                             accessible-role: button;
                             accessible-label: sub_item.title;
                             accessible-action-default => {
+                                if (!root.is_open) {
+                                    return;
+                                }
                                 root.selected(sub_item.action_id);
                                 root.hide();
                             }
                             height: Theme.size3Xl;
                             clicked => {
+                                if (!root.is_open) {
+                                    return;
+                                }
                                 root.selected(sub_item.action_id);
                                 root.hide();
                             }
@@ -298,6 +332,7 @@ export component ContextMenuMobile inherits Rectangle {
 
         // Fixed touch tracking area for context menu drag handle (positioned at resting_y of handle, not moving with drag)
         TouchArea {
+            enabled: root.is_open;
             accessible-role: button;
             accessible-label: "Context Menu Drag Handle";
             accessible-value: "\{root.current_y / 1px}";

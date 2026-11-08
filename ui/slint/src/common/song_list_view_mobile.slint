@@ -226,10 +226,17 @@ export component SongListViewMobile inherits Rectangle {
             }
 
             batch-context-menu := ContextMenuMobile {
+                property <bool> has_selected_action: false;
                 items: ContextMenuCallbacks.get_song_menu_items(root.selected-songs);
                 selected(id) => {
+                    self.has_selected_action = true;
                     ContextMenuCallbacks.song_action(root.selected-songs, id);
-                    root.cancel_selection();
+                }
+                on_hide => {
+                    if (self.has_selected_action) {
+                        self.has_selected_action = false;
+                        root.cancel_selection();
+                    }
                 }
             }
         }

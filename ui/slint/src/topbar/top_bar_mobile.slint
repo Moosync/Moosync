@@ -80,10 +80,17 @@ export component TopBarMobile inherits Rectangle {
     }
 
     selection_context_menu := ContextMenuMobile {
+        property <bool> has_selected_action: false;
         items: ContextMenuCallbacks.get_song_menu_items(SongSelectionState.selected_songs);
         selected(id) => {
+            self.has_selected_action = true;
             ContextMenuCallbacks.song_action(SongSelectionState.selected_songs, id);
-            SongSelectionState.trigger_clear_selection();
+        }
+        on_hide => {
+            if (self.has_selected_action) {
+                self.has_selected_action = false;
+                SongSelectionState.trigger_clear_selection();
+            }
         }
     }
 

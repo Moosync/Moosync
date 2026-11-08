@@ -300,6 +300,7 @@ export component ContextMenuMobile inherits Rectangle {
         TouchArea {
             accessible-role: button;
             accessible-label: "Context Menu Drag Handle";
+            accessible-value: "\{root.current_y / 1px}";
             x: 0px;
             y: root.resting_y;
             width: 100%;
@@ -330,7 +331,7 @@ export component ContextMenuMobile inherits Rectangle {
             moved => {
                 if (self.pressed) {
                     root.is_dragging = true;
-                    root.drag_offset = root.is_expanded ? Math.max(0px, self.mouse-y - self.pressed-y) : (self.mouse-y - self.pressed-y);
+                    root.drag_offset = Math.max(-root.resting_y, Math.min(WindowInfo.window-height - root.resting_y, self.mouse-y - self.pressed-y));
                 }
             }
         }

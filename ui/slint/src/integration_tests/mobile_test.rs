@@ -826,6 +826,80 @@ async fn do_mobile_context_menu_drag_fills_bottom(
 
     let initial_y = handle[0].absolute_position().y;
     assert!(initial_y > 0.0);
+
+    let initial_val: f32 = handle[0]
+        .accessible_value()
+        .expect("Drag handle should have accessible value for current_y")
+        .parse()
+        .expect("current_y should be a valid float");
+    assert!(initial_val > 0.0);
+
+    let handle_pos = handle[0].absolute_position();
+    let handle_size = handle[0].size();
+    let center_x = handle_pos.x + handle_size.width / 2.0;
+    let center_y = handle_pos.y + handle_size.height / 2.0;
+
+    let window = main_window.window();
+    window.dispatch_event(slint::platform::WindowEvent::PointerPressed {
+        position: slint::LogicalPosition::new(center_x, center_y),
+        button: slint::platform::PointerEventButton::Left,
+    });
+    window.dispatch_event(slint::platform::WindowEvent::PointerMoved {
+        position: slint::LogicalPosition::new(center_x, center_y - 150.0),
+    });
+    window.dispatch_event(slint::platform::WindowEvent::PointerReleased {
+        position: slint::LogicalPosition::new(center_x, center_y - 150.0),
+        button: slint::platform::PointerEventButton::Left,
+    });
+
+    let expanded = wait_until(|| {
+        let h: Vec<ElementHandle> =
+            ElementHandle::find_by_accessible_label(main_window, "Context Menu Drag Handle")
+                .collect();
+        if h.is_empty() {
+            return false;
+        }
+        h[0].absolute_position().y < initial_y - 50.0
+    })
+    .await;
+    assert!(expanded);
+
+    tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+
+    let expanded_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Context Menu Drag Handle").collect();
+    assert_eq!(expanded_handles.len(), 1);
+
+    let exp_pos = expanded_handles[0].absolute_position();
+    let exp_size = expanded_handles[0].size();
+    let exp_center_x = exp_pos.x + exp_size.width / 2.0;
+    let exp_center_y = exp_pos.y + exp_size.height / 2.0;
+
+    window.dispatch_event(slint::platform::WindowEvent::PointerPressed {
+        position: slint::LogicalPosition::new(exp_center_x, exp_center_y),
+        button: slint::platform::PointerEventButton::Left,
+    });
+    window.dispatch_event(slint::platform::WindowEvent::PointerMoved {
+        position: slint::LogicalPosition::new(exp_center_x, 0.0),
+    });
+
+    let dragged_val: f32 = expanded_handles[0]
+        .accessible_value()
+        .expect("Drag handle should have accessible value for current_y")
+        .parse()
+        .expect("current_y should be a valid float");
+    assert_eq!(
+        dragged_val, 0.0,
+        "Context menu should be draggable to fill entire screen (current_y = 0)"
+    );
+
+    window.dispatch_event(slint::platform::WindowEvent::PointerReleased {
+        position: slint::LogicalPosition::new(exp_center_x, 0.0),
+        button: slint::platform::PointerEventButton::Left,
+    });
+
+    tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+
     main_window
         .global::<SongSelectionState>()
         .invoke_trigger_clear_selection();

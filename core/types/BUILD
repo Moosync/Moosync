@@ -13,6 +13,8 @@ rust_library(
         "src/image_test.rs",
         "src/lib.rs",
         "src/lib_test.rs",
+        "src/player.rs",
+        "src/player_test.rs",
         "src/plugin.rs",
         "src/plugin_test.rs",
         "src/preferences.rs",

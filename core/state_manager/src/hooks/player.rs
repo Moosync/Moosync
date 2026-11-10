@@ -1,4 +1,4 @@
-use std::{error::Error, sync::Arc};
+use std::{collections::HashSet, error::Error, sync::Arc};
 
 use async_trait::async_trait;
 use extensions::ExtensionGroupExt;
@@ -178,6 +178,50 @@ impl PlayerHook {
             );
         });
     }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn bind_extension_players(state_manager: &StateManager, player_handler: &Arc<PlayerHandler>) {
+        let sm = state_manager.clone();
+        let ph = player_handler.clone();
+        let extension_handler = state_manager.get_extension_handler();
+
+        let sync_players = move || {
+            let sm_inner = sm.clone();
+            let ph_inner = ph.clone();
+            tokio::spawn(
+                async move {
+                    let extensions = sm_inner
+                        .get_extension_handler()
+                        .get_extensions_with_scope(ExtensionProviderScope::PlayerProvider)
+                        .await;
+
+                    let active_ids: HashSet<String> = extensions
+                        .iter()
+                        .map(|ext| format!("extension:{}", ext.get_package_name()))
+                        .collect();
+
+                    for ext in extensions {
+                        let id = format!("extension:{}", ext.get_package_name());
+                        ph_inner.add_context(id, ext);
+                    }
+
+                    for player_id in ph_inner.get_player_ids() {
+                        if player_id.starts_with("extension:") && !active_ids.contains(&player_id) {
+                            ph_inner.remove_context(&player_id);
+                        }
+                    }
+                }
+                .in_current_span(),
+            );
+        };
+
+        let sync_clone = sync_players.clone();
+        extension_handler.on_extensions_updated.listen(move |_| {
+            sync_clone();
+        });
+
+        sync_players();
+    }
 }
 
 struct ExtensionSourceResolver {
@@ -238,6 +282,7 @@ impl Hook for PlayerHook {
         }));
         Self::bind_player_data_events(state_manager, &player_handler);
         Self::bind_player_ui_events(state_manager, &player_handler);
+        Self::bind_extension_players(state_manager, &player_handler);
 
         Ok(())
     }

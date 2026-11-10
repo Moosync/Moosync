@@ -17,6 +17,7 @@
 pub mod canvaz;
 pub mod errors;
 pub mod image;
+pub mod player;
 pub mod plugin;
 pub mod preferences;
 pub mod providers;

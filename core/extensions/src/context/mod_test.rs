@@ -20,11 +20,13 @@ use assertables::{assert_err, assert_none, assert_ok};
 use extensions_proto::moosync::types::{
     AddPlaylistRequest, AddSongsRequest, AddToPlaylistRequest, ExtensionAccountDetail,
     ExtensionsUpdatedRequest, GetAppVersionRequest, GetCacheRequest, GetCurrentSongRequest,
-    GetEntityRequest, GetPlayerStateRequest, GetPreferenceRequest, GetQueueRequest,
-    GetSecureRequest, GetSongRequest, GetTimeRequest, GetVolumeRequest, OpenExternalUrlRequest,
-    PreferenceData, RegisterOauthRequest, RegisterUserPreferenceRequest, RemoveSongRequest,
-    SetAccountRequest, SetCacheRequest, SetPreferenceRequest, SetSecureRequest,
-    UnregisterUserPreferenceRequest, UpdateSongRequest, main_command, main_command_response,
+    GetEntityRequest, GetPlayerStateRequest, GetPreferenceRequest, GetProcessStatusRequest,
+    GetQueueRequest, GetSecureRequest, GetSongRequest, GetTimeRequest, GetVolumeRequest,
+    KillProcessRequest, NotifyPlaybackEndedRequest, OpenExternalUrlRequest, PreferenceData,
+    ReadProcessStdoutRequest, RegisterOauthRequest, RegisterUserPreferenceRequest,
+    RemoveSongRequest, SetAccountRequest, SetCacheRequest, SetPreferenceRequest, SetSecureRequest,
+    SpawnProcessRequest, UnregisterUserPreferenceRequest, UpdateSongRequest,
+    WriteProcessStdinRequest, main_command, main_command_response,
 };
 use preferences_proto::moosync::types::PreferenceItem;
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
@@ -32,7 +34,7 @@ use tracing_test::traced_test;
 
 use crate::{
     cache::ExtensionMemoryCache,
-    context::{DispatchCommand, ReplyHandler},
+    context::{DispatchCommand, HostCommandContext, ReplyHandler},
     errors::ExtensionError,
 };
 
@@ -166,13 +168,13 @@ fn test_dispatch_command_handlers() {
     let memory_cache = Mutex::new(ExtensionMemoryCache::default());
 
     let cmd_state = main_command::Command::GetPlayerState(GetPlayerStateRequest {});
-    let res_state = cmd_state.dispatch(&mock, "pkg", &memory_cache);
+    let res_state = cmd_state.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
     let cmd_vol = main_command::Command::GetVolume(GetVolumeRequest {});
-    let res_vol = cmd_vol.dispatch(&mock, "pkg", &memory_cache);
+    let res_vol = cmd_vol.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
     let cmd_time = main_command::Command::GetTime(GetTimeRequest {});
-    let res_time = cmd_time.dispatch(&mock, "pkg", &memory_cache);
+    let res_time = cmd_time.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
     let cmd_ver = main_command::Command::GetAppVersion(GetAppVersionRequest {});
-    let res_ver = cmd_ver.dispatch(&mock, "pkg", &memory_cache);
+    let res_ver = cmd_ver.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
 
     assert_ok!(res_state.as_ref());
     assert_ok!(res_vol.as_ref());
@@ -205,13 +207,13 @@ fn test_dispatch_song_and_queue_commands() {
     let memory_cache = Mutex::new(ExtensionMemoryCache::default());
 
     let cmd_song = main_command::Command::GetSong(GetSongRequest { options: None });
-    let res_song = cmd_song.dispatch(&mock, "pkg", &memory_cache);
+    let res_song = cmd_song.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
     let cmd_entity = main_command::Command::GetEntity(GetEntityRequest { options: None });
-    let res_entity = cmd_entity.dispatch(&mock, "pkg", &memory_cache);
+    let res_entity = cmd_entity.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
     let cmd_curr = main_command::Command::GetCurrentSong(GetCurrentSongRequest {});
-    let res_curr = cmd_curr.dispatch(&mock, "pkg", &memory_cache);
+    let res_curr = cmd_curr.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
     let cmd_queue = main_command::Command::GetQueue(GetQueueRequest {});
-    let res_queue = cmd_queue.dispatch(&mock, "pkg", &memory_cache);
+    let res_queue = cmd_queue.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
 
     assert_ok!(res_song.as_ref());
     assert_ok!(res_entity.as_ref());
@@ -253,7 +255,7 @@ fn test_dispatch_preference_and_secure_commands() {
             value: None,
         }),
     });
-    let res_get_pref = cmd_get_pref.dispatch(&mock, "pkg", &memory_cache);
+    let res_get_pref = cmd_get_pref.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
 
     let cmd_set_pref = main_command::Command::SetPreference(SetPreferenceRequest {
         data: Some(PreferenceData {
@@ -261,11 +263,12 @@ fn test_dispatch_preference_and_secure_commands() {
             value: None,
         }),
     });
-    let res_set_pref = cmd_set_pref.dispatch(&mock, "pkg", &memory_cache);
+    let res_set_pref = cmd_set_pref.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
 
     let cmd_set_pref_none =
         main_command::Command::SetPreference(SetPreferenceRequest { data: None });
-    let res_set_pref_none = cmd_set_pref_none.dispatch(&mock, "pkg", &memory_cache);
+    let res_set_pref_none =
+        cmd_set_pref_none.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
 
     let cmd_get_sec = main_command::Command::GetSecure(GetSecureRequest {
         data: Some(PreferenceData {
@@ -273,7 +276,7 @@ fn test_dispatch_preference_and_secure_commands() {
             value: None,
         }),
     });
-    let res_get_sec = cmd_get_sec.dispatch(&mock, "pkg", &memory_cache);
+    let res_get_sec = cmd_get_sec.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
 
     let cmd_set_sec = main_command::Command::SetSecure(SetSecureRequest {
         data: Some(PreferenceData {
@@ -281,22 +284,24 @@ fn test_dispatch_preference_and_secure_commands() {
             value: None,
         }),
     });
-    let res_set_sec = cmd_set_sec.dispatch(&mock, "pkg", &memory_cache);
+    let res_set_sec = cmd_set_sec.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
 
     let cmd_set_sec_none = main_command::Command::SetSecure(SetSecureRequest { data: None });
-    let res_set_sec_none = cmd_set_sec_none.dispatch(&mock, "pkg", &memory_cache);
+    let res_set_sec_none =
+        cmd_set_sec_none.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
 
     let cmd_reg_pref =
         main_command::Command::RegisterUserPreference(RegisterUserPreferenceRequest {
             prefs: vec![],
         });
-    let res_reg_pref = cmd_reg_pref.dispatch(&mock, "pkg", &memory_cache);
+    let res_reg_pref = cmd_reg_pref.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
 
     let cmd_unreg_pref =
         main_command::Command::UnregisterUserPreference(UnregisterUserPreferenceRequest {
             keys: vec![],
         });
-    let res_unreg_pref = cmd_unreg_pref.dispatch(&mock, "pkg", &memory_cache);
+    let res_unreg_pref =
+        cmd_unreg_pref.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
 
     assert_ok!(res_get_pref.as_ref());
     assert_ok!(res_set_pref.as_ref());
@@ -333,37 +338,42 @@ fn test_dispatch_song_mutations_and_playlists() {
     let memory_cache = Mutex::new(ExtensionMemoryCache::default());
 
     let cmd_add_songs = main_command::Command::AddSongs(AddSongsRequest { songs: vec![] });
-    let res_add_songs = cmd_add_songs.dispatch(&mock, "pkg", &memory_cache);
+    let res_add_songs =
+        cmd_add_songs.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
 
     let cmd_rem_song = main_command::Command::RemoveSong(RemoveSongRequest {
         song: Some(Song::default()),
     });
-    let res_rem_song = cmd_rem_song.dispatch(&mock, "pkg", &memory_cache);
+    let res_rem_song = cmd_rem_song.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
 
     let cmd_rem_song_none = main_command::Command::RemoveSong(RemoveSongRequest { song: None });
-    let res_rem_song_none = cmd_rem_song_none.dispatch(&mock, "pkg", &memory_cache);
+    let res_rem_song_none =
+        cmd_rem_song_none.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
 
     let cmd_upd_song = main_command::Command::UpdateSong(UpdateSongRequest {
         song: Some(Song::default()),
     });
-    let res_upd_song = cmd_upd_song.dispatch(&mock, "pkg", &memory_cache);
+    let res_upd_song = cmd_upd_song.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
 
     let cmd_upd_song_err = main_command::Command::UpdateSong(UpdateSongRequest { song: None });
-    let res_upd_song_err = cmd_upd_song_err.dispatch(&mock, "pkg", &memory_cache);
+    let res_upd_song_err =
+        cmd_upd_song_err.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
 
     let cmd_add_pl = main_command::Command::AddPlaylist(AddPlaylistRequest {
         playlist: Some(Playlist::default()),
     });
-    let res_add_pl = cmd_add_pl.dispatch(&mock, "pkg", &memory_cache);
+    let res_add_pl = cmd_add_pl.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
 
     let cmd_add_pl_err = main_command::Command::AddPlaylist(AddPlaylistRequest { playlist: None });
-    let res_add_pl_err = cmd_add_pl_err.dispatch(&mock, "pkg", &memory_cache);
+    let res_add_pl_err =
+        cmd_add_pl_err.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
 
     let cmd_add_to_pl = main_command::Command::AddToPlaylist(AddToPlaylistRequest {
         playlist_id: "pl1".to_string(),
         songs: vec![],
     });
-    let res_add_to_pl = cmd_add_to_pl.dispatch(&mock, "pkg", &memory_cache);
+    let res_add_to_pl =
+        cmd_add_to_pl.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
 
     assert_ok!(res_add_songs.as_ref());
     assert_ok!(res_rem_song.as_ref());
@@ -390,23 +400,23 @@ fn test_dispatch_oauth_account_and_misc() {
     let cmd_oauth = main_command::Command::RegisterOauth(RegisterOauthRequest {
         url: "http://oauth".to_string(),
     });
-    let res_oauth = cmd_oauth.dispatch(&mock, "pkg", &memory_cache);
+    let res_oauth = cmd_oauth.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
 
     let cmd_open = main_command::Command::OpenExternalUrl(OpenExternalUrlRequest {
         url: "http://open".to_string(),
     });
-    let res_open = cmd_open.dispatch(&mock, "pkg", &memory_cache);
+    let res_open = cmd_open.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
 
     let cmd_acc = main_command::Command::SetAccount(SetAccountRequest {
         account: Some(ExtensionAccountDetail::default()),
     });
-    let res_acc = cmd_acc.dispatch(&mock, "pkg", &memory_cache);
+    let res_acc = cmd_acc.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
 
     let cmd_acc_err = main_command::Command::SetAccount(SetAccountRequest { account: None });
-    let res_acc_err = cmd_acc_err.dispatch(&mock, "pkg", &memory_cache);
+    let res_acc_err = cmd_acc_err.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
 
     let cmd_updated = main_command::Command::ExtensionsUpdated(ExtensionsUpdatedRequest::default());
-    let res_updated = cmd_updated.dispatch(&mock, "pkg", &memory_cache);
+    let res_updated = cmd_updated.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
 
     assert_ok!(res_oauth.as_ref());
     assert_ok!(res_open.as_ref());
@@ -430,7 +440,7 @@ fn test_dispatch_cache_hit_avoids_reply_handler() {
     let cmd_get = main_command::Command::GetCache(GetCacheRequest {
         key: "cached_key".to_string(),
     });
-    let res = cmd_get.dispatch(&mock, "pkg", &memory_cache);
+    let res = cmd_get.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
     assert_ok!(res.as_ref());
     match res.unwrap() {
         main_command_response::Response::GetCache(r) => {
@@ -455,7 +465,7 @@ fn test_dispatch_cache_miss_populates_l1() {
     let cmd_get = main_command::Command::GetCache(GetCacheRequest {
         key: "db_key".to_string(),
     });
-    let res = cmd_get.dispatch(&mock, "pkg", &memory_cache);
+    let res = cmd_get.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
     assert_ok!(res.as_ref());
     match res.unwrap() {
         main_command_response::Response::GetCache(r) => {
@@ -481,7 +491,7 @@ fn test_dispatch_set_cache_updates_l1_and_calls_reply_handler() {
         data: b"new_data".to_vec(),
         ttl_seconds: None,
     });
-    let res = cmd_set.dispatch(&mock, "pkg", &memory_cache);
+    let res = cmd_set.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
     assert_ok!(res.as_ref());
 
     assert_eq!(
@@ -492,4 +502,100 @@ fn test_dispatch_set_cache_updates_l1_and_calls_reply_handler() {
         mock.cache.lock().unwrap().get("pkg:new_key"),
         Some(&b"new_data".to_vec())
     );
+}
+
+#[test]
+#[cfg(unix)]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_dispatch_process_and_playback_ended_lifecycle() {
+    use std::{fs, os::unix::fs::PermissionsExt, sync::RwLock};
+
+    use extensions_proto::moosync::types::PlayerState;
+    use tempdir::TempDir;
+    use tokio::sync::mpsc;
+
+    use crate::process::ExtensionProcessManager;
+
+    let tmp = TempDir::new("test_dispatch_proc").unwrap();
+    let bin_path = tmp.path().join("echo_bin.sh");
+    fs::write(&bin_path, "#!/bin/sh\nread line\necho \"OUT:$line\"\n").unwrap();
+    let mut perms = fs::metadata(&bin_path).unwrap().permissions();
+    perms.set_mode(0o755);
+    fs::set_permissions(&bin_path, perms).unwrap();
+
+    let bytes = fs::read(&bin_path).unwrap();
+    let hash = crate::sha256::sha256_hex(&bytes);
+
+    let mut allowed_paths = std::collections::HashMap::new();
+    allowed_paths.insert("test".to_string(), tmp.path().to_path_buf());
+
+    let proc_mgr = ExtensionProcessManager::new(Some(allowed_paths), vec![hash]);
+    let player_state = RwLock::new(PlayerState::Playing);
+    let (events_tx, mut events_rx) = mpsc::unbounded_channel();
+    let events_tx_holder = RwLock::new(Some(events_tx));
+
+    let mock = MockReply::default();
+    let memory_cache = Mutex::new(ExtensionMemoryCache::default());
+
+    let ctx = HostCommandContext {
+        reply_handler: &mock,
+        package_name: "pkg",
+        memory_cache: &memory_cache,
+        process_manager: Some(&proc_mgr),
+        player_state: Some(&player_state),
+        events_tx: Some(&events_tx_holder),
+    };
+
+    let cmd_spawn = main_command::Command::SpawnProcess(SpawnProcessRequest {
+        path: "echo_bin.sh".to_string(),
+        args: vec![],
+        env: Default::default(),
+    });
+    let res_spawn = cmd_spawn.dispatch(&ctx).unwrap();
+    let proc_id = match res_spawn {
+        main_command_response::Response::SpawnProcess(r) => r.process_id,
+        other => panic!("Unexpected response {:?}", other),
+    };
+    assert!(proc_id > 0);
+
+    let cmd_write = main_command::Command::WriteProcessStdin(WriteProcessStdinRequest {
+        process_id: proc_id,
+        data: b"integration_test\n".to_vec(),
+    });
+    let res_write = cmd_write.dispatch(&ctx).unwrap();
+    match res_write {
+        main_command_response::Response::WriteProcessStdin(r) => assert_eq!(r.bytes_written, 17),
+        other => panic!("Unexpected response {:?}", other),
+    }
+
+    std::thread::sleep(std::time::Duration::from_millis(150));
+
+    let cmd_read = main_command::Command::ReadProcessStdout(ReadProcessStdoutRequest {
+        process_id: proc_id,
+        max_bytes: Some(1024),
+    });
+    let res_read = cmd_read.dispatch(&ctx).unwrap();
+    match res_read {
+        main_command_response::Response::ReadProcessStdout(r) => {
+            assert_eq!(String::from_utf8_lossy(&r.data), "OUT:integration_test\n");
+        }
+        other => panic!("Unexpected response {:?}", other),
+    }
+
+    let cmd_status = main_command::Command::GetProcessStatus(GetProcessStatusRequest {
+        process_id: proc_id,
+    });
+    assert!(cmd_status.dispatch(&ctx).is_ok());
+
+    let cmd_kill = main_command::Command::KillProcess(KillProcessRequest {
+        process_id: proc_id,
+    });
+    assert!(cmd_kill.dispatch(&ctx).is_ok());
+
+    let cmd_ended = main_command::Command::NotifyPlaybackEnded(NotifyPlaybackEndedRequest {});
+    let res_ended = cmd_ended.dispatch(&ctx);
+    assert!(res_ended.is_ok());
+    assert_eq!(*player_state.read().unwrap(), PlayerState::Stopped);
+    assert!(events_rx.try_recv().is_ok());
 }

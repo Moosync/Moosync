@@ -14,23 +14,58 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{fmt::Debug, sync::Mutex};
+use std::{
+    fmt::Debug,
+    sync::{Mutex, RwLock},
+};
 
 use extensions_proto::moosync::types::{
     AddPlaylistResponse, AddSongsResponse, AddToPlaylistResponse, ExtensionAccountDetail,
     ExtensionCommand, ExtensionCommandResponse, ExtensionsUpdatedResponse, GetAppVersionResponse,
     GetCacheResponse, GetCurrentSongResponse, GetEntityResponse, GetPlayerStateResponse,
     GetPreferenceResponse, GetQueueResponse, GetSecureResponse, GetSongResponse, GetTimeResponse,
-    GetVolumeResponse, OpenExternalUrlResponse, PreferenceData, QueueState, RegisterOauthResponse,
-    RegisterUserPreferenceResponse, RemoveSongResponse, SetAccountResponse, SetCacheResponse,
-    SetPreferenceResponse, SetSecureResponse, UnregisterUserPreferenceResponse, UpdateSongResponse,
-    main_command, main_command_response,
+    GetVolumeResponse, NotifyPlaybackEndedResponse, OpenExternalUrlResponse, PlayerState,
+    PreferenceData, QueueState, RegisterOauthResponse, RegisterUserPreferenceResponse,
+    RemoveSongResponse, SetAccountResponse, SetCacheResponse, SetPreferenceResponse,
+    SetSecureResponse, UnregisterUserPreferenceResponse, UpdateSongResponse, main_command,
+    main_command_response, player_event::Event as PlayerEvent,
 };
 pub use extism_context::ExtismContext;
 use preferences_proto::moosync::types::PreferenceItem;
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
+use tokio::sync::mpsc::UnboundedSender;
 
-use crate::{cache::ExtensionMemoryCache, errors::ExtensionError};
+use crate::{
+    cache::ExtensionMemoryCache, errors::ExtensionError, process::ExtensionProcessManager,
+};
+
+pub struct HostCommandContext<'a> {
+    pub reply_handler: &'a dyn ReplyHandler,
+    pub package_name: &'a str,
+    pub memory_cache: &'a Mutex<ExtensionMemoryCache>,
+    pub process_manager: Option<&'a ExtensionProcessManager>,
+    pub player_state: Option<&'a RwLock<PlayerState>>,
+    pub events_tx: Option<&'a RwLock<Option<UnboundedSender<PlayerEvent>>>>,
+}
+
+#[cfg(test)]
+impl<'a> HostCommandContext<'a> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn new(
+        reply_handler: &'a dyn ReplyHandler,
+        package_name: &'a str,
+        memory_cache: &'a Mutex<ExtensionMemoryCache>,
+    ) -> Self {
+        Self {
+            reply_handler,
+            package_name,
+            memory_cache,
+            process_manager: None,
+            player_state: None,
+            events_tx: None,
+        }
+    }
+}
 
 pub trait ReplyHandler: Send + Sync + 'static {
     fn get_song(
@@ -121,9 +156,7 @@ pub trait ReplyHandler: Send + Sync + 'static {
 pub(crate) trait DispatchCommand {
     fn dispatch(
         self,
-        reply_handler: &dyn ReplyHandler,
-        package_name: &str,
-        memory_cache: &Mutex<ExtensionMemoryCache>,
+        ctx: &HostCommandContext,
     ) -> Result<main_command_response::Response, ExtensionError>;
 }
 
@@ -131,10 +164,11 @@ impl DispatchCommand for main_command::Command {
     #[tracing::instrument(level = "debug", skip_all)]
     fn dispatch(
         self,
-        reply_handler: &dyn ReplyHandler,
-        package_name: &str,
-        memory_cache: &Mutex<ExtensionMemoryCache>,
+        ctx: &HostCommandContext,
     ) -> Result<main_command_response::Response, ExtensionError> {
+        let reply_handler = ctx.reply_handler;
+        let package_name = ctx.package_name;
+        let memory_cache = ctx.memory_cache;
         match self {
             main_command::Command::GetSong(req) => reply_handler
                 .get_song(package_name, req.options.unwrap_or_default())
@@ -347,6 +381,44 @@ impl DispatchCommand for main_command::Command {
                     .map(|success| {
                         main_command_response::Response::SetCache(SetCacheResponse { success })
                     })
+            }
+            main_command::Command::SpawnProcess(req) => {
+                let pm = ctx.process_manager.ok_or(ExtensionError::NoContext)?;
+                pm.spawn_process(req)
+                    .map(main_command_response::Response::SpawnProcess)
+            }
+            main_command::Command::WriteProcessStdin(req) => {
+                let pm = ctx.process_manager.ok_or(ExtensionError::NoContext)?;
+                pm.write_process_stdin(req)
+                    .map(main_command_response::Response::WriteProcessStdin)
+            }
+            main_command::Command::ReadProcessStdout(req) => {
+                let pm = ctx.process_manager.ok_or(ExtensionError::NoContext)?;
+                pm.read_process_stdout(req)
+                    .map(main_command_response::Response::ReadProcessStdout)
+            }
+            main_command::Command::KillProcess(req) => {
+                let pm = ctx.process_manager.ok_or(ExtensionError::NoContext)?;
+                pm.kill_process(req)
+                    .map(main_command_response::Response::KillProcess)
+            }
+            main_command::Command::GetProcessStatus(req) => {
+                let pm = ctx.process_manager.ok_or(ExtensionError::NoContext)?;
+                pm.get_process_status(req)
+                    .map(main_command_response::Response::GetProcessStatus)
+            }
+            main_command::Command::NotifyPlaybackEnded(_) => {
+                if let Some(state) = ctx.player_state {
+                    *state.write().unwrap() = PlayerState::Stopped;
+                }
+                if let Some(tx_lock) = ctx.events_tx
+                    && let Some(ref tx) = *tx_lock.read().unwrap()
+                {
+                    let _ = tx.send(PlayerEvent::Ended(true));
+                }
+                Ok(main_command_response::Response::NotifyPlaybackEnded(
+                    NotifyPlaybackEndedResponse {},
+                ))
             }
         }
     }

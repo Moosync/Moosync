@@ -75,4 +75,7 @@ pub enum ExtensionError {
 
     #[error("Cache error: {0}")]
     Cache(String),
+
+    #[error("Process error: {0}")]
+    Process(String),
 }

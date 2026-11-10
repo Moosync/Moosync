@@ -85,9 +85,12 @@ impl PlayerHandler {
         Self::new_with_contexts(
             ended_tx,
             vec![
-                Box::new(RodioPlayerContext::new()),
+                ("rodio".to_string(), Arc::new(RodioPlayerContext::new())),
                 #[cfg(any(test, feature = "test"))]
-                Box::new(DummyAudioPlayerContext::new()),
+                (
+                    "dummy".to_string(),
+                    Arc::new(DummyAudioPlayerContext::new()),
+                ),
             ],
             Box::new(FilePersist::new(data_dir)),
         )
@@ -96,7 +99,7 @@ impl PlayerHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn new_with_contexts(
         ended_tx: UnboundedSender<()>,
-        contexts: Vec<Box<dyn AudioPlayerContext>>,
+        contexts: Vec<(String, Arc<dyn AudioPlayerContext>)>,
         persist_context: Box<dyn PersistContext>,
     ) -> Self {
         let mut player_data = match persist_context.load() {
@@ -131,10 +134,25 @@ impl PlayerHandler {
     pub fn new_dummy(ended_tx: UnboundedSender<()>) -> Self {
         Self::new_with_contexts(
             ended_tx,
-            vec![Box::new(DummyAudioPlayerContext::new())],
+            vec![(
+                "dummy".to_string(),
+                Arc::new(DummyAudioPlayerContext::new()),
+            )],
             Box::new(DummyPersistContext {}),
         )
     }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn add_context(&self, id: String, context: Arc<dyn AudioPlayerContext>) {
+        self.player.add_player(id, context);
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn remove_context(&self, id: &str) { self.player.remove_player(id); }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn get_player_ids(&self) -> Vec<String> { self.player.get_player_ids() }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_player_state(&self) -> i32 { self.player.get_player_state() as i32 }
@@ -255,7 +273,7 @@ impl PlayerHandler {
                 e
             )));
         }
-        if let Err(e) = self.player.play() {
+        if let Err(e) = self.player.play().await {
             self.trigger_player_event(Event::Pause(true));
             return Err(e);
         }
@@ -264,8 +282,15 @@ impl PlayerHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn pause(&self) -> Result<(), PlayerError> {
-        self.player.pause()?;
+    pub async fn pause(&self) -> Result<(), PlayerError> {
+        self.player.pause().await?;
+        self.trigger_player_event(Event::Pause(true));
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub async fn stop(&self) -> Result<(), PlayerError> {
+        self.player.stop().await?;
         self.trigger_player_event(Event::Pause(true));
         Ok(())
     }
@@ -273,7 +298,7 @@ impl PlayerHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     pub async fn next(&self) {
         if self.player_data.read().unwrap().song_queue.is_empty() {
-            let _ = self.player.stop();
+            let _ = self.player.stop().await;
             self.trigger_player_event(Event::Pause(true));
             return;
         }
@@ -299,8 +324,8 @@ impl PlayerHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn set_volume(&self, volume: u8) {
-        if let Err(e) = self.player.set_volume(volume) {
+    pub async fn set_volume(&self, volume: u8) {
+        if let Err(e) = self.player.set_volume(volume).await {
             tracing::error!("Failed to set volume: {:?}", e);
             return;
         }
@@ -308,8 +333,8 @@ impl PlayerHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn seek(&self, pos: Duration) {
-        if let Err(e) = self.player.seek(pos) {
+    pub async fn seek(&self, pos: Duration) {
+        if let Err(e) = self.player.seek(pos).await {
             tracing::error!("Failed to seek: {:?}", e);
         }
         if let Ok(pos) = self.player.get_current_pos() {
@@ -360,7 +385,7 @@ impl PlayerHandler {
             return;
         }
 
-        let _ = self.pause();
+        let _ = self.pause().await;
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -442,7 +467,7 @@ impl PlayerHandler {
     async fn trigger_song_changed(&self) {
         let current = self.current_song();
         if current.is_none() {
-            let _ = self.player.stop();
+            let _ = self.player.stop().await;
             self.trigger_player_event(Event::Pause(true));
         }
 
@@ -450,7 +475,7 @@ impl PlayerHandler {
             && let Err(e) = self.player.set_src(song).await
         {
             tracing::error!("Failed to load song: {:?}", e);
-            let _ = self.player.stop();
+            let _ = self.player.stop().await;
             self.trigger_player_event(Event::Pause(true));
         }
         self.on_song_changed.emit(current);

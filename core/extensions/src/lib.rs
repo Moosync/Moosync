@@ -44,10 +44,16 @@ mod errors;
 mod ext_runner;
 pub mod extension;
 pub mod models;
+pub mod process;
+#[cfg(test)]
+mod process_test;
 mod remote;
 pub use remote::{DEFAULT_EXTENSION_REGISTRY, RemoteExtensions};
 pub mod sanitize;
 pub use sanitize::Sanitize;
+pub mod sha256;
+#[cfg(test)]
+mod sha256_test;
 
 #[cfg(test)]
 mod ext_runner_test;

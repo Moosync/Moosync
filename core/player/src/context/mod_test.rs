@@ -33,9 +33,10 @@ use crate::source::ValidSrc;
 fn dummy_player_context() -> DummyAudioPlayerContext { DummyAudioPlayerContext::new() }
 
 #[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_dummy_audio_player_context_operations(dummy_player_context: DummyAudioPlayerContext) {
+async fn test_dummy_audio_player_context_operations(dummy_player_context: DummyAudioPlayerContext) {
     let (events_tx, _events_rx) = unbounded_channel();
 
     assert_ok_eq_x!(
@@ -44,32 +45,38 @@ fn test_dummy_audio_player_context_operations(dummy_player_context: DummyAudioPl
     );
     assert_ok_eq_x!(dummy_player_context.get_volume(), 100);
 
-    dummy_player_context.set_volume(80).unwrap();
+    dummy_player_context.set_volume(80).await.unwrap();
     assert_ok_eq_x!(dummy_player_context.get_volume(), 80);
 
     let src = ValidSrc::new_url("https://example.com/test.mp3");
-    dummy_player_context.set_src(src, events_tx).unwrap();
+    dummy_player_context
+        .set_src(src.into_owned(), events_tx)
+        .await
+        .unwrap();
     assert_ok_eq_x!(
         dummy_player_context.get_player_state(),
         PlayerState::Playing
     );
 
-    dummy_player_context.pause().unwrap();
+    dummy_player_context.pause().await.unwrap();
     assert_ok_eq_x!(dummy_player_context.get_player_state(), PlayerState::Paused);
 
-    dummy_player_context.play().unwrap();
+    dummy_player_context.play().await.unwrap();
     assert_ok_eq_x!(
         dummy_player_context.get_player_state(),
         PlayerState::Playing
     );
 
-    dummy_player_context.seek(Duration::from_secs(45)).unwrap();
+    dummy_player_context
+        .seek(Duration::from_secs(45))
+        .await
+        .unwrap();
     assert_ok_eq_x!(
         dummy_player_context.get_current_pos(),
         Duration::from_secs(45)
     );
 
-    dummy_player_context.stop().unwrap();
+    dummy_player_context.stop().await.unwrap();
     assert_ok_eq_x!(
         dummy_player_context.get_player_state(),
         PlayerState::Stopped
@@ -110,25 +117,35 @@ fn test_file_persist_lifecycle() {
 }
 
 #[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_rodio_player_context_operations() {
+async fn test_rodio_player_context_operations() {
     let ctx = RodioPlayerContext::default();
-    assert_ok!(ctx.play());
-    assert_ok!(ctx.pause());
-    assert_ok!(ctx.stop());
-    assert_ok!(ctx.set_volume(80));
+    assert_ok!(ctx.play().await);
+    assert_ok!(ctx.pause().await);
+    assert_ok!(ctx.stop().await);
+    assert_ok!(ctx.set_volume(80).await);
     assert_ok_eq_x!(ctx.get_volume(), 100);
-    assert_ok!(ctx.seek(Duration::from_secs(5)));
+    assert_ok!(ctx.seek(Duration::from_secs(5)).await);
     assert_ok_eq_x!(ctx.get_current_pos(), Duration::default());
     assert_ok_eq_x!(ctx.get_player_state(), PlayerState::Stopped);
 
     let tmp = tempdir::TempDir::new("test_rodio_can_play").unwrap();
     let file_path = tmp.path().join("song.mp3");
     std::fs::write(&file_path, b"dummy audio").unwrap();
-    assert!(ctx.can_play(&ValidSrc::Path(file_path)));
-    assert!(!ctx.can_play(&ValidSrc::Path(tmp.path().join("nonexistent.mp3"))));
-    assert!(ctx.can_play(&ValidSrc::new_url("https://example.com/stream.mp3")));
-    assert!(ctx.can_play(&ValidSrc::new_url("http://example.com/stream.mp3")));
-    assert!(!ctx.can_play(&ValidSrc::new_url("file:///test")));
+    assert!(ctx.can_play(&ValidSrc::Path(file_path)).await);
+    assert!(
+        !ctx.can_play(&ValidSrc::Path(tmp.path().join("nonexistent.mp3")))
+            .await
+    );
+    assert!(
+        ctx.can_play(&ValidSrc::new_url("https://example.com/stream.mp3"))
+            .await
+    );
+    assert!(
+        ctx.can_play(&ValidSrc::new_url("http://example.com/stream.mp3"))
+            .await
+    );
+    assert!(!ctx.can_play(&ValidSrc::new_url("file:///test")).await);
 }

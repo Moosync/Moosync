@@ -23,7 +23,7 @@ use std::{
     path::{Path, PathBuf},
     process,
     str::FromStr,
-    sync::{Arc, LazyLock, Mutex},
+    sync::{Arc, LazyLock, Mutex, RwLock},
     thread,
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -31,7 +31,8 @@ use std::{
 use extensions_proto::moosync::types::{
     BatchHttpRequest, BatchHttpResponse, Error as MainCommandError, ExtensionCommand,
     ExtensionCommandResponse, HttpRequest, HttpResponse, HttpResult, MainCommand,
-    MainCommandResponse, ManifestPermissions, http_result, main_command_response,
+    MainCommandResponse, ManifestPermissions, PlayerState, http_result, main_command_response,
+    player_event::Event as PlayerEvent,
 };
 use extism::{Manifest, PTR, Plugin, PluginBuilder, UserData, ValType::I64, Wasm, host_fn};
 use extism_convert::Prost;
@@ -40,20 +41,21 @@ use interprocess::local_socket::{
     traits::Stream,
 };
 use regex::{Captures, Regex};
+use tokio::sync::mpsc::UnboundedSender;
 use tracing::Instrument;
 
 use crate::{
-    context::{DispatchCommand, ExtensionContext, ReplyHandler},
+    cache::ExtensionMemoryCache,
+    context::{DispatchCommand, ExtensionContext, HostCommandContext, ReplyHandler},
     errors::ExtensionError,
     extension::Extension,
     models::SanitizeCommand,
+    process::ExtensionProcessManager,
     sanitize::Sanitize,
 };
 
 static ENV_VAR_REGEX: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\{([A-Z_][A-Z0-9_]*)\}").unwrap());
-
-use crate::cache::ExtensionMemoryCache;
 
 const HANDLE_EXTENSION_COMMAND: &str = "handle_extension_command";
 
@@ -61,6 +63,9 @@ struct MainCommandUserData {
     package_name: String,
     reply_handler: Arc<dyn ReplyHandler>,
     memory_cache: Arc<Mutex<ExtensionMemoryCache>>,
+    process_manager: Arc<ExtensionProcessManager>,
+    player_state: Arc<RwLock<PlayerState>>,
+    events_tx: Arc<RwLock<Option<UnboundedSender<PlayerEvent>>>>,
 }
 
 struct SocketUserData {
@@ -76,9 +81,16 @@ struct HttpUserData {
 
 host_fn!(send_main_command(user_data: MainCommandUserData; command_wrapper: Prost<MainCommand>) {
     let user_data_arc = user_data.get()?;
-    let (package_name, reply_handler, memory_cache) = {
+    let (package_name, reply_handler, memory_cache, process_manager, player_state, events_tx) = {
         let data = user_data_arc.lock().unwrap();
-        (data.package_name.clone(), data.reply_handler.clone(), data.memory_cache.clone())
+        (
+            data.package_name.clone(),
+            data.reply_handler.clone(),
+            data.memory_cache.clone(),
+            data.process_manager.clone(),
+            data.player_state.clone(),
+            data.events_tx.clone(),
+        )
     };
 
     let mut command = command_wrapper.0;
@@ -93,8 +105,16 @@ host_fn!(send_main_command(user_data: MainCommandUserData; command_wrapper: Pros
     tracing::debug!("Sending command {:?} from {}", command, package_name);
     let runtime_handle = reply_handler.get_runtime_handle();
     let _runtime_guard = runtime_handle.as_ref().map(|h| h.enter());
+    let ctx = HostCommandContext {
+        reply_handler: reply_handler.as_ref(),
+        package_name: &package_name,
+        memory_cache: &memory_cache,
+        process_manager: Some(&process_manager),
+        player_state: Some(&player_state),
+        events_tx: Some(&events_tx),
+    };
     let response = match command.command {
-        Some(cmd) => cmd.dispatch(reply_handler.as_ref(), &package_name, &memory_cache),
+        Some(cmd) => cmd.dispatch(&ctx),
         None => Err(ExtensionError::MissingCommand),
     };
 
@@ -418,9 +438,14 @@ impl TryFrom<&Extension> for Arc<ExtismContext> {
         }
 
         let (user_data, sock_data, http_data) = ExtismContext::get_user_data(
-            package_name.clone(),
-            ext.reply_handler.clone(),
-            ext.memory_cache.clone(),
+            MainCommandUserData {
+                package_name: package_name.clone(),
+                reply_handler: ext.reply_handler.clone(),
+                memory_cache: ext.memory_cache.clone(),
+                process_manager: ext.process_manager.clone(),
+                player_state: ext.player_state.clone(),
+                events_tx: ext.events_tx.clone(),
+            },
             plugin_manifest.allowed_paths.clone(),
             manifest.permissions.as_ref().map(|p| p.hosts.clone()),
         );
@@ -511,9 +536,7 @@ impl ExtismContext {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_user_data(
-        package_name: String,
-        reply_handler: Arc<dyn ReplyHandler>,
-        memory_cache: Arc<Mutex<ExtensionMemoryCache>>,
+        main_command_data: MainCommandUserData,
         allowed_paths: Option<BTreeMap<String, PathBuf>>,
         allowed_hosts: Option<Vec<String>>,
     ) -> (
@@ -521,12 +544,8 @@ impl ExtismContext {
         UserData<SocketUserData>,
         UserData<HttpUserData>,
     ) {
-        let runtime = reply_handler.get_runtime_handle();
-        let user_data = UserData::new(MainCommandUserData {
-            package_name,
-            reply_handler,
-            memory_cache,
-        });
+        let runtime = main_command_data.reply_handler.get_runtime_handle();
+        let user_data = UserData::new(main_command_data);
 
         let sock_data = UserData::new(SocketUserData {
             socks: vec![],

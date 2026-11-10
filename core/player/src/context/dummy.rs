@@ -16,6 +16,7 @@
 
 use std::{sync::Mutex, time::Duration};
 
+use async_trait::async_trait;
 use extensions_proto::moosync::types::{PlayerState, player_event::Event as PlayerEvent};
 use player_proto::moosync::types::PlayerData;
 use tokio::sync::mpsc::UnboundedSender;
@@ -56,23 +57,24 @@ impl DummyAudioPlayerContext {
     }
 }
 
+#[async_trait]
 impl AudioPlayerContext for DummyAudioPlayerContext {
     #[tracing::instrument(level = "debug", skip_all)]
-    fn play(&self) -> Result<(), PlayerError> {
+    async fn play(&self) -> Result<(), PlayerError> {
         let mut guard = self.state.lock().unwrap();
         guard.state = PlayerState::Playing;
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn pause(&self) -> Result<(), PlayerError> {
+    async fn pause(&self) -> Result<(), PlayerError> {
         let mut guard = self.state.lock().unwrap();
         guard.state = PlayerState::Paused;
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn stop(&self) -> Result<(), PlayerError> {
+    async fn stop(&self) -> Result<(), PlayerError> {
         let mut guard = self.state.lock().unwrap();
         guard.state = PlayerState::Stopped;
         guard.position = Duration::default();
@@ -80,7 +82,7 @@ impl AudioPlayerContext for DummyAudioPlayerContext {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn set_volume(&self, volume: u8) -> Result<(), PlayerError> {
+    async fn set_volume(&self, volume: u8) -> Result<(), PlayerError> {
         let mut guard = self.state.lock().unwrap();
         guard.volume = volume;
         Ok(())
@@ -93,7 +95,7 @@ impl AudioPlayerContext for DummyAudioPlayerContext {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn seek(&self, pos: Duration) -> Result<(), PlayerError> {
+    async fn seek(&self, pos: Duration) -> Result<(), PlayerError> {
         let mut guard = self.state.lock().unwrap();
         guard.position = pos;
         Ok(())
@@ -112,7 +114,7 @@ impl AudioPlayerContext for DummyAudioPlayerContext {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn can_play(&self, src: &ValidSrc) -> bool {
+    async fn can_play(&self, src: &ValidSrc<'_>) -> bool {
         match src {
             ValidSrc::Path(path) => path.exists(),
             ValidSrc::Url { url, .. } => url.starts_with("http://") || url.starts_with("https://"),
@@ -120,9 +122,9 @@ impl AudioPlayerContext for DummyAudioPlayerContext {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn set_src(
+    async fn set_src(
         &self,
-        src: ValidSrc,
+        src: ValidSrc<'static>,
         _events_tx: UnboundedSender<PlayerEvent>,
     ) -> Result<(), PlayerError> {
         let mut guard = self.state.lock().unwrap();

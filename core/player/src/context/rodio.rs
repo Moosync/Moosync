@@ -20,6 +20,7 @@ use std::{
     time::Duration,
 };
 
+use async_trait::async_trait;
 use extensions_proto::moosync::types::{PlayerState, player_event::Event as PlayerEvent};
 use rodio::{ChannelCount, MixerDeviceSink, Player, SampleRate, Source, source::SeekError};
 use tokio::sync::mpsc::UnboundedSender;
@@ -110,9 +111,10 @@ impl RodioPlayerContext {
     }
 }
 
+#[async_trait]
 impl AudioPlayerContext for RodioPlayerContext {
     #[tracing::instrument(level = "debug", skip_all)]
-    fn play(&self) -> Result<(), PlayerError> {
+    async fn play(&self) -> Result<(), PlayerError> {
         let guard = self.player.lock().unwrap();
         if let Some(player) = guard.as_ref() {
             player.play();
@@ -121,7 +123,7 @@ impl AudioPlayerContext for RodioPlayerContext {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn pause(&self) -> Result<(), PlayerError> {
+    async fn pause(&self) -> Result<(), PlayerError> {
         let guard = self.player.lock().unwrap();
         if let Some(player) = guard.as_ref() {
             player.pause();
@@ -130,7 +132,7 @@ impl AudioPlayerContext for RodioPlayerContext {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn stop(&self) -> Result<(), PlayerError> {
+    async fn stop(&self) -> Result<(), PlayerError> {
         let guard = self.player.lock().unwrap();
         if let Some(player) = guard.as_ref() {
             player.stop();
@@ -139,7 +141,7 @@ impl AudioPlayerContext for RodioPlayerContext {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn set_volume(&self, volume: u8) -> Result<(), PlayerError> {
+    async fn set_volume(&self, volume: u8) -> Result<(), PlayerError> {
         let guard = self.player.lock().unwrap();
         if let Some(player) = guard.as_ref() {
             player.set_volume(volume as f32 / 100f32);
@@ -157,10 +159,12 @@ impl AudioPlayerContext for RodioPlayerContext {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn seek(&self, pos: Duration) -> Result<(), PlayerError> {
+    async fn seek(&self, pos: Duration) -> Result<(), PlayerError> {
         let guard = self.player.lock().unwrap();
         if let Some(player) = guard.as_ref() {
-            player.try_seek(pos)?;
+            player
+                .try_seek(pos)
+                .map_err(|e| PlayerError::SeekError(format!("{e:?}")))?;
         }
         Ok(())
     }
@@ -191,7 +195,7 @@ impl AudioPlayerContext for RodioPlayerContext {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn can_play(&self, src: &ValidSrc) -> bool {
+    async fn can_play(&self, src: &ValidSrc<'_>) -> bool {
         match src {
             ValidSrc::Path(path) => path.exists(),
             ValidSrc::Url { url, .. } => url.starts_with("http://") || url.starts_with("https://"),
@@ -199,9 +203,9 @@ impl AudioPlayerContext for RodioPlayerContext {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn set_src(
+    async fn set_src(
         &self,
-        src: ValidSrc,
+        src: ValidSrc<'static>,
         events_tx: UnboundedSender<PlayerEvent>,
     ) -> Result<(), PlayerError> {
         let old_volume = self.get_volume().unwrap_or(50);
@@ -209,11 +213,15 @@ impl AudioPlayerContext for RodioPlayerContext {
         let system_rate = get_system_sample_rate().max(1);
         let safe_rate = NonZero::new(system_rate).expect("Sample rate is clamped to 1");
 
-        let device_builder = rodio::DeviceSinkBuilder::from_default_device()?;
+        let device_builder = rodio::DeviceSinkBuilder::from_default_device()
+            .map_err(|e| PlayerError::AudioDevice(format!("{e}")))?;
         let mut sink = device_builder
             .with_sample_rate(safe_rate)
             .open_stream()
-            .unwrap_or(rodio::DeviceSinkBuilder::open_default_sink()?);
+            .unwrap_or(
+                rodio::DeviceSinkBuilder::open_default_sink()
+                    .map_err(|e| PlayerError::AudioDevice(format!("{e}")))?,
+            );
         sink.log_on_drop(false);
         let cfg = sink.config();
         let output_sample_rate = cfg.sample_rate().get();

@@ -14,7 +14,7 @@ use moosync_edk::{
     SongRemovedRequest, VolumeChangedRequest,
     api::{
         self, Accounts, ContextMenu, CustomRequestReturnType, DatabaseEvents, Extension,
-        PlaybackDetailsReturnType, PlayerEvents, PreferenceEvents, Provider,
+        PlaybackDetailsReturnType, PlayerEvents, PlayerProvider, PreferenceEvents, Provider,
         SongsWithPageTokenReturnType,
         extension_api::{register_oauth, set_account},
     },
@@ -36,6 +36,8 @@ fn update_spotify_account(logged_in: bool) {
 }
 
 struct EmptySampleExtension;
+
+impl PlayerProvider for EmptySampleExtension {}
 
 impl Extension for EmptySampleExtension {}
 

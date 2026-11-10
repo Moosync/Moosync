@@ -242,7 +242,7 @@ pub mod integration {
         let ph = state_manager.get_player_handler();
         ph.clear_queue().await;
         ph.clear_queue().await;
-        let _ = ph.pause();
+        let _ = ph.pause().await;
         ph.repeat(RepeatMode::RepeatNone);
     }
 

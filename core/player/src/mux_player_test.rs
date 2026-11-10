@@ -36,7 +36,10 @@ use crate::{
 fn mux_player() -> MuxPlayer {
     MuxPlayer::new_with_contexts(
         SubscriberList::new(),
-        vec![Box::new(DummyAudioPlayerContext::new())],
+        vec![(
+            "dummy".to_string(),
+            Arc::new(DummyAudioPlayerContext::new()),
+        )],
     )
 }
 
@@ -55,7 +58,9 @@ async fn test_mux_player_initial_state(mux_player: MuxPlayer) {
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_mux_player_can_play_unsupported_url(mux_player: MuxPlayer) {
-    let can_play_ftp = mux_player.can_play(ValidSrc::new_url("ftp://example.com"));
+    let can_play_ftp = mux_player
+        .can_play(ValidSrc::new_url("ftp://example.com"))
+        .await;
 
     assert!(!can_play_ftp);
 }
@@ -73,7 +78,7 @@ async fn test_mux_player_load_unsupported_url(mux_player: MuxPlayer) {
         ..Default::default()
     };
 
-    let result = mux_player.load(&song);
+    let result = mux_player.load(&song).await;
 
     assert_err!(result.as_ref());
 }
@@ -83,7 +88,7 @@ async fn test_mux_player_load_unsupported_url(mux_player: MuxPlayer) {
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_mux_player_pause(mux_player: MuxPlayer) {
-    let result = mux_player.pause();
+    let result = mux_player.pause().await;
 
     assert_ok!(result);
 }
@@ -93,7 +98,7 @@ async fn test_mux_player_pause(mux_player: MuxPlayer) {
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_mux_player_stop(mux_player: MuxPlayer) {
-    let result = mux_player.stop();
+    let result = mux_player.stop().await;
 
     assert_ok!(result);
 }
@@ -103,7 +108,7 @@ async fn test_mux_player_stop(mux_player: MuxPlayer) {
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_mux_player_set_volume(mux_player: MuxPlayer) {
-    let result = mux_player.set_volume(90);
+    let result = mux_player.set_volume(90).await;
 
     assert_ok!(result);
 }
@@ -113,7 +118,7 @@ async fn test_mux_player_set_volume(mux_player: MuxPlayer) {
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_mux_player_seek(mux_player: MuxPlayer) {
-    let result = mux_player.seek(Duration::from_secs(5));
+    let result = mux_player.seek(Duration::from_secs(5)).await;
 
     assert_ok!(result);
 }
@@ -136,13 +141,14 @@ fn test_get_system_sample_rate() {
 #[derive(Default)]
 struct RejectAudioPlayer;
 
+#[async_trait]
 impl crate::context::AudioPlayerContext for RejectAudioPlayer {
     #[tracing::instrument(level = "debug", skip_all)]
-    fn can_play(&self, _src: &ValidSrc) -> bool { false }
+    async fn can_play(&self, _src: &ValidSrc<'_>) -> bool { false }
     #[tracing::instrument(level = "debug", skip_all)]
-    fn set_src(
+    async fn set_src(
         &self,
-        _src: ValidSrc,
+        _src: ValidSrc<'static>,
         _events_tx: tokio::sync::mpsc::UnboundedSender<
             extensions_proto::moosync::types::player_event::Event,
         >,
@@ -150,20 +156,20 @@ impl crate::context::AudioPlayerContext for RejectAudioPlayer {
         Err(crate::error::PlayerError::NoPlayerFound(Box::default()))
     }
     #[tracing::instrument(level = "debug", skip_all)]
-    fn play(&self) -> Result<(), crate::error::PlayerError> { Ok(()) }
+    async fn play(&self) -> Result<(), crate::error::PlayerError> { Ok(()) }
     #[tracing::instrument(level = "debug", skip_all)]
-    fn pause(&self) -> Result<(), crate::error::PlayerError> { Ok(()) }
+    async fn pause(&self) -> Result<(), crate::error::PlayerError> { Ok(()) }
     #[tracing::instrument(level = "debug", skip_all)]
-    fn stop(&self) -> Result<(), crate::error::PlayerError> { Ok(()) }
+    async fn stop(&self) -> Result<(), crate::error::PlayerError> { Ok(()) }
     #[tracing::instrument(level = "debug", skip_all)]
-    fn set_volume(&self, _vol: u8) -> Result<(), crate::error::PlayerError> { Ok(()) }
+    async fn set_volume(&self, _vol: u8) -> Result<(), crate::error::PlayerError> { Ok(()) }
     #[tracing::instrument(level = "debug", skip_all)]
-    fn seek(&self, _pos: Duration) -> Result<(), crate::error::PlayerError> { Ok(()) }
+    async fn seek(&self, _pos: Duration) -> Result<(), crate::error::PlayerError> { Ok(()) }
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_volume(&self) -> Result<u8, crate::error::PlayerError> { Ok(100) }
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_current_pos(&self) -> Result<Duration, crate::error::PlayerError> {
-        Ok(Duration::from_secs(12))
+        Ok(Duration::from_secs(0))
     }
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_player_state(&self) -> Result<PlayerState, crate::error::PlayerError> {
@@ -175,35 +181,55 @@ impl crate::context::AudioPlayerContext for RejectAudioPlayer {
 #[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_mux_player_playback_and_metrics(mux_player: MuxPlayer) {
-    let play_res = mux_player.play();
-    assert_ok!(play_res);
+async fn test_mux_player_no_player_found() {
+    let mux = MuxPlayer::new_with_contexts(
+        SubscriberList::new(),
+        vec![("reject".to_string(), Arc::new(RejectAudioPlayer))],
+    );
 
-    let vol = mux_player.get_volume();
-    assert_eq!(vol, 100);
-
-    let pos_res = mux_player.get_current_pos();
-    assert_ok!(pos_res);
-
-    let valid_song = Song {
+    let song = Song {
         song: Some(InnerSong {
             playback_url: Some("https://example.com/audio.mp3".to_string()),
             ..Default::default()
         }),
         ..Default::default()
     };
-    let load_res = mux_player.set_src(&valid_song).await;
-    assert_ok!(load_res);
+
+    let result = mux.load(&song).await;
+
+    assert_err!(result.as_ref());
 }
 
 #[rstest]
 #[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_mux_player_source_resolver() {
+async fn test_mux_player_play_success(mux_player: MuxPlayer) {
+    let song = Song {
+        song: Some(InnerSong {
+            playback_url: Some("https://example.com/audio.mp3".to_string()),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    assert_ok!(mux_player.load(&song).await);
+    let play_res = mux_player.play().await;
+    assert_ok!(play_res);
+    assert_eq!(mux_player.get_player_state(), PlayerState::Playing);
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_mux_player_load_song_resolution() {
     let mux = MuxPlayer::new_with_contexts(
         SubscriberList::new(),
-        vec![Box::new(DummyAudioPlayerContext::new())],
+        vec![(
+            "dummy".to_string(),
+            Arc::new(DummyAudioPlayerContext::new()),
+        )],
     );
 
     struct MockMuxResolver;
@@ -245,26 +271,30 @@ async fn test_mux_player_fallback_switching() {
     let mux = MuxPlayer::new_with_contexts(
         SubscriberList::new(),
         vec![
-            Box::new(RejectAudioPlayer),
-            Box::new(DummyAudioPlayerContext::new()),
+            ("reject".to_string(), Arc::new(RejectAudioPlayer)),
+            (
+                "dummy".to_string(),
+                Arc::new(DummyAudioPlayerContext::new()),
+            ),
         ],
     );
 
     let valid_src = ValidSrc::new_url("https://example.com/stream.mp3");
-    let load_res = mux.load_src(valid_src);
+    let load_res = mux.load_src(valid_src).await;
 
     assert_ok!(load_res);
 }
 
 struct FailingSetSrcPlayer;
 
+#[async_trait]
 impl crate::context::AudioPlayerContext for FailingSetSrcPlayer {
     #[tracing::instrument(level = "debug", skip_all)]
-    fn can_play(&self, _src: &ValidSrc) -> bool { true }
+    async fn can_play(&self, _src: &ValidSrc<'_>) -> bool { true }
     #[tracing::instrument(level = "debug", skip_all)]
-    fn set_src(
+    async fn set_src(
         &self,
-        _src: ValidSrc,
+        _src: ValidSrc<'static>,
         _events_tx: tokio::sync::mpsc::UnboundedSender<
             extensions_proto::moosync::types::player_event::Event,
         >,
@@ -272,15 +302,15 @@ impl crate::context::AudioPlayerContext for FailingSetSrcPlayer {
         Err(crate::error::PlayerError::NoPlayerFound(Box::default()))
     }
     #[tracing::instrument(level = "debug", skip_all)]
-    fn play(&self) -> Result<(), crate::error::PlayerError> { Ok(()) }
+    async fn play(&self) -> Result<(), crate::error::PlayerError> { Ok(()) }
     #[tracing::instrument(level = "debug", skip_all)]
-    fn pause(&self) -> Result<(), crate::error::PlayerError> { Ok(()) }
+    async fn pause(&self) -> Result<(), crate::error::PlayerError> { Ok(()) }
     #[tracing::instrument(level = "debug", skip_all)]
-    fn stop(&self) -> Result<(), crate::error::PlayerError> { Ok(()) }
+    async fn stop(&self) -> Result<(), crate::error::PlayerError> { Ok(()) }
     #[tracing::instrument(level = "debug", skip_all)]
-    fn set_volume(&self, _vol: u8) -> Result<(), crate::error::PlayerError> { Ok(()) }
+    async fn set_volume(&self, _vol: u8) -> Result<(), crate::error::PlayerError> { Ok(()) }
     #[tracing::instrument(level = "debug", skip_all)]
-    fn seek(&self, _pos: Duration) -> Result<(), crate::error::PlayerError> { Ok(()) }
+    async fn seek(&self, _pos: Duration) -> Result<(), crate::error::PlayerError> { Ok(()) }
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_volume(&self) -> Result<u8, crate::error::PlayerError> { Ok(100) }
     #[tracing::instrument(level = "debug", skip_all)]
@@ -301,13 +331,16 @@ async fn test_mux_player_active_player_failure_fallback() {
     let mux = MuxPlayer::new_with_contexts(
         SubscriberList::new(),
         vec![
-            Box::new(FailingSetSrcPlayer),
-            Box::new(DummyAudioPlayerContext::new()),
+            ("failing".to_string(), Arc::new(FailingSetSrcPlayer)),
+            (
+                "dummy".to_string(),
+                Arc::new(DummyAudioPlayerContext::new()),
+            ),
         ],
     );
 
     let valid_src = ValidSrc::new_url("https://example.com/stream.mp3");
-    let load_res = mux.load_src(valid_src);
+    let load_res = mux.load_src(valid_src).await;
     assert_ok!(load_res);
 }
 
@@ -318,11 +351,14 @@ async fn test_mux_player_active_player_failure_fallback() {
 async fn test_mux_player_all_players_failing() {
     let mux = MuxPlayer::new_with_contexts(
         SubscriberList::new(),
-        vec![Box::new(FailingSetSrcPlayer), Box::new(RejectAudioPlayer)],
+        vec![
+            ("failing".to_string(), Arc::new(FailingSetSrcPlayer)),
+            ("reject".to_string(), Arc::new(RejectAudioPlayer)),
+        ],
     );
 
     let valid_src = ValidSrc::new_url("https://example.com/stream.mp3");
-    let load_res = mux.load_src(valid_src);
+    let load_res = mux.load_src(valid_src).await;
     assert_err!(load_res);
 
     let dummy_song = Song::default();
@@ -349,15 +385,43 @@ async fn test_mux_player_ended_event_propagation() {
 
     let mux = MuxPlayer::new_with_contexts(
         on_ended_list,
-        vec![Box::new(DummyAudioPlayerContext::new())],
+        vec![(
+            "dummy".to_string(),
+            Arc::new(DummyAudioPlayerContext::new()),
+        )],
     );
 
     let valid_src = ValidSrc::new_url("https://example.com/stream.mp3");
-    assert_ok!(mux.load_src(valid_src));
+    assert_ok!(mux.load_src(valid_src).await);
 
     let events_tx = mux.create_new_events_tx();
     let _ = events_tx.send(extensions_proto::moosync::types::player_event::Event::Ended(true));
 
     tokio::time::sleep(Duration::from_millis(50)).await;
     assert!(ended_flag.load(Ordering::SeqCst));
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_mux_player_dynamic_registration() {
+    let mux = MuxPlayer::new_with_contexts(
+        SubscriberList::new(),
+        vec![("reject".to_string(), Arc::new(RejectAudioPlayer))],
+    );
+
+    let valid_src = ValidSrc::new_url("https://example.com/stream.mp3");
+    assert_err!(mux.load_src(valid_src.clone()).await);
+
+    // Dynamically add dummy player
+    mux.add_player(
+        "dynamic_dummy".to_string(),
+        Arc::new(DummyAudioPlayerContext::new()),
+    );
+    assert_ok!(mux.load_src(valid_src.clone()).await);
+
+    // Dynamically remove dummy player
+    mux.remove_player("dynamic_dummy");
+    assert_err!(mux.load_src(valid_src).await);
 }

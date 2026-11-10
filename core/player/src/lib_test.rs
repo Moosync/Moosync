@@ -67,7 +67,10 @@ fn player_handler() -> PlayerHandler {
     let (ended_tx, _ended_rx) = tokio::sync::mpsc::unbounded_channel();
     PlayerHandler::new_with_contexts(
         ended_tx,
-        vec![Box::new(DummyAudioPlayerContext::new())],
+        vec![(
+            "dummy".to_string(),
+            Arc::new(DummyAudioPlayerContext::new()),
+        )],
         Box::new(DummyPersistContext {}),
     )
 }
@@ -758,7 +761,10 @@ async fn test_restore_player_data_sets_current_song() {
     let (ended_tx, _ended_rx) = tokio::sync::mpsc::unbounded_channel();
     let player_handler = PlayerHandler::new_with_contexts(
         ended_tx,
-        vec![Box::new(DummyAudioPlayerContext::new())],
+        vec![(
+            "dummy".to_string(),
+            Arc::new(DummyAudioPlayerContext::new()),
+        )],
         Box::new(MockPersistContext { data: player_data }),
     );
 
@@ -789,7 +795,10 @@ async fn test_restore_player_data_play_loads_and_plays() {
     let (ended_tx, _ended_rx) = tokio::sync::mpsc::unbounded_channel();
     let player_handler = PlayerHandler::new_with_contexts(
         ended_tx,
-        vec![Box::new(DummyAudioPlayerContext::new())],
+        vec![(
+            "dummy".to_string(),
+            Arc::new(DummyAudioPlayerContext::new()),
+        )],
         Box::new(MockPersistContext { data: player_data }),
     );
 
@@ -815,7 +824,10 @@ async fn test_restore_player_data_out_of_bounds_idx_resets_to_zero() {
     let (ended_tx, _ended_rx) = tokio::sync::mpsc::unbounded_channel();
     let player_handler = PlayerHandler::new_with_contexts(
         ended_tx,
-        vec![Box::new(DummyAudioPlayerContext::new())],
+        vec![(
+            "dummy".to_string(),
+            Arc::new(DummyAudioPlayerContext::new()),
+        )],
         Box::new(MockPersistContext { data: player_data }),
     );
 
@@ -839,7 +851,10 @@ async fn test_repeat_persists_player_data() {
     let (ended_tx, _ended_rx) = tokio::sync::mpsc::unbounded_channel();
     let player_handler = PlayerHandler::new_with_contexts(
         ended_tx,
-        vec![Box::new(DummyAudioPlayerContext::new())],
+        vec![(
+            "dummy".to_string(),
+            Arc::new(DummyAudioPlayerContext::new()),
+        )],
         Box::new(TrackingPersistContext {
             persisted: persisted.clone(),
         }),
@@ -886,11 +901,11 @@ async fn test_player_handler_new_dummy_and_methods() {
     let curr = handler.get_current_song();
     assert_none!(curr);
 
-    let pause_res = handler.pause();
+    let pause_res = handler.pause().await;
     assert!(pause_res.is_ok());
 
-    handler.set_volume(75);
-    handler.seek(std::time::Duration::from_secs(10));
+    handler.set_volume(75).await;
+    handler.seek(std::time::Duration::from_secs(10)).await;
 
     struct MockDummyResolver;
 
@@ -924,7 +939,10 @@ async fn test_player_handler_failing_persist() {
     let (ended_tx, _ended_rx) = tokio::sync::mpsc::unbounded_channel();
     let handler = PlayerHandler::new_with_contexts(
         ended_tx,
-        vec![Box::new(DummyAudioPlayerContext::new())],
+        vec![(
+            "dummy".to_string(),
+            Arc::new(DummyAudioPlayerContext::new()),
+        )],
         Box::new(FailingPersistContext),
     );
 
@@ -939,13 +957,14 @@ async fn test_player_handler_failing_persist() {
 
 struct FailingSeekAndVolumePlayer;
 
+#[async_trait]
 impl AudioPlayerContext for FailingSeekAndVolumePlayer {
     #[tracing::instrument(level = "debug", skip_all)]
-    fn can_play(&self, _src: &ValidSrc) -> bool { true }
+    async fn can_play(&self, _src: &ValidSrc<'_>) -> bool { true }
     #[tracing::instrument(level = "debug", skip_all)]
-    fn set_src(
+    async fn set_src(
         &self,
-        _src: ValidSrc,
+        _src: ValidSrc<'static>,
         _events_tx: tokio::sync::mpsc::UnboundedSender<
             extensions_proto::moosync::types::player_event::Event,
         >,
@@ -953,19 +972,19 @@ impl AudioPlayerContext for FailingSeekAndVolumePlayer {
         Ok(())
     }
     #[tracing::instrument(level = "debug", skip_all)]
-    fn play(&self) -> Result<(), PlayerError> { Ok(()) }
+    async fn play(&self) -> Result<(), PlayerError> { Ok(()) }
     #[tracing::instrument(level = "debug", skip_all)]
-    fn pause(&self) -> Result<(), PlayerError> { Ok(()) }
+    async fn pause(&self) -> Result<(), PlayerError> { Ok(()) }
     #[tracing::instrument(level = "debug", skip_all)]
-    fn stop(&self) -> Result<(), PlayerError> { Ok(()) }
+    async fn stop(&self) -> Result<(), PlayerError> { Ok(()) }
     #[tracing::instrument(level = "debug", skip_all)]
-    fn set_volume(&self, _vol: u8) -> Result<(), PlayerError> {
+    async fn set_volume(&self, _vol: u8) -> Result<(), PlayerError> {
         Err(PlayerError::PlaybackUrlResolutionFailed(
             "set volume error".to_string(),
         ))
     }
     #[tracing::instrument(level = "debug", skip_all)]
-    fn seek(&self, _pos: Duration) -> Result<(), PlayerError> {
+    async fn seek(&self, _pos: Duration) -> Result<(), PlayerError> {
         Err(PlayerError::PlaybackUrlResolutionFailed(
             "seek error".to_string(),
         ))
@@ -989,12 +1008,12 @@ async fn test_player_handler_seek_volume_errors() {
     let (ended_tx, _ended_rx) = tokio::sync::mpsc::unbounded_channel();
     let handler = PlayerHandler::new_with_contexts(
         ended_tx,
-        vec![Box::new(FailingSeekAndVolumePlayer)],
+        vec![("failing".to_string(), Arc::new(FailingSeekAndVolumePlayer))],
         Box::new(DummyPersistContext {}),
     );
 
-    handler.set_volume(40);
-    handler.seek(Duration::from_secs(15));
+    handler.set_volume(40).await;
+    handler.seek(Duration::from_secs(15)).await;
     assert_eq!(handler.get_volume(), 50);
 }
 
@@ -1033,7 +1052,7 @@ async fn test_player_handler_timer_lifecycle() {
     let song = create_mock_song("test_song", "Test Song");
     ph.play_now(vec![song]).await;
     tokio::time::sleep(Duration::from_millis(100)).await;
-    let _ = ph.pause();
+    let _ = ph.pause().await;
     tokio::time::sleep(Duration::from_millis(100)).await;
 
     let mut received_play = false;
@@ -1102,8 +1121,8 @@ async fn test_on_volume_changed_and_on_seeked_emitted(player_handler: PlayerHand
     let song = create_mock_song("1", "Song One");
     player_handler.play_now(vec![song]).await;
 
-    player_handler.set_volume(65);
-    player_handler.seek(Duration::from_secs(42));
+    player_handler.set_volume(65).await;
+    player_handler.seek(Duration::from_secs(42)).await;
 
     assert_eq!(*volumes.lock().unwrap(), vec![65]);
     assert_eq!(*seeks.lock().unwrap(), vec![Duration::from_secs(42)]);

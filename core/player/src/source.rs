@@ -1,7 +1,5 @@
 use std::{
-    borrow::Cow,
     error::Error,
-    fmt::Display,
     path::PathBuf,
     sync::{Arc, Mutex},
 };
@@ -9,61 +7,10 @@ use std::{
 use async_trait::async_trait;
 use extensions_proto::moosync::types::PlaybackDetailsRequestedResponse;
 use songs_proto::moosync::types::Song;
+pub use types::player::ValidSrc;
 use types::prelude::SongsExt;
 
 use crate::error::PlayerError;
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum ValidSrc<'a> {
-    Path(PathBuf),
-    Url {
-        url: Cow<'a, str>,
-        decryption_key: Option<Cow<'a, str>>,
-    },
-}
-
-impl Display for ValidSrc<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.clone().inner())
-    }
-}
-
-impl<'a> ValidSrc<'a> {
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new_url(url: impl Into<Cow<'a, str>>) -> Self {
-        Self::Url {
-            url: url.into(),
-            decryption_key: None,
-        }
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new_url_with_key(
-        url: impl Into<Cow<'a, str>>,
-        decryption_key: Option<impl Into<Cow<'a, str>>>,
-    ) -> Self {
-        Self::Url {
-            url: url.into(),
-            decryption_key: decryption_key.map(Into::into),
-        }
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub(crate) fn inner(&self) -> Cow<'_, str> {
-        match self {
-            ValidSrc::Path(path) => path.to_string_lossy(),
-            ValidSrc::Url { url, .. } => url.clone(),
-        }
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub(crate) fn decryption_key(&self) -> Option<Cow<'_, str>> {
-        match self {
-            ValidSrc::Path(_) => None,
-            ValidSrc::Url { decryption_key, .. } => decryption_key.clone(),
-        }
-    }
-}
 
 #[tracing::instrument(level = "debug", skip_all)]
 pub(crate) fn get_valid_src(song: &'_ Song) -> Result<ValidSrc<'_>, PlayerError> {

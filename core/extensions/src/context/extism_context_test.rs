@@ -156,6 +156,7 @@ fn test_get_allowed_paths() {
     let permissions = ManifestPermissions {
         paths: paths_map,
         hosts: vec![],
+        binaries: vec![],
     };
 
     let allowed = ExtismContext::get_allowed_paths(&permissions, &cache_dir);

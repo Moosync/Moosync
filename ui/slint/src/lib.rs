@@ -459,7 +459,7 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
                 async move {
                     let player_handler = state_manager.get_player_handler();
                     if currently_playing {
-                        let _ = player_handler.pause();
+                        let _ = player_handler.pause().await;
                     } else {
                         let _ = player_handler.play().await;
                     }
@@ -684,7 +684,7 @@ fn setup_player_bottom_bar_callbacks(
             tokio::spawn(
                 async move {
                     let player_handler = state_manager.get_player_handler();
-                    player_handler.set_volume(volume as u8);
+                    player_handler.set_volume(volume as u8).await;
                 }
                 .instrument(tracing::debug_span!("slint_cb_on_set_volume")),
             );
@@ -712,7 +712,7 @@ fn setup_player_bottom_bar_callbacks(
 
                     let player_handler = state_manager.get_player_handler();
 
-                    player_handler.seek(target_duration);
+                    player_handler.seek(target_duration).await;
                 }
                 .instrument(tracing::debug_span!("slint_cb_on_seek")),
             );

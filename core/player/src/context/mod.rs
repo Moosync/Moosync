@@ -14,13 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::time::Duration;
-
-use extensions_proto::moosync::types::{PlayerState, player_event::Event as PlayerEvent};
 use player_proto::moosync::types::PlayerData;
-use tokio::sync::mpsc::UnboundedSender;
+pub use types::player::AudioPlayerContext;
 
-use crate::{error::PlayerError, source::ValidSrc};
+use crate::error::PlayerError;
 
 #[cfg(any(test, feature = "test"))]
 pub mod dummy;
@@ -33,23 +30,6 @@ mod mod_test;
 #[cfg(any(test, feature = "test"))]
 pub use dummy::{DummyAudioPlayerContext, DummyPersistContext};
 pub use rodio::RodioPlayerContext;
-
-pub trait AudioPlayerContext: Send + Sync {
-    fn play(&self) -> Result<(), PlayerError>;
-    fn pause(&self) -> Result<(), PlayerError>;
-    fn stop(&self) -> Result<(), PlayerError>;
-    fn set_volume(&self, volume: u8) -> Result<(), PlayerError>;
-    fn get_volume(&self) -> Result<u8, PlayerError>;
-    fn seek(&self, pos: Duration) -> Result<(), PlayerError>;
-    fn get_current_pos(&self) -> Result<Duration, PlayerError>;
-    fn get_player_state(&self) -> Result<PlayerState, PlayerError>;
-    fn can_play(&self, src: &ValidSrc) -> bool;
-    fn set_src(
-        &self,
-        src: ValidSrc,
-        events_tx: UnboundedSender<PlayerEvent>,
-    ) -> Result<(), PlayerError>;
-}
 
 pub trait PersistContext: Send + Sync {
     fn persist(&self, player_data: &PlayerData) -> Result<(), PlayerError>;

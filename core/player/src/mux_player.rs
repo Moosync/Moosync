@@ -38,7 +38,7 @@ use crate::{
 };
 
 pub struct MuxPlayer {
-    players: Vec<Box<dyn AudioPlayerContext>>,
+    players: RwLock<Vec<(String, Arc<dyn AudioPlayerContext>)>>,
     active_idx: AtomicUsize,
     events_tx: RwLock<UnboundedSender<PlayerEvent>>,
     pub on_ended_callback: SubscriberList<()>,
@@ -49,7 +49,7 @@ impl MuxPlayer {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn new_with_contexts(
         on_ended_callback: SubscriberList<()>,
-        players: Vec<Box<dyn AudioPlayerContext>>,
+        players: Vec<(String, Arc<dyn AudioPlayerContext>)>,
     ) -> Self {
         assert!(
             !players.is_empty(),
@@ -69,7 +69,7 @@ impl MuxPlayer {
         );
 
         Self {
-            players,
+            players: RwLock::new(players),
             active_idx: AtomicUsize::new(0),
             events_tx: RwLock::new(events_tx),
             on_ended_callback,
@@ -78,24 +78,62 @@ impl MuxPlayer {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn active_player(&self) -> &dyn AudioPlayerContext {
+    pub fn add_player(&self, id: String, player: Arc<dyn AudioPlayerContext>) {
+        let mut players = self.players.write().unwrap();
+        players.retain(|(existing_id, _)| existing_id != &id);
+        players.push((id, player));
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn remove_player(&self, id: &str) {
+        let mut players = self.players.write().unwrap();
+        players.retain(|(existing_id, _)| existing_id != id);
+        let current_idx = self.active_idx.load(Ordering::SeqCst);
+        if current_idx >= players.len() && !players.is_empty() {
+            self.active_idx.store(0, Ordering::SeqCst);
+        }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn get_player_ids(&self) -> Vec<String> {
+        self.players
+            .read()
+            .unwrap()
+            .iter()
+            .map(|(id, _)| id.clone())
+            .collect()
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_active_player(&self) -> Option<Arc<dyn AudioPlayerContext>> {
+        let players = self.players.read().unwrap();
         let idx = self.active_idx.load(Ordering::SeqCst);
-        self.players[idx].as_ref()
+        players.get(idx).map(|(_, player)| player.clone())
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_player_state(&self) -> PlayerState {
-        self.active_player()
-            .get_player_state()
+        self.get_active_player()
+            .and_then(|p| p.get_player_state().ok())
             .unwrap_or(PlayerState::Stopped)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn get_volume(&self) -> u8 { self.active_player().get_volume().unwrap_or(100) }
+    pub fn get_volume(&self) -> u8 {
+        self.get_active_player()
+            .and_then(|p| p.get_volume().ok())
+            .unwrap_or(100)
+    }
 
     #[cfg(test)]
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn can_play(&self, src: ValidSrc) -> bool { self.active_player().can_play(&src) }
+    pub async fn can_play(&self, src: ValidSrc<'_>) -> bool {
+        if let Some(player) = self.get_active_player() {
+            player.can_play(&src).await
+        } else {
+            false
+        }
+    }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn set_resolver(&self, resolver: Arc<dyn SourceResolver>) {
@@ -121,12 +159,24 @@ impl MuxPlayer {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn load_src(&self, src: ValidSrc) -> Result<(), PlayerError> {
-        let current_idx = self.active_idx.load(Ordering::SeqCst);
+    pub async fn load_src(&self, src: ValidSrc<'_>) -> Result<(), PlayerError> {
+        let (current_idx, active_player, all_players) = {
+            let players = self.players.read().unwrap();
+            let idx = self.active_idx.load(Ordering::SeqCst);
+            let active = players.get(idx).map(|(_, p)| p.clone());
+            let all: Vec<(usize, Arc<dyn AudioPlayerContext>)> = players
+                .iter()
+                .enumerate()
+                .map(|(i, (_, p))| (i, p.clone()))
+                .collect();
+            (idx, active, all)
+        };
 
-        if self.players[current_idx].can_play(&src) {
+        if let Some(player) = active_player
+            && player.can_play(&src).await
+        {
             let events_tx = self.events_tx.read().unwrap().clone();
-            match self.players[current_idx].set_src(src.clone(), events_tx) {
+            match player.set_src(src.clone().into_owned(), events_tx).await {
                 Ok(()) => return Ok(()),
                 Err(e) => {
                     tracing::error!(
@@ -138,13 +188,16 @@ impl MuxPlayer {
             }
         }
 
-        for (idx, player) in self.players.iter().enumerate() {
+        for (idx, player) in all_players {
             if idx == current_idx {
                 continue;
             }
-            if player.can_play(&src) {
+            if player.can_play(&src).await {
                 let new_events_tx = self.create_new_events_tx();
-                match player.set_src(src.clone(), new_events_tx) {
+                match player
+                    .set_src(src.clone().into_owned(), new_events_tx)
+                    .await
+                {
                     Ok(()) => {
                         self.active_idx.store(idx, Ordering::SeqCst);
                         return Ok(());
@@ -159,9 +212,10 @@ impl MuxPlayer {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn load(&self, song: &Song) -> Result<(), PlayerError> {
+    pub async fn load(&self, song: &Song) -> Result<(), PlayerError> {
         let src = get_valid_src(song)?;
         self.load_src(src)
+            .await
             .map_err(|_| PlayerError::NoPlayerFound(Box::new(song.clone())))
     }
 
@@ -172,7 +226,7 @@ impl MuxPlayer {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub async fn load_song(&self, song: &Song) -> Result<(), PlayerError> {
-        let res = self.load(song);
+        let res = self.load(song).await;
         if let Err(e) = res {
             match e {
                 PlayerError::NoPlayerFound(_) | PlayerError::NoSrcFound(_) => {
@@ -180,6 +234,7 @@ impl MuxPlayer {
                     tracing::debug!("Resolved playback details for: {:?}", resp);
                     let src = ValidSrc::new_url_with_key(resp.url, resp.decryption_key);
                     self.load_src(src)
+                        .await
                         .map_err(|_| PlayerError::NoPlayerFound(Box::new(song.clone())))?;
                 }
                 _ => return Err(e),
@@ -189,26 +244,50 @@ impl MuxPlayer {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn play(&self) -> Result<(), PlayerError> { self.active_player().play() }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub fn pause(&self) -> Result<(), PlayerError> { self.active_player().pause() }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub fn stop(&self) -> Result<(), PlayerError> { self.active_player().stop() }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub fn set_volume(&self, volume: u8) -> Result<(), PlayerError> {
-        self.active_player().set_volume(volume)
+    pub async fn play(&self) -> Result<(), PlayerError> {
+        let Some(player) = self.get_active_player() else {
+            return Err(PlayerError::Custom("No active player".to_string()));
+        };
+        player.play().await
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn seek(&self, position: Duration) -> Result<(), PlayerError> {
-        self.active_player().seek(position)
+    pub async fn pause(&self) -> Result<(), PlayerError> {
+        let Some(player) = self.get_active_player() else {
+            return Err(PlayerError::Custom("No active player".to_string()));
+        };
+        player.pause().await
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub async fn stop(&self) -> Result<(), PlayerError> {
+        let Some(player) = self.get_active_player() else {
+            return Err(PlayerError::Custom("No active player".to_string()));
+        };
+        player.stop().await
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub async fn set_volume(&self, volume: u8) -> Result<(), PlayerError> {
+        let Some(player) = self.get_active_player() else {
+            return Err(PlayerError::Custom("No active player".to_string()));
+        };
+        player.set_volume(volume).await
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub async fn seek(&self, position: Duration) -> Result<(), PlayerError> {
+        let Some(player) = self.get_active_player() else {
+            return Err(PlayerError::Custom("No active player".to_string()));
+        };
+        player.seek(position).await
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_current_pos(&self) -> Result<Duration, PlayerError> {
-        self.active_player().get_current_pos()
+        let Some(player) = self.get_active_player() else {
+            return Ok(Duration::default());
+        };
+        player.get_current_pos()
     }
 }

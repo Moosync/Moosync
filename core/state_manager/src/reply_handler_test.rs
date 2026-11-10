@@ -595,8 +595,8 @@ async fn test_reply_handler_player_getters_when_active(reply_context: TestReplyC
         ..Default::default()
     };
     player.play_now(vec![song1, song2]).await;
-    player.set_volume(72);
-    player.seek(Duration::from_secs(18));
+    player.set_volume(72).await;
+    player.seek(Duration::from_secs(18)).await;
 
     let h1 = handler.clone();
     let current_song = tokio::task::spawn_blocking(move || h1.get_current_song("pkg"))

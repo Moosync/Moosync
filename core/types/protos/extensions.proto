@@ -39,6 +39,13 @@ message ExtensionCommand {
     GetProviderScopesRequest get_provider_scopes = 30;
     PerformAccountLoginRequest perform_account_login = 31;
     RequestedCoverArtRequest requested_cover_art = 32;
+    CanPlayRequest can_play = 33;
+    PlayerPlayRequest player_play = 34;
+    PlayerPauseRequest player_pause = 35;
+    PlayerStopRequest player_stop = 36;
+    PlayerSeekRequest player_seek = 37;
+    PlayerSetVolumeRequest player_set_volume = 38;
+    PlayerLoadTrackRequest player_load_track = 39;
   }
 }
 
@@ -73,6 +80,13 @@ message ExtensionCommandResponse {
     GetProviderScopesResponse get_provider_scopes = 29;
     PerformAccountLoginResponse perform_account_login = 30;
     RequestedCoverArtResponse requested_cover_art = 31;
+    CanPlayResponse can_play = 32;
+    PlayerPlayResponse player_play = 33;
+    PlayerPauseResponse player_pause = 34;
+    PlayerStopResponse player_stop = 35;
+    PlayerSeekResponse player_seek = 36;
+    PlayerSetVolumeResponse player_set_volume = 37;
+    PlayerLoadTrackResponse player_load_track = 38;
   }
 }
 
@@ -327,6 +341,12 @@ message MainCommand {
     GetAppVersionRequest get_app_version = 23;
     GetCacheRequest get_cache = 24;
     SetCacheRequest set_cache = 25;
+    SpawnProcessRequest spawn_process = 26;
+    WriteProcessStdinRequest write_process_stdin = 27;
+    ReadProcessStdoutRequest read_process_stdout = 28;
+    KillProcessRequest kill_process = 29;
+    GetProcessStatusRequest get_process_status = 30;
+    NotifyPlaybackEndedRequest notify_playback_ended = 31;
   }
 }
 
@@ -358,6 +378,12 @@ message MainCommandResponse {
     Error error = 24;
     GetCacheResponse get_cache = 25;
     SetCacheResponse set_cache = 26;
+    SpawnProcessResponse spawn_process = 27;
+    WriteProcessStdinResponse write_process_stdin = 28;
+    ReadProcessStdoutResponse read_process_stdout = 29;
+    KillProcessResponse kill_process = 30;
+    GetProcessStatusResponse get_process_status = 31;
+    NotifyPlaybackEndedResponse notify_playback_ended = 32;
   }
 }
 
@@ -576,6 +602,7 @@ message ContextMenuReturnType {
 message ManifestPermissions {
   repeated string hosts = 1;
   map<string, string> paths = 2;
+  repeated string binaries = 3;
 }
 
 message ExtensionManifest {
@@ -641,6 +668,7 @@ enum ExtensionProviderScope {
   PLAYER_UI_EVENTS = 16;
   PLAYER_DATA_EVENTS = 17;
   COVER_ART = 18;
+  PLAYER_PROVIDER = 19;
 }
 
 message ProviderStatus {
@@ -718,3 +746,81 @@ message BatchHttpResponse {
   repeated HttpResult responses = 1;
   optional string error = 2;
 }
+
+message CanPlayRequest {
+  string src = 1;
+  optional moosync.types.Song song = 2;
+}
+
+message CanPlayResponse {
+  bool can_play = 1;
+}
+
+message PlayerPlayRequest {}
+message PlayerPlayResponse {}
+
+message PlayerPauseRequest {}
+message PlayerPauseResponse {}
+
+message PlayerStopRequest {}
+message PlayerStopResponse {}
+
+message PlayerSeekRequest {
+  google.protobuf.Duration position = 1;
+}
+message PlayerSeekResponse {}
+
+message PlayerSetVolumeRequest {
+  uint32 volume = 1;
+}
+message PlayerSetVolumeResponse {}
+
+message PlayerLoadTrackRequest {
+  string src = 1;
+  optional moosync.types.Song song = 2;
+}
+message PlayerLoadTrackResponse {}
+
+message SpawnProcessRequest {
+  string path = 1;
+  repeated string args = 2;
+  map<string, string> env = 3;
+}
+message SpawnProcessResponse {
+  uint64 process_id = 1;
+  uint32 pid = 2;
+}
+
+message WriteProcessStdinRequest {
+  uint64 process_id = 1;
+  bytes data = 2;
+}
+message WriteProcessStdinResponse {
+  uint64 bytes_written = 1;
+}
+
+message ReadProcessStdoutRequest {
+  uint64 process_id = 1;
+  optional uint64 max_bytes = 2;
+}
+message ReadProcessStdoutResponse {
+  bytes data = 1;
+}
+
+message KillProcessRequest {
+  uint64 process_id = 1;
+}
+message KillProcessResponse {
+  bool success = 1;
+}
+
+message GetProcessStatusRequest {
+  uint64 process_id = 1;
+}
+message GetProcessStatusResponse {
+  bool is_running = 1;
+  optional int32 exit_code = 2;
+}
+
+message NotifyPlaybackEndedRequest {}
+message NotifyPlaybackEndedResponse {}

@@ -120,16 +120,22 @@ impl MprisHook {
                 );
             }
             MediaControlEvent::Pause => {
-                if let Err(e) = player.pause() {
-                    tracing::error!("Failed to handle MPRIS Pause: {:?}", e);
-                }
+                let player_clone = player.clone();
+                tokio::spawn(
+                    async move {
+                        if let Err(e) = player_clone.pause().await {
+                            tracing::error!("Failed to handle MPRIS Pause: {:?}", e);
+                        }
+                    }
+                    .in_current_span(),
+                );
             }
             MediaControlEvent::Toggle => {
                 let player_clone = player.clone();
                 tokio::spawn(
                     async move {
                         if player_clone.get_player_state() == PlayerState::Playing as i32 {
-                            let _ = player_clone.pause();
+                            let _ = player_clone.pause().await;
                         } else if let Err(e) = player_clone.play().await {
                             tracing::error!("Failed to handle MPRIS Toggle: {:?}", e);
                         }
@@ -156,9 +162,15 @@ impl MprisHook {
                 );
             }
             MediaControlEvent::Stop => {
-                if let Err(e) = player.pause() {
-                    tracing::error!("Failed to handle MPRIS Stop: {:?}", e);
-                }
+                let player_clone = player.clone();
+                tokio::spawn(
+                    async move {
+                        if let Err(e) = player_clone.pause().await {
+                            tracing::error!("Failed to handle MPRIS Stop: {:?}", e);
+                        }
+                    }
+                    .in_current_span(),
+                );
             }
             _ => {}
         }

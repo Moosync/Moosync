@@ -18,7 +18,7 @@ use moosync_edk::{
     SongQueueChangedRequest, SongRemovedRequest, VolumeChangedRequest,
     api::{
         self, Accounts, ContextMenu, CustomRequestReturnType, DatabaseEvents, Extension,
-        PlaybackDetailsReturnType, PlayerEvents, PreferenceEvents, Provider,
+        PlaybackDetailsReturnType, PlayerEvents, PlayerProvider, PreferenceEvents, Provider,
         SongsWithPageTokenReturnType,
         extension_api::{
             add_playlist, add_songs, add_to_playlist, get_current_song, get_player_state,
@@ -52,6 +52,8 @@ fn sync_account() {
 struct SampleExtension;
 
 impl Extension for SampleExtension {}
+
+impl PlayerProvider for SampleExtension {}
 
 impl Accounts for SampleExtension {
     fn perform_account_login(&self, req: PerformAccountLoginRequest) -> api::MoosyncResult<String> {

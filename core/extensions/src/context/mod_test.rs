@@ -14,33 +14,41 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex, RwLock};
 
 use assertables::{assert_err, assert_none, assert_ok};
 use extensions_proto::moosync::types::{
     AddPlaylistRequest, AddSongsRequest, AddToPlaylistRequest, ExtensionAccountDetail,
     ExtensionsUpdatedRequest, GetAppVersionRequest, GetCacheRequest, GetCurrentSongRequest,
     GetEntityRequest, GetPlayerStateRequest, GetPreferenceRequest, GetProcessStatusRequest,
-    GetQueueRequest, GetSecureRequest, GetSongRequest, GetTimeRequest, GetVolumeRequest,
-    KillProcessRequest, NotifyPlaybackEndedRequest, OpenExternalUrlRequest, PreferenceData,
-    ReadProcessStdoutRequest, RegisterOauthRequest, RegisterUserPreferenceRequest,
-    RemoveSongRequest, SetAccountRequest, SetCacheRequest, SetPreferenceRequest, SetSecureRequest,
-    SpawnProcessRequest, UnregisterUserPreferenceRequest, UpdateSongRequest,
-    WriteProcessStdinRequest, main_command, main_command_response,
+    GetProcessStatusResponse, GetQueueRequest, GetSecureRequest, GetSongRequest, GetTimeRequest,
+    GetVolumeRequest, KillProcessRequest, KillProcessResponse, NotifyPlayerEventRequest,
+    NotifyPlayerEventResponse, OpenExternalUrlRequest, PlayerEvent as ProtoPlayerEvent,
+    PlayerState, PreferenceData, ReadProcessStdoutRequest, ReadProcessStdoutResponse,
+    RegisterOauthRequest, RegisterUserPreferenceRequest, RemoveSongRequest, SetAccountRequest,
+    SetCacheRequest, SetPreferenceRequest, SetSecureRequest, SpawnProcessRequest,
+    SpawnProcessResponse, UnregisterUserPreferenceRequest, UpdateSongRequest,
+    WriteProcessStdinRequest, WriteProcessStdinResponse, main_command, main_command_response,
+    player_event::Event as PlayerEvent,
 };
 use preferences_proto::moosync::types::PreferenceItem;
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
+use tokio::sync::mpsc;
 use tracing_test::traced_test;
 
 use crate::{
     cache::ExtensionMemoryCache,
     context::{DispatchCommand, HostCommandContext, ReplyHandler},
     errors::ExtensionError,
+    process::ExtensionProcessManager,
 };
 
 #[derive(Default)]
 struct MockReply {
     pub cache: Mutex<std::collections::HashMap<String, Vec<u8>>>,
+    pub proc_mgr: Option<ExtensionProcessManager>,
+    pub player_state: Arc<RwLock<PlayerState>>,
+    pub events_tx: Arc<RwLock<Option<mpsc::UnboundedSender<PlayerEvent>>>>,
 }
 impl ReplyHandler for MockReply {
     #[tracing::instrument(level = "debug", skip_all)]
@@ -157,6 +165,84 @@ impl ReplyHandler for MockReply {
         let scoped = format!("{package_name}:{key}");
         self.cache.lock().unwrap().insert(scoped, data);
         Ok(true)
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn spawn_process(
+        &self,
+        _: &str,
+        req: SpawnProcessRequest,
+    ) -> Result<SpawnProcessResponse, ExtensionError> {
+        if let Some(ref pm) = self.proc_mgr {
+            pm.spawn_process(req)
+        } else {
+            Err(ExtensionError::NoContext)
+        }
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn write_process_stdin(
+        &self,
+        _: &str,
+        req: WriteProcessStdinRequest,
+    ) -> Result<WriteProcessStdinResponse, ExtensionError> {
+        if let Some(ref pm) = self.proc_mgr {
+            pm.write_process_stdin(req)
+        } else {
+            Err(ExtensionError::NoContext)
+        }
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn read_process_stdout(
+        &self,
+        _: &str,
+        req: ReadProcessStdoutRequest,
+    ) -> Result<ReadProcessStdoutResponse, ExtensionError> {
+        if let Some(ref pm) = self.proc_mgr {
+            pm.read_process_stdout(req)
+        } else {
+            Err(ExtensionError::NoContext)
+        }
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn kill_process(
+        &self,
+        _: &str,
+        req: KillProcessRequest,
+    ) -> Result<KillProcessResponse, ExtensionError> {
+        if let Some(ref pm) = self.proc_mgr {
+            pm.kill_process(req)
+        } else {
+            Err(ExtensionError::NoContext)
+        }
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_process_status(
+        &self,
+        _: &str,
+        req: GetProcessStatusRequest,
+    ) -> Result<GetProcessStatusResponse, ExtensionError> {
+        if let Some(ref pm) = self.proc_mgr {
+            pm.get_process_status(req)
+        } else {
+            Err(ExtensionError::NoContext)
+        }
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn notify_player_event(
+        &self,
+        _: &str,
+        req: NotifyPlayerEventRequest,
+    ) -> Result<NotifyPlayerEventResponse, ExtensionError> {
+        if let Some(player_event) = req.event {
+            if let Some(PlayerEvent::Ended(_)) = player_event.event.as_ref() {
+                *self.player_state.write().unwrap() = PlayerState::Stopped;
+            }
+            if let (Some(tx), Some(event)) =
+                (self.events_tx.read().unwrap().as_ref(), player_event.event)
+            {
+                let _ = tx.send(event);
+            }
+        }
+        Ok(NotifyPlayerEventResponse {})
     }
 }
 
@@ -525,26 +611,28 @@ fn test_dispatch_process_and_playback_ended_lifecycle() {
     fs::set_permissions(&bin_path, perms).unwrap();
 
     let bytes = fs::read(&bin_path).unwrap();
-    let hash = crate::sha256::sha256_hex(&bytes);
+    let hash = crate::process::sha256_hex(&bytes);
 
     let mut allowed_paths = std::collections::HashMap::new();
     allowed_paths.insert("test".to_string(), tmp.path().to_path_buf());
 
     let proc_mgr = ExtensionProcessManager::new(Some(allowed_paths), vec![hash]);
-    let player_state = RwLock::new(PlayerState::Playing);
+    let player_state = Arc::new(RwLock::new(PlayerState::Playing));
     let (events_tx, mut events_rx) = mpsc::unbounded_channel();
-    let events_tx_holder = RwLock::new(Some(events_tx));
+    let events_tx_holder = Arc::new(RwLock::new(Some(events_tx)));
 
-    let mock = MockReply::default();
+    let mock = MockReply {
+        cache: Default::default(),
+        proc_mgr: Some(proc_mgr),
+        player_state: player_state.clone(),
+        events_tx: events_tx_holder,
+    };
     let memory_cache = Mutex::new(ExtensionMemoryCache::default());
 
     let ctx = HostCommandContext {
         reply_handler: &mock,
         package_name: "pkg",
         memory_cache: &memory_cache,
-        process_manager: Some(&proc_mgr),
-        player_state: Some(&player_state),
-        events_tx: Some(&events_tx_holder),
     };
 
     let cmd_spawn = main_command::Command::SpawnProcess(SpawnProcessRequest {
@@ -593,7 +681,11 @@ fn test_dispatch_process_and_playback_ended_lifecycle() {
     });
     assert!(cmd_kill.dispatch(&ctx).is_ok());
 
-    let cmd_ended = main_command::Command::NotifyPlaybackEnded(NotifyPlaybackEndedRequest {});
+    let cmd_ended = main_command::Command::NotifyPlayerEvent(NotifyPlayerEventRequest {
+        event: Some(ProtoPlayerEvent {
+            event: Some(PlayerEvent::Ended(true)),
+        }),
+    });
     let res_ended = cmd_ended.dispatch(&ctx);
     assert!(res_ended.is_ok());
     assert_eq!(*player_state.read().unwrap(), PlayerState::Stopped);

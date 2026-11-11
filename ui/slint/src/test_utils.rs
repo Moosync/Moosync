@@ -572,6 +572,7 @@ pub mod integration {
                     ]
                     .into_iter()
                     .collect(),
+                    binaries: vec![],
                 }),
                 scopes,
                 ..Default::default()

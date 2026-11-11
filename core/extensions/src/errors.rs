@@ -76,6 +76,36 @@ pub enum ExtensionError {
     #[error("Cache error: {0}")]
     Cache(String),
 
+    #[error("No allowed paths configured for extension")]
+    ProcessNoAllowedPaths,
+
+    #[error("Binary not found at: {0}")]
+    ProcessBinaryNotFound(std::path::PathBuf),
+
+    #[error("Binary at {0} is outside allowed extension paths")]
+    ProcessBinaryNotPermitted(std::path::PathBuf),
+
+    #[error("Binary hash {0} is not declared in manifest permissions")]
+    ProcessHashNotPermitted(String),
+
+    #[error("Failed to read binary file at {0}: {1}")]
+    ProcessFailedToReadBinary(std::path::PathBuf, String),
+
+    #[error("Failed to spawn process: {0}")]
+    ProcessFailedToSpawn(String),
+
+    #[error("Process {0} not found")]
+    ProcessNotFound(usize),
+
+    #[error("Process {0} stdin is not open")]
+    ProcessStdinNotOpen(usize),
+
+    #[error("Failed to write to process {0} stdin: {1}")]
+    ProcessFailedToWrite(usize, String),
+
+    #[error("Failed to flush process {0} stdin: {1}")]
+    ProcessFailedToFlush(usize, String),
+
     #[error("Process error: {0}")]
     Process(String),
 }

@@ -1,4 +1,10 @@
 use extensions::{ExtensionError, ReplyHandler};
+use extensions_proto::moosync::types::{
+    GetProcessStatusRequest, GetProcessStatusResponse, KillProcessRequest, KillProcessResponse,
+    NotifyPlayerEventRequest, NotifyPlayerEventResponse, ReadProcessStdoutRequest,
+    ReadProcessStdoutResponse, SpawnProcessRequest, SpawnProcessResponse, WriteProcessStdinRequest,
+    WriteProcessStdinResponse,
+};
 use preferences_proto::moosync::types::PreferenceItem;
 use prost::Message;
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
@@ -323,6 +329,72 @@ impl ReplyHandler for StateReplyHandler {
         db.set_extension_cache(package_name, key, &data, ttl_seconds)
             .map_err(|e| ExtensionError::Cache(e.to_string()))?;
         Ok(true)
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn spawn_process(
+        &self,
+        package_name: &str,
+        req: SpawnProcessRequest,
+    ) -> Result<SpawnProcessResponse, ExtensionError> {
+        let extensions = self.state_manager.get_extension_handler();
+        let extension = extensions.get_extension(package_name)?;
+        extension.process_manager.spawn_process(req)
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn write_process_stdin(
+        &self,
+        package_name: &str,
+        req: WriteProcessStdinRequest,
+    ) -> Result<WriteProcessStdinResponse, ExtensionError> {
+        let extensions = self.state_manager.get_extension_handler();
+        let extension = extensions.get_extension(package_name)?;
+        extension.process_manager.write_process_stdin(req)
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn read_process_stdout(
+        &self,
+        package_name: &str,
+        req: ReadProcessStdoutRequest,
+    ) -> Result<ReadProcessStdoutResponse, ExtensionError> {
+        let extensions = self.state_manager.get_extension_handler();
+        let extension = extensions.get_extension(package_name)?;
+        extension.process_manager.read_process_stdout(req)
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn kill_process(
+        &self,
+        package_name: &str,
+        req: KillProcessRequest,
+    ) -> Result<KillProcessResponse, ExtensionError> {
+        let extensions = self.state_manager.get_extension_handler();
+        let extension = extensions.get_extension(package_name)?;
+        extension.process_manager.kill_process(req)
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_process_status(
+        &self,
+        package_name: &str,
+        req: GetProcessStatusRequest,
+    ) -> Result<GetProcessStatusResponse, ExtensionError> {
+        let extensions = self.state_manager.get_extension_handler();
+        let extension = extensions.get_extension(package_name)?;
+        extension.process_manager.get_process_status(req)
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn notify_player_event(
+        &self,
+        package_name: &str,
+        req: NotifyPlayerEventRequest,
+    ) -> Result<NotifyPlayerEventResponse, ExtensionError> {
+        let extensions = self.state_manager.get_extension_handler();
+        let extension = extensions.get_extension(package_name)?;
+        extension.notify_player_event(req)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

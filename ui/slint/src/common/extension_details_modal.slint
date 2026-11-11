@@ -60,6 +60,9 @@ export component ExtensionDetailsModal inherits Modal {
         if scope == ProviderScope.player_data_events {
             return @tr("Player Data Events");
         }
+        if scope == ProviderScope.player_provider {
+            return @tr("Player Provider");
+        }
         return @tr("Unknown Scope");
     }
     modalSize: ModalSize.Lg;

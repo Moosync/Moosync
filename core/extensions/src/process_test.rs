@@ -27,7 +27,7 @@ use extensions_proto::moosync::types::{
     WriteProcessStdinRequest,
 };
 
-use crate::{process::ExtensionProcessManager, sha256::sha256_hex};
+use crate::process::{ExtensionProcessManager, sha256_hex};
 
 #[cfg(unix)]
 fn create_test_binary(dir: &Path, name: &str, script_content: &str) -> (PathBuf, String) {
@@ -140,7 +140,29 @@ fn test_process_manager_path_traversal_rejected() {
     });
     assert!(spawn_res.is_err());
     let err_str = spawn_res.err().unwrap().to_string();
-    assert!(err_str.contains("Path traversal"));
+    assert!(err_str.contains("outside allowed extension paths"));
+}
+
+#[test]
+#[cfg(unix)]
+fn test_process_manager_internal_parent_dir_allowed() {
+    let tmp = tempdir::TempDir::new("test_internal_parent").unwrap();
+    let sub = tmp.path().join("sub");
+    fs::create_dir_all(&sub).unwrap();
+    let script = "#!/bin/sh\necho hi\n";
+    let (_bin_path, hash) = create_test_binary(&sub, "test_bin", script);
+
+    let mut allowed_paths = HashMap::new();
+    allowed_paths.insert("root".to_string(), tmp.path().to_path_buf());
+
+    let mgr = ExtensionProcessManager::new(Some(allowed_paths), vec![hash]);
+
+    let spawn_res = mgr.spawn_process(SpawnProcessRequest {
+        path: "sub/../sub/test_bin".to_string(),
+        args: vec![],
+        env: Default::default(),
+    });
+    assert!(spawn_res.is_ok());
 }
 
 #[test]

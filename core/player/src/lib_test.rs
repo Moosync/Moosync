@@ -67,10 +67,7 @@ fn player_handler() -> PlayerHandler {
     let (ended_tx, _ended_rx) = tokio::sync::mpsc::unbounded_channel();
     PlayerHandler::new_with_contexts(
         ended_tx,
-        vec![(
-            "dummy".to_string(),
-            Arc::new(DummyAudioPlayerContext::new()),
-        )],
+        vec![Arc::new(DummyAudioPlayerContext::new())],
         Box::new(DummyPersistContext {}),
     )
 }
@@ -761,10 +758,7 @@ async fn test_restore_player_data_sets_current_song() {
     let (ended_tx, _ended_rx) = tokio::sync::mpsc::unbounded_channel();
     let player_handler = PlayerHandler::new_with_contexts(
         ended_tx,
-        vec![(
-            "dummy".to_string(),
-            Arc::new(DummyAudioPlayerContext::new()),
-        )],
+        vec![Arc::new(DummyAudioPlayerContext::new())],
         Box::new(MockPersistContext { data: player_data }),
     );
 
@@ -795,10 +789,7 @@ async fn test_restore_player_data_play_loads_and_plays() {
     let (ended_tx, _ended_rx) = tokio::sync::mpsc::unbounded_channel();
     let player_handler = PlayerHandler::new_with_contexts(
         ended_tx,
-        vec![(
-            "dummy".to_string(),
-            Arc::new(DummyAudioPlayerContext::new()),
-        )],
+        vec![Arc::new(DummyAudioPlayerContext::new())],
         Box::new(MockPersistContext { data: player_data }),
     );
 
@@ -824,10 +815,7 @@ async fn test_restore_player_data_out_of_bounds_idx_resets_to_zero() {
     let (ended_tx, _ended_rx) = tokio::sync::mpsc::unbounded_channel();
     let player_handler = PlayerHandler::new_with_contexts(
         ended_tx,
-        vec![(
-            "dummy".to_string(),
-            Arc::new(DummyAudioPlayerContext::new()),
-        )],
+        vec![Arc::new(DummyAudioPlayerContext::new())],
         Box::new(MockPersistContext { data: player_data }),
     );
 
@@ -851,10 +839,7 @@ async fn test_repeat_persists_player_data() {
     let (ended_tx, _ended_rx) = tokio::sync::mpsc::unbounded_channel();
     let player_handler = PlayerHandler::new_with_contexts(
         ended_tx,
-        vec![(
-            "dummy".to_string(),
-            Arc::new(DummyAudioPlayerContext::new()),
-        )],
+        vec![Arc::new(DummyAudioPlayerContext::new())],
         Box::new(TrackingPersistContext {
             persisted: persisted.clone(),
         }),
@@ -927,6 +912,23 @@ async fn test_player_handler_new_dummy_and_methods() {
                 },
             )
         }
+
+        #[tracing::instrument(level = "debug", skip_all)]
+        async fn resolve_fallback(
+            &self,
+            _song: &Song,
+        ) -> Result<
+            extensions_proto::moosync::types::PlaybackDetailsRequestedResponse,
+            Box<dyn std::error::Error + Send + Sync>,
+        > {
+            Ok(
+                extensions_proto::moosync::types::PlaybackDetailsRequestedResponse {
+                    url: "https://example.com/audio.mp3".to_string(),
+                    duration: None,
+                    decryption_key: None,
+                },
+            )
+        }
     }
 
     handler.set_resolver(Arc::new(MockDummyResolver));
@@ -939,10 +941,7 @@ async fn test_player_handler_failing_persist() {
     let (ended_tx, _ended_rx) = tokio::sync::mpsc::unbounded_channel();
     let handler = PlayerHandler::new_with_contexts(
         ended_tx,
-        vec![(
-            "dummy".to_string(),
-            Arc::new(DummyAudioPlayerContext::new()),
-        )],
+        vec![Arc::new(DummyAudioPlayerContext::new())],
         Box::new(FailingPersistContext),
     );
 
@@ -960,11 +959,13 @@ struct FailingSeekAndVolumePlayer;
 #[async_trait]
 impl AudioPlayerContext for FailingSeekAndVolumePlayer {
     #[tracing::instrument(level = "debug", skip_all)]
+    fn get_id(&self) -> &str { "failing" }
+    #[tracing::instrument(level = "debug", skip_all)]
     async fn can_play(&self, _src: &ValidSrc<'_>) -> bool { true }
     #[tracing::instrument(level = "debug", skip_all)]
-    async fn set_src(
+    async fn set_src<'a>(
         &self,
-        _src: ValidSrc<'static>,
+        _src: ValidSrc<'a>,
         _events_tx: tokio::sync::mpsc::UnboundedSender<
             extensions_proto::moosync::types::player_event::Event,
         >,
@@ -1008,7 +1009,7 @@ async fn test_player_handler_seek_volume_errors() {
     let (ended_tx, _ended_rx) = tokio::sync::mpsc::unbounded_channel();
     let handler = PlayerHandler::new_with_contexts(
         ended_tx,
-        vec![("failing".to_string(), Arc::new(FailingSeekAndVolumePlayer))],
+        vec![Arc::new(FailingSeekAndVolumePlayer)],
         Box::new(DummyPersistContext {}),
     );
 

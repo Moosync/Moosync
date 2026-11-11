@@ -69,8 +69,6 @@ rust_library(
         "src/sample_tests.rs",
         "src/sanitize.rs",
         "src/sanitize_test.rs",
-        "src/sha256.rs",
-        "src/sha256_test.rs",
         "src/tests.rs",
     ],
     crate_root = "src/lib.rs",
@@ -103,5 +101,6 @@ rust_library(
         "@crates//:tracing-subscriber",
         "@crates//:uuid",
         "@crates//:zip-extensions",
+        "@crates__sha2-0.10.9//:sha2",
     ],
 )

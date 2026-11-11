@@ -124,6 +124,18 @@ impl SourceResolver for MockResolver {
             decryption_key: Some("0123456789abcdef0123456789abcdef".to_string()),
         })
     }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn resolve_fallback(
+        &self,
+        _song: &Song,
+    ) -> Result<PlaybackDetailsRequestedResponse, Box<dyn Error + Send + Sync>> {
+        Ok(PlaybackDetailsRequestedResponse {
+            url: "https://resolved.stream/fallback".to_string(),
+            duration: None,
+            decryption_key: None,
+        })
+    }
 }
 
 #[tokio::test]
@@ -140,6 +152,7 @@ async fn test_source_resolver_resolve() {
     };
 
     assert_err!(resolver.resolve(&song).await.as_ref());
+    assert_err!(resolver.resolve_fallback(&song).await.as_ref());
 
     resolver.set_resolver(Arc::new(MockResolver));
     let res = resolver.resolve(&song).await;
@@ -150,4 +163,9 @@ async fn test_source_resolver_resolve() {
         resp.decryption_key.as_deref(),
         Some("0123456789abcdef0123456789abcdef")
     );
+
+    let res_fallback = resolver.resolve_fallback(&song).await;
+    assert_ok!(res_fallback.as_ref());
+    let resp_fallback = res_fallback.unwrap();
+    assert_eq!(resp_fallback.url, "https://resolved.stream/fallback");
 }

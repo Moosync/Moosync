@@ -15,6 +15,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 pub mod canvaz;
+pub mod debounce;
 pub mod errors;
 pub mod image;
 pub mod player;
@@ -25,6 +26,8 @@ pub mod subscription;
 pub mod ui;
 pub mod window;
 
+#[cfg(test)]
+mod debounce_test;
 #[cfg(test)]
 mod image_test;
 #[cfg(test)]

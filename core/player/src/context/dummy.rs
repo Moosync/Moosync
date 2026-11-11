@@ -27,6 +27,8 @@ use crate::{
     source::ValidSrc,
 };
 
+pub const DUMMY_PLAYER_ID: &str = "dummy";
+
 struct DummyState {
     volume: u8,
     state: PlayerState,
@@ -59,6 +61,8 @@ impl DummyAudioPlayerContext {
 
 #[async_trait]
 impl AudioPlayerContext for DummyAudioPlayerContext {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_id(&self) -> &str { DUMMY_PLAYER_ID }
     #[tracing::instrument(level = "debug", skip_all)]
     async fn play(&self) -> Result<(), PlayerError> {
         let mut guard = self.state.lock().unwrap();
@@ -122,9 +126,9 @@ impl AudioPlayerContext for DummyAudioPlayerContext {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    async fn set_src(
+    async fn set_src<'a>(
         &self,
-        src: ValidSrc<'static>,
+        src: ValidSrc<'a>,
         _events_tx: UnboundedSender<PlayerEvent>,
     ) -> Result<(), PlayerError> {
         let mut guard = self.state.lock().unwrap();

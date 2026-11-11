@@ -3,13 +3,14 @@ new file mode 100644
 index 0000000..bd06551
 --- /dev/null
 +++ b/BUILD.empty.tpl
-@@ -0,0 +1,57 @@
+@@ -0,0 +1,58 @@
 +"""
 +This module adds no-op repository rules when the Android NDK is not installed.
 +"""
 +
 +package(default_visibility = ["//visibility:public"])
 +
++load("@rules_cc//cc:defs.bzl", "cc_library", "cc_toolchain")
 +load(":dummy_cc_toolchain.bzl", "dummy_cc_config", "dummy_cc_toolchain")
 +load("//:target_systems.bzl", "CPU_CONSTRAINT", "TARGET_SYSTEM_NAMES")
 +
@@ -66,7 +67,7 @@ new file mode 100644
 index 0000000..647af44
 --- /dev/null
 +++ b/dummy_cc_toolchain.bzl.tpl
-@@ -0,0 +1,28 @@
+@@ -0,0 +1,27 @@
 +def _dummy_cc_toolchain_impl(_ctx):
 +    # The `all_files` attribute is referenced by rustc_compile_action().
 +    return [platform_common.ToolchainInfo(all_files = depset([]))]
@@ -93,7 +94,6 @@ index 0000000..647af44
 +dummy_cc_config = rule(
 +    implementation = _config_impl,
 +    attrs = {},
-+    provides = [CcToolchainConfigInfo],
 +)
 diff --git a/rules.bzl b/rules.bzl
 index 53b9f7c..bc1597c 100644

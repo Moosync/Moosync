@@ -283,6 +283,7 @@ fn test_to_extension_item_with_permissions_and_scopes() {
         permissions: Some(ManifestPermissions {
             hosts: vec!["https://api.example.com".to_string()],
             paths,
+            binaries: vec![],
         }),
         scopes: vec![
             ExtensionProviderScope::Search as i32,
@@ -381,6 +382,7 @@ fn test_extension_path_permission_from_ref_tuple() {
     ExtensionProviderScope::PlayerDataEvents,
     ProviderScope::PlayerDataEvents
 )]
+#[case(ExtensionProviderScope::PlayerProvider, ProviderScope::PlayerProvider)]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_provider_scope_from_proto(

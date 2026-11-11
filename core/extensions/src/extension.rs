@@ -14,20 +14,21 @@ use extensions_proto::moosync::types::{
     CanPlayRequest, CanPlayResponse, ContextMenuActionRequest, ContextMenuActionResponse,
     CustomRequest, CustomRequestResponse, ExtensionAccountDetail, ExtensionCommand,
     ExtensionCommandResponse, ExtensionDetail, ExtensionLockData, ExtensionManifest,
-    ExtensionProviderScope, GetRemoteUrlRequest, GetRemoteUrlResponse, OauthCallbackRequest,
-    OauthCallbackResponse, PerformAccountLoginRequest, PerformAccountLoginResponse,
-    PlaybackDetailsRequestedRequest, PlaybackDetailsRequestedResponse, PlayerLoadTrackRequest,
-    PlayerLoadTrackResponse, PlayerPauseRequest, PlayerPauseResponse, PlayerPlayRequest,
-    PlayerPlayResponse, PlayerSeekRequest, PlayerSeekResponse, PlayerSetVolumeRequest,
-    PlayerSetVolumeResponse, PlayerState, PlayerStateChangedRequest, PlayerStateChangedResponse,
-    PlayerStopRequest, PlayerStopResponse, PlaylistAddedRequest, PlaylistAddedResponse,
-    PlaylistRemovedRequest, PlaylistRemovedResponse, PreferenceChangedRequest,
-    PreferenceChangedResponse, RequestedAlbumSongsRequest, RequestedAlbumSongsResponse,
-    RequestedArtistSongsRequest, RequestedArtistSongsResponse, RequestedCoverArtRequest,
-    RequestedCoverArtResponse, RequestedLyricsRequest, RequestedLyricsResponse,
-    RequestedPlaylistContextMenuRequest, RequestedPlaylistContextMenuResponse,
-    RequestedPlaylistSongsRequest, RequestedPlaylistSongsResponse, RequestedPlaylistsRequest,
-    RequestedPlaylistsResponse, RequestedRecommendationsRequest, RequestedRecommendationsResponse,
+    ExtensionProviderScope, GetRemoteUrlRequest, GetRemoteUrlResponse, NotifyPlayerEventRequest,
+    NotifyPlayerEventResponse, OauthCallbackRequest, OauthCallbackResponse,
+    PerformAccountLoginRequest, PerformAccountLoginResponse, PlaybackDetailsRequestedRequest,
+    PlaybackDetailsRequestedResponse, PlayerLoadTrackRequest, PlayerLoadTrackResponse,
+    PlayerPauseRequest, PlayerPauseResponse, PlayerPlayRequest, PlayerPlayResponse,
+    PlayerSeekRequest, PlayerSeekResponse, PlayerSetVolumeRequest, PlayerSetVolumeResponse,
+    PlayerState, PlayerStateChangedRequest, PlayerStateChangedResponse, PlayerStopRequest,
+    PlayerStopResponse, PlaylistAddedRequest, PlaylistAddedResponse, PlaylistRemovedRequest,
+    PlaylistRemovedResponse, PreferenceChangedRequest, PreferenceChangedResponse,
+    RequestedAlbumSongsRequest, RequestedAlbumSongsResponse, RequestedArtistSongsRequest,
+    RequestedArtistSongsResponse, RequestedCoverArtRequest, RequestedCoverArtResponse,
+    RequestedLyricsRequest, RequestedLyricsResponse, RequestedPlaylistContextMenuRequest,
+    RequestedPlaylistContextMenuResponse, RequestedPlaylistSongsRequest,
+    RequestedPlaylistSongsResponse, RequestedPlaylistsRequest, RequestedPlaylistsResponse,
+    RequestedRecommendationsRequest, RequestedRecommendationsResponse,
     RequestedSearchResultRequest, RequestedSearchResultResponse, RequestedSongContextMenuRequest,
     RequestedSongContextMenuResponse, RequestedSongFromIdRequest, RequestedSongFromIdResponse,
     ScrobbleRequest, ScrobbleResponse, SeekedRequest, SeekedResponse, SongAddedRequest,
@@ -40,7 +41,7 @@ use preferences_proto::moosync::types::PreferenceItem;
 use prost::Message;
 use tokio::sync::{mpsc::UnboundedSender, watch};
 use types::{
-    player::{AudioPlayerContext, PlayerError, ValidSrc},
+    player::{AudioPlayerContext, PlayerError, PlayerEventExt, ValidSrc},
     prelude::core_to_proto_duration,
 };
 
@@ -91,6 +92,28 @@ impl AsyncContext {
     }
 }
 
+#[derive(Clone)]
+pub(crate) struct ExtensionPlayerData {
+    pub(crate) player_id: String,
+    pub(crate) state: Arc<RwLock<PlayerState>>,
+    pub(crate) current_pos: Arc<RwLock<Duration>>,
+    pub(crate) volume: Arc<AtomicU8>,
+    pub(crate) events_tx: Arc<RwLock<Option<UnboundedSender<PlayerEvent>>>>,
+}
+
+impl ExtensionPlayerData {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub(crate) fn new(package_name: &str) -> Self {
+        Self {
+            player_id: format!("extension:{package_name}"),
+            state: Arc::new(RwLock::new(PlayerState::Stopped)),
+            current_pos: Arc::new(RwLock::new(Duration::default())),
+            volume: Arc::new(AtomicU8::new(100)),
+            events_tx: Arc::new(RwLock::new(None)),
+        }
+    }
+}
+
 pub struct Extension {
     pub(crate) context: Arc<AsyncContext>,
     pub manifest: ExtensionManifest,
@@ -102,11 +125,8 @@ pub struct Extension {
     pub(crate) reply_handler: Arc<dyn ReplyHandler>,
     pub(crate) error: Arc<OnceLock<String>>,
     pub(crate) memory_cache: Arc<Mutex<ExtensionMemoryCache>>,
-    pub(crate) process_manager: Arc<ExtensionProcessManager>,
-    pub(crate) player_state: Arc<RwLock<PlayerState>>,
-    pub(crate) current_pos: Arc<RwLock<Duration>>,
-    pub(crate) volume: Arc<AtomicU8>,
-    pub(crate) events_tx: Arc<RwLock<Option<UnboundedSender<PlayerEvent>>>>,
+    pub process_manager: Arc<ExtensionProcessManager>,
+    pub(crate) player_data: ExtensionPlayerData,
 }
 
 impl Extension {
@@ -158,6 +178,7 @@ impl Extension {
             allowed_binaries,
         ));
 
+        let package_name = manifest.name.clone();
         let ext = Self {
             context: Arc::new(AsyncContext::new()),
             preferences: Default::default(),
@@ -170,10 +191,7 @@ impl Extension {
             error: Arc::new(OnceLock::new()),
             memory_cache: Arc::new(Mutex::new(ExtensionMemoryCache::default())),
             process_manager,
-            player_state: Arc::new(RwLock::new(PlayerState::Stopped)),
-            current_pos: Arc::new(RwLock::new(Duration::default())),
-            volume: Arc::new(AtomicU8::new(100)),
-            events_tx: Arc::new(RwLock::new(None)),
+            player_data: ExtensionPlayerData::new(&package_name),
         };
 
         ext.spawn_extension();
@@ -449,15 +467,29 @@ impl Extension {
     );
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn notify_playback_ended(&self) {
-        *self.player_state.write().unwrap() = PlayerState::Stopped;
-        if let Some(ref tx) = *self.events_tx.read().unwrap() {
-            let _ = tx.send(PlayerEvent::Ended(true));
+    pub fn notify_player_event(
+        &self,
+        req: NotifyPlayerEventRequest,
+    ) -> Result<NotifyPlayerEventResponse, ExtensionError> {
+        if let Some(player_event) = req.event {
+            if let Some(event) = &player_event.event {
+                if let Some(state) = event.to_player_state() {
+                    *self.player_data.state.write().unwrap() = state;
+                }
+                if let PlayerEvent::TimeUpdate(pos) = event {
+                    *self.player_data.current_pos.write().unwrap() =
+                        Duration::new(pos.seconds.max(0) as u64, pos.nanos.max(0) as u32);
+                }
+            }
+            if let (Some(tx), Some(event)) = (
+                self.player_data.events_tx.read().unwrap().as_ref(),
+                player_event.event,
+            ) {
+                let _ = tx.send(event);
+            }
         }
+        Ok(NotifyPlayerEventResponse {})
     }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub fn shutdown(&self) { self.process_manager.kill_all(); }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn set_account(&self, mut account: ExtensionAccountDetail) {
@@ -471,6 +503,11 @@ impl Extension {
         let accounts = self.accounts.read().unwrap();
         accounts.values().cloned().collect()
     }
+}
+
+impl Drop for Extension {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn drop(&mut self) { self.process_manager.kill_all(); }
 }
 
 impl From<&Extension> for ExtensionDetail {
@@ -518,19 +555,17 @@ impl ExtensionGroupExt for [Arc<Extension>] {
     }
 }
 
-impl Drop for Extension {
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn drop(&mut self) { self.shutdown(); }
-}
-
 #[async_trait]
 impl AudioPlayerContext for Extension {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_id(&self) -> &str { &self.player_data.player_id }
+
     #[tracing::instrument(level = "debug", skip_all)]
     async fn play(&self) -> Result<(), PlayerError> {
         self.player_play(PlayerPlayRequest {})
             .await
             .map_err(|e| PlayerError::Custom(e.to_string()))?;
-        *self.player_state.write().unwrap() = PlayerState::Playing;
+        *self.player_data.state.write().unwrap() = PlayerState::Playing;
         Ok(())
     }
 
@@ -539,7 +574,7 @@ impl AudioPlayerContext for Extension {
         self.player_pause(PlayerPauseRequest {})
             .await
             .map_err(|e| PlayerError::Custom(e.to_string()))?;
-        *self.player_state.write().unwrap() = PlayerState::Paused;
+        *self.player_data.state.write().unwrap() = PlayerState::Paused;
         Ok(())
     }
 
@@ -548,13 +583,13 @@ impl AudioPlayerContext for Extension {
         self.player_stop(PlayerStopRequest {})
             .await
             .map_err(|e| PlayerError::Custom(e.to_string()))?;
-        *self.player_state.write().unwrap() = PlayerState::Stopped;
+        *self.player_data.state.write().unwrap() = PlayerState::Stopped;
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     async fn set_volume(&self, volume: u8) -> Result<(), PlayerError> {
-        self.volume.store(volume, Ordering::SeqCst);
+        self.player_data.volume.store(volume, Ordering::SeqCst);
         self.player_set_volume(PlayerSetVolumeRequest {
             volume: volume as u32,
         })
@@ -564,7 +599,9 @@ impl AudioPlayerContext for Extension {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn get_volume(&self) -> Result<u8, PlayerError> { Ok(self.volume.load(Ordering::SeqCst)) }
+    fn get_volume(&self) -> Result<u8, PlayerError> {
+        Ok(self.player_data.volume.load(Ordering::SeqCst))
+    }
 
     #[tracing::instrument(level = "debug", skip_all)]
     async fn seek(&self, pos: Duration) -> Result<(), PlayerError> {
@@ -573,18 +610,18 @@ impl AudioPlayerContext for Extension {
         })
         .await
         .map_err(|e| PlayerError::Custom(e.to_string()))?;
-        *self.current_pos.write().unwrap() = pos;
+        *self.player_data.current_pos.write().unwrap() = pos;
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_current_pos(&self) -> Result<Duration, PlayerError> {
-        Ok(*self.current_pos.read().unwrap())
+        Ok(*self.player_data.current_pos.read().unwrap())
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_player_state(&self) -> Result<PlayerState, PlayerError> {
-        Ok(*self.player_state.read().unwrap())
+        Ok(*self.player_data.state.read().unwrap())
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -613,13 +650,13 @@ impl AudioPlayerContext for Extension {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    async fn set_src(
+    async fn set_src<'a>(
         &self,
-        src: ValidSrc<'static>,
+        src: ValidSrc<'a>,
         events_tx: UnboundedSender<PlayerEvent>,
     ) -> Result<(), PlayerError> {
-        *self.events_tx.write().unwrap() = Some(events_tx);
-        *self.current_pos.write().unwrap() = Duration::ZERO;
+        *self.player_data.events_tx.write().unwrap() = Some(events_tx);
+        *self.player_data.current_pos.write().unwrap() = Duration::ZERO;
 
         self.player_load_track(PlayerLoadTrackRequest {
             src: src.inner().to_string(),
@@ -628,7 +665,7 @@ impl AudioPlayerContext for Extension {
         .await
         .map_err(|e| PlayerError::Custom(e.to_string()))?;
 
-        *self.player_state.write().unwrap() = PlayerState::Playing;
+        *self.player_data.state.write().unwrap() = PlayerState::Playing;
         Ok(())
     }
 }

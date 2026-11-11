@@ -272,6 +272,54 @@ async fn do_playback_volume_and_mute(
     assert!(unmute_handles[0].is_valid());
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_playback_seek_debounced(
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) {
+    let database = state_manager.get_database();
+    let song = create_test_song("s_seek_deb", "Seek Debounce Track", "Album", "Artist");
+    database.insert_songs(vec![song.clone()]).unwrap();
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::AllSongs);
+    let _ = wait_until(|| {
+        main_window
+            .global::<AllSongsPageProps>()
+            .get_songs()
+            .row_count()
+            > 0
+    })
+    .await;
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_play_song(SongModel::from(song));
+
+    let playing = wait_until(|| main_window.global::<PlayerProps>().get_playing()).await;
+    assert!(playing);
+
+    let player_handler = state_manager.get_player_handler();
+    let seeks = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    let seeks_clone = seeks.clone();
+    player_handler.on_seeked.listen(move |pos| {
+        seeks_clone.lock().unwrap().push(pos);
+    });
+
+    main_window.global::<BottomBarCallbacks>().invoke_seek(10);
+    main_window.global::<BottomBarCallbacks>().invoke_seek(20);
+    main_window.global::<BottomBarCallbacks>().invoke_seek(30);
+
+    assert!(seeks.lock().unwrap().is_empty());
+
+    let seeked = wait_until(|| !seeks.lock().unwrap().is_empty()).await;
+    assert!(seeked);
+
+    let recorded = seeks.lock().unwrap().clone();
+    assert_eq!(recorded, vec![Duration::from_secs(30)]);
+}
+
 integration_test!(
     test_playback_play_song => do_playback_play_song,
     test_playback_pause_song => do_playback_pause_song,
@@ -281,4 +329,5 @@ integration_test!(
     test_playback_toggle_shuffle => do_playback_toggle_shuffle,
     test_playback_toggle_repeat => do_playback_toggle_repeat,
     test_playback_volume_and_mute => do_playback_volume_and_mute,
+    test_playback_seek_debounced => do_playback_seek_debounced,
 );

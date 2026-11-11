@@ -195,6 +195,9 @@ struct CustomSchemePlayer {
 #[async_trait::async_trait]
 impl AudioPlayerContext for CustomSchemePlayer {
     #[tracing::instrument(level = "debug", skip_all)]
+    fn get_id(&self) -> &str { "extension:custom_ext" }
+
+    #[tracing::instrument(level = "debug", skip_all)]
     async fn play(&self) -> Result<(), PlayerError> {
         *self.state.write().unwrap() = PlayerState::Playing;
         Ok(())
@@ -238,9 +241,9 @@ impl AudioPlayerContext for CustomSchemePlayer {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    async fn set_src(
+    async fn set_src<'a>(
         &self,
-        _src: ValidSrc<'static>,
+        _src: ValidSrc<'a>,
         _events_tx: UnboundedSender<PlayerEvent>,
     ) -> Result<(), PlayerError> {
         *self.state.write().unwrap() = PlayerState::Playing;
@@ -274,7 +277,7 @@ async fn test_player_hook_dynamic_extension_player(sm_context: TestSmContext) {
         state: RwLock::new(PlayerState::Stopped),
     });
 
-    player_handler.add_context("extension:custom_ext".to_string(), player);
+    player_handler.add_context(player);
     assert!(
         player_handler
             .get_player_ids()

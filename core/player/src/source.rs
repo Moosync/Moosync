@@ -33,6 +33,11 @@ pub trait SourceResolver: Send + Sync {
         &self,
         song: &Song,
     ) -> Result<PlaybackDetailsRequestedResponse, Box<dyn Error + Send + Sync>>;
+
+    async fn resolve_fallback(
+        &self,
+        song: &Song,
+    ) -> Result<PlaybackDetailsRequestedResponse, Box<dyn Error + Send + Sync>>;
 }
 
 pub(crate) struct SourceResolverHolder {
@@ -69,6 +74,26 @@ impl SourceResolverHolder {
         };
         tracing::debug!("Resolving playback details for song: {:?}", song);
         resolver.resolve(song).await.map_err(|e| {
+            PlayerError::PlaybackUrlResolutionFailed(format!("Resolver failed: {}", e))
+        })
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub async fn resolve_fallback(
+        &self,
+        song: &Song,
+    ) -> Result<PlaybackDetailsRequestedResponse, PlayerError> {
+        let resolver = {
+            let resolver_lock = self.resolver.lock().unwrap();
+            let Some(ref resolver) = *resolver_lock else {
+                return Err(PlayerError::PlaybackUrlResolutionFailed(
+                    "Resolver not set".to_string(),
+                ));
+            };
+            resolver.clone()
+        };
+        tracing::debug!("Resolving fallback playback details for song: {:?}", song);
+        resolver.resolve_fallback(song).await.map_err(|e| {
             PlayerError::PlaybackUrlResolutionFailed(format!("Resolver failed: {}", e))
         })
     }

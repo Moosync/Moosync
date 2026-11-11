@@ -85,12 +85,9 @@ impl PlayerHandler {
         Self::new_with_contexts(
             ended_tx,
             vec![
-                ("rodio".to_string(), Arc::new(RodioPlayerContext::new())),
+                Arc::new(RodioPlayerContext::new()),
                 #[cfg(any(test, feature = "test"))]
-                (
-                    "dummy".to_string(),
-                    Arc::new(DummyAudioPlayerContext::new()),
-                ),
+                Arc::new(DummyAudioPlayerContext::new()),
             ],
             Box::new(FilePersist::new(data_dir)),
         )
@@ -99,7 +96,7 @@ impl PlayerHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn new_with_contexts(
         ended_tx: UnboundedSender<()>,
-        contexts: Vec<(String, Arc<dyn AudioPlayerContext>)>,
+        contexts: Vec<Arc<dyn AudioPlayerContext>>,
         persist_context: Box<dyn PersistContext>,
     ) -> Self {
         let mut player_data = match persist_context.load() {
@@ -134,18 +131,14 @@ impl PlayerHandler {
     pub fn new_dummy(ended_tx: UnboundedSender<()>) -> Self {
         Self::new_with_contexts(
             ended_tx,
-            vec![(
-                "dummy".to_string(),
-                Arc::new(DummyAudioPlayerContext::new()),
-            )],
+            vec![Arc::new(DummyAudioPlayerContext::new())],
             Box::new(DummyPersistContext {}),
         )
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub fn add_context(&self, id: String, context: Arc<dyn AudioPlayerContext>) {
-        self.player.add_player(id, context);
+    pub fn add_context(&self, context: Arc<dyn AudioPlayerContext>) {
+        self.player.add_player(context);
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

@@ -23,7 +23,7 @@ use songs_proto::moosync::types::Song;
 use thiserror::Error;
 use tokio::sync::mpsc::UnboundedSender;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum ValidSrc<'a> {
     Path(PathBuf),
     Url {
@@ -34,7 +34,38 @@ pub enum ValidSrc<'a> {
 
 impl Display for ValidSrc<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.inner())
+        match self {
+            ValidSrc::Path(path) => write!(f, "{}", path.display()),
+            ValidSrc::Url {
+                url,
+                decryption_key,
+            } => {
+                if decryption_key.is_some() {
+                    write!(f, "{} [key redacted]", url)
+                } else {
+                    write!(f, "{}", url)
+                }
+            }
+        }
+    }
+}
+
+impl std::fmt::Debug for ValidSrc<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ValidSrc::Path(path) => f.debug_tuple("Path").field(path).finish(),
+            ValidSrc::Url {
+                url,
+                decryption_key,
+            } => f
+                .debug_struct("Url")
+                .field("url", url)
+                .field(
+                    "decryption_key",
+                    &decryption_key.as_ref().map(|_| "[REDACTED]"),
+                )
+                .finish(),
+        }
     }
 }
 
@@ -91,6 +122,8 @@ impl<'a> ValidSrc<'a> {
 
 #[derive(Debug, Error)]
 pub enum PlayerError {
+    #[error("No active player")]
+    NoActivePlayer,
     #[error("Could not find a player to play song: {0:?}")]
     NoPlayerFound(Box<Song>),
     #[error("Could not find a src for song: {0:?}")]
@@ -113,8 +146,30 @@ pub enum PlayerError {
     Custom(String),
 }
 
+impl From<rodio::DeviceSinkError> for PlayerError {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn from(e: rodio::DeviceSinkError) -> Self { PlayerError::AudioDevice(e.to_string()) }
+}
+
+pub trait PlayerEventExt {
+    fn to_player_state(&self) -> Option<PlayerState>;
+}
+
+impl PlayerEventExt for PlayerEvent {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn to_player_state(&self) -> Option<PlayerState> {
+        match self {
+            PlayerEvent::Play(_) => Some(PlayerState::Playing),
+            PlayerEvent::Pause(_) => Some(PlayerState::Paused),
+            PlayerEvent::Ended(_) => Some(PlayerState::Stopped),
+            _ => None,
+        }
+    }
+}
+
 #[async_trait]
 pub trait AudioPlayerContext: Send + Sync {
+    fn get_id(&self) -> &str;
     async fn play(&self) -> Result<(), PlayerError>;
     async fn pause(&self) -> Result<(), PlayerError>;
     async fn stop(&self) -> Result<(), PlayerError>;
@@ -124,9 +179,9 @@ pub trait AudioPlayerContext: Send + Sync {
     fn get_current_pos(&self) -> Result<Duration, PlayerError>;
     fn get_player_state(&self) -> Result<PlayerState, PlayerError>;
     async fn can_play(&self, src: &ValidSrc<'_>) -> bool;
-    async fn set_src(
+    async fn set_src<'a>(
         &self,
-        src: ValidSrc<'static>,
+        src: ValidSrc<'a>,
         events_tx: UnboundedSender<PlayerEvent>,
     ) -> Result<(), PlayerError>;
 }

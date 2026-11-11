@@ -36,10 +36,7 @@ use crate::{
 fn mux_player() -> MuxPlayer {
     MuxPlayer::new_with_contexts(
         SubscriberList::new(),
-        vec![(
-            "dummy".to_string(),
-            Arc::new(DummyAudioPlayerContext::new()),
-        )],
+        vec![Arc::new(DummyAudioPlayerContext::new())],
     )
 }
 
@@ -144,11 +141,13 @@ struct RejectAudioPlayer;
 #[async_trait]
 impl crate::context::AudioPlayerContext for RejectAudioPlayer {
     #[tracing::instrument(level = "debug", skip_all)]
+    fn get_id(&self) -> &str { "reject" }
+    #[tracing::instrument(level = "debug", skip_all)]
     async fn can_play(&self, _src: &ValidSrc<'_>) -> bool { false }
     #[tracing::instrument(level = "debug", skip_all)]
-    async fn set_src(
+    async fn set_src<'a>(
         &self,
-        _src: ValidSrc<'static>,
+        _src: ValidSrc<'a>,
         _events_tx: tokio::sync::mpsc::UnboundedSender<
             extensions_proto::moosync::types::player_event::Event,
         >,
@@ -182,10 +181,8 @@ impl crate::context::AudioPlayerContext for RejectAudioPlayer {
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_mux_player_no_player_found() {
-    let mux = MuxPlayer::new_with_contexts(
-        SubscriberList::new(),
-        vec![("reject".to_string(), Arc::new(RejectAudioPlayer))],
-    );
+    let mux =
+        MuxPlayer::new_with_contexts(SubscriberList::new(), vec![Arc::new(RejectAudioPlayer)]);
 
     let song = Song {
         song: Some(InnerSong {
@@ -226,10 +223,7 @@ async fn test_mux_player_play_success(mux_player: MuxPlayer) {
 async fn test_mux_player_load_song_resolution() {
     let mux = MuxPlayer::new_with_contexts(
         SubscriberList::new(),
-        vec![(
-            "dummy".to_string(),
-            Arc::new(DummyAudioPlayerContext::new()),
-        )],
+        vec![Arc::new(DummyAudioPlayerContext::new())],
     );
 
     struct MockMuxResolver;
@@ -238,6 +232,18 @@ async fn test_mux_player_load_song_resolution() {
     impl SourceResolver for MockMuxResolver {
         #[tracing::instrument(level = "debug", skip_all)]
         async fn resolve(
+            &self,
+            _song: &Song,
+        ) -> Result<PlaybackDetailsRequestedResponse, Box<dyn Error + Send + Sync>> {
+            Ok(PlaybackDetailsRequestedResponse {
+                url: "https://resolved.example.com/stream.mp3".to_string(),
+                duration: None,
+                decryption_key: None,
+            })
+        }
+
+        #[tracing::instrument(level = "debug", skip_all)]
+        async fn resolve_fallback(
             &self,
             _song: &Song,
         ) -> Result<PlaybackDetailsRequestedResponse, Box<dyn Error + Send + Sync>> {
@@ -271,11 +277,8 @@ async fn test_mux_player_fallback_switching() {
     let mux = MuxPlayer::new_with_contexts(
         SubscriberList::new(),
         vec![
-            ("reject".to_string(), Arc::new(RejectAudioPlayer)),
-            (
-                "dummy".to_string(),
-                Arc::new(DummyAudioPlayerContext::new()),
-            ),
+            Arc::new(RejectAudioPlayer),
+            Arc::new(DummyAudioPlayerContext::new()),
         ],
     );
 
@@ -290,11 +293,13 @@ struct FailingSetSrcPlayer;
 #[async_trait]
 impl crate::context::AudioPlayerContext for FailingSetSrcPlayer {
     #[tracing::instrument(level = "debug", skip_all)]
+    fn get_id(&self) -> &str { "failing" }
+    #[tracing::instrument(level = "debug", skip_all)]
     async fn can_play(&self, _src: &ValidSrc<'_>) -> bool { true }
     #[tracing::instrument(level = "debug", skip_all)]
-    async fn set_src(
+    async fn set_src<'a>(
         &self,
-        _src: ValidSrc<'static>,
+        _src: ValidSrc<'a>,
         _events_tx: tokio::sync::mpsc::UnboundedSender<
             extensions_proto::moosync::types::player_event::Event,
         >,
@@ -331,11 +336,8 @@ async fn test_mux_player_active_player_failure_fallback() {
     let mux = MuxPlayer::new_with_contexts(
         SubscriberList::new(),
         vec![
-            ("failing".to_string(), Arc::new(FailingSetSrcPlayer)),
-            (
-                "dummy".to_string(),
-                Arc::new(DummyAudioPlayerContext::new()),
-            ),
+            Arc::new(FailingSetSrcPlayer),
+            Arc::new(DummyAudioPlayerContext::new()),
         ],
     );
 
@@ -351,10 +353,7 @@ async fn test_mux_player_active_player_failure_fallback() {
 async fn test_mux_player_all_players_failing() {
     let mux = MuxPlayer::new_with_contexts(
         SubscriberList::new(),
-        vec![
-            ("failing".to_string(), Arc::new(FailingSetSrcPlayer)),
-            ("reject".to_string(), Arc::new(RejectAudioPlayer)),
-        ],
+        vec![Arc::new(FailingSetSrcPlayer), Arc::new(RejectAudioPlayer)],
     );
 
     let valid_src = ValidSrc::new_url("https://example.com/stream.mp3");
@@ -385,10 +384,7 @@ async fn test_mux_player_ended_event_propagation() {
 
     let mux = MuxPlayer::new_with_contexts(
         on_ended_list,
-        vec![(
-            "dummy".to_string(),
-            Arc::new(DummyAudioPlayerContext::new()),
-        )],
+        vec![Arc::new(DummyAudioPlayerContext::new())],
     );
 
     let valid_src = ValidSrc::new_url("https://example.com/stream.mp3");
@@ -406,22 +402,268 @@ async fn test_mux_player_ended_event_propagation() {
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_mux_player_dynamic_registration() {
-    let mux = MuxPlayer::new_with_contexts(
-        SubscriberList::new(),
-        vec![("reject".to_string(), Arc::new(RejectAudioPlayer))],
-    );
+    let mux =
+        MuxPlayer::new_with_contexts(SubscriberList::new(), vec![Arc::new(RejectAudioPlayer)]);
 
     let valid_src = ValidSrc::new_url("https://example.com/stream.mp3");
     assert_err!(mux.load_src(valid_src.clone()).await);
 
     // Dynamically add dummy player
-    mux.add_player(
-        "dynamic_dummy".to_string(),
-        Arc::new(DummyAudioPlayerContext::new()),
-    );
+    mux.add_player(Arc::new(DummyAudioPlayerContext::new()));
     assert_ok!(mux.load_src(valid_src.clone()).await);
 
     // Dynamically remove dummy player
-    mux.remove_player("dynamic_dummy");
+    mux.remove_player("dummy");
     assert_err!(mux.load_src(valid_src).await);
+}
+
+struct AdvancedMockResolver {
+    ext_a_url: Option<String>,
+    fallback_url: Option<String>,
+}
+
+#[async_trait]
+impl SourceResolver for AdvancedMockResolver {
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn resolve(
+        &self,
+        song: &Song,
+    ) -> Result<PlaybackDetailsRequestedResponse, Box<dyn Error + Send + Sync>> {
+        let ext = song.song.as_ref().and_then(|s| s.extension.as_deref());
+        if ext == Some("ext_a")
+            && let Some(ref url) = self.ext_a_url
+        {
+            return Ok(PlaybackDetailsRequestedResponse {
+                url: url.clone(),
+                duration: None,
+                decryption_key: None,
+            });
+        }
+        Err(Box::new(crate::error::PlayerError::NoSrcFound(Box::new(
+            song.clone(),
+        ))))
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn resolve_fallback(
+        &self,
+        _song: &Song,
+    ) -> Result<PlaybackDetailsRequestedResponse, Box<dyn Error + Send + Sync>> {
+        if let Some(ref url) = self.fallback_url {
+            return Ok(PlaybackDetailsRequestedResponse {
+                url: url.clone(),
+                duration: None,
+                decryption_key: None,
+            });
+        }
+        Err(Box::new(crate::error::PlayerError::NoSrcFound(Box::new(
+            _song.clone(),
+        ))))
+    }
+}
+
+struct MockExtensionPlayer {
+    id: String,
+    prefix: String,
+}
+
+#[async_trait]
+impl crate::context::AudioPlayerContext for MockExtensionPlayer {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_id(&self) -> &str { &self.id }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn can_play(&self, src: &ValidSrc<'_>) -> bool { src.inner().starts_with(&self.prefix) }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn set_src<'a>(
+        &self,
+        _src: ValidSrc<'a>,
+        _events_tx: tokio::sync::mpsc::UnboundedSender<
+            extensions_proto::moosync::types::player_event::Event,
+        >,
+    ) -> Result<(), crate::error::PlayerError> {
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn play(&self) -> Result<(), crate::error::PlayerError> { Ok(()) }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn pause(&self) -> Result<(), crate::error::PlayerError> { Ok(()) }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn stop(&self) -> Result<(), crate::error::PlayerError> { Ok(()) }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn set_volume(&self, _vol: u8) -> Result<(), crate::error::PlayerError> { Ok(()) }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn seek(&self, _pos: Duration) -> Result<(), crate::error::PlayerError> { Ok(()) }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_volume(&self) -> Result<u8, crate::error::PlayerError> { Ok(100) }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_current_pos(&self) -> Result<Duration, crate::error::PlayerError> { Ok(Duration::ZERO) }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_player_state(&self) -> Result<PlayerState, crate::error::PlayerError> {
+        Ok(PlayerState::Stopped)
+    }
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_url_resolution_rule_1_existing_playback_url() {
+    let mux = MuxPlayer::new_with_contexts(
+        SubscriberList::new(),
+        vec![Arc::new(DummyAudioPlayerContext::new())],
+    );
+    let resolver = Arc::new(AdvancedMockResolver {
+        ext_a_url: None,
+        fallback_url: None,
+    });
+    mux.set_resolver(resolver);
+
+    let song = Song {
+        song: Some(InnerSong {
+            playback_url: Some("https://example.com/rule1.mp3".to_string()),
+            extension: Some("ext_a".to_string()),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    let result = mux.load_song(&song).await;
+
+    assert_ok!(result);
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_url_resolution_rule_2_same_extension_resolves_url() {
+    let mux = MuxPlayer::new_with_contexts(
+        SubscriberList::new(),
+        vec![Arc::new(DummyAudioPlayerContext::new())],
+    );
+    let resolver = Arc::new(AdvancedMockResolver {
+        ext_a_url: Some("https://example.com/resolved_by_a.mp3".to_string()),
+        fallback_url: None,
+    });
+    mux.set_resolver(resolver);
+
+    let song = Song {
+        song: Some(InnerSong {
+            playback_url: None,
+            extension: Some("ext_a".to_string()),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    let result = mux.load_song(&song).await;
+
+    assert_ok!(result);
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_url_resolution_rule_3_same_extension_player_provider() {
+    let custom_player = Arc::new(MockExtensionPlayer {
+        id: "extension:ext_player".to_string(),
+        prefix: "custom_scheme://".to_string(),
+    });
+    let mux = MuxPlayer::new_with_contexts(
+        SubscriberList::new(),
+        vec![Arc::new(RejectAudioPlayer), custom_player],
+    );
+    let resolver = Arc::new(AdvancedMockResolver {
+        ext_a_url: None,
+        fallback_url: None,
+    });
+    mux.set_resolver(resolver);
+
+    let song = Song {
+        song: Some(InnerSong {
+            playback_url: None,
+            url: Some("custom_scheme://track/789".to_string()),
+            extension: Some("ext_player".to_string()),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    let result = mux.load_song(&song).await;
+
+    assert_ok!(result);
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_url_resolution_rule_4_fallback_url_resolution() {
+    let mux = MuxPlayer::new_with_contexts(
+        SubscriberList::new(),
+        vec![Arc::new(DummyAudioPlayerContext::new())],
+    );
+    let resolver = Arc::new(AdvancedMockResolver {
+        ext_a_url: None,
+        fallback_url: Some("https://example.com/fallback_resolved.mp3".to_string()),
+    });
+    mux.set_resolver(resolver);
+
+    let song = Song {
+        song: Some(InnerSong {
+            playback_url: None,
+            extension: Some("ext_unsupported".to_string()),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    let result = mux.load_song(&song).await;
+
+    assert_ok!(result);
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_url_resolution_rule_4_fallback_player_provider() {
+    let fallback_player = Arc::new(MockExtensionPlayer {
+        id: "extension:ext_other".to_string(),
+        prefix: "fallback_player://".to_string(),
+    });
+    let mux = MuxPlayer::new_with_contexts(
+        SubscriberList::new(),
+        vec![Arc::new(RejectAudioPlayer), fallback_player],
+    );
+    let resolver = Arc::new(AdvancedMockResolver {
+        ext_a_url: None,
+        fallback_url: None,
+    });
+    mux.set_resolver(resolver);
+
+    let song = Song {
+        song: Some(InnerSong {
+            playback_url: None,
+            url: Some("fallback_player://track/999".to_string()),
+            extension: Some("ext_unsupported".to_string()),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    let result = mux.load_song(&song).await;
+
+    assert_ok!(result);
 }

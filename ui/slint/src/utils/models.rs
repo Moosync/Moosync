@@ -465,6 +465,7 @@ impl From<ExtensionProviderScope> for ProviderScope {
             ExtensionProviderScope::PlayerUiEvents => ProviderScope::PlayerUiEvents,
             ExtensionProviderScope::PlayerDataEvents => ProviderScope::PlayerDataEvents,
             ExtensionProviderScope::CoverArt => ProviderScope::CoverArt,
+            ExtensionProviderScope::PlayerProvider => ProviderScope::PlayerProvider,
         }
     }
 }

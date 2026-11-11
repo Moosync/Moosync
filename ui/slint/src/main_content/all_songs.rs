@@ -1,12 +1,10 @@
-use std::{
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::time::Duration;
 
 use slint::{ComponentHandle, ModelRc, Weak};
 use songs_proto::moosync::types::{GetSongOptions, SearchableSong, Song};
 use state_manager::StateManager;
 use tracing::Instrument;
+use types::debounce::DebounceHandle;
 
 use crate::{
     AllSongsPageProps, AppProps, ContextMenuCallbacks, MainWindow, Pages,
@@ -123,24 +121,20 @@ impl PageHandler for AllSongsPageHandler {
 
         let main_window_weak = self.main_window.as_weak();
         let state_manager = self.state_manager;
-        let debounce_task = Arc::new(Mutex::new(None::<tokio::task::JoinHandle<()>>));
+        let debounce = DebounceHandle::new();
 
         self.state_manager
             .get_database()
             .on_songs_added
             .listen(move |_| {
                 let main_window_weak = main_window_weak.clone();
-                let mut guard = debounce_task.lock().unwrap();
-                if let Some(handle) = guard.take() {
-                    handle.abort();
-                }
-                *guard = Some(tokio::spawn(
+                debounce.debounce(
+                    Duration::from_millis(150),
                     async move {
-                        tokio::time::sleep(Duration::from_millis(150)).await;
                         Self::refresh_songs(main_window_weak, state_manager);
                     }
                     .in_current_span(),
-                ));
+                );
             });
     }
 

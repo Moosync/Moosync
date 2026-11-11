@@ -38,7 +38,7 @@ use crate::{
 };
 
 pub struct MuxPlayer {
-    players: RwLock<Vec<(String, Arc<dyn AudioPlayerContext>)>>,
+    players: RwLock<Vec<Arc<dyn AudioPlayerContext>>>,
     active_idx: AtomicUsize,
     events_tx: RwLock<UnboundedSender<PlayerEvent>>,
     pub on_ended_callback: SubscriberList<()>,
@@ -49,7 +49,7 @@ impl MuxPlayer {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn new_with_contexts(
         on_ended_callback: SubscriberList<()>,
-        players: Vec<(String, Arc<dyn AudioPlayerContext>)>,
+        players: Vec<Arc<dyn AudioPlayerContext>>,
     ) -> Self {
         assert!(
             !players.is_empty(),
@@ -78,16 +78,17 @@ impl MuxPlayer {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn add_player(&self, id: String, player: Arc<dyn AudioPlayerContext>) {
+    pub fn add_player(&self, player: Arc<dyn AudioPlayerContext>) {
+        let id = player.get_id().to_string();
         let mut players = self.players.write().unwrap();
-        players.retain(|(existing_id, _)| existing_id != &id);
-        players.push((id, player));
+        players.retain(|existing| existing.get_id() != id);
+        players.push(player);
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn remove_player(&self, id: &str) {
         let mut players = self.players.write().unwrap();
-        players.retain(|(existing_id, _)| existing_id != id);
+        players.retain(|existing| existing.get_id() != id);
         let current_idx = self.active_idx.load(Ordering::SeqCst);
         if current_idx >= players.len() && !players.is_empty() {
             self.active_idx.store(0, Ordering::SeqCst);
@@ -100,7 +101,7 @@ impl MuxPlayer {
             .read()
             .unwrap()
             .iter()
-            .map(|(id, _)| id.clone())
+            .map(|p| p.get_id().to_string())
             .collect()
     }
 
@@ -108,7 +109,7 @@ impl MuxPlayer {
     fn get_active_player(&self) -> Option<Arc<dyn AudioPlayerContext>> {
         let players = self.players.read().unwrap();
         let idx = self.active_idx.load(Ordering::SeqCst);
-        players.get(idx).map(|(_, player)| player.clone())
+        players.get(idx).cloned()
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -159,24 +160,18 @@ impl MuxPlayer {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub async fn load_src(&self, src: ValidSrc<'_>) -> Result<(), PlayerError> {
-        let (current_idx, active_player, all_players) = {
+    pub async fn load_src<'a>(&self, src: ValidSrc<'a>) -> Result<(), PlayerError> {
+        let current_idx = self.active_idx.load(Ordering::SeqCst);
+        let active_player = {
             let players = self.players.read().unwrap();
-            let idx = self.active_idx.load(Ordering::SeqCst);
-            let active = players.get(idx).map(|(_, p)| p.clone());
-            let all: Vec<(usize, Arc<dyn AudioPlayerContext>)> = players
-                .iter()
-                .enumerate()
-                .map(|(i, (_, p))| (i, p.clone()))
-                .collect();
-            (idx, active, all)
+            players.get(current_idx).cloned()
         };
 
         if let Some(player) = active_player
             && player.can_play(&src).await
         {
             let events_tx = self.events_tx.read().unwrap().clone();
-            match player.set_src(src.clone().into_owned(), events_tx).await {
+            match player.set_src(src.clone(), events_tx).await {
                 Ok(()) => return Ok(()),
                 Err(e) => {
                     tracing::error!(
@@ -188,16 +183,14 @@ impl MuxPlayer {
             }
         }
 
-        for (idx, player) in all_players {
+        let players = self.players.read().unwrap().clone();
+        for (idx, player) in players.into_iter().enumerate() {
             if idx == current_idx {
                 continue;
             }
             if player.can_play(&src).await {
                 let new_events_tx = self.create_new_events_tx();
-                match player
-                    .set_src(src.clone().into_owned(), new_events_tx)
-                    .await
-                {
+                match player.set_src(src.clone(), new_events_tx).await {
                     Ok(()) => {
                         self.active_idx.store(idx, Ordering::SeqCst);
                         return Ok(());
@@ -225,28 +218,108 @@ impl MuxPlayer {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub async fn load_song(&self, song: &Song) -> Result<(), PlayerError> {
-        let res = self.load(song).await;
-        if let Err(e) = res {
-            match e {
-                PlayerError::NoPlayerFound(_) | PlayerError::NoSrcFound(_) => {
-                    let resp = self.source_resolver.resolve(song).await?;
-                    tracing::debug!("Resolved playback details for: {:?}", resp);
-                    let src = ValidSrc::new_url_with_key(resp.url, resp.decryption_key);
-                    self.load_src(src)
-                        .await
-                        .map_err(|_| PlayerError::NoPlayerFound(Box::new(song.clone())))?;
+    async fn try_player_by_id(&self, target_id: &str, src: &ValidSrc<'_>) -> bool {
+        let players = self.players.read().unwrap().clone();
+        for (idx, player) in players.into_iter().enumerate() {
+            if player.get_id() == target_id && player.can_play(src).await {
+                let events_tx = self.create_new_events_tx();
+                if player.set_src(src.clone(), events_tx).await.is_ok() {
+                    self.active_idx.store(idx, Ordering::SeqCst);
+                    return true;
                 }
-                _ => return Err(e),
             }
         }
-        Ok(())
+        false
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn try_other_extension_players(
+        &self,
+        exclude_id: Option<&str>,
+        src: &ValidSrc<'_>,
+    ) -> bool {
+        let players = self.players.read().unwrap().clone();
+        for (idx, player) in players.into_iter().enumerate() {
+            let pid = player.get_id();
+            if pid.starts_with("extension:")
+                && exclude_id != Some(pid)
+                && player.can_play(src).await
+            {
+                let events_tx = self.create_new_events_tx();
+                if player.set_src(src.clone(), events_tx).await.is_ok() {
+                    self.active_idx.store(idx, Ordering::SeqCst);
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub async fn load_song(&self, song: &Song) -> Result<(), PlayerError> {
+        // 1. Check if we already have a playback url/valid src, if yes try to
+        //    play it
+        if let Ok(src) = get_valid_src(song)
+            && self.load_src(src).await.is_ok()
+        {
+            return Ok(());
+        }
+
+        // 2. If no, check if the same extension which gave us the song can
+        //    resolve the URL, if yes then get the URL from that extension and
+        //    play it
+        if let Ok(resp) = self.source_resolver.resolve(song).await {
+            let src = ValidSrc::new_url_with_key(resp.url, resp.decryption_key);
+            if self.load_src(src).await.is_ok() {
+                return Ok(());
+            }
+        }
+
+        let origin_ext = song.song.as_ref().and_then(|s| s.extension.as_deref());
+        let origin_player_id = origin_ext.map(|ext| format!("extension:{ext}"));
+
+        // Candidate src from song url for extension players (Rules 3 and 4)
+        let candidate_src = song
+            .song
+            .as_ref()
+            .and_then(|s| s.url.as_deref())
+            .map(ValidSrc::new_url);
+
+        // 3. If no, check if the extension implements Player provider scope, if
+        //    yes try to play the song through that extension (rely on can_play)
+        if let Some(ref target_id) = origin_player_id
+            && let Some(ref src) = candidate_src
+            && self.try_player_by_id(target_id, src).await
+        {
+            return Ok(());
+        }
+
+        // 4. If no, fall back to other extensions to handle the song: 4a. Fall
+        //    back to other extensions to resolve the URL
+        if let Ok(resp) = self.source_resolver.resolve_fallback(song).await {
+            let src = ValidSrc::new_url_with_key(resp.url, resp.decryption_key);
+            if self.load_src(src).await.is_ok() {
+                return Ok(());
+            }
+        }
+
+        //    4b. Fall back to other extensions to play using their player
+        // provider
+        if let Some(ref src) = candidate_src
+            && self
+                .try_other_extension_players(origin_player_id.as_deref(), src)
+                .await
+        {
+            return Ok(());
+        }
+
+        Err(PlayerError::NoPlayerFound(Box::new(song.clone())))
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub async fn play(&self) -> Result<(), PlayerError> {
         let Some(player) = self.get_active_player() else {
-            return Err(PlayerError::Custom("No active player".to_string()));
+            return Err(PlayerError::NoActivePlayer);
         };
         player.play().await
     }
@@ -254,7 +327,7 @@ impl MuxPlayer {
     #[tracing::instrument(level = "debug", skip_all)]
     pub async fn pause(&self) -> Result<(), PlayerError> {
         let Some(player) = self.get_active_player() else {
-            return Err(PlayerError::Custom("No active player".to_string()));
+            return Err(PlayerError::NoActivePlayer);
         };
         player.pause().await
     }
@@ -262,7 +335,7 @@ impl MuxPlayer {
     #[tracing::instrument(level = "debug", skip_all)]
     pub async fn stop(&self) -> Result<(), PlayerError> {
         let Some(player) = self.get_active_player() else {
-            return Err(PlayerError::Custom("No active player".to_string()));
+            return Err(PlayerError::NoActivePlayer);
         };
         player.stop().await
     }
@@ -270,7 +343,7 @@ impl MuxPlayer {
     #[tracing::instrument(level = "debug", skip_all)]
     pub async fn set_volume(&self, volume: u8) -> Result<(), PlayerError> {
         let Some(player) = self.get_active_player() else {
-            return Err(PlayerError::Custom("No active player".to_string()));
+            return Err(PlayerError::NoActivePlayer);
         };
         player.set_volume(volume).await
     }
@@ -278,7 +351,7 @@ impl MuxPlayer {
     #[tracing::instrument(level = "debug", skip_all)]
     pub async fn seek(&self, position: Duration) -> Result<(), PlayerError> {
         let Some(player) = self.get_active_player() else {
-            return Err(PlayerError::Custom("No active player".to_string()));
+            return Err(PlayerError::NoActivePlayer);
         };
         player.seek(position).await
     }

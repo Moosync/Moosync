@@ -346,7 +346,7 @@ message MainCommand {
     ReadProcessStdoutRequest read_process_stdout = 28;
     KillProcessRequest kill_process = 29;
     GetProcessStatusRequest get_process_status = 30;
-    NotifyPlaybackEndedRequest notify_playback_ended = 31;
+    NotifyPlayerEventRequest notify_player_event = 31;
   }
 }
 
@@ -383,7 +383,7 @@ message MainCommandResponse {
     ReadProcessStdoutResponse read_process_stdout = 29;
     KillProcessResponse kill_process = 30;
     GetProcessStatusResponse get_process_status = 31;
-    NotifyPlaybackEndedResponse notify_playback_ended = 32;
+    NotifyPlayerEventResponse notify_player_event = 32;
   }
 }
 
@@ -822,5 +822,7 @@ message GetProcessStatusResponse {
   optional int32 exit_code = 2;
 }
 
-message NotifyPlaybackEndedRequest {}
-message NotifyPlaybackEndedResponse {}
+message NotifyPlayerEventRequest {
+  PlayerEvent event = 1;
+}
+message NotifyPlayerEventResponse {}

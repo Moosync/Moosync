@@ -32,6 +32,8 @@ use crate::{
     source::ValidSrc,
 };
 
+pub const RODIO_PLAYER_ID: &str = "rodio";
+
 struct OnEnded<S> {
     source: S,
     on_ended: Option<Box<dyn FnOnce() + Send>>,
@@ -113,6 +115,8 @@ impl RodioPlayerContext {
 
 #[async_trait]
 impl AudioPlayerContext for RodioPlayerContext {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_id(&self) -> &str { RODIO_PLAYER_ID }
     #[tracing::instrument(level = "debug", skip_all)]
     async fn play(&self) -> Result<(), PlayerError> {
         let guard = self.player.lock().unwrap();
@@ -203,9 +207,9 @@ impl AudioPlayerContext for RodioPlayerContext {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    async fn set_src(
+    async fn set_src<'a>(
         &self,
-        src: ValidSrc<'static>,
+        src: ValidSrc<'a>,
         events_tx: UnboundedSender<PlayerEvent>,
     ) -> Result<(), PlayerError> {
         let old_volume = self.get_volume().unwrap_or(50);
@@ -213,15 +217,12 @@ impl AudioPlayerContext for RodioPlayerContext {
         let system_rate = get_system_sample_rate().max(1);
         let safe_rate = NonZero::new(system_rate).expect("Sample rate is clamped to 1");
 
-        let device_builder = rodio::DeviceSinkBuilder::from_default_device()
-            .map_err(|e| PlayerError::AudioDevice(format!("{e}")))?;
-        let mut sink = device_builder
-            .with_sample_rate(safe_rate)
-            .open_stream()
-            .unwrap_or(
-                rodio::DeviceSinkBuilder::open_default_sink()
-                    .map_err(|e| PlayerError::AudioDevice(format!("{e}")))?,
-            );
+        let device_builder = rodio::DeviceSinkBuilder::from_default_device()?;
+        let mut sink = if let Ok(sink) = device_builder.with_sample_rate(safe_rate).open_stream() {
+            sink
+        } else {
+            rodio::DeviceSinkBuilder::open_default_sink()?
+        };
         sink.log_on_drop(false);
         let cfg = sink.config();
         let output_sample_rate = cfg.sample_rate().get();

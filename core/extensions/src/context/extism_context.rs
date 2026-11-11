@@ -23,7 +23,7 @@ use std::{
     path::{Path, PathBuf},
     process,
     str::FromStr,
-    sync::{Arc, LazyLock, Mutex, RwLock},
+    sync::{Arc, LazyLock, Mutex},
     thread,
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -31,8 +31,7 @@ use std::{
 use extensions_proto::moosync::types::{
     BatchHttpRequest, BatchHttpResponse, Error as MainCommandError, ExtensionCommand,
     ExtensionCommandResponse, HttpRequest, HttpResponse, HttpResult, MainCommand,
-    MainCommandResponse, ManifestPermissions, PlayerState, http_result, main_command_response,
-    player_event::Event as PlayerEvent,
+    MainCommandResponse, ManifestPermissions, http_result, main_command_response,
 };
 use extism::{Manifest, PTR, Plugin, PluginBuilder, UserData, ValType::I64, Wasm, host_fn};
 use extism_convert::Prost;
@@ -41,7 +40,6 @@ use interprocess::local_socket::{
     traits::Stream,
 };
 use regex::{Captures, Regex};
-use tokio::sync::mpsc::UnboundedSender;
 use tracing::Instrument;
 
 use crate::{
@@ -50,7 +48,6 @@ use crate::{
     errors::ExtensionError,
     extension::Extension,
     models::SanitizeCommand,
-    process::ExtensionProcessManager,
     sanitize::Sanitize,
 };
 
@@ -63,9 +60,6 @@ struct MainCommandUserData {
     package_name: String,
     reply_handler: Arc<dyn ReplyHandler>,
     memory_cache: Arc<Mutex<ExtensionMemoryCache>>,
-    process_manager: Arc<ExtensionProcessManager>,
-    player_state: Arc<RwLock<PlayerState>>,
-    events_tx: Arc<RwLock<Option<UnboundedSender<PlayerEvent>>>>,
 }
 
 struct SocketUserData {
@@ -81,15 +75,12 @@ struct HttpUserData {
 
 host_fn!(send_main_command(user_data: MainCommandUserData; command_wrapper: Prost<MainCommand>) {
     let user_data_arc = user_data.get()?;
-    let (package_name, reply_handler, memory_cache, process_manager, player_state, events_tx) = {
+    let (package_name, reply_handler, memory_cache) = {
         let data = user_data_arc.lock().unwrap();
         (
             data.package_name.clone(),
             data.reply_handler.clone(),
             data.memory_cache.clone(),
-            data.process_manager.clone(),
-            data.player_state.clone(),
-            data.events_tx.clone(),
         )
     };
 
@@ -109,9 +100,6 @@ host_fn!(send_main_command(user_data: MainCommandUserData; command_wrapper: Pros
         reply_handler: reply_handler.as_ref(),
         package_name: &package_name,
         memory_cache: &memory_cache,
-        process_manager: Some(&process_manager),
-        player_state: Some(&player_state),
-        events_tx: Some(&events_tx),
     };
     let response = match command.command {
         Some(cmd) => cmd.dispatch(&ctx),
@@ -442,9 +430,6 @@ impl TryFrom<&Extension> for Arc<ExtismContext> {
                 package_name: package_name.clone(),
                 reply_handler: ext.reply_handler.clone(),
                 memory_cache: ext.memory_cache.clone(),
-                process_manager: ext.process_manager.clone(),
-                player_state: ext.player_state.clone(),
-                events_tx: ext.events_tx.clone(),
             },
             plugin_manifest.allowed_paths.clone(),
             manifest.permissions.as_ref().map(|p| p.hosts.clone()),

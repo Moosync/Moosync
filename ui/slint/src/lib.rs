@@ -22,7 +22,7 @@ use tracing::{Instrument, debug, trace};
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt};
 #[cfg(not(target_os = "android"))]
 use tracing_tracy::TracyLayer;
-use types::prelude::format_duration;
+use types::{debounce::DebounceHandle, prelude::format_duration};
 
 #[cfg(target_os = "android")]
 use crate::utils::android::get_android_context;
@@ -702,19 +702,20 @@ fn setup_player_bottom_bar_callbacks(
             );
         });
 
+    let seek_debounce = DebounceHandle::new();
     main_window
         .global::<BottomBarCallbacks>()
         .on_seek(move |pos| {
-            tokio::spawn(
+            let safe_secs = pos.max(0) as u64;
+            let target_duration = Duration::from_secs(safe_secs);
+            let player_handler = state_manager.get_player_handler();
+
+            seek_debounce.debounce(
+                Duration::from_millis(150),
                 async move {
-                    let safe_secs = pos.max(0) as u64;
-                    let target_duration = Duration::from_secs(safe_secs);
-
-                    let player_handler = state_manager.get_player_handler();
-
                     player_handler.seek(target_duration).await;
                 }
-                .instrument(tracing::debug_span!("slint_cb_on_seek")),
+                .in_current_span(),
             );
         });
 }

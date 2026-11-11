@@ -29,6 +29,7 @@ export component ExtensionDetailsModalMobile inherits Rectangle {
         if scope == ProviderScope.database_playlist_events { return @tr("Database Playlist Events"); }
         if scope == ProviderScope.player_ui_events { return @tr("Player UI Events"); }
         if scope == ProviderScope.player_data_events { return @tr("Player Data Events"); }
+        if scope == ProviderScope.player_provider { return @tr("Player Provider"); }
         return @tr("Provider");
     }
 

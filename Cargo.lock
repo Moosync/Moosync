@@ -5408,6 +5408,7 @@ dependencies = [
  "tracing-subscriber",
  "tracing-test",
  "tracing-tracy",
+ "tungstenite",
  "url",
  "uuid",
  "vergen",

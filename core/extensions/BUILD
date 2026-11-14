@@ -1,6 +1,20 @@
 load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
 
 rust_test(
+    name = "websocket_unit_test",
+    crate = ":extensions",
+    deps = [
+        "@crates//:assertables",
+        "@crates//:prost",
+        "@crates//:rstest",
+        "@crates//:semver",
+        "@crates//:tempdir",
+        "@crates//:tracing-test",
+        "@crates//:wiremock",
+    ],
+)
+
+rust_test(
     name = "extensions_test",
     timeout = "long",
     crate = ":extensions",
@@ -70,6 +84,8 @@ rust_library(
         "src/sanitize.rs",
         "src/sanitize_test.rs",
         "src/tests.rs",
+        "src/websocket.rs",
+        "src/websocket_test.rs",
     ],
     crate_root = "src/lib.rs",
     proc_macro_deps = [
@@ -99,8 +115,10 @@ rust_library(
         "@crates//:tokio",
         "@crates//:tracing",
         "@crates//:tracing-subscriber",
+        "@crates//:url",
         "@crates//:uuid",
         "@crates//:zip-extensions",
         "@crates__sha2-0.10.9//:sha2",
+        "@crates__tungstenite-0.28.0//:tungstenite",
     ],
 )

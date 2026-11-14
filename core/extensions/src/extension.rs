@@ -52,6 +52,7 @@ use crate::{
     errors::ExtensionError,
     process::ExtensionProcessManager,
     sanitize::Sanitize,
+    websocket::ExtensionWsManager,
 };
 
 pub(crate) struct AsyncContext {
@@ -126,6 +127,7 @@ pub struct Extension {
     pub(crate) error: Arc<OnceLock<String>>,
     pub(crate) memory_cache: Arc<Mutex<ExtensionMemoryCache>>,
     pub process_manager: Arc<ExtensionProcessManager>,
+    pub ws_manager: Arc<ExtensionWsManager>,
     pub(crate) player_data: ExtensionPlayerData,
 }
 
@@ -178,6 +180,9 @@ impl Extension {
             allowed_binaries,
         ));
 
+        let allowed_hosts = manifest.permissions.as_ref().map(|p| p.hosts.clone());
+        let ws_manager = Arc::new(ExtensionWsManager::new(allowed_hosts));
+
         let package_name = manifest.name.clone();
         let ext = Self {
             context: Arc::new(AsyncContext::new()),
@@ -191,6 +196,7 @@ impl Extension {
             error: Arc::new(OnceLock::new()),
             memory_cache: Arc::new(Mutex::new(ExtensionMemoryCache::default())),
             process_manager,
+            ws_manager,
             player_data: ExtensionPlayerData::new(&package_name),
         };
 
@@ -507,7 +513,10 @@ impl Extension {
 
 impl Drop for Extension {
     #[tracing::instrument(level = "debug", skip_all)]
-    fn drop(&mut self) { self.process_manager.kill_all(); }
+    fn drop(&mut self) {
+        self.process_manager.kill_all();
+        self.ws_manager.close_all();
+    }
 }
 
 impl From<&Extension> for ExtensionDetail {

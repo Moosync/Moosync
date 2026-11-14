@@ -32,6 +32,9 @@ pub mod process;
 #[cfg(test)]
 mod process_test;
 mod remote;
+pub mod websocket;
+#[cfg(test)]
+mod websocket_test;
 pub use remote::{DEFAULT_EXTENSION_REGISTRY, RemoteExtensions};
 pub mod sanitize;
 pub use sanitize::Sanitize;

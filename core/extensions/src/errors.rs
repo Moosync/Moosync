@@ -92,4 +92,22 @@ pub enum ExtensionError {
 
     #[error("Process error: {0}")]
     Process(String),
+
+    #[error("WebSocket host '{0}' is not allowed by manifest permissions")]
+    WsHostNotPermitted(String),
+
+    #[error("Failed to connect to WebSocket '{0}': {1}")]
+    WsFailedToConnect(String, String),
+
+    #[error("WebSocket connection {0} not found")]
+    WsConnectionNotFound(usize),
+
+    #[error("WebSocket connection {0} is closed")]
+    WsConnectionClosed(usize),
+
+    #[error("Failed to send WebSocket message on connection {0}: {1}")]
+    WsFailedToSend(usize, String),
+
+    #[error("WebSocket error: {0}")]
+    Ws(String),
 }

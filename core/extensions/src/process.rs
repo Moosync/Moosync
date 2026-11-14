@@ -45,6 +45,32 @@ pub struct ExtensionProcessManager {
 
 impl ExtensionProcessManager {
     #[tracing::instrument(level = "debug", skip_all)]
+    fn is_path_like(arg: &str) -> bool {
+        if arg.starts_with('/')
+            || arg.starts_with("./")
+            || arg.starts_with("../")
+            || arg.starts_with("~/")
+        {
+            return true;
+        }
+
+        let bytes = arg.as_bytes();
+        if bytes.len() >= 3
+            && bytes[0].is_ascii_alphabetic()
+            && bytes[1] == b':'
+            && (bytes[2] == b'\\' || bytes[2] == b'/')
+        {
+            return true;
+        }
+
+        if arg.starts_with(r"\") || arg.starts_with(r".\") || arg.starts_with(r"..\") {
+            return true;
+        }
+
+        false
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(
         allowed_paths: Option<HashMap<String, PathBuf>>,
         allowed_binaries: Vec<String>,
@@ -58,38 +84,68 @@ impl ExtensionProcessManager {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
+    fn is_in_allowed(&self, target: &Path, allowed: &HashMap<String, PathBuf>) -> bool {
+        allowed.values().any(|base| {
+            if let Ok(canonical_base) = dunce::canonicalize(base) {
+                target.starts_with(&canonical_base)
+            } else {
+                false
+            }
+        }) || allowed.keys().any(|base| {
+            if let Ok(canonical_base) = dunce::canonicalize(base) {
+                target.starts_with(&canonical_base)
+            } else {
+                false
+            }
+        })
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
     fn resolve_path(&self, requested_path: &str) -> Result<PathBuf, ExtensionError> {
         let path = Path::new(requested_path);
         let Some(allowed) = &self.allowed_paths else {
             return Err(ExtensionError::ProcessNoAllowedPaths);
         };
 
-        let canonical_target = if path.is_absolute() {
-            dunce::canonicalize(path)
-                .map_err(|_| ExtensionError::ProcessBinaryNotFound(path.to_path_buf()))?
-        } else {
-            let mut resolved = None;
-            for base_dir in allowed.values() {
-                let candidate = base_dir.join(path);
+        let mut resolved_candidate = None;
+
+        for (host_dir, guest_dir) in allowed {
+            if let Ok(rel) = path.strip_prefix(guest_dir) {
+                let candidate = Path::new(host_dir).join(rel);
                 if let Ok(c) = dunce::canonicalize(&candidate) {
-                    resolved = Some(c);
+                    resolved_candidate = Some(c);
                     break;
                 }
             }
-            resolved.ok_or_else(|| {
-                ExtensionError::ProcessBinaryNotFound(PathBuf::from(requested_path))
-            })?
-        };
+        }
 
-        let in_allowed_dir = allowed.values().any(|base| {
-            if let Ok(canonical_base) = dunce::canonicalize(base) {
-                canonical_target.starts_with(&canonical_base)
-            } else {
-                false
+        if resolved_candidate.is_none() && path.is_absolute() {
+            resolved_candidate = dunce::canonicalize(path).ok();
+        }
+
+        if resolved_candidate.is_none() {
+            for host_dir in allowed.keys() {
+                let candidate = Path::new(host_dir).join(path);
+                if let Ok(c) = dunce::canonicalize(&candidate) {
+                    resolved_candidate = Some(c);
+                    break;
+                }
             }
-        });
+            if resolved_candidate.is_none() {
+                for base_dir in allowed.values() {
+                    let candidate = base_dir.join(path);
+                    if let Ok(c) = dunce::canonicalize(&candidate) {
+                        resolved_candidate = Some(c);
+                        break;
+                    }
+                }
+            }
+        }
 
-        if !in_allowed_dir {
+        let canonical_target = resolved_candidate
+            .ok_or_else(|| ExtensionError::ProcessBinaryNotFound(PathBuf::from(requested_path)))?;
+
+        if !self.is_in_allowed(&canonical_target, allowed) {
             return Err(ExtensionError::ProcessBinaryNotPermitted(canonical_target));
         }
 
@@ -145,7 +201,20 @@ impl ExtensionProcessManager {
         self.verify_binary_hash(&binary_path)?;
 
         let mut command = Command::new(&binary_path);
-        command.args(&req.args);
+        let resolved_args: Vec<String> = req
+            .args
+            .iter()
+            .map(|arg| {
+                if Self::is_path_like(arg) {
+                    self.resolve_path(arg)
+                        .map(|p| p.to_string_lossy().to_string())
+                        .unwrap_or_else(|_| arg.clone())
+                } else {
+                    arg.clone()
+                }
+            })
+            .collect();
+        command.args(&resolved_args);
         for (k, v) in &req.env {
             command.env(k, v);
         }

@@ -220,7 +220,7 @@ host_fn!(read_sock(user_data: SocketUserData; sock_id: i64, read_len: u64) -> Ve
 });
 
 #[tracing::instrument(level = "trace", skip_all)]
-fn is_host_allowed(host: &str, allowed_hosts: Option<&[String]>) -> bool {
+pub(crate) fn is_host_allowed(host: &str, allowed_hosts: Option<&[String]>) -> bool {
     let Some(allowed) = allowed_hosts else {
         return false;
     };
@@ -408,6 +408,10 @@ impl TryFrom<&Extension> for Arc<ExtismContext> {
                 .with_allowed_paths(allowed_paths.into_iter())
                 .with_config_key("pid", format!("{}", process::id()));
         }
+
+        plugin_manifest = plugin_manifest
+            .with_config_key("os", std::env::consts::OS)
+            .with_config_key("arch", std::env::consts::ARCH);
 
         let (user_data, sock_data, http_data) = ExtismContext::get_user_data(
             MainCommandUserData {

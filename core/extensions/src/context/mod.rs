@@ -11,8 +11,9 @@ use extensions_proto::moosync::types::{
     ReadProcessStdoutResponse, RegisterOauthResponse, RegisterUserPreferenceResponse,
     RemoveSongResponse, SetAccountResponse, SetCacheResponse, SetPreferenceResponse,
     SetSecureResponse, SpawnProcessRequest, SpawnProcessResponse, UnregisterUserPreferenceResponse,
-    UpdateSongResponse, WriteProcessStdinRequest, WriteProcessStdinResponse, main_command,
-    main_command_response,
+    UpdateSongResponse, WriteProcessStdinRequest, WriteProcessStdinResponse, WsCloseRequest,
+    WsCloseResponse, WsConnectRequest, WsConnectResponse, WsReceiveRequest, WsReceiveResponse,
+    WsSendRequest, WsSendResponse, main_command, main_command_response,
 };
 pub use extism_context::ExtismContext;
 use preferences_proto::moosync::types::PreferenceItem;
@@ -165,6 +166,34 @@ pub trait ReplyHandler: Send + Sync + 'static {
         _package_name: &str,
         _req: NotifyPlayerEventRequest,
     ) -> Result<NotifyPlayerEventResponse, ExtensionError> {
+        Err(ExtensionError::NoContext)
+    }
+    fn ws_connect(
+        &self,
+        _package_name: &str,
+        _req: WsConnectRequest,
+    ) -> Result<WsConnectResponse, ExtensionError> {
+        Err(ExtensionError::NoContext)
+    }
+    fn ws_send(
+        &self,
+        _package_name: &str,
+        _req: WsSendRequest,
+    ) -> Result<WsSendResponse, ExtensionError> {
+        Err(ExtensionError::NoContext)
+    }
+    fn ws_receive(
+        &self,
+        _package_name: &str,
+        _req: WsReceiveRequest,
+    ) -> Result<WsReceiveResponse, ExtensionError> {
+        Err(ExtensionError::NoContext)
+    }
+    fn ws_close(
+        &self,
+        _package_name: &str,
+        _req: WsCloseRequest,
+    ) -> Result<WsCloseResponse, ExtensionError> {
         Err(ExtensionError::NoContext)
     }
     fn get_runtime_handle(&self) -> Option<tokio::runtime::Handle> { None }
@@ -417,11 +446,23 @@ impl DispatchCommand for main_command::Command {
             main_command::Command::NotifyPlayerEvent(req) => reply_handler
                 .notify_player_event(package_name, req)
                 .map(main_command_response::Response::NotifyPlayerEvent),
+            main_command::Command::WsConnect(req) => reply_handler
+                .ws_connect(package_name, req)
+                .map(main_command_response::Response::WsConnect),
+            main_command::Command::WsSend(req) => reply_handler
+                .ws_send(package_name, req)
+                .map(main_command_response::Response::WsSend),
+            main_command::Command::WsReceive(req) => reply_handler
+                .ws_receive(package_name, req)
+                .map(main_command_response::Response::WsReceive),
+            main_command::Command::WsClose(req) => reply_handler
+                .ws_close(package_name, req)
+                .map(main_command_response::Response::WsClose),
         }
     }
 }
 
-mod extism_context;
+pub(crate) mod extism_context;
 #[cfg(test)]
 mod extism_context_test;
 #[cfg(test)]

@@ -3,7 +3,8 @@ use extensions_proto::moosync::types::{
     GetProcessStatusRequest, GetProcessStatusResponse, KillProcessRequest, KillProcessResponse,
     NotifyPlayerEventRequest, NotifyPlayerEventResponse, ReadProcessStdoutRequest,
     ReadProcessStdoutResponse, SpawnProcessRequest, SpawnProcessResponse, WriteProcessStdinRequest,
-    WriteProcessStdinResponse,
+    WriteProcessStdinResponse, WsCloseRequest, WsCloseResponse, WsConnectRequest,
+    WsConnectResponse, WsReceiveRequest, WsReceiveResponse, WsSendRequest, WsSendResponse,
 };
 use preferences_proto::moosync::types::PreferenceItem;
 use prost::Message;
@@ -395,6 +396,50 @@ impl ReplyHandler for StateReplyHandler {
         let extensions = self.state_manager.get_extension_handler();
         let extension = extensions.get_extension(package_name)?;
         extension.notify_player_event(req)
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn ws_connect(
+        &self,
+        package_name: &str,
+        req: WsConnectRequest,
+    ) -> Result<WsConnectResponse, ExtensionError> {
+        let extensions = self.state_manager.get_extension_handler();
+        let extension = extensions.get_extension(package_name)?;
+        extension.ws_manager.ws_connect(req)
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn ws_send(
+        &self,
+        package_name: &str,
+        req: WsSendRequest,
+    ) -> Result<WsSendResponse, ExtensionError> {
+        let extensions = self.state_manager.get_extension_handler();
+        let extension = extensions.get_extension(package_name)?;
+        extension.ws_manager.ws_send(req)
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn ws_receive(
+        &self,
+        package_name: &str,
+        req: WsReceiveRequest,
+    ) -> Result<WsReceiveResponse, ExtensionError> {
+        let extensions = self.state_manager.get_extension_handler();
+        let extension = extensions.get_extension(package_name)?;
+        extension.ws_manager.ws_receive(req)
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn ws_close(
+        &self,
+        package_name: &str,
+        req: WsCloseRequest,
+    ) -> Result<WsCloseResponse, ExtensionError> {
+        let extensions = self.state_manager.get_extension_handler();
+        let extension = extensions.get_extension(package_name)?;
+        extension.ws_manager.ws_close(req)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

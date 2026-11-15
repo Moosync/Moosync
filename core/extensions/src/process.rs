@@ -200,6 +200,18 @@ impl ExtensionProcessManager {
         let binary_path = self.resolve_path(&req.path)?;
         self.verify_binary_hash(&binary_path)?;
 
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            if let Ok(metadata) = std::fs::metadata(&binary_path) {
+                let mut perms = metadata.permissions();
+                if perms.mode() & 0o111 == 0 {
+                    perms.set_mode(perms.mode() | 0o755);
+                    let _ = std::fs::set_permissions(&binary_path, perms);
+                }
+            }
+        }
+
         let mut command = Command::new(&binary_path);
         let resolved_args: Vec<String> = req
             .args

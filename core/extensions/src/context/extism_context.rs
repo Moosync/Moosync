@@ -1,30 +1,26 @@
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::{HashMap, HashSet},
     env,
     fmt::Debug,
     fs,
-    io::{Read, Write},
     path::{Path, PathBuf},
     process,
     str::FromStr,
-    sync::{Arc, LazyLock, Mutex},
+    sync::{Arc, Condvar, LazyLock, Mutex, OnceLock, atomic::Ordering},
     thread,
-    time::{SystemTime, UNIX_EPOCH},
 };
 
 use extensions_proto::moosync::types::{
-    BatchHttpRequest, BatchHttpResponse, Error as MainCommandError, ExtensionCommand,
-    ExtensionCommandResponse, HttpRequest, HttpResponse, HttpResult, MainCommand,
-    MainCommandResponse, ManifestPermissions, http_result, main_command_response,
+    Error as MainCommandError, ExtensionCommand, ExtensionCommandResponse, MainCommand,
+    MainCommandResponse, ManifestPermissions, main_command_response,
 };
-use extism::{Manifest, PTR, Plugin, PluginBuilder, UserData, ValType::I64, Wasm, host_fn};
+use extism::{
+    CancelHandle, Error as ExtismError, Manifest, PTR, Plugin, PluginBuilder, UserData, Wasm,
+    host_fn,
+};
 use extism_convert::Prost;
-use interprocess::local_socket::{
-    GenericFilePath, GenericNamespaced, NameType, Stream as LocalSocketStream, ToFsName, ToNsName,
-    traits::Stream,
-};
 use regex::{Captures, Regex};
-use tracing::Instrument;
+use tokio::sync::oneshot;
 
 use crate::{
     cache::ExtensionMemoryCache,
@@ -46,17 +42,6 @@ struct MainCommandUserData {
     memory_cache: Arc<Mutex<ExtensionMemoryCache>>,
 }
 
-struct SocketUserData {
-    socks: Vec<LocalSocketStream>,
-    allowed_paths: Option<BTreeMap<String, PathBuf>>,
-}
-
-struct HttpUserData {
-    allowed_hosts: Option<Vec<String>>,
-    client: reqwest::Client,
-    runtime: Option<tokio::runtime::Handle>,
-}
-
 host_fn!(send_main_command(user_data: MainCommandUserData; command_wrapper: Prost<MainCommand>) {
     let user_data_arc = user_data.get()?;
     let (package_name, reply_handler, memory_cache) = {
@@ -69,24 +54,24 @@ host_fn!(send_main_command(user_data: MainCommandUserData; command_wrapper: Pros
     };
 
     let mut command = command_wrapper.0;
-    if let Err(e) = command.sanitize(&package_name) {
+    if let Err(error) = command.sanitize(&package_name) {
         return Ok(Prost(MainCommandResponse {
             response: Some(main_command_response::Response::Error(MainCommandError {
-                message: e.to_string()
+                message: error.to_string()
             })),
         }));
     }
 
     tracing::debug!("Sending command {:?} from {}", command, package_name);
     let runtime_handle = reply_handler.get_runtime_handle();
-    let _runtime_guard = runtime_handle.as_ref().map(|h| h.enter());
-    let ctx = HostCommandContext {
+    let _runtime_guard = runtime_handle.as_ref().map(|handle| handle.enter());
+    let context = HostCommandContext {
         reply_handler: reply_handler.as_ref(),
         package_name: &package_name,
         memory_cache: &memory_cache,
     };
     let response = match command.command {
-        Some(cmd) => cmd.dispatch(&ctx),
+        Some(cmd) => cmd.dispatch(&context),
         None => Err(ExtensionError::MissingCommand),
     };
 
@@ -97,280 +82,23 @@ host_fn!(send_main_command(user_data: MainCommandUserData; command_wrapper: Pros
     tracing::debug!("command returning to {}", package_name);
 
     match result {
-        Ok(response) => {
-            Ok(Prost(response))
-        }
-        Err(e) => {
-            Ok(Prost(MainCommandResponse {
-                response: Some(main_command_response::Response::Error(MainCommandError {
-                    message: e.to_string()
-                })),
-            }))
-        }
+        Ok(response) => Ok(Prost(response)),
+        Err(error) => Ok(Prost(MainCommandResponse {
+            response: Some(main_command_response::Response::Error(MainCommandError {
+                message: error.to_string()
+            })),
+        })),
     }
-});
-
-host_fn!(system_time() -> u64 {
-    let start = SystemTime::now();
-    let since_the_epoch = start
-        .duration_since(UNIX_EPOCH)
-        .expect("Time went backwards");
-   Ok(since_the_epoch.as_secs())
-});
-
-host_fn!(open_clientfd(user_data: SocketUserData; sock_path: String) -> i64 {
-    let user_data = user_data.get()?;
-    let mut user_data = user_data.lock().unwrap();
-
-    if user_data.socks.len() > u8::MAX as usize {
-        tracing::error!("Cannot open more sockets");
-        return Ok(-1);
-    }
-
-
-    // Check if path is allowed
-    let Some(allowed_paths) = user_data.allowed_paths.as_ref() else {
-        tracing::error!("Not enough permissions to access {}", sock_path);
-        return Ok(-1);
-    };
-
-    let sock_path_parsed = PathBuf::from_str(sock_path.as_str())?;
-    let Some(sock_path_str) = sock_path_parsed.to_str() else {
-        tracing::error!("Failed to convert passed path to string");
-        return Ok(-1);
-    };
-
-    for (key, value) in allowed_paths {
-        let allowed_path = value.to_str();
-        if allowed_path.is_none() {
-            tracing::error!("Failed to convert mapped path: {:?} to string", value);
-        }
-
-        let is_match = allowed_path.map(|path| sock_path_str.starts_with(path)).unwrap_or(false);
-        if is_match {
-            let path_val = allowed_path.unwrap();
-            let mapped_path = PathBuf::from_str(format!("{}/{}", key, sock_path_str.replacen(path_val, "", 1)).as_str())?;
-            if mapped_path.exists() {
-                let mapped_path_name = if GenericNamespaced::is_supported() && key.starts_with("\\\\.\\pipe\\") {
-                    mapped_path.file_name().unwrap()
-                        .to_ns_name::<GenericNamespaced>()
-                } else {
-                    mapped_path.to_fs_name::<GenericFilePath>()
-                }?;
-
-                if let Ok(sock) = LocalSocketStream::connect(mapped_path_name) {
-                    user_data.socks.push(sock);
-                    return Ok((user_data.socks.len() - 1) as i64);
-                }
-            } else {
-                tracing::debug!("Path {:?} does not exist", mapped_path);
-            }
-        }
-    }
-
-    tracing::error!("Sock path not specified in allowed_paths");
-    Ok(-1)
-
-});
-
-host_fn!(write_sock(user_data: SocketUserData; sock_id: i64, buf: Vec<u8>) -> i64 {
-    let user_data = user_data.get()?;
-    let mut user_data = user_data.lock().unwrap();
-
-    let Some(sock) = user_data.socks.get_mut(sock_id as usize) else {
-        tracing::error!("Invalid sock id");
-        return Ok(-1);
-    };
-
-    tracing::info!("Writing {:?}", buf);
-    if let Err(e) = sock.write_all(&buf) {
-        tracing::error!("Failed to write data to sock {}", e);
-        return Ok(-1);
-    }
-    tracing::info!("Wrote all");
-    Ok(-1)
-});
-
-host_fn!(read_sock(user_data: SocketUserData; sock_id: i64, read_len: u64) -> Vec<u8> {
-    let user_data = user_data.get()?;
-    let mut user_data = user_data.lock().unwrap();
-
-    let Some(sock) = user_data.socks.get_mut(sock_id as usize) else {
-        tracing::error!("Invalid sock id");
-        return Ok(vec![]);
-    };
-
-    let mut read_len = read_len;
-    if read_len == 0 || read_len > 1024 {
-        read_len = 1024;
-    }
-
-    tracing::info!("Reading {}", read_len);
-    let mut ret = vec![0; read_len as usize];
-    let Ok(read) = sock.read(&mut ret) else {
-        return Ok(vec![]);
-    };
-
-    if read >= 1024 {
-        tracing::error!("Read out of bounds");
-        return Ok(vec![]);
-    }
-    ret.truncate(read);
-    Ok(ret)
-});
-
-#[tracing::instrument(level = "trace", skip_all)]
-pub(crate) fn is_host_allowed(host: &str, allowed_hosts: Option<&[String]>) -> bool {
-    let Some(allowed) = allowed_hosts else {
-        return false;
-    };
-    let host_lower = host.to_ascii_lowercase();
-    for pattern in allowed {
-        let pattern_lower = pattern.to_ascii_lowercase();
-        if pattern_lower == "*" {
-            return true;
-        }
-        if let Some(bare) = pattern_lower.strip_prefix("*.") {
-            let suffix = &pattern_lower[1..];
-            if host_lower.ends_with(suffix) || host_lower == bare {
-                return true;
-            }
-        }
-        if host_lower == pattern_lower {
-            return true;
-        }
-    }
-    false
-}
-
-#[tracing::instrument(level = "trace", skip_all)]
-fn validate_request(req: &HttpRequest, allowed_hosts: Option<&[String]>) -> Result<(), String> {
-    let url_parsed = reqwest::Url::parse(&req.url).map_err(|e| format!("Invalid URL: {e}"))?;
-    let host = url_parsed
-        .host_str()
-        .ok_or_else(|| "URL has no host".to_string())?;
-    if !is_host_allowed(host, allowed_hosts) {
-        return Err(format!(
-            "Host '{host}' is not allowed by manifest permissions"
-        ));
-    }
-    Ok(())
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-pub(crate) async fn execute_single_request(
-    client: &reqwest::Client,
-    req: HttpRequest,
-    allowed_hosts: Option<&[String]>,
-) -> Result<HttpResponse, String> {
-    validate_request(&req, allowed_hosts)?;
-    let url_parsed = reqwest::Url::parse(&req.url).map_err(|e| format!("Invalid URL: {e}"))?;
-
-    let method = match req.method.to_uppercase().as_str() {
-        "POST" => reqwest::Method::POST,
-        "PUT" => reqwest::Method::PUT,
-        "DELETE" => reqwest::Method::DELETE,
-        "PATCH" => reqwest::Method::PATCH,
-        "HEAD" => reqwest::Method::HEAD,
-        "OPTIONS" => reqwest::Method::OPTIONS,
-        _ => reqwest::Method::GET,
-    };
-
-    let mut builder = client.request(method, url_parsed);
-    for (k, v) in req.headers {
-        builder = builder.header(k, v);
-    }
-
-    if let Some(body) = req.body {
-        builder = builder.body(body);
-    }
-
-    if req.timeout_ms.unwrap_or(0) > 0 {
-        let timeout_ms = req.timeout_ms.unwrap();
-        builder = builder.timeout(std::time::Duration::from_millis(timeout_ms));
-    }
-
-    let resp = builder
-        .send()
-        .await
-        .map_err(|e| format!("Network request failed: {e}"))?;
-
-    let status_code = resp.status().as_u16() as u32;
-    let status_text = resp.status().canonical_reason().unwrap_or("").to_string();
-    let mut headers = HashMap::new();
-    for (k, v) in resp.headers() {
-        if let Ok(v_str) = v.to_str() {
-            headers.insert(k.as_str().to_string(), v_str.to_string());
-        }
-    }
-
-    let body_bytes = resp
-        .bytes()
-        .await
-        .map_err(|e| format!("Failed to read response body: {e}"))?;
-
-    Ok(HttpResponse {
-        status_code,
-        status_text,
-        headers,
-        body: body_bytes.to_vec(),
-    })
-}
-
-host_fn!(batch_http_request(user_data: HttpUserData; req: Prost<BatchHttpRequest>) -> Prost<BatchHttpResponse> {
-    let requests = req.0.requests;
-    let (client, allowed_hosts, runtime) = {
-        let user_data = user_data.get()?;
-        let data = user_data.lock().unwrap();
-        (data.client.clone(), data.allowed_hosts.clone(), data.runtime.clone())
-    };
-
-    // Upfront validation: if ANY request is invalid or disallowed, abort and do not execute any request
-    for (idx, r) in requests.iter().enumerate() {
-        if let Err(err) = validate_request(r, allowed_hosts.as_deref()) {
-            return Ok(Prost(BatchHttpResponse {
-                responses: Vec::new(),
-                error: Some(format!("Request #{idx} invalid: {err}")),
-            }));
-        }
-    }
-
-    let handle = runtime.unwrap_or_else(|| tokio::runtime::Handle::current());
-    let responses = handle.block_on(
-        async {
-            let futures = requests
-                .into_iter()
-                .map(|r| execute_single_request(&client, r, allowed_hosts.as_deref()));
-            let results = futures::future::join_all(futures).await;
-            results
-                .into_iter()
-                .map(|res| match res {
-                    Ok(response) => HttpResult {
-                        result: Some(http_result::Result::Response(response)),
-                    },
-                    Err(error) => HttpResult {
-                        result: Some(http_result::Result::Error(error)),
-                    },
-                })
-                .collect()
-        }
-        .in_current_span(),
-    );
-
-    Ok(Prost(BatchHttpResponse {
-        responses,
-        error: None,
-    }))
 });
 
 static COMPILE_LIMIT: Mutex<usize> = Mutex::new(0);
-static COMPILE_CONDVAR: std::sync::Condvar = std::sync::Condvar::new();
+static COMPILE_CONDVAR: Condvar = Condvar::new();
 const MAX_CONCURRENT_COMPILATIONS: usize = 5;
 
 pub struct ExtismContext {
     plugin: Arc<Mutex<Plugin>>,
     package_name: String,
-    cancel_handle: extism::CancelHandle,
+    cancel_handle: CancelHandle,
 }
 
 impl Debug for ExtismContext {
@@ -385,19 +113,19 @@ impl TryFrom<&Extension> for Arc<ExtismContext> {
     type Error = ExtensionError;
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn try_from(ext: &Extension) -> Result<Self, Self::Error> {
-        let manifest = &ext.manifest;
+    fn try_from(extension: &Extension) -> Result<Self, Self::Error> {
+        let manifest = &extension.manifest;
         let url = Wasm::file(manifest.extension_entry.clone());
         let mut plugin_manifest = Manifest::new([url]);
 
         let package_name = manifest.name.clone();
-        let ext_cache_dir = ext.cache_path.join("extensions").join(&package_name);
+        let ext_cache_dir = extension.cache_path.join("extensions").join(&package_name);
 
-        if let Err(e) = fs::create_dir_all(&ext_cache_dir) {
+        if let Err(error) = fs::create_dir_all(&ext_cache_dir) {
             tracing::error!(
                 "Failed to create cache dir for extension {}: {:?}",
                 package_name,
-                e
+                error
             );
         }
 
@@ -410,66 +138,57 @@ impl TryFrom<&Extension> for Arc<ExtismContext> {
         }
 
         plugin_manifest = plugin_manifest
-            .with_config_key("os", std::env::consts::OS)
-            .with_config_key("arch", std::env::consts::ARCH);
+            .with_config_key("os", env::consts::OS)
+            .with_config_key("arch", env::consts::ARCH);
 
-        let (user_data, sock_data, http_data) = ExtismContext::get_user_data(
-            MainCommandUserData {
-                package_name: package_name.clone(),
-                reply_handler: ext.reply_handler.clone(),
-                memory_cache: ext.memory_cache.clone(),
-            },
-            plugin_manifest.allowed_paths.clone(),
-            manifest.permissions.as_ref().map(|p| p.hosts.clone()),
-        );
+        let user_data = UserData::new(MainCommandUserData {
+            package_name: package_name.clone(),
+            reply_handler: extension.reply_handler.clone(),
+            memory_cache: extension.memory_cache.clone(),
+        });
 
-        let plugin = match ExtismContext::build_plugin(
-            &ext.cache_path,
-            plugin_manifest,
-            user_data,
-            sock_data,
-            http_data,
-        ) {
-            Ok(p) => p,
-            Err(e) => {
-                let err_msg = format!("Failed to build plugin: {}", e);
-                let _ = ext.error.set(err_msg.clone());
-                ext.context.set(Err(err_msg));
-                return Err(e);
-            }
-        };
+        let plugin =
+            match ExtismContext::build_plugin(&extension.cache_path, plugin_manifest, user_data) {
+                Ok(plugin) => plugin,
+                Err(error) => {
+                    let err_msg = format!("Failed to build plugin: {}", error);
+                    let _ = extension.error.set(err_msg.clone());
+                    extension.context.set(Err(err_msg));
+                    return Err(error);
+                }
+            };
         let cancel_handle = plugin.lock().unwrap().cancel_handle();
-        let ctx = Arc::new(ExtismContext {
+        let context = Arc::new(ExtismContext {
             plugin: plugin.clone(),
             package_name: package_name.clone(),
             cancel_handle,
         });
 
         let package_name_clone = package_name.clone();
-        let reply_handler_clone = ext.reply_handler.clone();
-        let error_holder = ext.error.clone();
-        let context_holder = ext.context.clone();
-        let has_started = ext.has_started.clone();
-        let ctx_clone = ctx.clone();
+        let reply_handler_clone = extension.reply_handler.clone();
+        let error_holder = extension.error.clone();
+        let context_holder = extension.context.clone();
+        let has_started = extension.has_started.clone();
+        let context_clone = context.clone();
         thread::spawn(move || {
             let mut plugin = plugin.lock().unwrap();
             tracing::debug!("Calling entry on {:?}", package_name_clone);
             if plugin.function_exists("entry")
-                && let Err(e) = plugin.call::<(), ()>("entry", ())
+                && let Err(error) = plugin.call::<(), ()>("entry", ())
             {
-                tracing::error!("Failed to call extension entry: {:?}", e);
-                let err_msg = format!("Failed to start: {}", e);
+                tracing::error!("Failed to call extension entry: {:?}", error);
+                let err_msg = format!("Failed to start: {}", error);
                 let _ = error_holder.set(err_msg.clone());
                 context_holder.set(Err(err_msg));
                 let _ = reply_handler_clone.extensions_updated(&package_name_clone);
                 return;
             }
-            has_started.store(true, std::sync::atomic::Ordering::SeqCst);
-            context_holder.set(Ok(ctx_clone));
+            has_started.store(true, Ordering::SeqCst);
+            context_holder.set(Ok(context_clone));
             let _ = reply_handler_clone.extensions_updated(&package_name_clone);
         });
 
-        Ok(ctx)
+        Ok(context)
     }
 }
 
@@ -482,7 +201,6 @@ impl ExtismContext {
         let mut allowed_paths = HashMap::new();
 
         for (key, value) in &permissions.paths {
-            // Replace all matches with corresponding env variable values
             let parsed = ENV_VAR_REGEX
                 .replace_all(key.as_str(), |caps: &Captures| {
                     let var_name = &caps[1];
@@ -494,13 +212,12 @@ impl ExtismContext {
                 .to_string();
 
             let Ok(parsed_path) = PathBuf::from_str(&parsed);
-            if !parsed_path.exists() {
+            if parsed_path.exists() {
+                let Ok(value_path) = PathBuf::from_str(value);
+                allowed_paths.insert(parsed, value_path);
+            } else {
                 tracing::warn!("Path {:?} does not exist", parsed_path);
-                continue;
             }
-
-            let Ok(value_path) = PathBuf::from_str(value);
-            allowed_paths.insert(parsed, value_path);
         }
 
         tracing::info!("Got allowed paths {:?}", allowed_paths);
@@ -508,49 +225,14 @@ impl ExtismContext {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn get_user_data(
-        main_command_data: MainCommandUserData,
-        allowed_paths: Option<BTreeMap<String, PathBuf>>,
-        allowed_hosts: Option<Vec<String>>,
-    ) -> (
-        UserData<MainCommandUserData>,
-        UserData<SocketUserData>,
-        UserData<HttpUserData>,
-    ) {
-        let runtime = main_command_data.reply_handler.get_runtime_handle();
-        let user_data = UserData::new(main_command_data);
-
-        let sock_data = UserData::new(SocketUserData {
-            socks: vec![],
-            allowed_paths,
-        });
-
-        let http_data = UserData::new(HttpUserData {
-            allowed_hosts,
-            client: reqwest::Client::builder()
-                .pool_max_idle_per_host(10)
-                .build()
-                .unwrap_or_else(|_| reqwest::Client::new()),
-            runtime,
-        });
-
-        (user_data, sock_data, http_data)
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
     fn build_plugin(
         cache_path: &Path,
         plugin_manifest: Manifest,
         user_data: UserData<MainCommandUserData>,
-        sock_data: UserData<SocketUserData>,
-        http_data: UserData<HttpUserData>,
     ) -> Result<Arc<Mutex<Plugin>>, ExtensionError> {
         let config_path = cache_path.join("wasmtime").join("config.toml");
-        static WRITTEN_PATHS: std::sync::OnceLock<
-            std::sync::Mutex<std::collections::HashSet<PathBuf>>,
-        > = std::sync::OnceLock::new();
-        let mutex =
-            WRITTEN_PATHS.get_or_init(|| std::sync::Mutex::new(std::collections::HashSet::new()));
+        static WRITTEN_PATHS: OnceLock<Mutex<HashSet<PathBuf>>> = OnceLock::new();
+        let mutex = WRITTEN_PATHS.get_or_init(|| Mutex::new(HashSet::new()));
         {
             let mut paths = mutex.lock().unwrap();
             if !paths.contains(&config_path) {
@@ -583,8 +265,7 @@ files-total-size-soft-limit = "1Gi"
         *count += 1;
         drop(count);
 
-        #[allow(unused_mut)]
-        let mut plugin_builder = PluginBuilder::new(plugin_manifest)
+        let plugin_builder = PluginBuilder::new(plugin_manifest)
             .with_wasi(true)
             .with_cache_config(config_path)
             .with_function(
@@ -593,29 +274,6 @@ files-total-size-soft-limit = "1Gi"
                 [PTR],
                 user_data,
                 send_main_command,
-            )
-            .with_function("system_time", [], [PTR], UserData::default(), system_time)
-            .with_function(
-                "open_clientfd",
-                [PTR],
-                [I64],
-                sock_data.clone(),
-                open_clientfd,
-            )
-            .with_function(
-                "write_sock",
-                [I64, PTR],
-                [I64],
-                sock_data.clone(),
-                write_sock,
-            )
-            .with_function("read_sock", [I64, I64], [PTR], sock_data, read_sock)
-            .with_function(
-                "batch_http_request",
-                [PTR],
-                [PTR],
-                http_data,
-                batch_http_request,
             );
 
         let build_result = plugin_builder.build();
@@ -632,13 +290,13 @@ files-total-size-soft-limit = "1Gi"
 }
 
 struct CancelGuard {
-    handle: extism::CancelHandle,
+    handle: CancelHandle,
     active: bool,
 }
 
 impl CancelGuard {
     #[tracing::instrument(level = "trace", skip_all)]
-    fn new(handle: extism::CancelHandle) -> Self {
+    fn new(handle: CancelHandle) -> Self {
         Self {
             handle,
             active: true,
@@ -668,31 +326,31 @@ impl ExtensionContext for ExtismContext {
 
         let plugin = self.plugin.clone();
         let package_name = self.package_name.clone();
-        let (tx, rx) = tokio::sync::oneshot::channel();
+        let (sender, receiver) = oneshot::channel();
 
         thread::spawn(move || {
             let run = move || {
                 let mut plugin = plugin.lock().unwrap();
                 tracing::debug!("Calling {:?} on {:?}", command, plugin.id);
-                let res = plugin.call::<_, Prost<ExtensionCommandResponse>>(
+                let response = plugin.call::<_, Prost<ExtensionCommandResponse>>(
                     HANDLE_EXTENSION_COMMAND,
                     Prost(command),
                 )?;
                 tracing::trace!("Finished calling on {:?}", plugin.id);
-                tracing::trace!("Response: {:?}", res);
+                tracing::trace!("Response: {:?}", response);
 
-                let parsed_resp = res.0.sanitize(&package_name);
+                let parsed_resp = response.0.sanitize(&package_name);
                 Ok(parsed_resp)
             };
-            let _ = tx.send(run());
+            let _ = sender.send(run());
         });
 
-        let res = match rx.await {
+        let result = match receiver.await {
             Ok(res) => res,
-            Err(e) => Err(ExtensionError::Extism(extism::Error::msg(e.to_string()))),
+            Err(error) => Err(ExtensionError::Extism(ExtismError::msg(error.to_string()))),
         };
 
         guard.defuse();
-        res
+        result
     }
 }

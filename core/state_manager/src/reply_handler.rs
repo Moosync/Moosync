@@ -1,9 +1,13 @@
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use extensions::{ExtensionError, ReplyHandler};
 use extensions_proto::moosync::types::{
-    GetProcessStatusRequest, GetProcessStatusResponse, KillProcessRequest, KillProcessResponse,
-    NotifyPlayerEventRequest, NotifyPlayerEventResponse, ReadProcessStdoutRequest,
-    ReadProcessStdoutResponse, SpawnProcessRequest, SpawnProcessResponse, WriteProcessStdinRequest,
-    WriteProcessStdinResponse, WsCloseRequest, WsCloseResponse, WsConnectRequest,
+    BatchHttpRequest, BatchHttpResponse, GetProcessStatusRequest, GetProcessStatusResponse,
+    KillProcessRequest, KillProcessResponse, NotifyPlayerEventRequest, NotifyPlayerEventResponse,
+    OpenClientFdRequest, OpenClientFdResponse, ReadProcessStdoutRequest, ReadProcessStdoutResponse,
+    ReadSockRequest, ReadSockResponse, SpawnProcessRequest, SpawnProcessResponse,
+    SystemTimeRequest, SystemTimeResponse, WriteProcessStdinRequest, WriteProcessStdinResponse,
+    WriteSockRequest, WriteSockResponse, WsCloseRequest, WsCloseResponse, WsConnectRequest,
     WsConnectResponse, WsReceiveRequest, WsReceiveResponse, WsSendRequest, WsSendResponse,
 };
 use preferences_proto::moosync::types::PreferenceItem;
@@ -406,7 +410,7 @@ impl ReplyHandler for StateReplyHandler {
     ) -> Result<WsConnectResponse, ExtensionError> {
         let extensions = self.state_manager.get_extension_handler();
         let extension = extensions.get_extension(package_name)?;
-        extension.ws_manager.ws_connect(req)
+        self.runtime.block_on(extension.ws_manager.ws_connect(req))
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -417,7 +421,7 @@ impl ReplyHandler for StateReplyHandler {
     ) -> Result<WsSendResponse, ExtensionError> {
         let extensions = self.state_manager.get_extension_handler();
         let extension = extensions.get_extension(package_name)?;
-        extension.ws_manager.ws_send(req)
+        self.runtime.block_on(extension.ws_manager.ws_send(req))
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -428,7 +432,7 @@ impl ReplyHandler for StateReplyHandler {
     ) -> Result<WsReceiveResponse, ExtensionError> {
         let extensions = self.state_manager.get_extension_handler();
         let extension = extensions.get_extension(package_name)?;
-        extension.ws_manager.ws_receive(req)
+        self.runtime.block_on(extension.ws_manager.ws_receive(req))
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -439,7 +443,65 @@ impl ReplyHandler for StateReplyHandler {
     ) -> Result<WsCloseResponse, ExtensionError> {
         let extensions = self.state_manager.get_extension_handler();
         let extension = extensions.get_extension(package_name)?;
-        extension.ws_manager.ws_close(req)
+        self.runtime.block_on(extension.ws_manager.ws_close(req))
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn system_time(
+        &self,
+        _package_name: &str,
+        _req: SystemTimeRequest,
+    ) -> Result<SystemTimeResponse, ExtensionError> {
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|error| ExtensionError::Sanitize(error.to_string()))?
+            .as_secs();
+        Ok(SystemTimeResponse { timestamp })
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn open_client_fd(
+        &self,
+        package_name: &str,
+        req: OpenClientFdRequest,
+    ) -> Result<OpenClientFdResponse, ExtensionError> {
+        let extensions = self.state_manager.get_extension_handler();
+        let extension = extensions.get_extension(package_name)?;
+        extension.socket_manager.open_client_fd(req)
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn write_sock(
+        &self,
+        package_name: &str,
+        req: WriteSockRequest,
+    ) -> Result<WriteSockResponse, ExtensionError> {
+        let extensions = self.state_manager.get_extension_handler();
+        let extension = extensions.get_extension(package_name)?;
+        extension.socket_manager.write_sock(req)
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn read_sock(
+        &self,
+        package_name: &str,
+        req: ReadSockRequest,
+    ) -> Result<ReadSockResponse, ExtensionError> {
+        let extensions = self.state_manager.get_extension_handler();
+        let extension = extensions.get_extension(package_name)?;
+        extension.socket_manager.read_sock(req)
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn batch_http_request(
+        &self,
+        package_name: &str,
+        req: BatchHttpRequest,
+    ) -> Result<BatchHttpResponse, ExtensionError> {
+        let extensions = self.state_manager.get_extension_handler();
+        let extension = extensions.get_extension(package_name)?;
+        self.runtime
+            .block_on(extension.http_manager.batch_http_request(req))
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

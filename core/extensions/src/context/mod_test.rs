@@ -2,18 +2,19 @@ use std::sync::{Arc, Mutex, RwLock};
 
 use assertables::{assert_err, assert_none, assert_ok};
 use extensions_proto::moosync::types::{
-    AddPlaylistRequest, AddSongsRequest, AddToPlaylistRequest, ExtensionAccountDetail,
-    ExtensionsUpdatedRequest, GetAppVersionRequest, GetCacheRequest, GetCurrentSongRequest,
-    GetEntityRequest, GetPlayerStateRequest, GetPreferenceRequest, GetProcessStatusRequest,
-    GetProcessStatusResponse, GetQueueRequest, GetSecureRequest, GetSongRequest, GetTimeRequest,
-    GetVolumeRequest, KillProcessRequest, KillProcessResponse, NotifyPlayerEventRequest,
-    NotifyPlayerEventResponse, OpenExternalUrlRequest, PlayerEvent as ProtoPlayerEvent,
-    PlayerState, PreferenceData, ReadProcessStdoutRequest, ReadProcessStdoutResponse,
+    AddPlaylistRequest, AddSongsRequest, AddToPlaylistRequest, BatchHttpRequest, BatchHttpResponse,
+    ExtensionAccountDetail, ExtensionsUpdatedRequest, GetAppVersionRequest, GetCacheRequest,
+    GetCurrentSongRequest, GetEntityRequest, GetPlayerStateRequest, GetPreferenceRequest,
+    GetProcessStatusRequest, GetProcessStatusResponse, GetQueueRequest, GetSecureRequest,
+    GetSongRequest, GetTimeRequest, GetVolumeRequest, KillProcessRequest, KillProcessResponse,
+    NotifyPlayerEventRequest, NotifyPlayerEventResponse, OpenClientFdRequest, OpenClientFdResponse,
+    OpenExternalUrlRequest, PlayerEvent as ProtoPlayerEvent, PlayerState, PreferenceData,
+    ReadProcessStdoutRequest, ReadProcessStdoutResponse, ReadSockRequest, ReadSockResponse,
     RegisterOauthRequest, RegisterUserPreferenceRequest, RemoveSongRequest, SetAccountRequest,
     SetCacheRequest, SetPreferenceRequest, SetSecureRequest, SpawnProcessRequest,
-    SpawnProcessResponse, UnregisterUserPreferenceRequest, UpdateSongRequest,
-    WriteProcessStdinRequest, WriteProcessStdinResponse, main_command, main_command_response,
-    player_event::Event as PlayerEvent,
+    SpawnProcessResponse, SystemTimeRequest, SystemTimeResponse, UnregisterUserPreferenceRequest,
+    UpdateSongRequest, WriteProcessStdinRequest, WriteProcessStdinResponse, WriteSockRequest,
+    WriteSockResponse, main_command, main_command_response, player_event::Event as PlayerEvent,
 };
 use preferences_proto::moosync::types::PreferenceItem;
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
@@ -227,6 +228,46 @@ impl ReplyHandler for MockReply {
             }
         }
         Ok(NotifyPlayerEventResponse {})
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn system_time(
+        &self,
+        _: &str,
+        _: SystemTimeRequest,
+    ) -> Result<SystemTimeResponse, ExtensionError> {
+        Ok(SystemTimeResponse { timestamp: 12345 })
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn open_client_fd(
+        &self,
+        _: &str,
+        _: OpenClientFdRequest,
+    ) -> Result<OpenClientFdResponse, ExtensionError> {
+        Ok(OpenClientFdResponse { sock_id: 7 })
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn write_sock(
+        &self,
+        _: &str,
+        req: WriteSockRequest,
+    ) -> Result<WriteSockResponse, ExtensionError> {
+        Ok(WriteSockResponse {
+            bytes_written: req.buf.len() as i64,
+        })
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn read_sock(&self, _: &str, _: ReadSockRequest) -> Result<ReadSockResponse, ExtensionError> {
+        Ok(ReadSockResponse {
+            data: b"ok".to_vec(),
+        })
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn batch_http_request(
+        &self,
+        _: &str,
+        _: BatchHttpRequest,
+    ) -> Result<BatchHttpResponse, ExtensionError> {
+        Ok(BatchHttpResponse::default())
     }
 }
 
@@ -674,4 +715,53 @@ fn test_dispatch_process_and_playback_ended_lifecycle() {
     assert!(res_ended.is_ok());
     assert_eq!(*player_state.read().unwrap(), PlayerState::Stopped);
     assert!(events_rx.try_recv().is_ok());
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_dispatch_system_time_socket_and_http() {
+    let mock = MockReply::default();
+    let memory_cache = Mutex::new(ExtensionMemoryCache::default());
+    let ctx = HostCommandContext::new(&mock, "pkg", &memory_cache);
+
+    let res_time = main_command::Command::SystemTime(SystemTimeRequest {}).dispatch(&ctx);
+    let res_open = main_command::Command::OpenClientFd(OpenClientFdRequest {
+        path: "/tmp/test.sock".to_string(),
+    })
+    .dispatch(&ctx);
+    let res_write = main_command::Command::WriteSock(WriteSockRequest {
+        sock_id: 7,
+        buf: b"abc".to_vec(),
+    })
+    .dispatch(&ctx);
+    let res_read = main_command::Command::ReadSock(ReadSockRequest {
+        sock_id: 7,
+        read_len: 2,
+    })
+    .dispatch(&ctx);
+    let res_http =
+        main_command::Command::BatchHttpRequest(BatchHttpRequest::default()).dispatch(&ctx);
+
+    assert_ok!(res_time.as_ref());
+    assert_ok!(res_open.as_ref());
+    assert_ok!(res_write.as_ref());
+    assert_ok!(res_read.as_ref());
+    assert_ok!(res_http.as_ref());
+    match res_time.unwrap() {
+        main_command_response::Response::SystemTime(r) => assert_eq!(r.timestamp, 12345),
+        other => panic!("Unexpected response: {:?}", other),
+    }
+    match res_open.unwrap() {
+        main_command_response::Response::OpenClientFd(r) => assert_eq!(r.sock_id, 7),
+        other => panic!("Unexpected response: {:?}", other),
+    }
+    match res_write.unwrap() {
+        main_command_response::Response::WriteSock(r) => assert_eq!(r.bytes_written, 3),
+        other => panic!("Unexpected response: {:?}", other),
+    }
+    match res_read.unwrap() {
+        main_command_response::Response::ReadSock(r) => assert_eq!(r.data, b"ok"),
+        other => panic!("Unexpected response: {:?}", other),
+    }
 }

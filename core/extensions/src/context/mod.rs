@@ -1,19 +1,21 @@
 use std::{fmt::Debug, sync::Mutex};
 
 use extensions_proto::moosync::types::{
-    AddPlaylistResponse, AddSongsResponse, AddToPlaylistResponse, ExtensionAccountDetail,
-    ExtensionCommand, ExtensionCommandResponse, ExtensionsUpdatedResponse, GetAppVersionResponse,
-    GetCacheResponse, GetCurrentSongResponse, GetEntityResponse, GetPlayerStateResponse,
-    GetPreferenceResponse, GetProcessStatusRequest, GetProcessStatusResponse, GetQueueResponse,
-    GetSecureResponse, GetSongResponse, GetTimeResponse, GetVolumeResponse, KillProcessRequest,
-    KillProcessResponse, NotifyPlayerEventRequest, NotifyPlayerEventResponse,
+    AddPlaylistResponse, AddSongsResponse, AddToPlaylistResponse, BatchHttpRequest,
+    BatchHttpResponse, ExtensionAccountDetail, ExtensionCommand, ExtensionCommandResponse,
+    ExtensionsUpdatedResponse, GetAppVersionResponse, GetCacheResponse, GetCurrentSongResponse,
+    GetEntityResponse, GetPlayerStateResponse, GetPreferenceResponse, GetProcessStatusRequest,
+    GetProcessStatusResponse, GetQueueResponse, GetSecureResponse, GetSongResponse,
+    GetTimeResponse, GetVolumeResponse, KillProcessRequest, KillProcessResponse,
+    NotifyPlayerEventRequest, NotifyPlayerEventResponse, OpenClientFdRequest, OpenClientFdResponse,
     OpenExternalUrlResponse, PreferenceData, QueueState, ReadProcessStdoutRequest,
-    ReadProcessStdoutResponse, RegisterOauthResponse, RegisterUserPreferenceResponse,
-    RemoveSongResponse, SetAccountResponse, SetCacheResponse, SetPreferenceResponse,
-    SetSecureResponse, SpawnProcessRequest, SpawnProcessResponse, UnregisterUserPreferenceResponse,
-    UpdateSongResponse, WriteProcessStdinRequest, WriteProcessStdinResponse, WsCloseRequest,
-    WsCloseResponse, WsConnectRequest, WsConnectResponse, WsReceiveRequest, WsReceiveResponse,
-    WsSendRequest, WsSendResponse, main_command, main_command_response,
+    ReadProcessStdoutResponse, ReadSockRequest, ReadSockResponse, RegisterOauthResponse,
+    RegisterUserPreferenceResponse, RemoveSongResponse, SetAccountResponse, SetCacheResponse,
+    SetPreferenceResponse, SetSecureResponse, SpawnProcessRequest, SpawnProcessResponse,
+    SystemTimeRequest, SystemTimeResponse, UnregisterUserPreferenceResponse, UpdateSongResponse,
+    WriteProcessStdinRequest, WriteProcessStdinResponse, WriteSockRequest, WriteSockResponse,
+    WsCloseRequest, WsCloseResponse, WsConnectRequest, WsConnectResponse, WsReceiveRequest,
+    WsReceiveResponse, WsSendRequest, WsSendResponse, main_command, main_command_response,
 };
 pub use extism_context::ExtismContext;
 use preferences_proto::moosync::types::PreferenceItem;
@@ -194,6 +196,41 @@ pub trait ReplyHandler: Send + Sync + 'static {
         _package_name: &str,
         _req: WsCloseRequest,
     ) -> Result<WsCloseResponse, ExtensionError> {
+        Err(ExtensionError::NoContext)
+    }
+    fn system_time(
+        &self,
+        _package_name: &str,
+        _req: SystemTimeRequest,
+    ) -> Result<SystemTimeResponse, ExtensionError> {
+        Err(ExtensionError::NoContext)
+    }
+    fn open_client_fd(
+        &self,
+        _package_name: &str,
+        _req: OpenClientFdRequest,
+    ) -> Result<OpenClientFdResponse, ExtensionError> {
+        Err(ExtensionError::NoContext)
+    }
+    fn write_sock(
+        &self,
+        _package_name: &str,
+        _req: WriteSockRequest,
+    ) -> Result<WriteSockResponse, ExtensionError> {
+        Err(ExtensionError::NoContext)
+    }
+    fn read_sock(
+        &self,
+        _package_name: &str,
+        _req: ReadSockRequest,
+    ) -> Result<ReadSockResponse, ExtensionError> {
+        Err(ExtensionError::NoContext)
+    }
+    fn batch_http_request(
+        &self,
+        _package_name: &str,
+        _req: BatchHttpRequest,
+    ) -> Result<BatchHttpResponse, ExtensionError> {
         Err(ExtensionError::NoContext)
     }
     fn get_runtime_handle(&self) -> Option<tokio::runtime::Handle> { None }
@@ -458,6 +495,21 @@ impl DispatchCommand for main_command::Command {
             main_command::Command::WsClose(req) => reply_handler
                 .ws_close(package_name, req)
                 .map(main_command_response::Response::WsClose),
+            main_command::Command::SystemTime(req) => reply_handler
+                .system_time(package_name, req)
+                .map(main_command_response::Response::SystemTime),
+            main_command::Command::OpenClientFd(req) => reply_handler
+                .open_client_fd(package_name, req)
+                .map(main_command_response::Response::OpenClientFd),
+            main_command::Command::WriteSock(req) => reply_handler
+                .write_sock(package_name, req)
+                .map(main_command_response::Response::WriteSock),
+            main_command::Command::ReadSock(req) => reply_handler
+                .read_sock(package_name, req)
+                .map(main_command_response::Response::ReadSock),
+            main_command::Command::BatchHttpRequest(req) => reply_handler
+                .batch_http_request(package_name, req)
+                .map(main_command_response::Response::BatchHttpRequest),
         }
     }
 }

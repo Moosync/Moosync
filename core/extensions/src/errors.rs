@@ -110,4 +110,10 @@ pub enum ExtensionError {
 
     #[error("WebSocket error: {0}")]
     Ws(String),
+
+    #[error("WebSocket protocol error: {0}")]
+    WsTungstenite(#[from] tokio_tungstenite::tungstenite::Error),
+
+    #[error("URL parse error: {0}")]
+    UrlParse(#[from] url::ParseError),
 }

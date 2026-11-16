@@ -27,11 +27,17 @@ pub use context::ReplyHandler;
 mod errors;
 mod ext_runner;
 pub mod extension;
+pub mod http;
+#[cfg(test)]
+mod http_test;
 pub mod models;
 pub mod process;
 #[cfg(test)]
 mod process_test;
 mod remote;
+pub mod socket;
+#[cfg(test)]
+mod socket_test;
 pub mod websocket;
 #[cfg(test)]
 mod websocket_test;

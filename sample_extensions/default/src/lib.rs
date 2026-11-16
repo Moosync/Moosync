@@ -6,10 +6,10 @@ use moosync_edk::{
     MoosyncResult,
     api::{
         Accounts, ContextMenu, DatabaseEvents, Extension, PlayerEvents, PlayerProvider,
-        PreferenceEvents, Provider, add_playlist, add_songs, add_to_playlist, get_current_song,
-        get_player_state, get_preference, get_queue, get_secure, get_time, get_volume,
-        open_clientfd, open_external_url, read_sock, register_extension, register_oauth,
-        register_user_preference, set_account, system_time, unregister_user_preference, write_sock,
+        PreferenceEvents, Provider, SocketClient, add_playlist, add_songs, add_to_playlist,
+        get_current_song, get_player_state, get_preference, get_queue, get_secure, get_time,
+        get_volume, open_external_url, register_extension, register_oauth,
+        register_user_preference, set_account, system_time, unregister_user_preference,
     },
     info,
     types::{
@@ -33,8 +33,8 @@ use moosync_edk::{
         RequestedSongContextMenuRequest, RequestedSongContextMenuResponse,
         RequestedSongFromIdRequest, RequestedSongFromIdResponse, ScrobbleRequest, SeekedRequest,
         SetAccountRequest, Song, SongAddedRequest, SongChangedRequest, SongQueueChangedRequest,
-        SongRemovedRequest, UnregisterUserPreferenceRequest, VolumeChangedRequest,
-        requested_cover_art_request,
+        SongRemovedRequest, SystemTimeRequest, UnregisterUserPreferenceRequest,
+        VolumeChangedRequest, requested_cover_art_request,
     },
 };
 
@@ -301,7 +301,7 @@ impl Provider for SampleExtension {
         req: RequestedSearchResultRequest,
     ) -> MoosyncResult<RequestedSearchResultResponse> {
         info!("requested_search_result: {}", req.query);
-        let _time = system_time();
+        let _time = system_time(SystemTimeRequest {});
         let _ = open_external_url(OpenExternalUrlRequest {
             url: "https://google.com".to_string(),
         });
@@ -362,9 +362,9 @@ impl Provider for SampleExtension {
         info!("custom_request: {}", request_id);
 
         if request_id == "socket_test" {
-            if let Ok(fd) = open_clientfd("/tmp/test.sock".to_string()) {
-                let _ = write_sock(fd, vec![1, 2, 3]);
-                let _ = read_sock(fd, 3);
+            if let Ok(client) = SocketClient::connect("/tmp/test.sock") {
+                let _ = client.write(&[1, 2, 3]);
+                let _ = client.read(3);
             }
         }
 

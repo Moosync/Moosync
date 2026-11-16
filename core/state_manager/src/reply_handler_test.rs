@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use assertables::{assert_is_empty, assert_len_eq_x, assert_none, assert_ok, assert_some_eq_x};
 use extensions::ReplyHandler;
-use extensions_proto::moosync::types::PlayerState;
+use extensions_proto::moosync::types::{PlayerState, SystemTimeRequest};
 use rstest::{fixture, rstest};
 use songs_proto::moosync::types::{
     GetEntityOptions, GetSongOptions, InnerSong, Playlist, SearchableSong, Song,
@@ -619,4 +619,20 @@ async fn test_reply_handler_player_getters_when_active(reply_context: TestReplyC
     assert!(time >= 18.0);
     assert_len_eq_x!(&queue, 2);
     assert_eq!(idx, 0);
+}
+
+#[rstest]
+#[tokio::test(flavor = "multi_thread")]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_reply_handler_system_time(reply_context: TestReplyContext) {
+    let TestReplyContext { handler, .. } = reply_context;
+
+    let result =
+        tokio::task::spawn_blocking(move || handler.system_time("pkg", SystemTimeRequest {}))
+            .await
+            .unwrap();
+
+    assert_ok!(result.as_ref());
+    assert!(result.unwrap().timestamp > 0);
 }

@@ -351,6 +351,11 @@ message MainCommand {
     WsSendRequest ws_send = 33;
     WsReceiveRequest ws_receive = 34;
     WsCloseRequest ws_close = 35;
+    SystemTimeRequest system_time = 36;
+    OpenClientFdRequest open_client_fd = 37;
+    WriteSockRequest write_sock = 38;
+    ReadSockRequest read_sock = 39;
+    BatchHttpRequest batch_http_request = 40;
   }
 }
 
@@ -392,6 +397,11 @@ message MainCommandResponse {
     WsSendResponse ws_send = 34;
     WsReceiveResponse ws_receive = 35;
     WsCloseResponse ws_close = 36;
+    SystemTimeResponse system_time = 37;
+    OpenClientFdResponse open_client_fd = 38;
+    WriteSockResponse write_sock = 39;
+    ReadSockResponse read_sock = 40;
+    BatchHttpResponse batch_http_request = 41;
   }
 }
 
@@ -874,4 +884,32 @@ message WsCloseRequest {
 }
 message WsCloseResponse {
   bool success = 1;
+}
+
+message SystemTimeRequest {}
+message SystemTimeResponse {
+  uint64 timestamp = 1;
+}
+
+message OpenClientFdRequest {
+  string path = 1;
+}
+message OpenClientFdResponse {
+  int64 sock_id = 1;
+}
+
+message WriteSockRequest {
+  int64 sock_id = 1;
+  bytes buf = 2;
+}
+message WriteSockResponse {
+  int64 bytes_written = 1;
+}
+
+message ReadSockRequest {
+  int64 sock_id = 1;
+  uint64 read_len = 2;
+}
+message ReadSockResponse {
+  bytes data = 1;
 }

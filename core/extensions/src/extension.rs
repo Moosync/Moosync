@@ -50,9 +50,11 @@ use crate::{
     cache::ExtensionMemoryCache,
     context::{ExtensionContext, ExtismContext},
     errors::ExtensionError,
+    http::HttpManager,
     process::ExtensionProcessManager,
     sanitize::Sanitize,
-    websocket::ExtensionWsManager,
+    socket::SocketManager,
+    websocket::WsManager,
 };
 
 pub(crate) struct AsyncContext {
@@ -127,7 +129,9 @@ pub struct Extension {
     pub(crate) error: Arc<OnceLock<String>>,
     pub(crate) memory_cache: Arc<Mutex<ExtensionMemoryCache>>,
     pub process_manager: Arc<ExtensionProcessManager>,
-    pub ws_manager: Arc<ExtensionWsManager>,
+    pub socket_manager: Arc<SocketManager>,
+    pub http_manager: Arc<HttpManager>,
+    pub ws_manager: Arc<WsManager>,
     pub(crate) player_data: ExtensionPlayerData,
 }
 
@@ -176,12 +180,14 @@ impl Extension {
             .map(|p| p.binaries.clone())
             .unwrap_or_default();
         let process_manager = Arc::new(ExtensionProcessManager::new(
-            allowed_paths,
+            allowed_paths.clone(),
             allowed_binaries,
         ));
+        let socket_manager = Arc::new(SocketManager::new(allowed_paths));
 
         let allowed_hosts = manifest.permissions.as_ref().map(|p| p.hosts.clone());
-        let ws_manager = Arc::new(ExtensionWsManager::new(allowed_hosts));
+        let http_manager = Arc::new(HttpManager::new(allowed_hosts.clone()));
+        let ws_manager = Arc::new(WsManager::new(allowed_hosts));
 
         let package_name = manifest.name.clone();
         let ext = Self {
@@ -196,6 +202,8 @@ impl Extension {
             error: Arc::new(OnceLock::new()),
             memory_cache: Arc::new(Mutex::new(ExtensionMemoryCache::default())),
             process_manager,
+            socket_manager,
+            http_manager,
             ws_manager,
             player_data: ExtensionPlayerData::new(&package_name),
         };
@@ -515,6 +523,7 @@ impl Drop for Extension {
     #[tracing::instrument(level = "debug", skip_all)]
     fn drop(&mut self) {
         self.process_manager.kill_all();
+        self.socket_manager.close_all();
         self.ws_manager.close_all();
     }
 }

@@ -140,21 +140,8 @@ jobs:
           packages: >
             nasm yasm autoconf automake libtool pkg-config make build-essential clang
             libasound2-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libfontconfig1-dev
-            nsis lld llvm libdbus-1-dev libpulse-dev
-          version: 1.2
-
-      - name: Setup llvm-dlltool
-        if: runner.os == 'Linux'
-        run: |
-          if [ ! -f /usr/bin/llvm-dlltool ]; then
-            DLLTOOL=$(find /usr/lib/llvm-*/bin/llvm-dlltool /usr/bin/llvm-dlltool* 2>/dev/null | head -n 1)
-            if [ -z "$DLLTOOL" ]; then
-              DLLTOOL=$(which llvm-ar || true)
-            fi
-            if [ -n "$DLLTOOL" ]; then
-              sudo ln -sf "$DLLTOOL" /usr/bin/llvm-dlltool
-            fi
-          fi
+            nsis lld libdbus-1-dev libpulse-dev
+          version: 1.1
 
       - name: Install Dependencies (macOS)
         if: runner.os == 'macOS'

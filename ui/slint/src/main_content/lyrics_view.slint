@@ -104,6 +104,7 @@ export component LyricsView inherits HorizontalLayout {
 
             if (root.lyrics_loading): HorizontalLayout {
                 alignment: center;
+
                 Text {
                     text: @tr("Loading lyrics...");
                     color: Theme.textSecondary;
@@ -114,6 +115,7 @@ export component LyricsView inherits HorizontalLayout {
 
             if (!root.lyrics_loading && !root.has_lyrics): HorizontalLayout {
                 alignment: center;
+
                 Text {
                     text: @tr("No lyrics available");
                     color: Theme.textSecondary;
@@ -125,11 +127,11 @@ export component LyricsView inherits HorizontalLayout {
             if (!root.lyrics_loading && root.has_lyrics && root.is_synced): ScrollView {
                 width: 100%;
                 height: 100%;
-                viewport-y: (root.active_index >= 0)
+                content-y: (root.active_index >= 0)
                     ? Math.min(0px, -root.active_index * Theme.size3Xl + (self.height / 2) - Theme.sizeLg)
                     : 0px;
 
-                animate viewport-y {
+                animate content-y {
                     duration: Theme.durationMedium;
                     easing: ease-out;
                 }

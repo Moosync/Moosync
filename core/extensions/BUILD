@@ -124,6 +124,6 @@ rust_library(
         "@crates//:uuid",
         "@crates//:zip-extensions",
         "@crates__sha2-0.10.9//:sha2",
-        "@crates__tokio-tungstenite-0.28.0//:tokio_tungstenite",
+        "@crates__tokio-tungstenite-0.29.0//:tokio_tungstenite",
     ],
 )

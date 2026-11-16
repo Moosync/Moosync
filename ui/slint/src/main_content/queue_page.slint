@@ -164,13 +164,13 @@ export component QueuePage inherits Rectangle {
         if (root.drag-source-idx != -1 && root.drag-mouse-y >= 0px) {
             // Scroll up near the top boundary (top Theme.size3Xl)
             if (root.drag-mouse-y < Theme.size3Xl) {
-                list-view.viewport-y = Math.min(0px, list-view.viewport-y + (Theme.size3Xl - root.drag-mouse-y) * 0.5);
-                root.drag-target-idx = Math.max(0, Math.min(QueuePageProps.queue.length - 1, (root.drag-mouse-y - list-view.viewport-y) / (Theme.songListItemHeight + Theme.paddingSm)));
+                list-view.content-y = Math.min(0px, list-view.content-y + (Theme.size3Xl - root.drag-mouse-y) * 0.5);
+                root.drag-target-idx = Math.max(0, Math.min(QueuePageProps.queue.length - 1, (root.drag-mouse-y - list-view.content-y) / (Theme.songListItemHeight + Theme.paddingSm)));
             }
             // Scroll down near the bottom boundary (bottom Theme.size3Xl)
             if (root.drag-mouse-y > list-view.height - Theme.size3Xl) {
-                list-view.viewport-y = Math.max(-(list-view.viewport-height - list-view.height), list-view.viewport-y - (root.drag-mouse-y - (list-view.height - Theme.size3Xl)) * 0.5);
-                root.drag-target-idx = Math.max(0, Math.min(QueuePageProps.queue.length - 1, (root.drag-mouse-y - list-view.viewport-y) / (Theme.songListItemHeight + Theme.paddingSm)));
+                list-view.content-y = Math.max(-(list-view.content-height - list-view.height), list-view.content-y - (root.drag-mouse-y - (list-view.height - Theme.size3Xl)) * 0.5);
+                root.drag-target-idx = Math.max(0, Math.min(QueuePageProps.queue.length - 1, (root.drag-mouse-y - list-view.content-y) / (Theme.songListItemHeight + Theme.paddingSm)));
             }
         }
     }
@@ -226,6 +226,7 @@ export component QueuePage inherits Rectangle {
             HorizontalLayout {
                 alignment: end;
                 padding-top: Theme.spacingSm;
+
                 TextButton {
                     text: @tr("Show Lyrics");
                     font_size: Theme.subtitle;
@@ -292,7 +293,7 @@ export component QueuePage inherits Rectangle {
                             drag-source-idx <=> root.drag-source-idx;
                             drag-target-idx <=> root.drag-target-idx;
                             drag-mouse-y <=> root.drag-mouse-y;
-                            list-viewport-y: list-view.viewport-y;
+                            list-viewport-y: list-view.content-y;
 
                             clicked => {
                                 AppCallbacks.play-queue-index(mapped-idx);

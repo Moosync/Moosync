@@ -30,7 +30,8 @@ futures = { version = "0.3.34", default-features = false, features = ["executor"
 futures-util = { version = "0.3.34", default-features = false }
 glob = "0.3.4"
 hex = "0.4.3"
-i-slint-backend-testing = "1.18.1"
+i-slint-backend-testing = "1.19.0"
+i-slint-compiler = "1.19.0"
 image = "0.25.10"
 interprocess = { version = "2.4.7", features = ["tokio"] }
 is_wine = "0.1.2"
@@ -65,9 +66,9 @@ rusqlite = { version = "0.40.0", features = ["trace"] }
 rusty_ffmpeg = { version = "0.16.7+ffmpeg.8", default-features = false, features = ["ffmpeg8"] }
 semver = "1.0.28"
 serde = { version = "1.0.229", default-features = false, features = ["derive"] }
-slint = { version = "1.18.1", features = ["backend-android-activity-06", "mcp"] }
-slint-build = "1.18.1"
-slint-lsp = { version = "1.18.1", default-features = false }
+slint = { version = "1.19.0", features = ["backend-android-activity-06", "mcp"] }
+slint-build = "1.19.0"
+slint-lsp = { version = "1.19.0", default-features = false }
 souvlaki = "0.8.3"
 substring = "1.4.5"
 syn = { version = "3.0.9", features = ["full"] }

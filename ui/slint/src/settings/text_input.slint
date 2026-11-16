@@ -26,6 +26,7 @@ export component TextInputGroup inherits Rectangle {
 
         VerticalLayout {
             spacing: Theme.spacingXs;
+
             Text {
                 text: root.title;
                 font-size: Theme.modelTitle;
@@ -50,6 +51,7 @@ export component TextInputGroup inherits Rectangle {
             HorizontalLayout {
                 padding-left: Theme.paddingMd;
                 padding-right: Theme.paddingMd;
+
                 Rectangle {
                     horizontal-stretch: 1;
                     min-width: 0px;
@@ -63,6 +65,7 @@ export component TextInputGroup inherits Rectangle {
                         x: 0px;
                     }
                     text_input := TextInput {
+                        accessible-role: none;
                         accessible-label: root.title;
                         property <length> computed_x;
 

@@ -1,4 +1,5 @@
 load("@rules_python//python:defs.bzl", "py_binary")
+load("@rules_rust//rust:defs.bzl", "rust_binary")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 
 package(default_visibility = ["//visibility:public"])
@@ -28,6 +29,17 @@ py_binary(
         "instrument_common.py",
     ],
     main = "check_instrument.py",
+)
+
+rust_binary(
+    name = "check_slint",
+    srcs = ["check_slint.rs"],
+    edition = "2024",
+    deps = [
+        "@crates//:futures",
+        "@crates//:i-slint-compiler",
+        "@crates//:tracing",
+    ],
 )
 
 genrule(

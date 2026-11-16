@@ -2,7 +2,6 @@ use std::{env, fs, path::PathBuf};
 
 fn main() {
     unsafe {
-        std::env::set_var("SLINT_ENABLE_EXPERIMENTAL_FEATURES", "1");
         std::env::set_var("SLINT_EMIT_DEBUG_INFO", "1");
     }
     let config = slint_build::CompilerConfiguration::new()

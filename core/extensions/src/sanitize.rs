@@ -244,6 +244,5 @@ pub fn sanitize_account(
     account: &mut extensions_proto::moosync::types::ExtensionAccountDetail,
     ext_name: &str,
 ) {
-    account.id = sanitize_id(Some(std::mem::take(&mut account.id)), ext_name).unwrap_or_default();
     account.package_name = ext_name.to_string();
 }

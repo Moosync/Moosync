@@ -82,7 +82,8 @@ buf.toolchains(version = "v1.75.0")
 use_repo(buf, "rules_buf_toolchains")
 
 bazel_dep(name = "extensions_sdk")
-local_path_override(
+git_override(
     module_name = "extensions_sdk",
-    path = "../extensions-sdk",
+    branch = "main",
+    remote = "https://github.com/Moosync/extensions-sdk",
 )

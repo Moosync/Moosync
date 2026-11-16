@@ -7,6 +7,20 @@ export enum PreferenceType {
     RadioGroup,
     DropdownGroup,
     TextArrayInput,
+    StatusGroup,
+}
+
+export enum StatusDotColor {
+    Off,
+    Info,
+    Warn,
+    Error,
+}
+
+export struct StatusDotItem {
+    title: string,
+    subtitle: string,
+    color: StatusDotColor,
 }
 
 export struct PreferenceOption {
@@ -27,6 +41,7 @@ export struct PreferenceItem {
     value_bool: bool,
     value_number: float,
     value_list: [string],
+    status_dots: [StatusDotItem],
     
     // Options:
     options: [PreferenceOption],

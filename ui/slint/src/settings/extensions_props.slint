@@ -1,5 +1,9 @@
 import { ExtensionItem } from "../types/extension_view.slint";
-import { PreferenceItem } from "preferences.slint";
+import {
+    PreferenceItem,
+    PreferenceType,
+    StatusDotColor,
+} from "preferences.slint";
 import { Constants } from "../constants.slint";
 
 export struct ExtensionPreferenceGroup {
@@ -10,7 +14,47 @@ export struct ExtensionPreferenceGroup {
 
 export global ExtensionsPreferenceProps {
     in-out property <[PreferenceItem]> static_preferences: [];
-    in-out property <[ExtensionPreferenceGroup]> extension_preferences: [];
+    in-out property <[ExtensionPreferenceGroup]> extension_preferences: [
+        {
+            package_name: "app.moosync.spotify",
+            display_name: "Spotify Integration",
+            preferences: [
+                {
+                    id: "ext:app.moosync.spotify:status",
+                    pref_type: PreferenceType.StatusGroup,
+                    title: "Service Status",
+                    subtitle: "Current status of extension components",
+                    status_dots: [
+                        {
+                            title: "ReShade",
+                            subtitle: "6.8.0 (Add-on Edition)",
+                            color: StatusDotColor.Info,
+                        },
+                        {
+                            title: "vkBasalt",
+                            subtitle: "0.3.2.10-1",
+                            color: StatusDotColor.Info,
+                        },
+                        {
+                            title: "Sync Worker",
+                            subtitle: "Rate limited",
+                            color: StatusDotColor.Warn,
+                        },
+                        {
+                            title: "Auth Token",
+                            subtitle: "Expired",
+                            color: StatusDotColor.Error,
+                        },
+                        {
+                            title: "Scrobbler",
+                            subtitle: "Disabled",
+                            color: StatusDotColor.Off,
+                        },
+                    ],
+                },
+            ],
+        },
+    ];
 }
 
 export global ExtensionsPageProps {

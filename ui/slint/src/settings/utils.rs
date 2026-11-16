@@ -2,12 +2,15 @@ use std::sync::LazyLock;
 
 use preferences_proto::moosync::types::{
     PreferenceItem as ProtoPreferenceItem, PreferenceOption as ProtoPreferenceOption,
-    PreferenceType as ProtoPreferenceType, PreferenceValue, StringList, preference_value,
+    PreferenceType as ProtoPreferenceType, PreferenceValue, StatusDot as ProtoStatusDot,
+    StatusDotColor as ProtoStatusDotColor, StatusDotList, StringList, preference_value,
 };
 use slint::{Model, ModelRc, SharedString, VecModel, invoke_from_event_loop};
 use state_manager::StateManager;
 
-use crate::{MainWindow, PreferenceItem, PreferenceOption, PreferenceType};
+use crate::{
+    MainWindow, PreferenceItem, PreferenceOption, PreferenceType, StatusDotColor, StatusDotItem,
+};
 
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn clone_lazy_preferences(
@@ -64,6 +67,7 @@ impl From<ProtoPreferenceType> for PreferenceType {
             ProtoPreferenceType::RadioGroup => PreferenceType::RadioGroup,
             ProtoPreferenceType::DropdownGroup => PreferenceType::DropdownGroup,
             ProtoPreferenceType::TextArrayInput => PreferenceType::TextArrayInput,
+            ProtoPreferenceType::StatusGroup => PreferenceType::StatusGroup,
             ProtoPreferenceType::Unspecified => PreferenceType::TextInputGroup,
         }
     }
@@ -80,6 +84,56 @@ impl From<PreferenceType> for ProtoPreferenceType {
             PreferenceType::RadioGroup => ProtoPreferenceType::RadioGroup,
             PreferenceType::DropdownGroup => ProtoPreferenceType::DropdownGroup,
             PreferenceType::TextArrayInput => ProtoPreferenceType::TextArrayInput,
+            PreferenceType::StatusGroup => ProtoPreferenceType::StatusGroup,
+        }
+    }
+}
+
+impl From<ProtoStatusDotColor> for StatusDotColor {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn from(c: ProtoStatusDotColor) -> Self {
+        match c {
+            ProtoStatusDotColor::Off => StatusDotColor::Off,
+            ProtoStatusDotColor::Info => StatusDotColor::Info,
+            ProtoStatusDotColor::Warn => StatusDotColor::Warn,
+            ProtoStatusDotColor::Error => StatusDotColor::Error,
+        }
+    }
+}
+
+impl From<StatusDotColor> for ProtoStatusDotColor {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn from(c: StatusDotColor) -> Self {
+        match c {
+            StatusDotColor::Off => ProtoStatusDotColor::Off,
+            StatusDotColor::Info => ProtoStatusDotColor::Info,
+            StatusDotColor::Warn => ProtoStatusDotColor::Warn,
+            StatusDotColor::Error => ProtoStatusDotColor::Error,
+        }
+    }
+}
+
+impl From<ProtoStatusDot> for StatusDotItem {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn from(dot: ProtoStatusDot) -> Self {
+        let color = ProtoStatusDotColor::try_from(dot.color)
+            .map(StatusDotColor::from)
+            .unwrap_or(StatusDotColor::Off);
+        Self {
+            title: dot.title.into(),
+            subtitle: dot.subtitle.into(),
+            color,
+        }
+    }
+}
+
+impl From<StatusDotItem> for ProtoStatusDot {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn from(dot: StatusDotItem) -> Self {
+        Self {
+            title: dot.title.to_string(),
+            subtitle: dot.subtitle.to_string(),
+            color: ProtoStatusDotColor::from(dot.color) as i32,
         }
     }
 }
@@ -126,6 +180,7 @@ impl From<ProtoPreferenceItem> for PreferenceItem {
             value_bool: false,
             value_number: 0.0,
             value_list: ModelRc::default(),
+            status_dots: ModelRc::default(),
             options: ModelRc::new(VecModel::from(options)),
         };
 
@@ -140,6 +195,11 @@ impl From<ProtoPreferenceItem> for PreferenceItem {
                         let shared_list: Vec<SharedString> =
                             l.values.iter().map(|s| s.as_str().into()).collect();
                         item.value_list = ModelRc::new(VecModel::from(shared_list));
+                    }
+                    preference_value::Value::StatusList(l) => {
+                        let dots: Vec<StatusDotItem> =
+                            l.values.into_iter().map(StatusDotItem::from).collect();
+                        item.status_dots = ModelRc::new(VecModel::from(dots));
                     }
                 }
             }
@@ -174,6 +234,13 @@ impl From<PreferenceItem> for ProtoPreferenceItem {
                 let list: Vec<String> = item.value_list.iter().map(|s| s.to_string()).collect();
                 Some(preference_value::Value::ListValue(StringList {
                     values: list,
+                }))
+            }
+            PreferenceType::StatusGroup => {
+                let dots: Vec<ProtoStatusDot> =
+                    item.status_dots.iter().map(ProtoStatusDot::from).collect();
+                Some(preference_value::Value::StatusList(StatusDotList {
+                    values: dots,
                 }))
             }
         };

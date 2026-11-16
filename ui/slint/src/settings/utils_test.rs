@@ -1,11 +1,12 @@
 use preferences_proto::moosync::types::{
     PreferenceItem as ProtoPreferenceItem, PreferenceOption as ProtoPreferenceOption,
-    PreferenceType as ProtoPreferenceType, PreferenceValue, StringList, preference_value,
+    PreferenceType as ProtoPreferenceType, PreferenceValue, StatusDot as ProtoStatusDot,
+    StatusDotColor as ProtoStatusDotColor, StatusDotList, StringList, preference_value,
 };
 use slint::Model;
 use tracing_test::traced_test;
 
-use crate::{PreferenceItem, PreferenceOption, PreferenceType};
+use crate::{PreferenceItem, PreferenceOption, PreferenceType, StatusDotColor, StatusDotItem};
 
 #[test]
 #[traced_test]
@@ -160,6 +161,10 @@ fn test_preference_type_all_variants_roundtrip() {
             ProtoPreferenceType::TextArrayInput,
             PreferenceType::TextArrayInput,
         ),
+        (
+            ProtoPreferenceType::StatusGroup,
+            PreferenceType::StatusGroup,
+        ),
     ];
 
     for (proto_type, slint_type) in variants {
@@ -186,4 +191,72 @@ fn test_preference_option_roundtrip() {
     let back: ProtoPreferenceOption = opt.into();
     assert_eq!(back.id, proto_opt.id);
     assert_eq!(back.label, proto_opt.label);
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_preference_item_status_group_roundtrip() {
+    let proto_dots = vec![
+        ProtoStatusDot {
+            title: "ReShade".to_string(),
+            subtitle: "6.8.0 (Add-on Edition)".to_string(),
+            color: ProtoStatusDotColor::Info as i32,
+        },
+        ProtoStatusDot {
+            title: "vkBasalt".to_string(),
+            subtitle: "0.3.2.10-1".to_string(),
+            color: ProtoStatusDotColor::Warn as i32,
+        },
+        ProtoStatusDot {
+            title: "MangoHud".to_string(),
+            subtitle: "Error".to_string(),
+            color: ProtoStatusDotColor::Error as i32,
+        },
+        ProtoStatusDot {
+            title: "Gamescope".to_string(),
+            subtitle: "Disabled".to_string(),
+            color: ProtoStatusDotColor::Off as i32,
+        },
+    ];
+    let proto_item = ProtoPreferenceItem {
+        id: "ext_status".to_string(),
+        pref_type: ProtoPreferenceType::StatusGroup as i32,
+        title: "Status".to_string(),
+        subtitle: "Component status".to_string(),
+        placeholder: None,
+        validation: String::new(),
+        options: vec![],
+        value: Some(PreferenceValue {
+            value: Some(preference_value::Value::StatusList(StatusDotList {
+                values: proto_dots,
+            })),
+        }),
+        default: None,
+    };
+
+    let ui_item: PreferenceItem = proto_item.clone().into();
+    assert_eq!(ui_item.pref_type, PreferenceType::StatusGroup);
+    assert_eq!(ui_item.status_dots.row_count(), 4);
+    let first: StatusDotItem = ui_item.status_dots.row_data(0).unwrap();
+    assert_eq!(first.title, "ReShade");
+    assert_eq!(first.subtitle, "6.8.0 (Add-on Edition)");
+    assert_eq!(first.color, StatusDotColor::Info);
+    assert_eq!(
+        ui_item.status_dots.row_data(1).unwrap().color,
+        StatusDotColor::Warn
+    );
+    assert_eq!(
+        ui_item.status_dots.row_data(2).unwrap().color,
+        StatusDotColor::Error
+    );
+    assert_eq!(
+        ui_item.status_dots.row_data(3).unwrap().color,
+        StatusDotColor::Off
+    );
+
+    let converted_back: ProtoPreferenceItem = ui_item.into();
+    assert_eq!(converted_back.id, proto_item.id);
+    assert_eq!(converted_back.pref_type, proto_item.pref_type);
+    assert_eq!(converted_back.value, proto_item.value);
 }

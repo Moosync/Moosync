@@ -492,6 +492,8 @@ SLINT_SOURCES = [
     "src/settings/settings_props.slint",
     "src/settings/single_file_input.slint",
     "src/settings/single_file_input_mobile.slint",
+    "src/settings/status_group.slint",
+    "src/settings/status_group_mobile.slint",
     "src/settings/system.slint",
     "src/settings/system_mobile.slint",
     "src/settings/text_array_input.slint",

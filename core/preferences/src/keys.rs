@@ -1,7 +1,7 @@
 use std::sync::LazyLock;
 
 use preferences_proto::moosync::types::{
-    PreferenceItem, PreferenceOption, PreferenceType, PreferenceValue, preference_value,
+    PreferenceItem, PreferenceOption, PreferenceType, PreferenceValue, StatusDot, preference_value,
 };
 
 pub trait FromPreferenceValue: Sized {
@@ -114,6 +114,20 @@ impl FromPreferenceValue for Vec<String> {
     fn extract(item: &PreferenceItem) -> Option<Self> {
         let extract_val = |pv: &PreferenceValue| match &pv.value {
             Some(preference_value::Value::ListValue(l)) => Some(l.values.clone()),
+            _ => None,
+        };
+        item.value
+            .as_ref()
+            .and_then(extract_val)
+            .or_else(|| item.default.as_ref().and_then(extract_val))
+    }
+}
+
+impl FromPreferenceValue for Vec<StatusDot> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn extract(item: &PreferenceItem) -> Option<Self> {
+        let extract_val = |pv: &PreferenceValue| match &pv.value {
+            Some(preference_value::Value::StatusList(l)) => Some(l.values.clone()),
             _ => None,
         };
         item.value

@@ -12,6 +12,24 @@ enum PreferenceType {
   PREFERENCE_TYPE_RADIO_GROUP = 6;
   PREFERENCE_TYPE_DROPDOWN_GROUP = 7;
   PREFERENCE_TYPE_TEXT_ARRAY_INPUT = 8;
+  PREFERENCE_TYPE_STATUS_GROUP = 9;
+}
+
+enum StatusDotColor {
+  STATUS_DOT_COLOR_OFF = 0;
+  STATUS_DOT_COLOR_INFO = 1;
+  STATUS_DOT_COLOR_WARN = 2;
+  STATUS_DOT_COLOR_ERROR = 3;
+}
+
+message StatusDot {
+  string title = 1;
+  string subtitle = 2;
+  StatusDotColor color = 3;
+}
+
+message StatusDotList {
+  repeated StatusDot values = 1;
 }
 
 message PreferenceOption {
@@ -29,6 +47,7 @@ message PreferenceValue {
     bool bool_value = 2;
     float number_value = 3;
     StringList list_value = 4;
+    StatusDotList status_list = 5;
   }
 }
 

@@ -190,6 +190,9 @@ jobs:
           build --remote_cache=grpcs://bazel.moosync.app:443
           build --remote_header=Authorization="Bearer ${BAZEL_REMOTE_TOKEN}"
           build --remote_upload_local_results=true
+          build --remote_timeout=360s
+          build --remote_cache_compression=true
+          build --grpc_keepalive_time=30s
           EOF
 
       - name: Bazel Build Package

@@ -140,8 +140,21 @@ jobs:
           packages: >
             nasm yasm autoconf automake libtool pkg-config make build-essential clang
             libasound2-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libfontconfig1-dev
-            nsis lld libdbus-1-dev libpulse-dev
-          version: 1.1
+            nsis lld llvm libdbus-1-dev libpulse-dev
+          version: 1.2
+
+      - name: Setup llvm-dlltool
+        if: runner.os == 'Linux'
+        run: |
+          if [ ! -f /usr/bin/llvm-dlltool ]; then
+            DLLTOOL=$(find /usr/lib/llvm-*/bin/llvm-dlltool /usr/bin/llvm-dlltool* 2>/dev/null | head -n 1)
+            if [ -z "$DLLTOOL" ]; then
+              DLLTOOL=$(which llvm-ar || true)
+            fi
+            if [ -n "$DLLTOOL" ]; then
+              sudo ln -sf "$DLLTOOL" /usr/bin/llvm-dlltool
+            fi
+          fi
 
       - name: Install Dependencies (macOS)
         if: runner.os == 'macOS'
@@ -180,6 +193,17 @@ jobs:
           bazelisk-cache: true
           disk-cache: ${{ matrix.name }}
           repository-cache: true
+
+      - name: Configure Bazel Remote Cache
+        env:
+          BAZEL_REMOTE_TOKEN: ${{ secrets.BAZEL_REMOTE_TOKEN }}
+        if: env.BAZEL_REMOTE_TOKEN != ''
+        run: |
+          cat >> .bazelrc.user <<EOF
+          build --remote_cache=grpcs://bazel.moosync.app:443
+          build --remote_header=Authorization="Bearer ${BAZEL_REMOTE_TOKEN}"
+          build --remote_upload_local_results=true
+          EOF
 
       - name: Bazel Build Package
         run: bazel build ${{ matrix.target }} ${{ matrix.extra_flags }} -c opt

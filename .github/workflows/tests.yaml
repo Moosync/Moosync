@@ -26,6 +26,17 @@ jobs:
           disk-cache: true
           repository-cache: true
 
+      - name: Configure Bazel Remote Cache
+        env:
+          BAZEL_REMOTE_TOKEN: ${{ secrets.BAZEL_REMOTE_TOKEN }}
+        if: env.BAZEL_REMOTE_TOKEN != ''
+        run: |
+          cat >> .bazelrc.user <<EOF
+          build --remote_cache=grpcs://bazel.moosync.app:443
+          build --remote_header=Authorization="Bearer ${BAZEL_REMOTE_TOKEN}"
+          build --remote_upload_local_results=true
+          EOF
+
       - name: Install Dependencies
         uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # v1.6.3
         with:

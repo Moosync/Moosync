@@ -1,51 +1,61 @@
 #![no_main]
 
-use std::{
-    sync::atomic::{AtomicBool, Ordering},
-    time::Duration,
-};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use moosync_edk::{
-    AddToPlaylistRequest, Album, Artist, ContextMenuActionRequest, ContextMenuReturnType,
-    CustomRequest, ExtensionAccountDetail, InnerSong, LyricLine, Lyrics, OauthCallbackRequest,
-    PerformAccountLoginRequest, PlaybackDetailsRequestedRequest, PlayerStateChangedRequest,
-    Playlist, PlaylistAddedRequest, PlaylistRemovedRequest, PreferenceChangedRequest,
-    PreferenceData, RequestedAlbumSongsRequest, RequestedArtistSongsRequest,
-    RequestedCoverArtRequest, RequestedLyricsRequest, RequestedPlaylistContextMenuRequest,
-    RequestedPlaylistSongsRequest, RequestedPlaylistsRequest, RequestedRecommendationsRequest,
-    RequestedSearchResultRequest, RequestedSongContextMenuRequest, RequestedSongFromIdRequest,
-    ScrobbleRequest, SearchResult, SeekedRequest, Song, SongAddedRequest, SongChangedRequest,
-    SongQueueChangedRequest, SongRemovedRequest, VolumeChangedRequest,
+    MoosyncResult,
     api::{
-        self, Accounts, ContextMenu, CustomRequestReturnType, DatabaseEvents, Extension,
-        PlaybackDetailsReturnType, PlayerEvents, PlayerProvider, PreferenceEvents, Provider,
-        SongsWithPageTokenReturnType,
-        extension_api::{
-            add_playlist, add_songs, add_to_playlist, get_current_song, get_player_state,
-            get_preference, get_queue, get_secure, get_system_time, get_time, get_volume,
-            open_external_url, open_sock, read_sock, register_oauth, register_user_preferences,
-            set_account, unregister_user_preferences, write_sock,
-        },
+        Accounts, ContextMenu, DatabaseEvents, Extension, PlayerEvents, PlayerProvider,
+        PreferenceEvents, Provider, add_playlist, add_songs, add_to_playlist, get_current_song,
+        get_player_state, get_preference, get_queue, get_secure, get_time, get_volume,
+        open_clientfd, open_external_url, read_sock, register_extension, register_oauth,
+        register_user_preference, set_account, system_time, unregister_user_preference, write_sock,
     },
-    info, requested_cover_art_request,
+    info,
+    types::{
+        AddPlaylistRequest, AddSongsRequest, AddToPlaylistRequest, Album, Artist,
+        ContextMenuActionRequest, ContextMenuActionResponse, ContextMenuReturnType, CustomRequest,
+        CustomRequestResponse, Duration, ExtensionAccountDetail, GetCurrentSongRequest,
+        GetPlayerStateRequest, GetPreferenceRequest, GetQueueRequest, GetSecureRequest,
+        GetTimeRequest, GetVolumeRequest, InnerSong, LyricLine, Lyrics, OauthCallbackRequest,
+        OauthCallbackResponse, OpenExternalUrlRequest, PerformAccountLoginRequest,
+        PerformAccountLoginResponse, PlaybackDetailsRequestedRequest,
+        PlaybackDetailsRequestedResponse, PlayerStateChangedRequest, Playlist,
+        PlaylistAddedRequest, PlaylistRemovedRequest, PreferenceChangedRequest, PreferenceData,
+        PreferenceItem, PreferenceType, RegisterOauthRequest, RegisterUserPreferenceRequest,
+        RequestedAlbumSongsRequest, RequestedAlbumSongsResponse, RequestedArtistSongsRequest,
+        RequestedArtistSongsResponse, RequestedCoverArtRequest, RequestedCoverArtResponse,
+        RequestedLyricsRequest, RequestedLyricsResponse, RequestedPlaylistContextMenuRequest,
+        RequestedPlaylistContextMenuResponse, RequestedPlaylistSongsRequest,
+        RequestedPlaylistSongsResponse, RequestedPlaylistsRequest, RequestedPlaylistsResponse,
+        RequestedRecommendationsRequest, RequestedRecommendationsResponse,
+        RequestedSearchResultRequest, RequestedSearchResultResponse,
+        RequestedSongContextMenuRequest, RequestedSongContextMenuResponse,
+        RequestedSongFromIdRequest, RequestedSongFromIdResponse, ScrobbleRequest, SeekedRequest,
+        SetAccountRequest, Song, SongAddedRequest, SongChangedRequest, SongQueueChangedRequest,
+        SongRemovedRequest, UnregisterUserPreferenceRequest, VolumeChangedRequest,
+        requested_cover_art_request,
+    },
 };
 
 static LOGGED_IN: AtomicBool = AtomicBool::new(false);
 
 fn sync_account() {
     let is_logged_in = LOGGED_IN.load(Ordering::SeqCst);
-    let _ = set_account(ExtensionAccountDetail {
-        id: "sample_spotify".to_string(),
-        name: "Spotify".to_string(),
-        bg_color: "#1ed760".to_string(),
-        icon: "spotify".to_string(),
-        logged_in: is_logged_in,
-        username: if is_logged_in {
-            Some("SampleUser".to_string())
-        } else {
-            None
-        },
-        ..Default::default()
+    let _ = set_account(SetAccountRequest {
+        account: Some(ExtensionAccountDetail {
+            id: "sample_spotify".to_string(),
+            name: "Spotify".to_string(),
+            bg_color: "#1ed760".to_string(),
+            icon: "spotify".to_string(),
+            logged_in: is_logged_in,
+            username: if is_logged_in {
+                Some("SampleUser".to_string())
+            } else {
+                None
+            },
+            ..Default::default()
+        }),
     });
 }
 
@@ -56,73 +66,86 @@ impl Extension for SampleExtension {}
 impl PlayerProvider for SampleExtension {}
 
 impl Accounts for SampleExtension {
-    fn perform_account_login(&self, req: PerformAccountLoginRequest) -> api::MoosyncResult<String> {
+    fn perform_account_login(
+        &self,
+        req: PerformAccountLoginRequest,
+    ) -> MoosyncResult<PerformAccountLoginResponse> {
         info!("perform_account_login called: {:?}", req);
         if req.login_status {
-            let _ = register_oauth("sample_callback".to_string());
-            Ok("https://example.com/oauth/authorize".to_string())
+            let _ = register_oauth(RegisterOauthRequest {
+                url: "sample_callback".to_string(),
+            });
+            Ok(PerformAccountLoginResponse {
+                status: "https://example.com/oauth/authorize".to_string(),
+            })
         } else {
             LOGGED_IN.store(false, Ordering::SeqCst);
             sync_account();
-            Ok("logged_out".to_string())
+            Ok(PerformAccountLoginResponse {
+                status: "logged_out".to_string(),
+            })
         }
     }
 
-    fn oauth_callback(&self, req: OauthCallbackRequest) -> api::MoosyncResult<()> {
+    fn oauth_callback(&self, req: OauthCallbackRequest) -> MoosyncResult<OauthCallbackResponse> {
         info!("oauth_callback called with code: {}", req.callback_uri);
         LOGGED_IN.store(true, Ordering::SeqCst);
         sync_account();
-        Ok(())
+        Ok(OauthCallbackResponse {})
     }
 }
 
 impl DatabaseEvents for SampleExtension {
-    fn on_song_added(&self, req: SongAddedRequest) -> api::MoosyncResult<()> {
+    fn song_added(&self, req: SongAddedRequest) -> MoosyncResult<()> {
         for song in req.songs {
             if let Some(inner) = &song.song {
-                info!("on_song_added: {:?}", inner.title);
+                info!("song_added: {:?}", inner.title);
             }
         }
         Ok(())
     }
 
-    fn on_song_removed(&self, req: SongRemovedRequest) -> api::MoosyncResult<()> {
+    fn song_removed(&self, req: SongRemovedRequest) -> MoosyncResult<()> {
         for song in req.songs {
             if let Some(inner) = &song.song {
-                info!("on_song_removed: {:?}", inner.title);
+                info!("song_removed: {:?}", inner.title);
             }
         }
         Ok(())
     }
 
-    fn on_playlist_added(&self, req: PlaylistAddedRequest) -> api::MoosyncResult<()> {
+    fn playlist_added(&self, req: PlaylistAddedRequest) -> MoosyncResult<()> {
         for playlist in req.playlists {
-            info!("on_playlist_added: {:?}", playlist.playlist_name);
+            info!("playlist_added: {:?}", playlist.playlist_name);
         }
         Ok(())
     }
 
-    fn on_playlist_removed(&self, req: PlaylistRemovedRequest) -> api::MoosyncResult<()> {
+    fn playlist_removed(&self, req: PlaylistRemovedRequest) -> MoosyncResult<()> {
         for playlist in req.playlists {
-            info!("on_playlist_removed: {:?}", playlist.playlist_name);
+            info!("playlist_removed: {:?}", playlist.playlist_name);
         }
         Ok(())
     }
 }
 
 impl PreferenceEvents for SampleExtension {
-    fn on_preferences_changed(&self, req: PreferenceChangedRequest) -> api::MoosyncResult<()> {
+    fn preference_changed(&self, req: PreferenceChangedRequest) -> MoosyncResult<()> {
         if let Some(args) = req.preference {
-            info!("on_preferences_changed: {:?}", args);
+            info!("preference_changed: {:?}", args);
             let key = args.key;
             if !key.is_empty() {
-                let _val = get_preference(PreferenceData {
-                    key: key.clone(),
-                    ..Default::default()
+                let _val = get_preference(GetPreferenceRequest {
+                    data: Some(PreferenceData {
+                        key: key.clone(),
+                        ..Default::default()
+                    }),
                 });
-                let _sec = get_secure(PreferenceData {
-                    key,
-                    ..Default::default()
+                let _sec = get_secure(GetSecureRequest {
+                    data: Some(PreferenceData {
+                        key,
+                        ..Default::default()
+                    }),
                 });
             }
         }
@@ -131,33 +154,33 @@ impl PreferenceEvents for SampleExtension {
 }
 
 impl PlayerEvents for SampleExtension {
-    fn on_queue_changed(&self, _req: SongQueueChangedRequest) -> api::MoosyncResult<()> {
-        info!("on_queue_changed");
-        let _q = get_queue();
+    fn song_queue_changed(&self, _req: SongQueueChangedRequest) -> MoosyncResult<()> {
+        info!("song_queue_changed");
+        let _q = get_queue(GetQueueRequest {});
         Ok(())
     }
 
-    fn on_volume_changed(&self, _req: VolumeChangedRequest) -> api::MoosyncResult<()> {
-        info!("on_volume_changed");
-        let _vol = get_volume();
+    fn volume_changed(&self, _req: VolumeChangedRequest) -> MoosyncResult<()> {
+        info!("volume_changed");
+        let _vol = get_volume(GetVolumeRequest {});
         Ok(())
     }
 
-    fn on_player_state_changed(&self, _req: PlayerStateChangedRequest) -> api::MoosyncResult<()> {
-        info!("on_player_state_changed");
-        let _state = get_player_state();
+    fn player_state_changed(&self, _req: PlayerStateChangedRequest) -> MoosyncResult<()> {
+        info!("player_state_changed");
+        let _state = get_player_state(GetPlayerStateRequest {});
         Ok(())
     }
 
-    fn on_song_changed(&self, _req: SongChangedRequest) -> api::MoosyncResult<()> {
-        info!("on_song_changed");
-        let _song = get_current_song();
+    fn song_changed(&self, _req: SongChangedRequest) -> MoosyncResult<()> {
+        info!("song_changed");
+        let _song = get_current_song(GetCurrentSongRequest {});
         Ok(())
     }
 
-    fn on_seeked(&self, req: SeekedRequest) -> api::MoosyncResult<()> {
-        info!("on_seeked: {}", req.position);
-        let _t = get_time();
+    fn seeked(&self, req: SeekedRequest) -> MoosyncResult<()> {
+        info!("seeked: {}", req.position);
+        let _t = get_time(GetTimeRequest {});
         Ok(())
     }
 }
@@ -220,56 +243,69 @@ fn get_paginated_sample_songs(
 }
 
 impl Provider for SampleExtension {
-    fn get_playlists(&self, _req: RequestedPlaylistsRequest) -> api::MoosyncResult<Vec<Playlist>> {
-        info!("get_playlists called");
-        Ok(vec![
-            Playlist {
-                playlist_id: Some("ext-playlist-1".to_string()),
-                playlist_name: "Extension Playlist 1".to_string(),
-                ..Default::default()
-            },
-            Playlist {
-                playlist_id: Some("ext-playlist-2".to_string()),
-                playlist_name: "Extension Playlist 2".to_string(),
-                ..Default::default()
-            },
-        ])
+    fn requested_playlists(
+        &self,
+        _req: RequestedPlaylistsRequest,
+    ) -> MoosyncResult<RequestedPlaylistsResponse> {
+        info!("requested_playlists called");
+        Ok(RequestedPlaylistsResponse {
+            playlists: vec![
+                Playlist {
+                    playlist_id: Some("ext-playlist-1".to_string()),
+                    playlist_name: "Extension Playlist 1".to_string(),
+                    ..Default::default()
+                },
+                Playlist {
+                    playlist_id: Some("ext-playlist-2".to_string()),
+                    playlist_name: "Extension Playlist 2".to_string(),
+                    ..Default::default()
+                },
+            ],
+        })
     }
 
-    fn get_playlist_content(
+    fn requested_playlist_songs(
         &self,
         req: RequestedPlaylistSongsRequest,
-    ) -> api::MoosyncResult<SongsWithPageTokenReturnType> {
-        info!("get_playlist_content: {}", req.id);
+    ) -> MoosyncResult<RequestedPlaylistSongsResponse> {
+        info!("requested_playlist_songs: {}", req.id);
         let (songs, next_page_token) =
             get_paginated_sample_songs("pl", "Playlist", req.page_token.as_deref());
-        Ok(SongsWithPageTokenReturnType {
+        Ok(RequestedPlaylistSongsResponse {
             songs,
             next_page_token,
         })
     }
 
-    fn get_playback_details(
+    fn playback_details_requested(
         &self,
         req: PlaybackDetailsRequestedRequest,
-    ) -> api::MoosyncResult<PlaybackDetailsReturnType> {
+    ) -> MoosyncResult<PlaybackDetailsRequestedResponse> {
         if let Some(song) = req.song {
             if let Some(inner) = &song.song {
-                info!("get_playback_details: {:?}", inner.id);
+                info!("playback_details_requested: {:?}", inner.id);
             }
         }
-        Ok(PlaybackDetailsReturnType {
-            duration: Duration::ZERO,
+        Ok(PlaybackDetailsRequestedResponse {
+            duration: Some(Duration {
+                seconds: 0,
+                nanos: 0,
+            }),
             url: "https://example.com/song.mp3".to_string(),
             decryption_key: None,
         })
     }
 
-    fn search(&self, req: RequestedSearchResultRequest) -> api::MoosyncResult<SearchResult> {
-        info!("search: {}", req.query);
-        let _time = get_system_time();
-        let _ = open_external_url("https://google.com".to_string());
-        Ok(SearchResult {
+    fn requested_search_result(
+        &self,
+        req: RequestedSearchResultRequest,
+    ) -> MoosyncResult<RequestedSearchResultResponse> {
+        info!("requested_search_result: {}", req.query);
+        let _time = system_time();
+        let _ = open_external_url(OpenExternalUrlRequest {
+            url: "https://google.com".to_string(),
+        });
+        Ok(RequestedSearchResultResponse {
             songs: vec![
                 mock_sample_song("search-song-1", "Search Song 1"),
                 mock_sample_song("search-song-2", "Search Song 2"),
@@ -310,35 +346,31 @@ impl Provider for SampleExtension {
                     ..Default::default()
                 },
             ],
-            genres: vec![],
         })
     }
 
-    fn get_recommendations(
+    fn requested_recommendations(
         &self,
         _req: RequestedRecommendationsRequest,
-    ) -> api::MoosyncResult<Vec<Song>> {
-        info!("get_recommendations");
-        Ok(vec![])
+    ) -> MoosyncResult<RequestedRecommendationsResponse> {
+        info!("requested_recommendations");
+        Ok(RequestedRecommendationsResponse { songs: vec![] })
     }
 
-    fn handle_custom_request(
-        &self,
-        req: CustomRequest,
-    ) -> api::MoosyncResult<CustomRequestReturnType> {
+    fn custom_request(&self, req: CustomRequest) -> MoosyncResult<CustomRequestResponse> {
         let request_id = req.request_id;
-        info!("handle_custom_request: {}", request_id);
+        info!("custom_request: {}", request_id);
 
         if request_id == "socket_test" {
-            if let Ok(fd) = open_sock("/tmp/test.sock".to_string()) {
+            if let Ok(fd) = open_clientfd("/tmp/test.sock".to_string()) {
                 let _ = write_sock(fd, vec![1, 2, 3]);
                 let _ = read_sock(fd, 3);
             }
         }
 
         if request_id == "preferences_test" {
-            let _ = register_user_preferences(vec![]);
-            let _ = unregister_user_preferences(vec![]);
+            let _ = register_user_preference(RegisterUserPreferenceRequest { prefs: vec![] });
+            let _ = unregister_user_preference(UnregisterUserPreferenceRequest { keys: vec![] });
         }
 
         if request_id == "http_get_test" {
@@ -368,52 +400,52 @@ impl Provider for SampleExtension {
             let _ = moosync_edk::http::batch_request(&reqs);
         }
 
-        Ok(CustomRequestReturnType {
+        Ok(CustomRequestResponse {
             mime_type: None,
             data: None,
             redirect_url: None,
         })
     }
 
-    fn get_artist_songs(
+    fn requested_artist_songs(
         &self,
         req: RequestedArtistSongsRequest,
-    ) -> api::MoosyncResult<SongsWithPageTokenReturnType> {
+    ) -> MoosyncResult<RequestedArtistSongsResponse> {
         if let Some(artist) = &req.artist {
-            info!("get_artist_songs: {:?}", artist.artist_name);
+            info!("requested_artist_songs: {:?}", artist.artist_name);
         }
         let (songs, next_page_token) =
             get_paginated_sample_songs("artist", "Artist", req.page_token.as_deref());
-        Ok(SongsWithPageTokenReturnType {
+        Ok(RequestedArtistSongsResponse {
             songs,
             next_page_token,
         })
     }
 
-    fn get_album_songs(
+    fn requested_album_songs(
         &self,
         req: RequestedAlbumSongsRequest,
-    ) -> api::MoosyncResult<SongsWithPageTokenReturnType> {
+    ) -> MoosyncResult<RequestedAlbumSongsResponse> {
         if let Some(album) = &req.album {
-            info!("get_album_songs: {:?}", album.album_name);
+            info!("requested_album_songs: {:?}", album.album_name);
         }
         let (songs, next_page_token) =
             get_paginated_sample_songs("album", "Album", req.page_token.as_deref());
-        Ok(SongsWithPageTokenReturnType {
+        Ok(RequestedAlbumSongsResponse {
             songs,
             next_page_token,
         })
     }
 
-    fn get_song_from_id(
+    fn requested_song_from_id(
         &self,
         req: RequestedSongFromIdRequest,
-    ) -> api::MoosyncResult<Option<Song>> {
-        info!("get_song_from_id: {}", req.id);
-        Ok(None)
+    ) -> MoosyncResult<RequestedSongFromIdResponse> {
+        info!("requested_song_from_id: {}", req.id);
+        Ok(RequestedSongFromIdResponse { song: None })
     }
 
-    fn scrobble(&self, req: ScrobbleRequest) -> api::MoosyncResult<()> {
+    fn scrobble(&self, req: ScrobbleRequest) -> MoosyncResult<()> {
         if let Some(song) = req.song {
             if let Some(inner) = &song.song {
                 info!("scrobble: {:?}", inner.title);
@@ -422,10 +454,13 @@ impl Provider for SampleExtension {
         Ok(())
     }
 
-    fn get_lyrics(&self, req: RequestedLyricsRequest) -> api::MoosyncResult<Option<Lyrics>> {
+    fn requested_lyrics(
+        &self,
+        req: RequestedLyricsRequest,
+    ) -> MoosyncResult<RequestedLyricsResponse> {
         if let Some(song) = req.song {
             if let Some(inner) = &song.song {
-                info!("get_lyrics: {:?}", inner.title);
+                info!("requested_lyrics: {:?}", inner.title);
             }
         }
         let lines = (1..=100)
@@ -434,14 +469,19 @@ impl Provider for SampleExtension {
                 time_ms: ((i - 1) * 500) as i64,
             })
             .collect();
-        Ok(Some(Lyrics {
-            lines,
-            is_synced: true,
-        }))
+        Ok(RequestedLyricsResponse {
+            lyrics: Some(Lyrics {
+                lines,
+                is_synced: true,
+            }),
+        })
     }
 
-    fn get_cover_art(&self, req: RequestedCoverArtRequest) -> api::MoosyncResult<Vec<String>> {
-        info!("get_cover_art called");
+    fn requested_cover_art(
+        &self,
+        req: RequestedCoverArtRequest,
+    ) -> MoosyncResult<RequestedCoverArtResponse> {
+        info!("requested_cover_art called");
         let url = match req.item {
             Some(requested_cover_art_request::Item::Song(song)) => {
                 if let Some(inner) = &song.song
@@ -482,79 +522,93 @@ impl Provider for SampleExtension {
                     format!("http://127.0.0.1:8080/covers/artist_{id}.png")
                 }
             }
-            None => return Ok(vec![]),
+            None => return Ok(RequestedCoverArtResponse { cover_urls: vec![] }),
         };
 
-        Ok(vec![url])
+        Ok(RequestedCoverArtResponse {
+            cover_urls: vec![url],
+        })
     }
 }
 
 impl ContextMenu for SampleExtension {
-    fn get_song_context_menu(
+    fn requested_song_context_menu(
         &self,
         _req: RequestedSongContextMenuRequest,
-    ) -> api::MoosyncResult<Vec<ContextMenuReturnType>> {
-        info!("get_song_context_menu");
-        Ok(vec![ContextMenuReturnType {
-            action_id: "sample_song_action".to_string(),
-            name: "Sample Song Action".to_string(),
-            icon: String::new(),
-        }])
+    ) -> MoosyncResult<RequestedSongContextMenuResponse> {
+        info!("requested_song_context_menu");
+        Ok(RequestedSongContextMenuResponse {
+            menu: Some(ContextMenuReturnType {
+                action_id: "sample_song_action".to_string(),
+                name: "Sample Song Action".to_string(),
+                icon: String::new(),
+            }),
+        })
     }
 
-    fn get_playlist_context_menu(
+    fn requested_playlist_context_menu(
         &self,
         _req: RequestedPlaylistContextMenuRequest,
-    ) -> api::MoosyncResult<Vec<ContextMenuReturnType>> {
-        info!("get_playlist_context_menu");
-        Ok(vec![ContextMenuReturnType {
-            action_id: "sample_playlist_action".to_string(),
-            name: "Sample Playlist Action".to_string(),
-            icon: String::new(),
-        }])
+    ) -> MoosyncResult<RequestedPlaylistContextMenuResponse> {
+        info!("requested_playlist_context_menu");
+        Ok(RequestedPlaylistContextMenuResponse {
+            menu: Some(ContextMenuReturnType {
+                action_id: "sample_playlist_action".to_string(),
+                name: "Sample Playlist Action".to_string(),
+                icon: String::new(),
+            }),
+        })
     }
 
-    fn on_context_menu_action(&self, req: ContextMenuActionRequest) -> api::MoosyncResult<()> {
+    fn context_menu_action(
+        &self,
+        req: ContextMenuActionRequest,
+    ) -> MoosyncResult<ContextMenuActionResponse> {
         let action = req.action_id;
-        info!("on_context_menu_action: {}", action);
+        info!("context_menu_action: {}", action);
         if action == "sample_song_action" {
-            let _ = add_songs(vec![mock_sample_song(
-                "ctx_action_song",
-                "Context Action Song",
-            )]);
+            let _ = add_songs(AddSongsRequest {
+                songs: vec![mock_sample_song("ctx_action_song", "Context Action Song")],
+            });
         } else if action == "sample_playlist_action" {
-            let _ = add_playlist(Playlist {
-                playlist_id: Some("ctx_action_playlist".to_string()),
-                playlist_name: "Context Action Playlist".to_string(),
-                ..Default::default()
+            let _ = add_playlist(AddPlaylistRequest {
+                playlist: Some(Playlist {
+                    playlist_id: Some("ctx_action_playlist".to_string()),
+                    playlist_name: "Context Action Playlist".to_string(),
+                    ..Default::default()
+                }),
             });
         } else if action == "add_test" {
-            let _ = add_playlist(Playlist::default());
-            let _ = add_songs(vec![]);
+            let _ = add_playlist(AddPlaylistRequest {
+                playlist: Some(Playlist::default()),
+            });
+            let _ = add_songs(AddSongsRequest { songs: vec![] });
             let _ = add_to_playlist(AddToPlaylistRequest::default());
         }
-        Ok(())
+        Ok(ContextMenuActionResponse {})
     }
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn init() {
-    moosync_edk::handler::register_extension(Box::new(SampleExtension)).unwrap();
+    register_extension(Box::new(SampleExtension)).unwrap();
     sync_account();
-    let _ = register_user_preferences(vec![
-        moosync_edk::PreferenceItem {
-            id: "api_key".to_string(),
-            pref_type: moosync_edk::PreferenceType::TextInputGroup as i32,
-            title: "API Key".to_string(),
-            subtitle: "API Key for Sample Extension".to_string(),
-            ..Default::default()
-        },
-        moosync_edk::PreferenceItem {
-            id: "enable_feature".to_string(),
-            pref_type: moosync_edk::PreferenceType::ToggleGroup as i32,
-            title: "Enable Feature".to_string(),
-            subtitle: "Toggle sample feature".to_string(),
-            ..Default::default()
-        },
-    ]);
+    let _ = register_user_preference(RegisterUserPreferenceRequest {
+        prefs: vec![
+            PreferenceItem {
+                id: "api_key".to_string(),
+                pref_type: PreferenceType::TextInputGroup as i32,
+                title: "API Key".to_string(),
+                subtitle: "API Key for Sample Extension".to_string(),
+                ..Default::default()
+            },
+            PreferenceItem {
+                id: "enable_feature".to_string(),
+                pref_type: PreferenceType::ToggleGroup as i32,
+                title: "Enable Feature".to_string(),
+                subtitle: "Toggle sample feature".to_string(),
+                ..Default::default()
+            },
+        ],
+    });
 }

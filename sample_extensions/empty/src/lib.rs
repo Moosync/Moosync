@@ -1,24 +1,27 @@
 #![no_main]
 
-use std::time::Duration;
-
 use moosync_edk::{
-    ContextMenuActionRequest, ContextMenuReturnType, CustomRequest, ExtensionAccountDetail, Lyrics,
-    OauthCallbackRequest, PerformAccountLoginRequest, PlaybackDetailsRequestedRequest,
-    PlayerStateChangedRequest, Playlist, PlaylistAddedRequest, PlaylistRemovedRequest,
-    PreferenceChangedRequest, RequestedAlbumSongsRequest, RequestedArtistSongsRequest,
-    RequestedLyricsRequest, RequestedPlaylistContextMenuRequest, RequestedPlaylistSongsRequest,
-    RequestedPlaylistsRequest, RequestedRecommendationsRequest, RequestedSearchResultRequest,
-    RequestedSongContextMenuRequest, RequestedSongFromIdRequest, ScrobbleRequest, SearchResult,
-    SeekedRequest, Song, SongAddedRequest, SongChangedRequest, SongQueueChangedRequest,
-    SongRemovedRequest, VolumeChangedRequest,
+    MoosyncResult,
     api::{
-        self, Accounts, ContextMenu, CustomRequestReturnType, DatabaseEvents, Extension,
-        PlaybackDetailsReturnType, PlayerEvents, PlayerProvider, PreferenceEvents, Provider,
-        SongsWithPageTokenReturnType,
-        extension_api::{register_oauth, set_account},
+        Accounts, ContextMenu, DatabaseEvents, Extension, PlayerEvents, PlayerProvider,
+        PreferenceEvents, Provider, register_extension, register_oauth, set_account,
     },
     info,
+    types::{
+        ContextMenuActionRequest, ContextMenuActionResponse, CustomRequest, CustomRequestResponse,
+        Duration, ExtensionAccountDetail, OauthCallbackRequest, OauthCallbackResponse,
+        PerformAccountLoginRequest, PerformAccountLoginResponse, PlaybackDetailsRequestedRequest,
+        PlaybackDetailsRequestedResponse, RegisterOauthRequest, RequestedAlbumSongsRequest,
+        RequestedAlbumSongsResponse, RequestedArtistSongsRequest, RequestedArtistSongsResponse,
+        RequestedCoverArtRequest, RequestedCoverArtResponse, RequestedLyricsRequest,
+        RequestedLyricsResponse, RequestedPlaylistContextMenuRequest,
+        RequestedPlaylistContextMenuResponse, RequestedPlaylistSongsRequest,
+        RequestedPlaylistSongsResponse, RequestedPlaylistsRequest, RequestedPlaylistsResponse,
+        RequestedRecommendationsRequest, RequestedRecommendationsResponse,
+        RequestedSearchResultRequest, RequestedSearchResultResponse,
+        RequestedSongContextMenuRequest, RequestedSongContextMenuResponse,
+        RequestedSongFromIdRequest, RequestedSongFromIdResponse, SetAccountRequest,
+    },
 };
 
 fn update_spotify_account(logged_in: bool) {
@@ -32,171 +35,178 @@ fn update_spotify_account(logged_in: bool) {
         username,
         ..Default::default()
     };
-    let _ = set_account(detail);
+    let _ = set_account(SetAccountRequest {
+        account: Some(detail),
+    });
 }
 
 struct EmptySampleExtension;
 
 impl PlayerProvider for EmptySampleExtension {}
-
 impl Extension for EmptySampleExtension {}
+impl DatabaseEvents for EmptySampleExtension {}
+impl PreferenceEvents for EmptySampleExtension {}
+impl PlayerEvents for EmptySampleExtension {}
 
 impl Accounts for EmptySampleExtension {
-    fn perform_account_login(&self, req: PerformAccountLoginRequest) -> api::MoosyncResult<String> {
+    fn perform_account_login(
+        &self,
+        req: PerformAccountLoginRequest,
+    ) -> MoosyncResult<PerformAccountLoginResponse> {
         info!("perform_account_login called: {:?}", req);
         match req.login_status {
             true => {
-                let _ = register_oauth("sample_callback".to_string());
-                Ok("https://example.com/oauth/authorize".to_string())
+                let _ = register_oauth(RegisterOauthRequest {
+                    url: "sample_callback".to_string(),
+                });
+                Ok(PerformAccountLoginResponse {
+                    status: "https://example.com/oauth/authorize".to_string(),
+                })
             }
             false => {
                 update_spotify_account(false);
-                Ok("logged_out".to_string())
+                Ok(PerformAccountLoginResponse {
+                    status: "logged_out".to_string(),
+                })
             }
         }
     }
 
-    fn oauth_callback(&self, req: OauthCallbackRequest) -> api::MoosyncResult<()> {
+    fn oauth_callback(&self, req: OauthCallbackRequest) -> MoosyncResult<OauthCallbackResponse> {
         info!("oauth_callback called with code: {}", req.callback_uri);
         update_spotify_account(true);
-        Ok(())
-    }
-}
-
-impl DatabaseEvents for EmptySampleExtension {
-    fn on_song_added(&self, _req: SongAddedRequest) -> api::MoosyncResult<()> { Ok(()) }
-
-    fn on_song_removed(&self, _req: SongRemovedRequest) -> api::MoosyncResult<()> { Ok(()) }
-
-    fn on_playlist_added(&self, _req: PlaylistAddedRequest) -> api::MoosyncResult<()> { Ok(()) }
-
-    fn on_playlist_removed(&self, _req: PlaylistRemovedRequest) -> api::MoosyncResult<()> { Ok(()) }
-}
-
-impl PreferenceEvents for EmptySampleExtension {
-    fn on_preferences_changed(&self, _req: PreferenceChangedRequest) -> api::MoosyncResult<()> {
-        Ok(())
-    }
-}
-
-impl PlayerEvents for EmptySampleExtension {
-    fn on_queue_changed(&self, _req: SongQueueChangedRequest) -> api::MoosyncResult<()> { Ok(()) }
-
-    fn on_volume_changed(&self, _req: VolumeChangedRequest) -> api::MoosyncResult<()> { Ok(()) }
-
-    fn on_player_state_changed(&self, _req: PlayerStateChangedRequest) -> api::MoosyncResult<()> {
-        Ok(())
-    }
-
-    fn on_song_changed(&self, _req: SongChangedRequest) -> api::MoosyncResult<()> { Ok(()) }
-
-    fn on_seeked(&self, _req: SeekedRequest) -> api::MoosyncResult<()> { Ok(()) }
-}
-
-fn empty_songs_with_page_token() -> SongsWithPageTokenReturnType {
-    SongsWithPageTokenReturnType {
-        songs: vec![],
-        next_page_token: None,
+        Ok(OauthCallbackResponse {})
     }
 }
 
 impl Provider for EmptySampleExtension {
-    fn get_playlists(&self, _req: RequestedPlaylistsRequest) -> api::MoosyncResult<Vec<Playlist>> {
-        info!("get_playlists called: empty");
-        Ok(vec![])
+    fn requested_playlists(
+        &self,
+        _req: RequestedPlaylistsRequest,
+    ) -> MoosyncResult<RequestedPlaylistsResponse> {
+        info!("requested_playlists called: empty");
+        Ok(RequestedPlaylistsResponse { playlists: vec![] })
     }
 
-    fn get_playlist_content(
+    fn requested_playlist_songs(
         &self,
         _req: RequestedPlaylistSongsRequest,
-    ) -> api::MoosyncResult<SongsWithPageTokenReturnType> {
-        Ok(empty_songs_with_page_token())
+    ) -> MoosyncResult<RequestedPlaylistSongsResponse> {
+        Ok(RequestedPlaylistSongsResponse {
+            songs: vec![],
+            next_page_token: None,
+        })
     }
 
-    fn get_playback_details(
+    fn playback_details_requested(
         &self,
         _req: PlaybackDetailsRequestedRequest,
-    ) -> api::MoosyncResult<PlaybackDetailsReturnType> {
-        Ok(PlaybackDetailsReturnType {
-            duration: Duration::ZERO,
+    ) -> MoosyncResult<PlaybackDetailsRequestedResponse> {
+        Ok(PlaybackDetailsRequestedResponse {
+            duration: Some(Duration {
+                seconds: 0,
+                nanos: 0,
+            }),
             url: String::new(),
             decryption_key: None,
         })
     }
 
-    fn search(&self, req: RequestedSearchResultRequest) -> api::MoosyncResult<SearchResult> {
+    fn requested_search_result(
+        &self,
+        req: RequestedSearchResultRequest,
+    ) -> MoosyncResult<RequestedSearchResultResponse> {
         info!("empty search called for query: {}", req.query);
-        Ok(SearchResult::default())
+        Ok(RequestedSearchResultResponse {
+            songs: vec![],
+            playlists: vec![],
+            artists: vec![],
+            albums: vec![],
+        })
     }
 
-    fn get_recommendations(
+    fn requested_recommendations(
         &self,
         _req: RequestedRecommendationsRequest,
-    ) -> api::MoosyncResult<Vec<Song>> {
-        Ok(vec![])
+    ) -> MoosyncResult<RequestedRecommendationsResponse> {
+        Ok(RequestedRecommendationsResponse { songs: vec![] })
     }
 
-    fn handle_custom_request(
-        &self,
-        _req: CustomRequest,
-    ) -> api::MoosyncResult<CustomRequestReturnType> {
-        Ok(CustomRequestReturnType {
+    fn custom_request(&self, _req: CustomRequest) -> MoosyncResult<CustomRequestResponse> {
+        Ok(CustomRequestResponse {
             mime_type: None,
             data: None,
             redirect_url: None,
         })
     }
 
-    fn get_artist_songs(
+    fn requested_artist_songs(
         &self,
         _req: RequestedArtistSongsRequest,
-    ) -> api::MoosyncResult<SongsWithPageTokenReturnType> {
-        Ok(empty_songs_with_page_token())
+    ) -> MoosyncResult<RequestedArtistSongsResponse> {
+        Ok(RequestedArtistSongsResponse {
+            songs: vec![],
+            next_page_token: None,
+        })
     }
 
-    fn get_album_songs(
+    fn requested_album_songs(
         &self,
         _req: RequestedAlbumSongsRequest,
-    ) -> api::MoosyncResult<SongsWithPageTokenReturnType> {
-        Ok(empty_songs_with_page_token())
+    ) -> MoosyncResult<RequestedAlbumSongsResponse> {
+        Ok(RequestedAlbumSongsResponse {
+            songs: vec![],
+            next_page_token: None,
+        })
     }
 
-    fn get_song_from_id(
+    fn requested_song_from_id(
         &self,
         _req: RequestedSongFromIdRequest,
-    ) -> api::MoosyncResult<Option<Song>> {
-        Ok(None)
+    ) -> MoosyncResult<RequestedSongFromIdResponse> {
+        Ok(RequestedSongFromIdResponse { song: None })
     }
 
-    fn scrobble(&self, _req: ScrobbleRequest) -> api::MoosyncResult<()> { Ok(()) }
+    fn requested_lyrics(
+        &self,
+        _req: RequestedLyricsRequest,
+    ) -> MoosyncResult<RequestedLyricsResponse> {
+        Ok(RequestedLyricsResponse { lyrics: None })
+    }
 
-    fn get_lyrics(&self, _req: RequestedLyricsRequest) -> api::MoosyncResult<Option<Lyrics>> {
-        Ok(None)
+    fn requested_cover_art(
+        &self,
+        _req: RequestedCoverArtRequest,
+    ) -> MoosyncResult<RequestedCoverArtResponse> {
+        Ok(RequestedCoverArtResponse { cover_urls: vec![] })
     }
 }
 
 impl ContextMenu for EmptySampleExtension {
-    fn get_song_context_menu(
+    fn requested_song_context_menu(
         &self,
         _req: RequestedSongContextMenuRequest,
-    ) -> api::MoosyncResult<Vec<ContextMenuReturnType>> {
-        Ok(vec![])
+    ) -> MoosyncResult<RequestedSongContextMenuResponse> {
+        Ok(RequestedSongContextMenuResponse { menu: None })
     }
 
-    fn get_playlist_context_menu(
+    fn requested_playlist_context_menu(
         &self,
         _req: RequestedPlaylistContextMenuRequest,
-    ) -> api::MoosyncResult<Vec<ContextMenuReturnType>> {
-        Ok(vec![])
+    ) -> MoosyncResult<RequestedPlaylistContextMenuResponse> {
+        Ok(RequestedPlaylistContextMenuResponse { menu: None })
     }
 
-    fn on_context_menu_action(&self, _req: ContextMenuActionRequest) -> api::MoosyncResult<()> {
-        Ok(())
+    fn context_menu_action(
+        &self,
+        _req: ContextMenuActionRequest,
+    ) -> MoosyncResult<ContextMenuActionResponse> {
+        Ok(ContextMenuActionResponse {})
     }
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn init() {
-    moosync_edk::handler::register_extension(Box::new(EmptySampleExtension)).unwrap();
+    register_extension(Box::new(EmptySampleExtension)).unwrap();
     update_spotify_account(false);
 }

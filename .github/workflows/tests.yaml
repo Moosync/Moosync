@@ -41,7 +41,7 @@ jobs:
 
       - name: Convert Coverage to XML
         run: |
-          python3 -m pip install --only-binary :all: lcov_cobertura==2.0.2
+          python3 -m pip install --only-binary :all: lcov_cobertura==2.1.1
           REPORT_PATH="$(bazel info output_path)/_coverage/_coverage_report.dat"
           if [ -f "$REPORT_PATH" ]; then
             python3 -m lcov_cobertura "$REPORT_PATH" --output coverage.xml

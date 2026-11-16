@@ -1,0 +1,15 @@
+--- a/foreign_cc/private/cmake_script.bzl
++++ b/foreign_cc/private/cmake_script.bzl
+@@ -27,4 +27,5 @@
+     "tvos": "tvOS",
+     "watchos": "watchOS",
++    "windows": "Windows",
+ }
+ 
+@@ -280,4 +281,4 @@
+     "CMAKE_SHARED_LINKER_FLAGS": struct(value = "CMAKE_SHARED_LINKER_FLAGS_INIT", replace = False),
+     "CMAKE_STATIC_LINKER_FLAGS": struct(value = "CMAKE_STATIC_LINKER_FLAGS_INIT", replace = False),
+-    "CMAKE_SYSTEM_NAME": struct(value = "CMAKE_SYSTEM_NAME", replace = False),
+-    "CMAKE_SYSTEM_PROCESSOR": struct(value = "CMAKE_SYSTEM_PROCESSOR", replace = False),
++    "CMAKE_SYSTEM_NAME": struct(value = "CMAKE_SYSTEM_NAME", replace = True),
++    "CMAKE_SYSTEM_PROCESSOR": struct(value = "CMAKE_SYSTEM_PROCESSOR", replace = True),

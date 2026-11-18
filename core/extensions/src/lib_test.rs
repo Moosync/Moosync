@@ -402,7 +402,10 @@ async fn test_extension_handler_get_active_and_toggle(handler_context: TestHandl
         display_name: "Active Extension".to_string(),
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
-        scopes: vec![extensions_proto::moosync::types::ExtensionProviderScope::Search as i32],
+        scopes: vec![extensions_proto::moosync::types::ScopePermission {
+            scope: extensions_proto::moosync::types::ExtensionProviderScope::Search as i32,
+            justification: "Search".to_string(),
+        }],
         ..Default::default()
     };
     fs::write(

@@ -1,7 +1,14 @@
 import { Theme } from "../constants_mobile.slint";
 import { IconButtonMobile } from "icon_button_mobile.slint";
 import { ScrollView } from "std-widgets.slint";
-import { ExtensionItem, ProviderScope } from "../types/extension_view.slint";
+import {
+    ExtensionItem,
+    ProviderScope,
+    ExtensionBinaryPermission,
+    ExtensionHostPermission,
+    ExtensionPathPermission,
+    ExtensionScopePermission,
+} from "../types/extension_view.slint";
 import { ExtensionDetailsState } from "extension_details_modal_props.slint";
 
 export component ExtensionDetailsModalMobile inherits Rectangle {
@@ -59,6 +66,7 @@ export component ExtensionDetailsModalMobile inherits Rectangle {
                 height: Theme.mobileButtonSize;
                 border-radius: Theme.borderRadiusMd;
                 clip: true;
+
                 Image {
                     width: 100%;
                     height: 100%;
@@ -70,6 +78,7 @@ export component ExtensionDetailsModalMobile inherits Rectangle {
             VerticalLayout {
                 horizontal-stretch: 1;
                 alignment: center;
+
                 Text {
                     text: root.item.name;
                     font-size: Theme.modelTitle;
@@ -93,9 +102,8 @@ export component ExtensionDetailsModalMobile inherits Rectangle {
             clip: true;
 
             ScrollView {
-                padding: Theme.paddingMd;
-
                 VerticalLayout {
+                    padding: Theme.paddingMd;
                     spacing: Theme.spacingMd;
                     alignment: start;
 
@@ -106,9 +114,48 @@ export component ExtensionDetailsModalMobile inherits Rectangle {
                         wrap: word-wrap;
                     }
 
+                    // Native Binaries Warning
+                    if root.item.binaries_permissions.length > 0: Rectangle {
+                        background: Theme.danger.transparentize(0.88);
+                        border-radius: Theme.borderRadiusMd;
+                        border-width: Theme.borderWidthXl;
+                        border-color: Theme.danger;
+
+                        VerticalLayout {
+                            padding: Theme.paddingMd;
+                            spacing: Theme.spacingSm;
+
+                            Text {
+                                text: @tr("SECURITY WARNING: NATIVE BINARIES");
+                                font-size: Theme.body;
+                                font-weight: 800;
+                                color: Theme.danger;
+                            }
+
+                            for bin in root.item.binaries_permissions: VerticalLayout {
+                                spacing: Theme.spacingTiny;
+
+                                Text {
+                                    text: "• " + bin.name;
+                                    font-size: Theme.caption;
+                                    font-weight: 700;
+                                    color: Theme.textPrimary;
+                                }
+
+                                Text {
+                                    text: bin.justification != "" ? bin.justification : @tr("No justification provided");
+                                    font-size: Theme.caption;
+                                    color: Theme.textSecondary;
+                                    wrap: word-wrap;
+                                }
+                            }
+                        }
+                    }
+
                     // Provider scopes
                     if root.item.scopes.length > 0: VerticalLayout {
                         spacing: Theme.spacingSm;
+
                         Text {
                             text: @tr("Capabilities");
                             font-size: Theme.caption;
@@ -116,9 +163,10 @@ export component ExtensionDetailsModalMobile inherits Rectangle {
                             color: Theme.textSecondary;
                         }
 
-                        for scope in root.item.scopes: HorizontalLayout {
+                        for scope_item in root.item.scopes: HorizontalLayout {
                             spacing: Theme.spacingSm;
                             alignment: start;
+
                             Rectangle {
                                 width: Theme.borderRadiusMd;
                                 height: Theme.borderRadiusMd;
@@ -127,10 +175,18 @@ export component ExtensionDetailsModalMobile inherits Rectangle {
                                 y: Theme.sizeXs;
                             }
 
-                            Text {
-                                text: root.scope_to_display_string(scope);
-                                font-size: Theme.body;
-                                color: Theme.textPrimary;
+                            VerticalLayout {
+                                Text {
+                                    text: root.scope_to_display_string(scope_item.scope);
+                                    font-size: Theme.body;
+                                    color: Theme.textPrimary;
+                                }
+
+                                Text {
+                                    text: scope_item.justification != "" ? scope_item.justification : @tr("No justification provided");
+                                    font-size: Theme.caption;
+                                    color: Theme.textSecondary;
+                                }
                             }
                         }
                     }

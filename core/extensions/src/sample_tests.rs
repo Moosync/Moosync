@@ -720,7 +720,8 @@ macro_rules! generate_sample_tests {
                     let map = handler.extensions_map.read().unwrap();
                     map.get(&pkg).unwrap().clone()
                 };
-                assert_eq!(ext.manifest.scopes, $expected_scopes);
+                let actual_scopes: Vec<i32> = ext.manifest.scopes.iter().map(|s| s.scope).collect();
+                assert_eq!(actual_scopes, $expected_scopes);
             }
 
             #[tokio::test]

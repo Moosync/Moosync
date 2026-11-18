@@ -15,7 +15,7 @@ use slint::{ComponentHandle, Model, ModelRc, VecModel, Weak};
 use songs_proto::moosync::types::SearchResult as ProtoSearchResult;
 use state_manager::StateManager;
 use tracing::Instrument;
-use types::prelude::SearchResultExt;
+use types::prelude::{ScopeListExt, SearchResultExt};
 
 use crate::{
     AppCallbacks, MainWindow, SearchPageProps, Theme,
@@ -49,9 +49,7 @@ impl SearchPageHandler {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn has_account(state_manager: &StateManager, detail: &ExtensionDetail) -> bool {
-        let has_account_scope = detail
-            .scopes
-            .contains(&(ExtensionProviderScope::Accounts as i32));
+        let has_account_scope = detail.contains_scope(ExtensionProviderScope::Accounts);
         let Ok(ext) = state_manager
             .get_extension_handler()
             .get_extension(&detail.package_name)
@@ -73,11 +71,7 @@ impl SearchPageHandler {
         let search_extensions: Vec<ExtensionDetail> = extension_handler
             .get_installed_extensions()
             .into_iter()
-            .filter(|detail| {
-                detail
-                    .scopes
-                    .contains(&(ExtensionProviderScope::Search as i32))
-            })
+            .filter(|detail| detail.contains_scope(ExtensionProviderScope::Search))
             .collect();
 
         let mut providers = Vec::with_capacity(search_extensions.len() + 1);
@@ -259,9 +253,7 @@ impl SearchPageHandler {
                     .collect();
 
                 for detail in extension_handler.get_installed_extensions() {
-                    let is_search = detail
-                        .scopes
-                        .contains(&(ExtensionProviderScope::Search as i32));
+                    let is_search = detail.contains_scope(ExtensionProviderScope::Search);
                     if is_search && !active_packages.contains(&detail.package_name) {
                         let has_account = Self::has_account(state_manager, &detail);
                         Self::update_provider_result_if_current(
@@ -282,9 +274,7 @@ impl SearchPageHandler {
                     let req = req.clone();
                     let detail = ext.get_extension_detail();
                     let has_account = !ext.get_accounts().is_empty()
-                        || detail
-                            .scopes
-                            .contains(&(ExtensionProviderScope::Accounts as i32));
+                        || detail.contains_scope(ExtensionProviderScope::Accounts);
                     async move { (detail, has_account, ext.get_search_result(req).await) }
                         .in_current_span()
                 });

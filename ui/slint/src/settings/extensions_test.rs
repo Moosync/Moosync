@@ -244,6 +244,7 @@ async fn test_extensions_page_handler_action_callbacks(
     callbacks.invoke_toggle_extension("test.pkg".into());
     callbacks.invoke_install_extension("test.pkg".into());
     callbacks.invoke_update_all_extensions();
+    callbacks.invoke_refresh_extension_registries();
 
     tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 }

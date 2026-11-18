@@ -21,20 +21,38 @@ export component TextArrayInput inherits VerticalLayout {
 
     spacing: Theme.spacingSm;
 
-    VerticalLayout {
-        spacing: Theme.spacingXs;
-        Text {
-            text: root.title;
-            font-size: Theme.modelTitle;
-            font-weight: 600;
-            color: Theme.textPrimary;
+    HorizontalLayout {
+        spacing: Theme.spacingMd;
+        alignment: space-between;
+
+        VerticalLayout {
+            horizontal-stretch: 1;
+            spacing: Theme.spacingXs;
+
+            Text {
+                text: root.title;
+                font-size: Theme.modelTitle;
+                font-weight: 600;
+                color: Theme.textPrimary;
+            }
+
+            if root.subtitle != "": Text {
+                text: root.subtitle;
+                font-size: Theme.caption;
+                color: Theme.textSecondary;
+                wrap: word-wrap;
+            }
         }
 
-        if root.subtitle != "": Text {
-            text: root.subtitle;
-            font-size: Theme.caption;
-            color: Theme.textSecondary;
-            wrap: word-wrap;
+        if root.preference.id == "extension_registries": VerticalLayout {
+            alignment: center;
+
+            Button {
+                text: @tr("Refresh");
+                clicked => {
+                    AppCallbacks.refresh_extension_registries();
+                }
+            }
         }
     }
 
@@ -114,6 +132,7 @@ export component TextArrayInput inherits VerticalLayout {
 
     ScrollView {
         height: Theme.size7Xl;
+
         VerticalLayout {
             spacing: Theme.spacingXxs;
             padding-right: Theme.paddingLg;

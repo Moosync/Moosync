@@ -1,10 +1,11 @@
-use extensions_proto::moosync::types::{ExtensionDetail, ExtensionProviderScope};
+use extensions_proto::moosync::types::{ExtensionDetail, ExtensionProviderScope, ScopePermission};
 use rstest::rstest;
 use slint::{ComponentHandle, Model, ModelRc};
 use songs_proto::moosync::types::{
     InnerSong, SearchResult as ProtoSearchResult, Song as ProtoSong,
 };
 use tracing_test::traced_test;
+use types::prelude::ScopePermissionExt;
 
 use crate::{
     AppCallbacks, MainWindow, SearchPageProps,
@@ -204,7 +205,10 @@ async fn test_search_page_handler_update_provider_result(
     let detail = ExtensionDetail {
         name: "Test Ext Display".to_string(),
         package_name: "test.ext.package".to_string(),
-        scopes: vec![ExtensionProviderScope::Search as i32],
+        scopes: vec![ScopePermission::new(
+            ExtensionProviderScope::Search,
+            "Search provider",
+        )],
         ..Default::default()
     };
     SearchPageHandler::update_provider_result(

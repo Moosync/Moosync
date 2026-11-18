@@ -31,11 +31,14 @@ export component SongDetails inherits HorizontalLayout {
 
         VerticalLayout {
             alignment: start;
+
             Rectangle {
                 width: Theme.songDetailsThumbnailSize;
                 height: Theme.songDetailsThumbnailSize;
                 border-radius: Theme.borderRadiusLg;
+                background: Theme.secondary;
                 clip: true;
+
                 Image {
                     height: parent.height;
                     width: parent.width;
@@ -46,6 +49,7 @@ export component SongDetails inherits HorizontalLayout {
 
             VerticalLayout {
                 spacing: Theme.spacingXxs;
+
                 Text {
                     text: song.title;
                     color: Theme.textPrimary;

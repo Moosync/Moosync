@@ -1,9 +1,9 @@
 import { Theme } from "../constants.slint";
 import { AppCallbacks } from "../callbacks.slint";
 import { Modal, ModalSize } from "modal.slint";
-import { TextInputGroup } from "../settings/text_input.slint";
-import { SingleFileInput } from "../settings/single_file_input.slint";
-import { ButtonGroup } from "../settings/button_group.slint";
+import { IconButton } from "icon_button.slint";
+import { PillButton } from "pill_button.slint";
+import { Utils, DefaultIconType } from "../utils.slint";
 
 import { SavePlaylistState } from "save_playlist_modal_props.slint";
 
@@ -12,79 +12,186 @@ export component SavePlaylistModal inherits Modal {
     in-out property <string> playlist_description: "";
     in-out property <string> playlist_cover: "";
 
-    modalSize: ModalSize.Md;
+    modalSize: ModalSize.Lg;
+    custom_width: Theme.modalWidth;
+    custom_height: 240px;
+    modal_border_radius: Theme.borderRadiusSm;
+
+    function save_playlist() {
+        let final_name = root.playlist_name != "" ? root.playlist_name : @tr("New Playlist");
+        AppCallbacks.save_queue_as_playlist(final_name, root.playlist_description, root.playlist_cover, SavePlaylistState.songs);
+        root.playlist_name = "";
+        root.playlist_description = "";
+        root.playlist_cover = "";
+        SavePlaylistState.songs = [];
+        root.close();
+    }
 
     Rectangle {
         background: Theme.primary;
-        border-radius: Theme.borderRadiusLg;
-        border-width: Theme.borderWidth;
-        border-color: Theme.accent.transparentize(Theme.percent80);
+        border-radius: Theme.borderRadiusSm;
+        border-width: Theme.borderWidthMd;
+        border-color: Theme.accent;
         clip: true;
-        preferred-height: Theme.modalHeightMd;
-        max-height: Theme.modalHeightMd;
 
-        VerticalLayout {
-            padding: Theme.paddingMd;
-            spacing: Theme.spacingSm;
+        // Top-right close button
+        IconButton {
+            x: parent.width - self.width - Theme.paddingSm;
+            y: Theme.paddingSm;
+            accessible-label: @tr("Close");
+            icon_source: @image-url("../icons/cross.svg");
+            icon_size: Theme.iconSizeSm;
+            icon_color: Theme.danger;
+            clicked => {
+                root.close();
+            }
+        }
 
+        HorizontalLayout {
+            padding: Theme.paddingXl;
+            padding-left: Theme.paddingXl + Theme.paddingMd;
+            spacing: Theme.spacingXl;
+            alignment: start;
+
+            // Playlist cover / 2x2 collage
             VerticalLayout {
-                spacing: Theme.spacingTiny;
-                Text {
-                    text: @tr("Save as Playlist");
-                    font-size: Theme.modelTitle;
-                    font-weight: 700;
-                    color: Theme.textPrimary;
-                }
+                alignment: center;
 
-                Text {
-                    text: @tr("Enter details for the new playlist.");
-                    font-size: Theme.caption;
-                    color: Theme.textSecondary;
-                    wrap: word-wrap;
-                }
-            }
+                cover_box := Rectangle {
+                    width: Theme.size8Xl;
+                    height: Theme.size8Xl;
+                    border-radius: Theme.borderRadiusXl;
+                    background: Theme.secondary;
+                    clip: true;
 
-            TextInputGroup {
-                title: @tr("Playlist Name");
-                subtitle: "";
-                placeholder: @tr("e.g., My Queue Playlist");
-                value <=> root.playlist_name;
-            }
+                    if (SavePlaylistState.songs.length >= 4): GridLayout {
+                        width: 100%;
+                        height: 100%;
 
-            TextInputGroup {
-                title: @tr("Description");
-                subtitle: "";
-                placeholder: @tr("e.g., Chill vibes and favorites");
-                value <=> root.playlist_description;
-            }
+                        Row {
+                            Image {
+                                width: cover_box.width / 2;
+                                height: cover_box.height / 2;
+                                source: Utils.load_image_or_default(SavePlaylistState.songs[0].coverPathLow, DefaultIconType.Song);
+                                image-fit: cover;
+                            }
 
-            SingleFileInput {
-                title: @tr("Cover Image");
-                subtitle: "";
-                filter: "image";
-                value <=> root.playlist_cover;
-            }
-
-            Rectangle {
-                vertical-stretch: 1;
-            }
-
-            HorizontalLayout {
-                alignment: end;
-                ButtonGroup {
-                    buttons: [
-                        { id: "cancel", text: @tr("Cancel"), is-destructive: false, is-neutral: true },
-                        { id: "confirm", text: @tr("Save"), is-destructive: false, is-neutral: false }
-                    ];
-                    clicked(id) => {
-                        if (id == "confirm") {
-                            AppCallbacks.save_queue_as_playlist(root.playlist_name, root.playlist_description, root.playlist_cover, SavePlaylistState.songs);
-                            root.playlist_name = "";
-                            root.playlist_description = "";
-                            root.playlist_cover = "";
-                            SavePlaylistState.songs = [];
+                            Image {
+                                width: cover_box.width / 2;
+                                height: cover_box.height / 2;
+                                source: Utils.load_image_or_default(SavePlaylistState.songs[1].coverPathLow, DefaultIconType.Song);
+                                image-fit: cover;
+                            }
                         }
-                        root.close();
+
+                        Row {
+                            Image {
+                                width: cover_box.width / 2;
+                                height: cover_box.height / 2;
+                                source: Utils.load_image_or_default(SavePlaylistState.songs[2].coverPathLow, DefaultIconType.Song);
+                                image-fit: cover;
+                            }
+
+                            Image {
+                                width: cover_box.width / 2;
+                                height: cover_box.height / 2;
+                                source: Utils.load_image_or_default(SavePlaylistState.songs[3].coverPathLow, DefaultIconType.Song);
+                                image-fit: cover;
+                            }
+                        }
+                    }
+
+                    if (SavePlaylistState.songs.length > 0 && SavePlaylistState.songs.length < 4): Image {
+                        width: 100%;
+                        height: 100%;
+                        source: Utils.load_image_or_default(SavePlaylistState.songs[0].coverPathLow, DefaultIconType.Song);
+                        image-fit: cover;
+                    }
+
+                    if (SavePlaylistState.songs.length == 0): Image {
+                        width: 100%;
+                        height: 100%;
+                        source: @image-url("../icons/song_default.svg");
+                        image-fit: cover;
+                    }
+
+                    cover_touch := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => {
+                            let chosen = AppCallbacks.open_file_picker("image");
+                            if (chosen != "") {
+                                root.playlist_cover = chosen;
+                            }
+                        }
+                    }
+
+                    if (cover_touch.has-hover): Rectangle {
+                        background: rgba(0, 0, 0, 0.45);
+
+                        Image {
+                            width: Theme.iconSizeLg;
+                            height: Theme.iconSizeLg;
+                            source: @image-url("../icons/folder.svg");
+                            colorize: Theme.textPrimary;
+                        }
+                    }
+                }
+            }
+
+            // Title + song count + save action
+            VerticalLayout {
+                horizontal-stretch: 1;
+                padding-top: Theme.paddingMd;
+                spacing: Theme.spacingXs;
+
+                Rectangle {
+                    height: Theme.pageHeader + Theme.paddingSm;
+                    clip: true;
+
+                    if (name_input.text == ""): Text {
+                        width: 100%;
+                        height: 100%;
+                        text: @tr("New Playlist");
+                        font-size: Theme.pageHeader;
+                        font-weight: 500;
+                        color: Theme.textPrimary.with-alpha(0.6);
+                        vertical-alignment: center;
+                    }
+
+                    name_input := TextInput {
+                        width: 100%;
+                        height: 100%;
+                        text <=> root.playlist_name;
+                        font-size: Theme.pageHeader;
+                        font-weight: 500;
+                        color: Theme.textPrimary;
+                        selection-background-color: Theme.accent.transparentize(Theme.percent75);
+                        vertical-alignment: center;
+                        single-line: true;
+                        accepted => {
+                            root.save_playlist();
+                        }
+                    }
+                }
+
+                Text {
+                    text: SavePlaylistState.songs.length == 1 ? @tr("1 Song") : @tr("{} Songs", SavePlaylistState.songs.length);
+                    font-size: Theme.subtitle;
+                    color: Theme.textPrimary.with-alpha(0.75);
+                }
+
+                Rectangle {
+                    vertical-stretch: 1;
+                }
+
+                HorizontalLayout {
+                    alignment: end;
+
+                    PillButton {
+                        text: @tr("Save");
+                        clicked => {
+                            root.save_playlist();
+                        }
                     }
                 }
             }

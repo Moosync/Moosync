@@ -42,6 +42,7 @@ Always activate and follow the **problem-solving** skill (`.agents/skills/proble
 - Donot try to manually format files while editing. If Bazel skips a test, thats because nothing was changed. You can ignore that test.
 - If you want to format a file, use bazel run //tools:format
 - Never add comments to tests unless performing an obscure action that is unrelated to the test or too complicated to understand in layman terms.
+- Never manually implement cryptographic algorithms or hash functions (e.g., MD5, SHA). Always use an established third-party crate.
 
 ### Build System
 

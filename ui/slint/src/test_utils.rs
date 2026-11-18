@@ -72,7 +72,8 @@ pub mod integration {
     };
 
     use extensions_proto::moosync::types::{
-        ExtensionManifest, ExtensionProviderScope, ManifestPermissions,
+        ExtensionManifest, ExtensionProviderScope, HostPermission, ManifestPermissions,
+        PathPermission, ScopePermission,
     };
     use futures::FutureExt;
     use player_proto::moosync::types::RepeatMode;
@@ -83,6 +84,7 @@ pub mod integration {
         SearchableSong, Song, SongType, entity_result,
     };
     use state_manager::StateManager;
+    use types::prelude::ScopePermissionExt;
 
     use crate::{
         AccountsProps, AlbumContentPageProps, AlbumsPageProps, AllSongsPageProps, AppCallbacks,
@@ -316,6 +318,9 @@ pub mod integration {
             .global::<ExtensionDetailsState>()
             .set_show_modal(false);
         main_window
+            .global::<ExtensionDetailsState>()
+            .set_show_install_prompt(false);
+        main_window
             .global::<AppCallbacks>()
             .invoke_settings_toggled(false);
         main_window
@@ -358,6 +363,13 @@ pub mod integration {
         match rx.recv() {
             Ok(Ok(())) => {}
             Ok(Err(panic_err)) => {
+                if let Some(s) = panic_err.downcast_ref::<&str>() {
+                    eprintln!("SLINT TEST PANIC in {test_name}: {s}");
+                } else if let Some(s) = panic_err.downcast_ref::<String>() {
+                    eprintln!("SLINT TEST PANIC in {test_name}: {s}");
+                } else {
+                    eprintln!("SLINT TEST PANIC in {test_name}: (unknown payload)");
+                }
                 std::panic::resume_unwind(panic_err);
             }
             Err(e) => {
@@ -451,6 +463,26 @@ pub mod integration {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_sample_ext_path() -> PathBuf { get_sample_ext_path_for("default") }
 
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn get_sample_msxt_path() -> PathBuf {
+        let runfiles_dir = env::var("TEST_SRCDIR").expect("TEST_SRCDIR must be set");
+        let candidates = [
+            PathBuf::from(&runfiles_dir)
+                .join("_main/sample_extensions/default/sample_extension.msxt"),
+            PathBuf::from(&runfiles_dir)
+                .join("moosync/sample_extensions/default/sample_extension.msxt"),
+            PathBuf::from(&runfiles_dir)
+                .join("moosync_ext+/sample_extensions/default/sample_extension.msxt"),
+            PathBuf::from(&runfiles_dir)
+                .join("moosync_ext/sample_extensions/default/sample_extension.msxt"),
+        ];
+        candidates
+            .iter()
+            .find(|p| p.exists())
+            .cloned()
+            .unwrap_or_else(|| candidates[0].clone())
+    }
+
     static CLEANUP_HANDLES: std::sync::Mutex<Vec<tokio::task::JoinHandle<()>>> =
         std::sync::Mutex::new(Vec::new());
 
@@ -523,20 +555,29 @@ pub mod integration {
 
             let scopes = if subpath == "empty" {
                 vec![
-                    ExtensionProviderScope::Search as i32,
-                    ExtensionProviderScope::Accounts as i32,
+                    ScopePermission::new(ExtensionProviderScope::Search, "Search"),
+                    ScopePermission::new(ExtensionProviderScope::Accounts, "Accounts"),
                 ]
             } else {
                 vec![
-                    ExtensionProviderScope::Accounts as i32,
-                    ExtensionProviderScope::Search as i32,
-                    ExtensionProviderScope::Playlists as i32,
-                    ExtensionProviderScope::PlaylistSongs as i32,
-                    ExtensionProviderScope::ArtistSongs as i32,
-                    ExtensionProviderScope::AlbumSongs as i32,
-                    ExtensionProviderScope::Lyrics as i32,
-                    ExtensionProviderScope::SongContextMenu as i32,
-                    ExtensionProviderScope::PlaylistContextMenu as i32,
+                    ScopePermission::new(ExtensionProviderScope::Accounts, "Account login"),
+                    ScopePermission::new(ExtensionProviderScope::Search, "Search tracks"),
+                    ScopePermission::new(ExtensionProviderScope::Playlists, "Manage playlists"),
+                    ScopePermission::new(
+                        ExtensionProviderScope::PlaylistSongs,
+                        "Manage playlist songs",
+                    ),
+                    ScopePermission::new(ExtensionProviderScope::ArtistSongs, "Fetch artist songs"),
+                    ScopePermission::new(ExtensionProviderScope::AlbumSongs, "Fetch album songs"),
+                    ScopePermission::new(ExtensionProviderScope::Lyrics, "Fetch lyrics"),
+                    ScopePermission::new(
+                        ExtensionProviderScope::SongContextMenu,
+                        "Song context menu",
+                    ),
+                    ScopePermission::new(
+                        ExtensionProviderScope::PlaylistContextMenu,
+                        "Playlist context menu",
+                    ),
                 ]
             };
 
@@ -549,13 +590,28 @@ pub mod integration {
                 icon: "icon.svg".to_string(),
                 author: Some("Moosync".to_string()),
                 permissions: Some(ManifestPermissions {
-                    hosts: vec!["api.example.com".to_string(), "*.moosync.app".to_string()],
-                    paths: [
-                        ("/music".to_string(), "/media/music".to_string()),
-                        ("/tmp/moosync".to_string(), "/tmp/sandbox".to_string()),
-                    ]
-                    .into_iter()
-                    .collect(),
+                    hosts: vec![
+                        HostPermission {
+                            host: "api.example.com".to_string(),
+                            justification: "API access".to_string(),
+                        },
+                        HostPermission {
+                            host: "*.moosync.app".to_string(),
+                            justification: "Moosync sync".to_string(),
+                        },
+                    ],
+                    paths: vec![
+                        PathPermission {
+                            source: "/music".to_string(),
+                            target: "/media/music".to_string(),
+                            justification: "Music files".to_string(),
+                        },
+                        PathPermission {
+                            source: "/tmp/moosync".to_string(),
+                            target: "/tmp/sandbox".to_string(),
+                            justification: "Sandbox storage".to_string(),
+                        },
+                    ],
                     binaries: vec![],
                 }),
                 scopes,

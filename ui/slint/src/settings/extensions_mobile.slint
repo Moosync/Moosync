@@ -33,6 +33,7 @@ export component ExtensionItemMobile inherits Rectangle {
 
         VerticalLayout {
             alignment: center;
+
             Rectangle {
                 width: Theme.mobileButtonSize;
                 height: Theme.mobileButtonSize;
@@ -55,6 +56,7 @@ export component ExtensionItemMobile inherits Rectangle {
 
             HorizontalLayout {
                 spacing: Theme.spacingSm;
+
                 Text {
                     text: root.item.name;
                     font-size: Theme.body;
@@ -89,6 +91,7 @@ export component ExtensionItemMobile inherits Rectangle {
 
         VerticalLayout {
             alignment: center;
+
             HorizontalLayout {
                 spacing: Theme.spacingSm;
                 alignment: center;
@@ -100,6 +103,7 @@ export component ExtensionItemMobile inherits Rectangle {
                     height: Theme.mobileButtonSize;
                     clicked => {
                         ExtensionDetailsState.item = root.item;
+                        ExtensionDetailsState.show_install_prompt = false;
                         ExtensionDetailsState.show_modal = true;
                     }
                 }
@@ -152,6 +156,7 @@ export component ExtensionsPageMobile inherits SettingsPageLayoutMobile {
                 VerticalLayout {
                     alignment: center;
                     horizontal-stretch: 1;
+
                     Text {
                         text: @tr("Manage your extensions");
                         font-size: Theme.caption;

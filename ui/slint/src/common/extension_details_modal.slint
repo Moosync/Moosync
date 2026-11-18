@@ -4,12 +4,76 @@ import { IconButton } from "icon_button.slint";
 import { ScrollView } from "std-widgets.slint";
 import { PreferenceGroup } from "../settings/preference_group.slint";
 import { Button } from "button.slint";
-import { ExtensionItem, ProviderScope } from "../types/extension_view.slint";
+import { TextButton } from "text_button.slint";
+import { BinaryPermissionWarning } from "binary_permission_warning.slint";
+import {
+    ExtensionItem,
+    ProviderScope,
+    ExtensionBinaryPermission,
+    ExtensionHostPermission,
+    ExtensionPathPermission,
+    ExtensionScopePermission,
+} from "../types/extension_view.slint";
 
 import { ExtensionDetailsState } from "extension_details_modal_props.slint";
 
 export component ExtensionDetailsModal inherits Modal {
-    in property <ExtensionItem> item: ExtensionDetailsState.item;
+    in property <ExtensionItem> item: ExtensionDetailsState.item.name != "" ? ExtensionDetailsState.item : {
+        name: "Sample Extension",
+        package_name: "org.moosync.sample",
+        version: "1.0.0",
+        author: "Moosync Team",
+        description: "A sample extension demonstrating required permissions, justifications, and native binary security verification.",
+        is_installed: false,
+        loading: false,
+        icon: @image-url("../icons/extensions.svg"),
+        has_started: false,
+        icon_url: "",
+        registry: "Moosync Extensions",
+        network_permissions: [
+            {
+                host: "api.example.com",
+                justification: "Access remote music library catalog and search endpoints."
+            },
+            {
+                host: "*.moosync.app",
+                justification: "User authentication and playlist synchronization."
+            }
+        ],
+        filesystem_permissions: [
+            {
+                source: "{CACHE_DIR}/bin",
+                target: "/cache/bin",
+                justification: "Store extracted helper tools and temporary audio cache."
+            },
+            {
+                source: "/music",
+                target: "/media/music",
+                justification: "Read-only access to play local audio files."
+            }
+        ],
+        binaries_permissions: [
+            {
+                name: "{CACHE_DIR}/bin/yt-dlp",
+                hashes: "SHA-256: 7b819280e5...1b2c\nSHA-512: d80214a9b2...4f71\nMD5: 9e107d9d37...2f18",
+                justification: "Extract streaming audio URLs for remote playback."
+            }
+        ],
+        scopes: [
+            {
+                scope: ProviderScope.search,
+                justification: "Query track and album search results."
+            },
+            {
+                scope: ProviderScope.playlists,
+                justification: "Fetch and manage custom user playlists."
+            },
+            { scope: ProviderScope.lyrics, justification: "Fetch synchronized LRC track lyrics." }
+        ],
+        error: ""
+    };
+
+    in property <bool> show_install_prompt: ExtensionDetailsState.item.name != "" ? ExtensionDetailsState.show_install_prompt : true;
 
     pure function scope_to_display_string(scope: ProviderScope) -> string {
         if scope == ProviderScope.search {
@@ -65,6 +129,11 @@ export component ExtensionDetailsModal inherits Modal {
         }
         return @tr("Unknown Scope");
     }
+
+    pure function display_justification(justification: string) -> string {
+        return justification != "" ? justification : @tr("No justification provided");
+    }
+
     modalSize: ModalSize.Lg;
 
     Rectangle {
@@ -78,7 +147,37 @@ export component ExtensionDetailsModal inherits Modal {
             padding: Theme.paddingLg;
             spacing: Theme.spacingMd;
 
-            // Header with Icon, Name, Version, Author & Close button
+            // Optional install prompt banner
+            if root.show_install_prompt: Rectangle {
+                background: Theme.accent.transparentize(0.9);
+                border-radius: Theme.borderRadiusMd;
+                border-width: Theme.borderWidth;
+                border-color: Theme.accent.transparentize(0.7);
+
+                HorizontalLayout {
+                    padding: Theme.paddingSm;
+                    spacing: Theme.spacingSm;
+                    alignment: start;
+
+                    Image {
+                        width: Theme.iconSizeSm;
+                        height: Theme.iconSizeSm;
+                        source: @image-url("../icons/info.svg");
+                        image-fit: contain;
+                        colorize: Theme.accent;
+                    }
+
+                    Text {
+                        text: @tr("Extension Installation Request: Review permissions and justifications below before approving.");
+                        font-size: Theme.caption;
+                        font-weight: 600;
+                        color: Theme.accent;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+
+            // Header with Icon, Name, Version, Author
             HorizontalLayout {
                 spacing: Theme.spacingMd;
 
@@ -87,6 +186,7 @@ export component ExtensionDetailsModal inherits Modal {
                     height: Theme.extensionIconSize;
                     border-radius: Theme.borderRadiusMd;
                     clip: true;
+
                     Image {
                         width: 100%;
                         height: 100%;
@@ -176,6 +276,12 @@ export component ExtensionDetailsModal inherits Modal {
                     padding-right: Theme.paddingSm;
                     padding-top: Theme.paddingMd;
 
+                    // BIG RED WARNING: Native Binaries Execution
+                    if root.item.binaries_permissions.length > 0: BinaryPermissionWarning {
+                        binaries: root.item.binaries_permissions;
+                    }
+
+                    // Network Permissions with Justifications
                     PreferenceGroup {
                         Text {
                             text: @tr("Network Permissions");
@@ -192,15 +298,43 @@ export component ExtensionDetailsModal inherits Modal {
                             color: Theme.textSecondary;
                         }
 
-                        for host in root.item.network_permissions: Text {
-                            accessible-role: text;
-                            accessible-label: @tr("Network Host: ") + host;
-                            text: "• " + host;
-                            font-size: Theme.caption;
-                            color: Theme.textPrimary;
+                        if root.item.network_permissions.length > 0: VerticalLayout {
+                            spacing: Theme.spacingTiny;
+
+                            for host_item in root.item.network_permissions: Rectangle {
+                                height: host_layout.preferred-height;
+
+                                host_layout := HorizontalLayout {
+                                    spacing: Theme.spacingSm;
+                                    alignment: start;
+
+                                    Text {
+                                        horizontal-stretch: 0;
+                                        vertical-alignment: center;
+                                        accessible-role: text;
+                                        accessible-label: @tr("Network Host: ") + host_item.host;
+                                        text: "• " + host_item.host;
+                                        font-size: Theme.caption;
+                                        font-weight: 600;
+                                        color: Theme.textPrimary;
+                                    }
+
+                                    Text {
+                                        horizontal-stretch: 1;
+                                        vertical-alignment: center;
+                                        accessible-role: text;
+                                        accessible-label: @tr("Network Justification: ") + root.display_justification(host_item.justification);
+                                        text: "— " + root.display_justification(host_item.justification);
+                                        font-size: Theme.caption;
+                                        color: Theme.textSecondary;
+                                        wrap: word-wrap;
+                                    }
+                                }
+                            }
                         }
                     }
 
+                    // Filesystem Permissions with Justifications
                     PreferenceGroup {
                         Text {
                             text: @tr("Filesystem Permissions");
@@ -217,15 +351,43 @@ export component ExtensionDetailsModal inherits Modal {
                             color: Theme.textSecondary;
                         }
 
-                        for path in root.item.filesystem_permissions: Text {
-                            accessible-role: text;
-                            accessible-label: @tr("Filesystem Path: ") + path.source + " -> " + path.target;
-                            text: "• " + path.source + " -> " + path.target;
-                            font-size: Theme.caption;
-                            color: Theme.textPrimary;
+                        if root.item.filesystem_permissions.length > 0: VerticalLayout {
+                            spacing: Theme.spacingTiny;
+
+                            for path_item in root.item.filesystem_permissions: Rectangle {
+                                height: path_layout.preferred-height;
+
+                                path_layout := HorizontalLayout {
+                                    spacing: Theme.spacingSm;
+                                    alignment: start;
+
+                                    Text {
+                                        horizontal-stretch: 0;
+                                        vertical-alignment: center;
+                                        accessible-role: text;
+                                        accessible-label: @tr("Filesystem Path: ") + path_item.source + " -> " + path_item.target;
+                                        text: "• " + path_item.source + " -> " + path_item.target;
+                                        font-size: Theme.caption;
+                                        font-weight: 600;
+                                        color: Theme.textPrimary;
+                                    }
+
+                                    Text {
+                                        horizontal-stretch: 1;
+                                        vertical-alignment: center;
+                                        accessible-role: text;
+                                        accessible-label: @tr("Filesystem Justification: ") + root.display_justification(path_item.justification);
+                                        text: "— " + root.display_justification(path_item.justification);
+                                        font-size: Theme.caption;
+                                        color: Theme.textSecondary;
+                                        wrap: word-wrap;
+                                    }
+                                }
+                            }
                         }
                     }
 
+                    // Provider Scopes with Justifications
                     PreferenceGroup {
                         Text {
                             text: @tr("Provider Scopes");
@@ -242,22 +404,47 @@ export component ExtensionDetailsModal inherits Modal {
                             color: Theme.textSecondary;
                         }
 
-                        FlexboxLayout {
-                            spacing: Theme.spacingXs;
-                            for scope in root.item.scopes: Rectangle {
-                                border-radius: Theme.borderRadiusSm;
-                                background: Theme.accent.transparentize(0.85);
-                                HorizontalLayout {
-                                    padding-left: Theme.paddingSm;
-                                    padding-right: Theme.paddingSm;
-                                    padding-top: Theme.spacingTiny;
-                                    padding-bottom: Theme.spacingTiny;
+                        if root.item.scopes.length > 0: VerticalLayout {
+                            spacing: Theme.spacingTiny;
+
+                            for scope_item in root.item.scopes: Rectangle {
+                                height: scope_layout.preferred-height;
+
+                                scope_layout := HorizontalLayout {
+                                    spacing: Theme.spacingSm;
+                                    alignment: start;
+
+                                    Rectangle {
+                                        border-radius: Theme.borderRadiusSm;
+                                        background: Theme.accent.transparentize(0.85);
+                                        horizontal-stretch: 0;
+
+                                        HorizontalLayout {
+                                            padding-left: Theme.paddingSm;
+                                            padding-right: Theme.paddingSm;
+                                            padding-top: 2px;
+                                            padding-bottom: 2px;
+
+                                            Text {
+                                                accessible-role: text;
+                                                accessible-label: @tr("Scope: ") + root.scope_to_display_string(scope_item.scope);
+                                                text: root.scope_to_display_string(scope_item.scope);
+                                                font-size: Theme.caption;
+                                                font-weight: 600;
+                                                color: Theme.accent;
+                                            }
+                                        }
+                                    }
+
                                     Text {
+                                        horizontal-stretch: 1;
+                                        vertical-alignment: center;
                                         accessible-role: text;
-                                        accessible-label: @tr("Scope: ") + root.scope_to_display_string(scope);
-                                        text: root.scope_to_display_string(scope);
+                                        accessible-label: @tr("Scope Justification: ") + root.display_justification(scope_item.justification);
+                                        text: root.display_justification(scope_item.justification);
                                         font-size: Theme.caption;
-                                        color: Theme.accent;
+                                        color: Theme.textSecondary;
+                                        wrap: word-wrap;
                                     }
                                 }
                             }
@@ -266,9 +453,31 @@ export component ExtensionDetailsModal inherits Modal {
                 }
             }
 
+            // Action Buttons
             HorizontalLayout {
                 alignment: end;
-                Button {
+                spacing: Theme.spacingMd;
+
+                if root.show_install_prompt: TextButton {
+                    text: @tr("Reject");
+                    accessible-label: @tr("Reject Extension Installation");
+                    text_color: Theme.danger;
+                    clicked => {
+                        ExtensionDetailsState.reject();
+                        root.close();
+                    }
+                }
+
+                if root.show_install_prompt: Button {
+                    text: @tr("Approve & Install");
+                    accessible-label: @tr("Approve Extension Installation");
+                    clicked => {
+                        ExtensionDetailsState.approve();
+                        root.close();
+                    }
+                }
+
+                if !root.show_install_prompt: Button {
                     text: @tr("Close");
                     accessible-label: @tr("Close Extension Details");
                     clicked => { root.close(); }

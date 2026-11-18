@@ -2,7 +2,8 @@ use std::collections::HashMap;
 
 use assertables::assert_some_eq_x;
 use extensions_proto::moosync::types::{
-    ExtensionDetail, ExtensionManifest, ExtensionProviderScope, ManifestPermissions,
+    BinaryPermission, ExtensionDetail, ExtensionManifest, ExtensionProviderScope, HostPermission,
+    ManifestPermissions, PathPermission, ScopePermission,
 };
 use rstest::rstest;
 use slint::{ComponentHandle, Image, Model};
@@ -14,11 +15,13 @@ use songs_proto::{
 };
 use tempdir::TempDir;
 use tracing_test::traced_test;
+use types::prelude::ScopePermissionExt;
 
 use crate::{
-    AlbumModel, ArtistModel, ExtensionItem, ExtensionPathPermission, GenreModel, MainWindow,
-    PlaylistModel, ProviderScope, SongModel, Theme, test_utils::main_window,
-    utils::create_search_result,
+    AlbumModel, ArtistModel, ExtensionItem, GenreModel, MainWindow, PlaylistModel, ProviderScope,
+    SongModel, Theme,
+    test_utils::main_window,
+    utils::{create_search_result, extension_item_from_detail, extension_item_from_manifest},
 };
 
 #[test]
@@ -272,8 +275,6 @@ fn test_to_extension_item() {
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_to_extension_item_with_permissions_and_scopes() {
-    let mut paths = HashMap::new();
-    paths.insert("/source/path".to_string(), "/target/path".to_string());
     let detail = ExtensionDetail {
         package_name: "com.test.ext".to_string(),
         name: "Test Extension".to_string(),
@@ -281,13 +282,20 @@ fn test_to_extension_item_with_permissions_and_scopes() {
         version: "1.0.0".to_string(),
         author: Some("Author".to_string()),
         permissions: Some(ManifestPermissions {
-            hosts: vec!["https://api.example.com".to_string()],
-            paths,
+            hosts: vec![HostPermission {
+                host: "https://api.example.com".to_string(),
+                justification: "API access".to_string(),
+            }],
+            paths: vec![PathPermission {
+                source: "/source/path".to_string(),
+                target: "/target/path".to_string(),
+                justification: "Music storage".to_string(),
+            }],
             binaries: vec![],
         }),
         scopes: vec![
-            ExtensionProviderScope::Search as i32,
-            ExtensionProviderScope::Playlists as i32,
+            ScopePermission::new(ExtensionProviderScope::Search, "Search provider"),
+            ScopePermission::new(ExtensionProviderScope::Playlists, "Playlist provider"),
         ],
         ..Default::default()
     };
@@ -301,8 +309,12 @@ fn test_to_extension_item_with_permissions_and_scopes() {
     assert_eq!(item.author, "Author");
     assert_eq!(item.network_permissions.row_count(), 1);
     assert_eq!(
-        item.network_permissions.row_data(0).unwrap(),
+        item.network_permissions.row_data(0).unwrap().host,
         "https://api.example.com"
+    );
+    assert_eq!(
+        item.network_permissions.row_data(0).unwrap().justification,
+        "API access"
     );
     assert_eq!(item.filesystem_permissions.row_count(), 1);
     assert_eq!(
@@ -313,35 +325,30 @@ fn test_to_extension_item_with_permissions_and_scopes() {
         item.filesystem_permissions.row_data(0).unwrap().target,
         "/target/path"
     );
+    assert_eq!(
+        item.filesystem_permissions
+            .row_data(0)
+            .unwrap()
+            .justification,
+        "Music storage"
+    );
     assert_eq!(item.scopes.row_count(), 2);
-    assert_eq!(item.scopes.row_data(0).unwrap(), ProviderScope::Search);
-    assert_eq!(item.scopes.row_data(1).unwrap(), ProviderScope::Playlists);
-}
-
-#[test]
-#[traced_test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_extension_path_permission_from_tuple() {
-    let source = "/host/music".to_string();
-    let target = "/sandbox/music".to_string();
-
-    let perm = ExtensionPathPermission::from((source, target));
-
-    assert_eq!(perm.source, "/host/music");
-    assert_eq!(perm.target, "/sandbox/music");
-}
-
-#[test]
-#[traced_test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_extension_path_permission_from_ref_tuple() {
-    let source = "/host/music".to_string();
-    let target = "/sandbox/music".to_string();
-
-    let perm = ExtensionPathPermission::from((&source, &target));
-
-    assert_eq!(perm.source, "/host/music");
-    assert_eq!(perm.target, "/sandbox/music");
+    assert_eq!(
+        item.scopes.row_data(0).unwrap().scope,
+        ProviderScope::Search
+    );
+    assert_eq!(
+        item.scopes.row_data(0).unwrap().justification,
+        "Search provider"
+    );
+    assert_eq!(
+        item.scopes.row_data(1).unwrap().scope,
+        ProviderScope::Playlists
+    );
+    assert_eq!(
+        item.scopes.row_data(1).unwrap().justification,
+        "Playlist provider"
+    );
 }
 
 #[rstest]
@@ -612,4 +619,207 @@ fn test_extension_items_default_extension_icon() {
     let local_song_model = SongModel::from(local_song);
     assert_eq!(local_song_model.extension, "");
     assert_eq!(local_song_model.extension_icon.size().width, 0);
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_extension_item_from_manifest_permissions_mapping() {
+    let mut hashes = HashMap::new();
+    hashes.insert("sha256".to_string(), "abc256".to_string());
+    hashes.insert("sha512".to_string(), "def512".to_string());
+    hashes.insert("md5".to_string(), "ghi012".to_string());
+
+    let manifest = ExtensionManifest {
+        name: "test.pkg".to_string(),
+        display_name: "Test Display".to_string(),
+        version: "1.2.3".to_string(),
+        description: Some("Test description".to_string()),
+        author: Some("Test Author".to_string()),
+        icon: "icon.svg".to_string(),
+        permissions: Some(ManifestPermissions {
+            hosts: vec![HostPermission {
+                host: "api.example.com".to_string(),
+                justification: "Connect to API".to_string(),
+            }],
+            paths: vec![PathPermission {
+                source: "/host/cache".to_string(),
+                target: "/guest/cache".to_string(),
+                justification: "Store cache".to_string(),
+            }],
+            binaries: vec![BinaryPermission {
+                name: "/host/cache/bin".to_string(),
+                hashes,
+                justification: "Run helper".to_string(),
+            }],
+        }),
+        scopes: vec![ScopePermission::new(
+            ExtensionProviderScope::Search,
+            "Search catalog",
+        )],
+        ..Default::default()
+    };
+
+    let item = ExtensionItem::from(manifest);
+
+    assert_eq!(item.name, "Test Display");
+    assert_eq!(item.package_name, "test.pkg");
+    assert_eq!(item.version, "1.2.3");
+    assert_eq!(item.network_permissions.row_count(), 1);
+    let net = item.network_permissions.row_data(0).unwrap();
+    assert_eq!(net.host, "api.example.com");
+    assert_eq!(net.justification, "Connect to API");
+
+    assert_eq!(item.filesystem_permissions.row_count(), 1);
+    let path = item.filesystem_permissions.row_data(0).unwrap();
+    assert_eq!(path.source, "/host/cache");
+    assert_eq!(path.target, "/guest/cache");
+    assert_eq!(path.justification, "Store cache");
+
+    assert_eq!(item.binaries_permissions.row_count(), 1);
+    let bin = item.binaries_permissions.row_data(0).unwrap();
+    assert_eq!(bin.name, "/host/cache/bin");
+    assert!(bin.hashes.contains("sha256: abc256"));
+    assert!(bin.hashes.contains("sha512: def512"));
+    assert!(bin.hashes.contains("md5: ghi012"));
+    assert_eq!(bin.justification, "Run helper");
+
+    assert_eq!(item.scopes.row_count(), 1);
+    let sc = item.scopes.row_data(0).unwrap();
+    assert_eq!(sc.scope, ProviderScope::Search);
+    assert_eq!(sc.justification, "Search catalog");
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_extension_item_from_detail_permissions_mapping() {
+    let mut hashes = HashMap::new();
+    hashes.insert("sha256".to_string(), "samplehash".to_string());
+
+    let detail = ExtensionDetail {
+        name: "Installed Ext".to_string(),
+        package_name: "installed.ext".to_string(),
+        version: "2.0.0".to_string(),
+        has_started: true,
+        permissions: Some(ManifestPermissions {
+            hosts: vec![HostPermission {
+                host: "api.moosync.app".to_string(),
+                justification: "Sync account".to_string(),
+            }],
+            paths: vec![PathPermission {
+                source: "/data".to_string(),
+                target: "/media".to_string(),
+                justification: "Access media".to_string(),
+            }],
+            binaries: vec![BinaryPermission {
+                name: "/bin/helper".to_string(),
+                hashes,
+                justification: "Execute audio helper".to_string(),
+            }],
+        }),
+        scopes: vec![ScopePermission::new(
+            ExtensionProviderScope::Playlists,
+            "Playlist provider",
+        )],
+        ..Default::default()
+    };
+
+    let item = ExtensionItem::from(detail);
+
+    assert_eq!(item.name, "Installed Ext");
+    assert_eq!(item.package_name, "installed.ext");
+    assert!(item.is_installed);
+    assert!(item.has_started);
+    assert_eq!(item.network_permissions.row_count(), 1);
+    assert_eq!(
+        item.network_permissions.row_data(0).unwrap().justification,
+        "Sync account"
+    );
+    assert_eq!(item.filesystem_permissions.row_count(), 1);
+    assert_eq!(
+        item.filesystem_permissions
+            .row_data(0)
+            .unwrap()
+            .justification,
+        "Access media"
+    );
+    assert_eq!(item.binaries_permissions.row_count(), 1);
+    assert_eq!(
+        item.binaries_permissions.row_data(0).unwrap().justification,
+        "Execute audio helper"
+    );
+    assert_eq!(item.scopes.row_count(), 1);
+    assert_eq!(
+        item.scopes.row_data(0).unwrap().justification,
+        "Playlist provider"
+    );
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_extension_item_resolves_cache_dir_and_env_vars() {
+    let temp_dir = TempDir::new("moosync_models_env_test").unwrap();
+    let cache_dir = temp_dir.path();
+    let mut hashes = HashMap::new();
+    hashes.insert("sha256".to_string(), "deadbeef".to_string());
+
+    let manifest = ExtensionManifest {
+        name: "env.test.ext".to_string(),
+        display_name: "Env Ext".to_string(),
+        permissions: Some(ManifestPermissions {
+            paths: vec![PathPermission {
+                source: "{CACHE_DIR}/bin".to_string(),
+                target: "/bin".to_string(),
+                justification: "Cache binaries".to_string(),
+            }],
+            binaries: vec![BinaryPermission {
+                name: "{CACHE_DIR}/bin/yt-dlp".to_string(),
+                hashes,
+                justification: "Download".to_string(),
+            }],
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    let detail = ExtensionDetail {
+        package_name: "env.test.ext".to_string(),
+        name: "Env Ext".to_string(),
+        permissions: manifest.permissions.clone(),
+        ..Default::default()
+    };
+
+    let expected_cache = cache_dir.join("extensions").join("env.test.ext");
+    let expected_bin_dir = format!("{}/bin", expected_cache.to_string_lossy());
+    let expected_bin_path = format!("{}/bin/yt-dlp", expected_cache.to_string_lossy());
+
+    let manifest_item = extension_item_from_manifest(manifest, cache_dir);
+    assert_eq!(
+        manifest_item
+            .filesystem_permissions
+            .row_data(0)
+            .unwrap()
+            .source,
+        expected_bin_dir
+    );
+    assert_eq!(
+        manifest_item.binaries_permissions.row_data(0).unwrap().name,
+        expected_bin_path
+    );
+
+    let detail_item = extension_item_from_detail(detail, cache_dir);
+    assert_eq!(
+        detail_item
+            .filesystem_permissions
+            .row_data(0)
+            .unwrap()
+            .source,
+        expected_bin_dir
+    );
+    assert_eq!(
+        detail_item.binaries_permissions.row_data(0).unwrap().name,
+        expected_bin_path
+    );
 }

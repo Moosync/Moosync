@@ -3,7 +3,7 @@
     "protoc-gen-prost 0.5.0",
     "slint-lsp 1.19.0"
   ],
-  "checksum": "38cc6c84db75e21382cb4cfaa45c92fb53a941d98d8552167b545b85f89f90e5",
+  "checksum": "66bbdd7b6ae8a2b2072a9021662acdf08830121f3555f5e353d1cd9c49fc8dd6",
   "conditions": {
     "aarch64-apple-darwin": [
       "aarch64-apple-darwin"
@@ -24555,6 +24555,49 @@
       ],
       "version": "0.1.1"
     },
+    "md-5 0.10.6": {
+      "common_attrs": {
+        "crate_features": [
+          "default",
+          "std"
+        ],
+        "deps": [
+          {
+            "id": "cfg-if 1.0.5",
+            "target": "cfg_if"
+          },
+          {
+            "id": "digest 0.10.7",
+            "target": "digest"
+          }
+        ],
+        "edition": "2018"
+      },
+      "library_target_name": "md5",
+      "license": "MIT OR Apache-2.0",
+      "license_file": "LICENSE-APACHE",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "name": "md-5",
+      "package_url": "https://github.com/RustCrypto/hashes",
+      "repository": {
+        "Http": {
+          "sha256": "d89e7ee0cfbedfc4da3340218492196241d89eefb6dab27de5df917a6d2e78cf",
+          "url": "https://static.crates.io/crates/md-5/0.10.6/download"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "md5",
+            "crate_root": "src/lib.rs"
+          }
+        }
+      ],
+      "version": "0.10.6"
+    },
     "mdns-sd 0.21.7": {
       "common_attrs": {
         "deps": [
@@ -25319,6 +25362,10 @@
           {
             "id": "lru 0.19.0",
             "target": "lru"
+          },
+          {
+            "id": "md-5 0.10.6",
+            "target": "md5"
           },
           {
             "id": "mockall 0.15.0",
@@ -56498,6 +56545,7 @@
     "libsqlite3-sys 0.38.2",
     "lofty 0.24.0",
     "lru 0.19.0",
+    "md-5 0.10.6",
     "mockall 0.15.0",
     "notify 8.2.1",
     "num_cpus 1.17.0",

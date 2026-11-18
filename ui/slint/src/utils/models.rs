@@ -1,7 +1,9 @@
 use std::{path::Path, time::Duration};
 
+use extensions::resolve_env_vars;
 use extensions_proto::moosync::types::{
-    ExtensionAccountDetail, ExtensionDetail, ExtensionManifest, ExtensionProviderScope,
+    BinaryPermission, ExtensionAccountDetail, ExtensionDetail, ExtensionManifest,
+    ExtensionProviderScope, HostPermission, ManifestPermissions, PathPermission, ScopePermission,
 };
 use slint::{Color, Image, Model, ModelRc, SharedString, VecModel};
 use songs_proto::moosync::types::{
@@ -11,8 +13,9 @@ use types::prelude::{SongsExt, core_to_proto_duration};
 
 use super::{lazy_model::LazySongVecModel, load_image, parse_color, resolve_extension_icon};
 use crate::{
-    AccountItem, AlbumModel, ArtistModel, ExtensionItem, ExtensionPathPermission, GenreModel,
-    PlaylistModel, ProviderScope, SearchResult, SongModel, Theme,
+    AccountItem, AlbumModel, ArtistModel, ExtensionBinaryPermission, ExtensionHostPermission,
+    ExtensionItem, ExtensionPathPermission, ExtensionScopePermission, GenreModel, PlaylistModel,
+    ProviderScope, SearchResult, SongModel, Theme,
 };
 
 pub trait IntoVec<T> {
@@ -424,23 +427,63 @@ impl From<PlaylistModel> for Playlist {
     }
 }
 
-impl From<(String, String)> for ExtensionPathPermission {
+impl From<PathPermission> for ExtensionPathPermission {
     #[tracing::instrument(level = "trace", skip_all)]
-    fn from((source, target): (String, String)) -> Self {
+    fn from(p: PathPermission) -> Self {
         Self {
-            source: source.into(),
-            target: target.into(),
+            source: p.source.into(),
+            target: p.target.into(),
+            justification: p.justification.into(),
         }
     }
 }
 
-impl From<(&String, &String)> for ExtensionPathPermission {
+impl From<HostPermission> for ExtensionHostPermission {
     #[tracing::instrument(level = "trace", skip_all)]
-    fn from((source, target): (&String, &String)) -> Self {
+    fn from(h: HostPermission) -> Self {
         Self {
-            source: source.clone().into(),
-            target: target.clone().into(),
+            host: h.host.into(),
+            justification: h.justification.into(),
         }
+    }
+}
+
+impl From<BinaryPermission> for ExtensionBinaryPermission {
+    #[tracing::instrument(level = "trace", skip_all)]
+    fn from(b: BinaryPermission) -> Self {
+        let mut hash_entries: Vec<String> = b
+            .hashes
+            .into_iter()
+            .map(|(k, v)| format!("{k}: {v}"))
+            .collect();
+        hash_entries.sort();
+        Self {
+            name: b.name.into(),
+            hashes: hash_entries.join("\n").into(),
+            justification: b.justification.into(),
+        }
+    }
+}
+
+impl From<ScopePermission> for ExtensionScopePermission {
+    #[tracing::instrument(level = "trace", skip_all)]
+    fn from(s: ScopePermission) -> Self {
+        Self {
+            scope: ProviderScope::from(s.scope),
+            justification: s.justification.into(),
+        }
+    }
+}
+
+trait IntoModelRc<U: 'static> {
+    fn into_model_rc(self) -> ModelRc<U>;
+}
+
+impl<T, U: From<T> + Clone + 'static> IntoModelRc<U> for Vec<T> {
+    #[tracing::instrument(level = "trace", skip_all)]
+    fn into_model_rc(self) -> ModelRc<U> {
+        let converted: Vec<U> = self.into_iter().map(U::from).collect();
+        ModelRc::new(VecModel::from(converted))
     }
 }
 
@@ -479,28 +522,41 @@ impl From<i32> for ProviderScope {
     }
 }
 
+#[tracing::instrument(level = "trace", skip_all)]
+fn resolve_permission_env_vars(
+    permissions: &mut ManifestPermissions,
+    package_name: &str,
+    cache_dir: &Path,
+) {
+    let ext_cache_dir = cache_dir.join("extensions").join(package_name);
+    for path in &mut permissions.paths {
+        path.source = resolve_env_vars(&path.source, &ext_cache_dir);
+    }
+    for bin in &mut permissions.binaries {
+        bin.name = resolve_env_vars(&bin.name, &ext_cache_dir);
+    }
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn extension_item_from_detail(mut ext: ExtensionDetail, cache_dir: &Path) -> ExtensionItem {
+    if let Some(permissions) = &mut ext.permissions {
+        resolve_permission_env_vars(permissions, &ext.package_name, cache_dir);
+    }
+    ExtensionItem::from(ext)
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn extension_item_from_manifest(mut ext: ExtensionManifest, cache_dir: &Path) -> ExtensionItem {
+    if let Some(permissions) = &mut ext.permissions {
+        resolve_permission_env_vars(permissions, &ext.name, cache_dir);
+    }
+    ExtensionItem::from(ext)
+}
+
 impl From<ExtensionDetail> for ExtensionItem {
     #[tracing::instrument(level = "debug", skip_all)]
     fn from(ext: ExtensionDetail) -> Self {
-        let (network_permissions, filesystem_permissions) = match ext.permissions {
-            Some(permissions) => {
-                let hosts: Vec<SharedString> = permissions
-                    .hosts
-                    .into_iter()
-                    .map(SharedString::from)
-                    .collect();
-                let paths: Vec<ExtensionPathPermission> = permissions
-                    .paths
-                    .into_iter()
-                    .map(ExtensionPathPermission::from)
-                    .collect();
-                (hosts, paths)
-            }
-            None => (Vec::new(), Vec::new()),
-        };
-
-        let scopes: Vec<ProviderScope> = ext.scopes.into_iter().map(ProviderScope::from).collect();
-
+        let permissions = ext.permissions.unwrap_or_default();
         let error = ext.error.unwrap_or_default();
         let has_error = !error.is_empty();
 
@@ -516,9 +572,10 @@ impl From<ExtensionDetail> for ExtensionItem {
             icon_url: ext.extension_icon.unwrap_or_default().into(),
             registry: ext.registry.unwrap_or_else(|| "local".to_string()).into(),
             author: ext.author.unwrap_or_default().into(),
-            network_permissions: ModelRc::new(VecModel::from(network_permissions)),
-            filesystem_permissions: ModelRc::new(VecModel::from(filesystem_permissions)),
-            scopes: ModelRc::new(VecModel::from(scopes)),
+            network_permissions: permissions.hosts.into_model_rc(),
+            filesystem_permissions: permissions.paths.into_model_rc(),
+            binaries_permissions: permissions.binaries.into_model_rc(),
+            scopes: ext.scopes.into_model_rc(),
             error: error.into(),
         }
     }
@@ -527,6 +584,8 @@ impl From<ExtensionDetail> for ExtensionItem {
 impl From<ExtensionManifest> for ExtensionItem {
     #[tracing::instrument(level = "debug", skip_all)]
     fn from(ext: ExtensionManifest) -> Self {
+        let permissions = ext.permissions.unwrap_or_default();
+
         Self {
             name: ext.display_name.into(),
             package_name: ext.name.into(),
@@ -539,9 +598,10 @@ impl From<ExtensionManifest> for ExtensionItem {
             icon_url: ext.icon.into(),
             registry: ext.registry.unwrap_or_default().into(),
             author: ext.author.unwrap_or_default().into(),
-            network_permissions: ModelRc::default(),
-            filesystem_permissions: ModelRc::default(),
-            scopes: ModelRc::default(),
+            network_permissions: permissions.hosts.into_model_rc(),
+            filesystem_permissions: permissions.paths.into_model_rc(),
+            binaries_permissions: permissions.binaries.into_model_rc(),
+            scopes: ext.scopes.into_model_rc(),
             error: SharedString::default(),
         }
     }

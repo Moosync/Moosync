@@ -1,0 +1,90 @@
+import { Theme } from "../constants.slint";
+import { ExtensionBinaryPermission } from "../types/extension_view.slint";
+
+export component BinaryPermissionWarning inherits Rectangle {
+    in property <[ExtensionBinaryPermission]> binaries: [];
+
+    visible: root.binaries.length > 0;
+    background: Theme.danger.transparentize(0.88);
+    border-radius: Theme.borderRadiusLg;
+    border-width: Theme.borderWidthXl;
+    border-color: Theme.danger;
+
+    VerticalLayout {
+        padding: Theme.paddingMd;
+        spacing: Theme.spacingSm;
+
+        HorizontalLayout {
+            spacing: Theme.spacingSm;
+            alignment: start;
+
+            Image {
+                width: Theme.iconSizeMd;
+                height: Theme.iconSizeMd;
+                source: @image-url("../icons/warning.svg");
+                image-fit: contain;
+                colorize: Theme.danger;
+            }
+
+            Text {
+                text: @tr("SECURITY WARNING: NATIVE BINARIES");
+                font-size: Theme.modelTitle;
+                font-weight: 800;
+                color: Theme.danger;
+                vertical-alignment: center;
+            }
+        }
+
+        Text {
+            text: @tr("This extension requests permission to execute native executable binaries on your system. Untrusted binary executables can gain full access to your machine, compromise confidential data, or execute arbitrary code. Only approve this extension if you trust the developer and have inspected the binary checksums.");
+            font-size: Theme.caption;
+            color: Theme.danger;
+            wrap: word-wrap;
+        }
+
+        Rectangle {
+            height: Theme.borderWidth;
+            background: Theme.danger.transparentize(0.6);
+        }
+
+        for bin in root.binaries: VerticalLayout {
+            spacing: Theme.spacingTiny;
+
+            Text {
+                accessible-role: text;
+                accessible-label: @tr("Binary Name: ") + bin.name;
+                text: "• " + bin.name;
+                font-size: Theme.body;
+                font-weight: 700;
+                color: Theme.textPrimary;
+            }
+
+            HorizontalLayout {
+                padding-left: Theme.paddingMd;
+
+                Text {
+                    accessible-role: text;
+                    accessible-label: @tr("Binary Justification: ") + (bin.justification != "" ? bin.justification : @tr("No justification provided"));
+                    text: @tr("Justification: ") + (bin.justification != "" ? bin.justification : @tr("No justification provided"));
+                    font-size: Theme.caption;
+                    color: Theme.textSecondary;
+                    wrap: word-wrap;
+                }
+            }
+
+            if bin.hashes != "": HorizontalLayout {
+                padding-left: Theme.paddingMd;
+
+                Text {
+                    accessible-role: text;
+                    accessible-label: @tr("Binary Hashes: ") + bin.hashes;
+                    text: bin.hashes;
+                    font-size: Theme.caption;
+                    font-family: "monospace";
+                    color: Theme.textSecondary;
+                    wrap: word-wrap;
+                }
+            }
+        }
+    }
+}

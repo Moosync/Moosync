@@ -34,6 +34,9 @@ pub enum ScanProgress {
 pub mod prelude {
     use std::borrow::Cow;
 
+    use extensions_proto::moosync::types::{
+        ExtensionDetail, ExtensionManifest, ExtensionProviderScope, ScopePermission,
+    };
     use songs_proto::moosync::types::{
         Album, Artist, EntityResult, Genre, InnerSong, Lyrics, Playlist, Song, SongType,
         entity_result,
@@ -267,6 +270,46 @@ pub mod prelude {
         songs_proto::duration_proto::google::protobuf::Duration {
             seconds: rust_dur.as_secs() as i64,
             nanos: rust_dur.subsec_nanos() as i32,
+        }
+    }
+
+    pub trait ScopeListExt {
+        fn contains_scope(&self, scope: ExtensionProviderScope) -> bool;
+    }
+
+    impl ScopeListExt for [ScopePermission] {
+        #[tracing::instrument(level = "trace", skip_all)]
+        fn contains_scope(&self, scope: ExtensionProviderScope) -> bool {
+            let scope_val = scope as i32;
+            self.iter().any(|s| s.scope == scope_val)
+        }
+    }
+
+    impl ScopeListExt for ExtensionDetail {
+        #[tracing::instrument(level = "trace", skip_all)]
+        fn contains_scope(&self, scope: ExtensionProviderScope) -> bool {
+            self.scopes.contains_scope(scope)
+        }
+    }
+
+    impl ScopeListExt for ExtensionManifest {
+        #[tracing::instrument(level = "trace", skip_all)]
+        fn contains_scope(&self, scope: ExtensionProviderScope) -> bool {
+            self.scopes.contains_scope(scope)
+        }
+    }
+
+    pub trait ScopePermissionExt {
+        fn new(scope: ExtensionProviderScope, justification: impl Into<String>) -> Self;
+    }
+
+    impl ScopePermissionExt for ScopePermission {
+        #[tracing::instrument(level = "trace", skip_all)]
+        fn new(scope: ExtensionProviderScope, justification: impl Into<String>) -> Self {
+            Self {
+                scope: scope as i32,
+                justification: justification.into(),
+            }
         }
     }
 }

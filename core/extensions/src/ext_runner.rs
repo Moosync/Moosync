@@ -7,7 +7,7 @@ use std::{
 
 use extensions_proto::moosync::types::ExtensionDetail;
 
-use crate::{context::ReplyHandler, errors::ExtensionError, extension::Extension};
+use crate::{MANIFEST_FILE, context::ReplyHandler, errors::ExtensionError, extension::Extension};
 
 pub(crate) struct ExtensionHandlerInner {
     extensions_path: String,
@@ -17,7 +17,7 @@ pub(crate) struct ExtensionHandlerInner {
 
 #[tracing::instrument(level = "debug", skip_all)]
 fn is_manifest_file(path: &Path) -> bool {
-    path.is_file() && path.file_name() == Some("manifest.pb".as_ref())
+    path.is_file() && path.file_name() == Some(MANIFEST_FILE.as_ref())
 }
 
 #[tracing::instrument(level = "debug", skip_all)]

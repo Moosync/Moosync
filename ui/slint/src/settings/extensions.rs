@@ -1,7 +1,8 @@
 use std::{path::PathBuf, sync::LazyLock};
 
 use extensions::ExtensionInfo;
-use preferences::keys::EXTENSION_REGISTRIES;
+use extensions_proto::moosync::types::ExtensionManifest;
+use preferences::keys::{EXTENSION_REGISTRIES, PreferenceItemExt};
 use preferences_proto::moosync::types::PreferenceItem as ProtoPreferenceItem;
 use slint::{ComponentHandle, ModelRc, VecModel, invoke_from_event_loop};
 use state_manager::StateManager;
@@ -9,9 +10,10 @@ use tracing::Instrument;
 
 use super::utils::clone_lazy_preferences;
 use crate::{
-    AppCallbacks, ExtensionItem, ExtensionPreferenceGroup, ExtensionsPageProps,
-    ExtensionsPreferenceProps, MainWindow, PreferenceItem, Theme, pages::PageHandler,
-    utils::LazySongVecModel,
+    AppCallbacks, ExtensionDetailsState, ExtensionItem, ExtensionPreferenceGroup,
+    ExtensionsPageProps, ExtensionsPreferenceProps, MainWindow, PreferenceItem, Theme,
+    pages::PageHandler,
+    utils::{LazySongVecModel, extension_item_from_detail, extension_item_from_manifest},
 };
 
 pub static PREFERENCES: &[&LazyLock<ProtoPreferenceItem>] = &[&EXTENSION_REGISTRIES];
@@ -42,8 +44,10 @@ impl ExtensionsPageHandler {
         let mut items: Vec<ExtensionItem> = extensions
             .into_iter()
             .map(|ext| match ext {
-                ExtensionInfo::Local(detail) => ExtensionItem::from(detail),
-                ExtensionInfo::Remote(manifest) => ExtensionItem::from(manifest),
+                ExtensionInfo::Local(detail) => extension_item_from_detail(detail, &cache_dir),
+                ExtensionInfo::Remote(manifest) => {
+                    extension_item_from_manifest(manifest, &cache_dir)
+                }
                 ExtensionInfo::LocalPath(_) => unreachable!(),
             })
             .collect();
@@ -76,14 +80,36 @@ impl ExtensionsPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     fn setup_callbacks(&self) {
         let state_manager = self.state_manager;
+        let main_window_weak = self.main_window.as_weak();
+
+        self.main_window
+            .global::<AppCallbacks>()
+            .on_refresh_extension_registries(move || {
+                tokio::spawn(
+                    async move {
+                        Self::refresh_extension_registries(state_manager).await;
+                    }
+                    .instrument(tracing::debug_span!(
+                        "slint_cb_on_refresh_extension_registries"
+                    )),
+                );
+            });
+
         self.main_window
             .global::<AppCallbacks>()
             .on_toggle_extension({
+                let main_window_weak = main_window_weak.clone();
                 move |package_name| {
                     let package_name = package_name.to_string();
+                    let main_window_weak = main_window_weak.clone();
                     tokio::spawn(
                         async move {
-                            Self::handle_toggle_extension(package_name, state_manager).await;
+                            Self::handle_toggle_extension(
+                                package_name,
+                                state_manager,
+                                main_window_weak,
+                            )
+                            .await;
                         }
                         .instrument(tracing::debug_span!("slint_cb_on_toggle_extension")),
                     );
@@ -93,14 +119,75 @@ impl ExtensionsPageHandler {
         self.main_window
             .global::<AppCallbacks>()
             .on_install_extension({
+                let main_window_weak = main_window_weak.clone();
                 move |file_path| {
                     let file_path = file_path.to_string();
+                    let main_window_weak = main_window_weak.clone();
                     tokio::spawn(
                         async move {
-                            Self::install_local_extension(file_path, state_manager).await;
+                            Self::install_local_extension(
+                                file_path,
+                                state_manager,
+                                main_window_weak,
+                            )
+                            .await;
                         }
                         .instrument(tracing::debug_span!("slint_cb_on_install_extension")),
                     );
+                }
+            });
+
+        self.main_window
+            .global::<ExtensionDetailsState>()
+            .on_approve({
+                let main_window_weak = main_window_weak.clone();
+                move || {
+                    if let Some(main_window) = main_window_weak.upgrade() {
+                        let details_state = main_window.global::<ExtensionDetailsState>();
+                        let package_name = details_state.get_item().package_name.to_string();
+                        let local_path = details_state.get_local_package_path().to_string();
+                        details_state.set_show_modal(false);
+                        details_state.set_show_install_prompt(false);
+                        details_state.set_local_package_path("".into());
+
+                        tokio::spawn(
+                            async move {
+                                let handler = state_manager.get_extension_handler();
+                                let info = if !local_path.is_empty() {
+                                    Some(ExtensionInfo::LocalPath(PathBuf::from(local_path)))
+                                } else {
+                                    handler
+                                        .get_all_extensions()
+                                        .await
+                                        .into_iter()
+                                        .find(|ext| ext.package_name() == package_name)
+                                };
+                                if let Some(info) = info {
+                                    if let Err(e) = handler.install_extension(info).await {
+                                        tracing::error!(
+                                            "approve_extension_install: Failed: {:?}",
+                                            e
+                                        );
+                                    }
+                                }
+                            }
+                            .instrument(tracing::debug_span!("approve_extension_install")),
+                        );
+                    }
+                }
+            });
+
+        self.main_window
+            .global::<ExtensionDetailsState>()
+            .on_reject({
+                let main_window_weak = main_window_weak.clone();
+                move || {
+                    if let Some(main_window) = main_window_weak.upgrade() {
+                        let details_state = main_window.global::<ExtensionDetailsState>();
+                        details_state.set_show_modal(false);
+                        details_state.set_show_install_prompt(false);
+                        details_state.set_local_package_path("".into());
+                    }
                 }
             });
 
@@ -139,7 +226,30 @@ impl ExtensionsPageHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    async fn handle_toggle_extension(package_name: String, state_manager: &'static StateManager) {
+    pub(crate) async fn refresh_extension_registries(state_manager: &'static StateManager) {
+        let preferences = state_manager.get_preference_config();
+        let registries = preferences
+            .load(&EXTENSION_REGISTRIES)
+            .value::<Vec<String>>()
+            .unwrap_or_default();
+        let handler = state_manager.get_extension_handler();
+        if let Err(e) = handler
+            .fetch_remote_manifests(registries.into_iter().collect())
+            .await
+        {
+            tracing::error!(
+                "refresh_extension_registries: Failed to fetch remote manifests: {:?}",
+                e
+            );
+        }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn handle_toggle_extension(
+        package_name: String,
+        state_manager: &'static StateManager,
+        main_window_weak: slint::Weak<MainWindow>,
+    ) {
         tracing::info!("handle_toggle_extension: {}", package_name);
         let handler = state_manager.get_extension_handler();
         let extensions = handler.get_all_extensions().await;
@@ -162,26 +272,61 @@ impl ExtensionsPageHandler {
                     );
                 }
             }
-            ExtensionInfo::Remote(_) => {
-                if let Err(e) = handler.install_extension(info).await {
-                    tracing::error!(
-                        "handle_toggle_extension: Failed to install remote extension: {:?}",
-                        e
-                    );
-                }
+            ExtensionInfo::Remote(manifest) => {
+                Self::show_install_prompt(
+                    main_window_weak,
+                    manifest,
+                    String::new(),
+                    state_manager.get_cache_dir(),
+                );
             }
             _ => {}
         }
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    async fn install_local_extension(file_path: String, state_manager: &'static StateManager) {
+    fn show_install_prompt(
+        main_window_weak: slint::Weak<MainWindow>,
+        manifest: ExtensionManifest,
+        local_package_path: String,
+        cache_dir: PathBuf,
+    ) {
+        let _ = invoke_from_event_loop(move || {
+            if let Some(main_window) = main_window_weak.upgrade() {
+                let item = extension_item_from_manifest(manifest, &cache_dir);
+                let details_state = main_window.global::<ExtensionDetailsState>();
+                details_state.set_item(item);
+                details_state.set_local_package_path(local_package_path.into());
+                details_state.set_show_install_prompt(true);
+                details_state.set_show_modal(true);
+            }
+        });
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn install_local_extension(
+        file_path: String,
+        state_manager: &'static StateManager,
+        main_window_weak: slint::Weak<MainWindow>,
+    ) {
         tracing::info!("install_local_extension: {}", file_path);
         let handler = state_manager.get_extension_handler();
-        let info = ExtensionInfo::LocalPath(PathBuf::from(file_path));
-        match handler.install_extension(info).await {
-            Ok(_) => tracing::info!("install_local_extension: Installed successfully"),
-            Err(e) => tracing::error!("install_local_extension: Failed: {:?}", e),
+        let ext_path = PathBuf::from(&file_path);
+        match handler.inspect_extension_package(&ext_path) {
+            Ok(manifest) => {
+                Self::show_install_prompt(
+                    main_window_weak,
+                    manifest,
+                    file_path,
+                    state_manager.get_cache_dir(),
+                );
+            }
+            Err(e) => {
+                tracing::error!(
+                    "install_local_extension: Failed to inspect package: {:?}",
+                    e
+                );
+            }
         }
     }
 

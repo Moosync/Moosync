@@ -8,13 +8,18 @@ rust_extension(
     srcs = ["src/lib.rs"],
     display_name = "Empty Sample Extension (Rust)",
     scopes = [
-        PROVIDER_SCOPES.ACCOUNTS,
-        PROVIDER_SCOPES.SEARCH,
-        PROVIDER_SCOPES.PLAYLISTS,
-        PROVIDER_SCOPES.PLAYLIST_SONGS,
-        PROVIDER_SCOPES.ARTIST_SONGS,
-        PROVIDER_SCOPES.ALBUM_SONGS,
-        PROVIDER_SCOPES.LYRICS,
+        {
+            "scopes": [
+                PROVIDER_SCOPES.ACCOUNTS,
+                PROVIDER_SCOPES.SEARCH,
+                PROVIDER_SCOPES.PLAYLISTS,
+                PROVIDER_SCOPES.PLAYLIST_SONGS,
+                PROVIDER_SCOPES.ARTIST_SONGS,
+                PROVIDER_SCOPES.ALBUM_SONGS,
+                PROVIDER_SCOPES.LYRICS,
+            ],
+            "justification": "Query metadata and manage playlists and user accounts",
+        },
     ],
     version = "1.0.0",
 )

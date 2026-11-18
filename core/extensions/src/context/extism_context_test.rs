@@ -1,7 +1,7 @@
-use std::{collections::HashMap, env, fs};
+use std::{env, fs};
 
 use assertables::assert_some;
-use extensions_proto::moosync::types::ManifestPermissions;
+use extensions_proto::moosync::types::{ManifestPermissions, PathPermission};
 use tempdir::TempDir;
 use tracing_test::traced_test;
 
@@ -20,21 +20,25 @@ fn test_get_allowed_paths() {
     unsafe {
         env::set_var("MOOSYNC_TEST_PATH_VAR", &env_sub);
     }
-    let mut paths_map = HashMap::new();
-    paths_map.insert(
-        format!("{}/sub_dir", "{CACHE_DIR}"),
-        "/guest/cache_sub".to_string(),
-    );
-    paths_map.insert(
-        "{MOOSYNC_TEST_PATH_VAR}".to_string(),
-        "/guest/env_dir".to_string(),
-    );
-    paths_map.insert(
-        "/non/existent/path/for/sure".to_string(),
-        "/guest/invalid".to_string(),
-    );
+    let paths = vec![
+        PathPermission {
+            source: format!("{}/sub_dir", "{CACHE_DIR}"),
+            target: "/guest/cache_sub".to_string(),
+            justification: "Cache sub dir".to_string(),
+        },
+        PathPermission {
+            source: "{MOOSYNC_TEST_PATH_VAR}".to_string(),
+            target: "/guest/env_dir".to_string(),
+            justification: "Env dir".to_string(),
+        },
+        PathPermission {
+            source: "/non/existent/path/for/sure".to_string(),
+            target: "/guest/invalid".to_string(),
+            justification: "Invalid dir".to_string(),
+        },
+    ];
     let permissions = ManifestPermissions {
-        paths: paths_map,
+        paths,
         hosts: vec![],
         binaries: vec![],
     };

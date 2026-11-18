@@ -617,10 +617,32 @@ message ContextMenuReturnType {
   string action_id = 3;
 }
 
+message HostPermission {
+  string host = 1;
+  string justification = 2;
+}
+
+message PathPermission {
+  string source = 1;
+  string target = 2;
+  string justification = 3;
+}
+
+message BinaryPermission {
+  string name = 1;
+  map<string, string> hashes = 2;
+  string justification = 3;
+}
+
+message ScopePermission {
+  ExtensionProviderScope scope = 1;
+  string justification = 2;
+}
+
 message ManifestPermissions {
-  repeated string hosts = 1;
-  map<string, string> paths = 2;
-  repeated string binaries = 3;
+  repeated HostPermission hosts = 1;
+  repeated PathPermission paths = 2;
+  repeated BinaryPermission binaries = 3;
 }
 
 message ExtensionManifest {
@@ -635,7 +657,7 @@ message ExtensionManifest {
   optional string description = 9;
   optional string url = 10;
   optional string registry = 11;
-  repeated ExtensionProviderScope scopes = 12;
+  repeated ScopePermission scopes = 12;
 }
 
 message ExtensionDetail {
@@ -649,7 +671,7 @@ message ExtensionDetail {
   optional string extension_icon = 10;
   optional string registry = 12;
   optional ManifestPermissions permissions = 13;
-  repeated ExtensionProviderScope scopes = 14;
+  repeated ScopePermission scopes = 14;
   optional string error = 15;
 }
 

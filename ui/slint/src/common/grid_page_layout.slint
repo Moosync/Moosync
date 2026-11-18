@@ -1,5 +1,4 @@
 import { GridListView } from "grid_list_view.slint";
-import { PillButton } from "pill_button.slint";
 import { Theme } from "../constants.slint";
 import { ContextMenuItem } from "../types/context_menu.slint";
 
@@ -7,15 +6,12 @@ export component GridPageLayout inherits Rectangle {
     in property <string> title;
     in property <int> total_items: 0;
     in property <bool> enable_context_menu: false;
-    in property <string> action_button_text: "";
-    in property <image> action_button_icon;
 
     pure callback item_title(int) -> string;
     pure callback item_cover(int) -> image;
     pure callback item_extension(int) -> string;
     pure callback item_extension_icon(int) -> image;
     callback item_clicked(int);
-    callback action_button_clicked();
     pure callback get_context_menu_items(int) -> [ContextMenuItem];
     callback context_menu_action(int, string);
 
@@ -33,19 +29,6 @@ export component GridPageLayout inherits Rectangle {
                 font-size: Theme.pageHeader;
                 color: Theme.textPrimary;
                 vertical-alignment: center;
-            }
-
-            if (root.action_button_text != ""): VerticalLayout {
-                alignment: center;
-                padding-right: Theme.paddingLg;
-
-                PillButton {
-                    text: root.action_button_text;
-                    icon: root.action_button_icon;
-                    clicked => {
-                        root.action_button_clicked();
-                    }
-                }
             }
         }
 

@@ -11,17 +11,32 @@ use std::{
 };
 
 use extensions_proto::moosync::types::{
-    GetProcessStatusRequest, GetProcessStatusResponse, KillProcessRequest, KillProcessResponse,
-    ReadProcessStdoutRequest, ReadProcessStdoutResponse, SpawnProcessRequest, SpawnProcessResponse,
-    WriteProcessStdinRequest, WriteProcessStdinResponse,
+    BinaryPermission, GetProcessStatusRequest, GetProcessStatusResponse, KillProcessRequest,
+    KillProcessResponse, ReadProcessStdoutRequest, ReadProcessStdoutResponse, SpawnProcessRequest,
+    SpawnProcessResponse, WriteProcessStdinRequest, WriteProcessStdinResponse,
 };
-use sha2::{Digest, Sha256};
+use md5::Md5;
+use sha2::{Digest, Sha256, Sha512};
 
 use crate::errors::ExtensionError;
 
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn sha256_hex(data: &[u8]) -> String {
     let mut hasher = Sha256::new();
+    hasher.update(data);
+    hex::encode(hasher.finalize())
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn sha512_hex(data: &[u8]) -> String {
+    let mut hasher = Sha512::new();
+    hasher.update(data);
+    hex::encode(hasher.finalize())
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn md5_hex(data: &[u8]) -> String {
+    let mut hasher = Md5::new();
     hasher.update(data);
     hex::encode(hasher.finalize())
 }
@@ -40,7 +55,7 @@ pub struct ExtensionProcessManager {
     processes: Arc<Mutex<HashMap<usize, ProcessHandle>>>,
     next_process_id: AtomicUsize,
     allowed_paths: Option<HashMap<String, PathBuf>>,
-    allowed_binaries: Vec<String>,
+    allowed_binaries: Vec<BinaryPermission>,
 }
 
 impl ExtensionProcessManager {
@@ -73,7 +88,7 @@ impl ExtensionProcessManager {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(
         allowed_paths: Option<HashMap<String, PathBuf>>,
-        allowed_binaries: Vec<String>,
+        allowed_binaries: Vec<BinaryPermission>,
     ) -> Self {
         Self {
             processes: Arc::new(Mutex::new(HashMap::new())),
@@ -153,20 +168,68 @@ impl ExtensionProcessManager {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn verify_binary_hash(&self, binary_path: &Path) -> Result<(), ExtensionError> {
+    fn verify_binary_hash(
+        &self,
+        binary_path: &Path,
+        requested_path: &str,
+    ) -> Result<(), ExtensionError> {
+        let matching_perm = self.allowed_binaries.iter().find(|b| {
+            if b.name == requested_path {
+                return true;
+            }
+            if let Ok(resolved) = self.resolve_path(&b.name)
+                && resolved == binary_path
+            {
+                return true;
+            }
+            if binary_path.ends_with(&b.name) {
+                return true;
+            }
+            false
+        });
+
+        let Some(perm) = matching_perm else {
+            return Err(ExtensionError::ProcessBinaryNotPermitted(
+                binary_path.to_path_buf(),
+            ));
+        };
+
+        if perm.hashes.is_empty() {
+            return Err(ExtensionError::ProcessHashNotPermitted(String::new()));
+        }
+
         let file_bytes = fs::read(binary_path).map_err(|e| {
             ExtensionError::ProcessFailedToReadBinary(binary_path.to_path_buf(), e.to_string())
         })?;
-        let computed_hash = sha256_hex(&file_bytes);
 
-        let is_allowed = self
-            .allowed_binaries
-            .iter()
-            .any(|allowed| allowed.eq_ignore_ascii_case(&computed_hash));
-
-        if !is_allowed {
-            return Err(ExtensionError::ProcessHashNotPermitted(computed_hash));
+        for (algo, expected_hash) in &perm.hashes {
+            match algo.to_ascii_lowercase().as_str() {
+                "sha256" => {
+                    let computed = sha256_hex(&file_bytes);
+                    if !computed.eq_ignore_ascii_case(expected_hash) {
+                        return Err(ExtensionError::ProcessHashNotPermitted(computed));
+                    }
+                }
+                "sha512" => {
+                    let computed = sha512_hex(&file_bytes);
+                    if !computed.eq_ignore_ascii_case(expected_hash) {
+                        return Err(ExtensionError::ProcessHashNotPermitted(computed));
+                    }
+                }
+                "md5" => {
+                    let computed = md5_hex(&file_bytes);
+                    if !computed.eq_ignore_ascii_case(expected_hash) {
+                        return Err(ExtensionError::ProcessHashNotPermitted(computed));
+                    }
+                }
+                _ => {
+                    return Err(ExtensionError::ProcessHashNotPermitted(format!(
+                        "unsupported algo: {algo}"
+                    )));
+                }
+            }
         }
+
         Ok(())
     }
 
@@ -198,7 +261,7 @@ impl ExtensionProcessManager {
         req: SpawnProcessRequest,
     ) -> Result<SpawnProcessResponse, ExtensionError> {
         let binary_path = self.resolve_path(&req.path)?;
-        self.verify_binary_hash(&binary_path)?;
+        self.verify_binary_hash(&binary_path, &req.path)?;
 
         #[cfg(unix)]
         {

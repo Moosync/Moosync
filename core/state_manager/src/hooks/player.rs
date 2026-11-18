@@ -10,7 +10,7 @@ use player::{PlayerHandler, SourceResolver, error::PlayerError};
 use preferences::keys::{CLEAR_QUEUE, PreferenceItemExt};
 use songs_proto::moosync::types::Song;
 use tracing::{Instrument, error};
-use types::player::AudioPlayerContext;
+use types::{player::AudioPlayerContext, prelude::ScopeListExt};
 
 use super::Hook;
 use crate::StateManager;
@@ -242,8 +242,7 @@ impl SourceResolver for ExtensionSourceResolver {
             && let Ok(extension) = extension_handler.get_extension(ext)
             && extension
                 .manifest
-                .scopes
-                .contains(&(ExtensionProviderScope::PlaybackDetails as i32))
+                .contains_scope(ExtensionProviderScope::PlaybackDetails)
             && let Ok(resp) = extension
                 .playback_details_requested(PlaybackDetailsRequestedRequest {
                     song: Some(song.clone()),

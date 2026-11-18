@@ -504,7 +504,10 @@ async fn test_extension_group_with_order() {
         display_name: "Extension One".to_string(),
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
-        scopes: vec![extensions_proto::moosync::types::ExtensionProviderScope::Search as i32],
+        scopes: vec![extensions_proto::moosync::types::ScopePermission {
+            scope: extensions_proto::moosync::types::ExtensionProviderScope::Search as i32,
+            justification: "Search".to_string(),
+        }],
         ..Default::default()
     };
     let p1 = temp_dir.path().join("m1.pb");
@@ -516,7 +519,10 @@ async fn test_extension_group_with_order() {
         display_name: "Extension Two".to_string(),
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
-        scopes: vec![extensions_proto::moosync::types::ExtensionProviderScope::Search as i32],
+        scopes: vec![extensions_proto::moosync::types::ScopePermission {
+            scope: extensions_proto::moosync::types::ExtensionProviderScope::Search as i32,
+            justification: "Search".to_string(),
+        }],
         ..Default::default()
     };
     let p2 = temp_dir.path().join("m2.pb");
@@ -569,9 +575,10 @@ async fn test_extension_group_with_drop_cancels_pending() {
         display_name: "Fast Extension".to_string(),
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
-        scopes: vec![
-            extensions_proto::moosync::types::ExtensionProviderScope::PlaybackDetails as i32,
-        ],
+        scopes: vec![extensions_proto::moosync::types::ScopePermission {
+            scope: extensions_proto::moosync::types::ExtensionProviderScope::PlaybackDetails as i32,
+            justification: "PlaybackDetails".to_string(),
+        }],
         ..Default::default()
     };
     let p1 = temp_dir.path().join("fast.pb");
@@ -583,9 +590,10 @@ async fn test_extension_group_with_drop_cancels_pending() {
         display_name: "Slow Extension".to_string(),
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
-        scopes: vec![
-            extensions_proto::moosync::types::ExtensionProviderScope::PlaybackDetails as i32,
-        ],
+        scopes: vec![extensions_proto::moosync::types::ScopePermission {
+            scope: extensions_proto::moosync::types::ExtensionProviderScope::PlaybackDetails as i32,
+            justification: "PlaybackDetails".to_string(),
+        }],
         ..Default::default()
     };
     let p2 = temp_dir.path().join("slow.pb");
@@ -653,8 +661,14 @@ async fn test_extension_provider_scopes_from_manifest() {
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
         scopes: vec![
-            extensions_proto::moosync::types::ExtensionProviderScope::Search as i32,
-            extensions_proto::moosync::types::ExtensionProviderScope::Playlists as i32,
+            extensions_proto::moosync::types::ScopePermission {
+                scope: extensions_proto::moosync::types::ExtensionProviderScope::Search as i32,
+                justification: "Search".to_string(),
+            },
+            extensions_proto::moosync::types::ScopePermission {
+                scope: extensions_proto::moosync::types::ExtensionProviderScope::Playlists as i32,
+                justification: "Playlists".to_string(),
+            },
         ],
         ..Default::default()
     };
@@ -671,8 +685,14 @@ async fn test_extension_provider_scopes_from_manifest() {
     .unwrap();
 
     let expected_scopes = vec![
-        extensions_proto::moosync::types::ExtensionProviderScope::Search as i32,
-        extensions_proto::moosync::types::ExtensionProviderScope::Playlists as i32,
+        extensions_proto::moosync::types::ScopePermission {
+            scope: extensions_proto::moosync::types::ExtensionProviderScope::Search as i32,
+            justification: "Search".to_string(),
+        },
+        extensions_proto::moosync::types::ScopePermission {
+            scope: extensions_proto::moosync::types::ExtensionProviderScope::Playlists as i32,
+            justification: "Playlists".to_string(),
+        },
     ];
 
     assert_eq!(ext.manifest.scopes, expected_scopes);
@@ -822,7 +842,10 @@ async fn test_extension_get_cover_art_api() {
         display_name: "Cover Art Test Extension".to_string(),
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
-        scopes: vec![extensions_proto::moosync::types::ExtensionProviderScope::CoverArt as i32],
+        scopes: vec![extensions_proto::moosync::types::ScopePermission {
+            scope: extensions_proto::moosync::types::ExtensionProviderScope::CoverArt as i32,
+            justification: "CoverArt".to_string(),
+        }],
         ..Default::default()
     };
     let manifest_path = temp_dir.path().join("manifest.pb");
@@ -890,7 +913,10 @@ async fn test_extension_get_lyrics_api() {
         display_name: "Lyrics Test Extension".to_string(),
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
-        scopes: vec![extensions_proto::moosync::types::ExtensionProviderScope::Lyrics as i32],
+        scopes: vec![extensions_proto::moosync::types::ScopePermission {
+            scope: extensions_proto::moosync::types::ExtensionProviderScope::Lyrics as i32,
+            justification: "Lyrics".to_string(),
+        }],
         ..Default::default()
     };
     let manifest_path = temp_dir.path().join("manifest.pb");

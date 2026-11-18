@@ -20,21 +20,38 @@ export component TextArrayInputMobile inherits VerticalLayout {
 
     spacing: Theme.spacingSm;
 
-    VerticalLayout {
-        spacing: Theme.spacingTiny;
+    HorizontalLayout {
+        spacing: Theme.spacingSm;
+        alignment: space-between;
 
-        Text {
-            text: root.title;
-            font-size: Theme.modelTitle;
-            font-weight: 600;
-            color: Theme.textPrimary;
+        VerticalLayout {
+            horizontal-stretch: 1;
+            spacing: Theme.spacingTiny;
+
+            Text {
+                text: root.title;
+                font-size: Theme.modelTitle;
+                font-weight: 600;
+                color: Theme.textPrimary;
+            }
+
+            if root.subtitle != "": Text {
+                text: root.subtitle;
+                font-size: Theme.caption;
+                color: Theme.textSecondary;
+                wrap: word-wrap;
+            }
         }
 
-        if root.subtitle != "": Text {
-            text: root.subtitle;
-            font-size: Theme.caption;
-            color: Theme.textSecondary;
-            wrap: word-wrap;
+        if root.preference.id == "extension_registries": VerticalLayout {
+            alignment: center;
+
+            Button {
+                text: @tr("Refresh");
+                clicked => {
+                    AppCallbacks.refresh_extension_registries();
+                }
+            }
         }
     }
 

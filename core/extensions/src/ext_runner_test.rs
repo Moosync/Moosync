@@ -165,7 +165,10 @@ async fn test_ext_runner_dynamic_extension_installation(runner_context: TestRunn
         display_name: "Extension One".to_string(),
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
-        scopes: vec![extensions_proto::moosync::types::ExtensionProviderScope::Search as i32],
+        scopes: vec![extensions_proto::moosync::types::ScopePermission {
+            scope: extensions_proto::moosync::types::ExtensionProviderScope::Search as i32,
+            justification: "Search".to_string(),
+        }],
         ..Default::default()
     };
     fs::write(
@@ -192,7 +195,10 @@ async fn test_ext_runner_dynamic_extension_installation(runner_context: TestRunn
         display_name: "Extension Two".to_string(),
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
-        scopes: vec![extensions_proto::moosync::types::ExtensionProviderScope::Playlists as i32],
+        scopes: vec![extensions_proto::moosync::types::ScopePermission {
+            scope: extensions_proto::moosync::types::ExtensionProviderScope::Playlists as i32,
+            justification: "Playlists".to_string(),
+        }],
         ..Default::default()
     };
     fs::write(

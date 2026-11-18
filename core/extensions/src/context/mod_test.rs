@@ -641,7 +641,12 @@ fn test_dispatch_process_and_playback_ended_lifecycle() {
     let mut allowed_paths = std::collections::HashMap::new();
     allowed_paths.insert("test".to_string(), tmp.path().to_path_buf());
 
-    let proc_mgr = ExtensionProcessManager::new(Some(allowed_paths), vec![hash]);
+    let perm = extensions_proto::moosync::types::BinaryPermission {
+        name: "echo_bin.sh".to_string(),
+        hashes: [("sha256".to_string(), hash)].into_iter().collect(),
+        justification: "test".to_string(),
+    };
+    let proc_mgr = ExtensionProcessManager::new(Some(allowed_paths), vec![perm]);
     let player_state = Arc::new(RwLock::new(PlayerState::Playing));
     let (events_tx, mut events_rx) = mpsc::unbounded_channel();
     let events_tx_holder = Arc::new(RwLock::new(Some(events_tx)));

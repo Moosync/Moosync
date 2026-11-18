@@ -22,6 +22,23 @@ export enum ProviderScope {
 export struct ExtensionPathPermission {
     source: string,
     target: string,
+    justification: string,
+}
+
+export struct ExtensionHostPermission {
+    host: string,
+    justification: string,
+}
+
+export struct ExtensionBinaryPermission {
+    name: string,
+    hashes: string,
+    justification: string,
+}
+
+export struct ExtensionScopePermission {
+    scope: ProviderScope,
+    justification: string,
 }
 
 export struct ExtensionItem {
@@ -36,9 +53,10 @@ export struct ExtensionItem {
     icon_url: string,
     registry: string,
     author: string,
-    network_permissions: [string],
+    network_permissions: [ExtensionHostPermission],
     filesystem_permissions: [ExtensionPathPermission],
-    scopes: [ProviderScope],
+    binaries_permissions: [ExtensionBinaryPermission],
+    scopes: [ExtensionScopePermission],
     error: string,
 }
 

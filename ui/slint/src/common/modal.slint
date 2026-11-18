@@ -4,10 +4,13 @@ export enum ModalSize { Sm, Md, Lg, Xl }
 
 export component Modal inherits Rectangle {
     in property <ModalSize> modalSize;
+    in property <length> custom_width: 0px;
+    in property <length> custom_height: 0px;
+    in property <length> modal_border_radius: Theme.borderRadiusXl;
     callback close();
 
-    property <length> target-width: modalSize == ModalSize.Xl ? Theme.modalWidthXl : modalSize == ModalSize.Lg ? Theme.modalWidthLg : modalSize == ModalSize.Md ? Theme.modalWidthMd : Theme.modalWidthSm;
-    property <length> target-height: modalSize == ModalSize.Xl ? Theme.modalHeightXl : modalSize == ModalSize.Lg ? Theme.modalHeightLg : modalSize == ModalSize.Md ? Theme.modalHeightMd : Theme.modalHeightSm;
+    property <length> target-width: root.custom_width > 0px ? root.custom_width : (modalSize == ModalSize.Xl ? Theme.modalWidthXl : modalSize == ModalSize.Lg ? Theme.modalWidthLg : modalSize == ModalSize.Md ? Theme.modalWidthMd : Theme.modalWidthSm);
+    property <length> target-height: root.custom_height > 0px ? root.custom_height : (modalSize == ModalSize.Xl ? Theme.modalHeightXl : modalSize == ModalSize.Lg ? Theme.modalHeightLg : modalSize == ModalSize.Md ? Theme.modalHeightMd : Theme.modalHeightSm);
 
     background: Theme.modalBackdrop;
     width: 100%;
@@ -35,7 +38,7 @@ export component Modal inherits Rectangle {
                 width: root.target-width;
                 height: root.target-height;
 
-                border-radius: Theme.borderRadiusXl;
+                border-radius: root.modal_border_radius;
 
                 clip: true;
 

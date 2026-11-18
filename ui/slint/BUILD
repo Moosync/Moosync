@@ -199,6 +199,7 @@ rust_test(
     srcs = ["src/integration_tests/accounts_test.rs"],
     data = [
         "//sample_extensions/default:sample_extension",
+        "//sample_extensions/default:sample_extension_msxt",
     ],
     deps = [
         ":slint_app_lib",
@@ -217,6 +218,7 @@ rust_test(
     srcs = ["src/integration_tests/extensions_test.rs"],
     data = [
         "//sample_extensions/default:sample_extension",
+        "//sample_extensions/default:sample_extension_msxt",
     ],
     deps = [
         ":slint_app_lib",
@@ -237,6 +239,7 @@ rust_test(
     srcs = ["src/integration_tests/mobile_test.rs"],
     data = [
         "//sample_extensions/default:sample_extension",
+        "//sample_extensions/default:sample_extension_msxt",
     ],
     deps = [
         ":slint_app_lib_mobile",
@@ -377,6 +380,7 @@ SLINT_SOURCES = [
     "src/common/accounts_popup_mobile.slint",
     "src/common/accounts_props.slint",
     "src/common/bottom_sheet_mobile.slint",
+    "src/common/binary_permission_warning.slint",
     "src/common/button.slint",
     "src/common/button_mobile.slint",
     "src/common/card_view.slint",

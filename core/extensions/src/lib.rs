@@ -1,8 +1,8 @@
 use std::{
     collections::HashSet,
-    fs,
+    env, fs,
     path::{Path, PathBuf},
-    sync::{Arc, Mutex, OnceLock},
+    sync::{Arc, LazyLock, Mutex, OnceLock},
 };
 
 use ext_runner::ExtensionHandlerInner;
@@ -10,8 +10,10 @@ pub use extensions_proto::moosync::types::ExtensionLockData;
 use extensions_proto::moosync::types::{ExtensionDetail, ExtensionManifest, PackageName};
 use fs_extra::dir::CopyOptions;
 use prost::Message;
+use regex::{Captures, Regex};
 use semver::Version;
-use types::subscription::SubscriberList;
+use tempdir::TempDir;
+use types::{prelude::ScopeListExt, subscription::SubscriberList};
 use zip_extensions::zip_extract::zip_extract;
 
 pub use crate::{
@@ -43,6 +45,27 @@ pub mod websocket;
 mod websocket_test;
 pub use remote::{DEFAULT_EXTENSION_REGISTRY, RemoteExtensions};
 pub mod sanitize;
+
+pub const MANIFEST_FILE: &str = "manifest.pb";
+pub const EXTENSION_LOCK_FILE: &str = "extension.lock";
+
+static ENV_VAR_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\{([A-Z_][A-Z0-9_]*)\}").unwrap());
+
+/// Resolves `{CACHE_DIR}` and `{ENV_VAR}` placeholders in extension paths or
+/// binary names.
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn resolve_env_vars(input: &str, ext_cache_dir: &Path) -> String {
+    ENV_VAR_REGEX
+        .replace_all(input, |caps: &Captures| {
+            let var_name = &caps[1];
+            if var_name == "CACHE_DIR" {
+                return ext_cache_dir.to_string_lossy().to_string();
+            }
+            env::var(var_name).unwrap_or_default()
+        })
+        .to_string()
+}
 pub use sanitize::Sanitize;
 
 #[cfg(test)]
@@ -359,13 +382,20 @@ impl ExtensionHandler {
         &self,
         scope: extensions_proto::moosync::types::ExtensionProviderScope,
     ) -> Vec<Arc<Extension>> {
-        let scope_val = scope as i32;
         let extensions_map = self.inner.extensions_map.read().unwrap();
         extensions_map
             .values()
-            .filter(|ext| ext.manifest.scopes.contains(&scope_val))
+            .filter(|ext| ext.manifest.contains_scope(scope))
             .cloned()
             .collect()
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn inspect_extension_package(
+        &self,
+        ext_path: &Path,
+    ) -> Result<ExtensionManifest, ExtensionError> {
+        inspect_package(ext_path, &self.tmp_dir)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -411,14 +441,14 @@ fn stage_extension_package(
 ) -> Result<StagedExtension, ExtensionError> {
     zip_extract(ext_path, &tmp_dir).map_err(|e| ExtensionError::Zip(e.to_string()))?;
 
-    let package_manifest = ExtensionManifest::decode(&fs::read(tmp_dir.join("manifest.pb"))?[..])?;
+    let package_manifest = ExtensionManifest::decode(&fs::read(tmp_dir.join(MANIFEST_FILE))?[..])?;
 
     if !package_manifest.moosync_extension {
         return Err(ExtensionError::NotAnExtension);
     }
 
     let ext_extract_path = extensions_dir.join(package_manifest.name.clone());
-    let manifest_path = ext_extract_path.join("manifest.pb");
+    let manifest_path = ext_extract_path.join(MANIFEST_FILE);
     let should_remove_old = if manifest_path.exists() {
         let existing_manifest = ExtensionManifest::decode(&fs::read(manifest_path)?[..])?;
         let old_version = Version::parse(&existing_manifest.version)?;
@@ -480,9 +510,26 @@ fn finalize_extension_install(
         registry: registry_name,
     };
     let _ = fs::write(
-        staged.ext_extract_path.join("extension.lock"),
+        staged.ext_extract_path.join(EXTENSION_LOCK_FILE),
         lock_data.encode_to_vec(),
     );
 
     Ok(())
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn inspect_package(
+    ext_path: &Path,
+    tmp_dir: &Path,
+) -> Result<ExtensionManifest, ExtensionError> {
+    let inspect_dir = TempDir::new_in(tmp_dir, "moosync_inspect")?;
+    let ext_path_buf = ext_path.to_path_buf();
+    zip_extract(&ext_path_buf, &inspect_dir.path().to_path_buf())
+        .map_err(|e| ExtensionError::Zip(e.to_string()))?;
+    let manifest_bytes = fs::read(inspect_dir.path().join(MANIFEST_FILE))?;
+    let manifest = ExtensionManifest::decode(&manifest_bytes[..])?;
+    if !manifest.moosync_extension {
+        return Err(ExtensionError::NotAnExtension);
+    }
+    Ok(manifest)
 }

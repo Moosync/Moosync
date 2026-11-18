@@ -29,7 +29,7 @@ export component SongDetailsMobile inherits VerticalLayout {
             height: self.width;
             border-radius: Theme.borderRadiusXl;
             clip: true;
-            background: Theme.tertiary;
+            background: Theme.secondary;
 
             Image {
                 width: 100%;
@@ -58,6 +58,7 @@ export component SongDetailsMobile inherits VerticalLayout {
 
         HorizontalLayout {
             alignment: center;
+
             SongArtistsList {
                 artists: root.song.artists;
                 font_size: Theme.subtitle;

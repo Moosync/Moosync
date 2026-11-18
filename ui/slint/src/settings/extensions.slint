@@ -42,6 +42,7 @@ component ExtensionsManifest inherits VerticalLayout {
 
                     VerticalLayout {
                         alignment: center;
+
                         Rectangle {
                             width: Theme.extensionIconSize;
                             height: Theme.extensionIconSize;
@@ -64,6 +65,7 @@ component ExtensionsManifest inherits VerticalLayout {
 
                         HorizontalLayout {
                             spacing: Theme.spacingMd;
+
                             Text {
                                 text: item.name;
                                 font-size: Theme.body;
@@ -85,11 +87,13 @@ component ExtensionsManifest inherits VerticalLayout {
                                 border-radius: Theme.borderRadiusSm;
                                 background: Theme.accent.transparentize(0.85);
                                 horizontal-stretch: 0;
+
                                 HorizontalLayout {
                                     padding-left: Theme.paddingXs;
                                     padding-right: Theme.paddingXs;
                                     padding-top: Theme.spacingTiny;
                                     padding-bottom: Theme.spacingTiny;
+
                                     Text {
                                         text: item.registry;
                                         font-size: Theme.caption;
@@ -118,6 +122,7 @@ component ExtensionsManifest inherits VerticalLayout {
 
                     VerticalLayout {
                         alignment: center;
+
                         HorizontalLayout {
                             spacing: Theme.spacingMd;
                             alignment: center;
@@ -125,6 +130,7 @@ component ExtensionsManifest inherits VerticalLayout {
                             if item.error != "": Rectangle {
                                 width: Theme.iconSizeSm;
                                 height: Theme.iconSizeSm;
+
                                 Image {
                                     width: 100%;
                                     height: 100%;
@@ -140,6 +146,7 @@ component ExtensionsManifest inherits VerticalLayout {
                                 accessible-label: @tr("Extension Details");
                                 clicked => {
                                     ExtensionDetailsState.item = item;
+                                    ExtensionDetailsState.show_install_prompt = false;
                                     ExtensionDetailsState.show_modal = true;
                                 }
                             }
@@ -192,9 +199,11 @@ export component ExtensionsPage inherits SettingsPageLayout {
     PreferenceGroup {
         HorizontalLayout {
             spacing: Theme.spacingLg;
+
             VerticalLayout {
                 alignment: start;
                 horizontal-stretch: 1;
+
                 Text {
                     text: @tr("Extensions");
                     font-size: Theme.modelTitle;

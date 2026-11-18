@@ -7,7 +7,9 @@ use slint_app::{
     ArtistContentPageProps, ArtistModel, ArtistsPageProps, ExtensionDetailsState,
     ExtensionsPageProps, MainWindow, Pages, PlaylistContentPageProps, PlaylistModel,
     PlaylistsPageProps, SettingsPages, SettingsState,
-    test_utils::integration::{ExtensionFixture, create_test_song, integration_test, wait_until},
+    test_utils::integration::{
+        ExtensionFixture, create_test_song, get_sample_msxt_path, integration_test, wait_until,
+    },
 };
 use songs_proto::moosync::types::{
     GetEntityOptions, GetSongOptions, Playlist, SearchableSong, entity_result,
@@ -830,6 +832,9 @@ async fn do_extension_details_modal_lifecycle(
         .set_item(ext_item);
     main_window
         .global::<ExtensionDetailsState>()
+        .set_show_install_prompt(false);
+    main_window
+        .global::<ExtensionDetailsState>()
         .set_show_modal(true);
 
     let modal_opened = wait_until(|| {
@@ -1021,6 +1026,158 @@ async fn do_extension_details_modal_lifecycle(
         .global::<AppCallbacks>()
         .invoke_settings_active_page_changed(SettingsPages::Paths);
     tokio::time::sleep(Duration::from_millis(100)).await;
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_extension_install_prompt_lifecycle(
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) {
+    main_window
+        .global::<SettingsState>()
+        .set_show_settings(false);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_toggled(false);
+    tokio::time::sleep(Duration::from_millis(50)).await;
+
+    main_window
+        .global::<SettingsState>()
+        .set_show_settings(true);
+    main_window
+        .global::<SettingsState>()
+        .set_active_page(SettingsPages::Extensions);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_toggled(true);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_active_page_changed(SettingsPages::Extensions);
+
+    let msxt_path = get_sample_msxt_path();
+    assert!(
+        msxt_path.exists(),
+        "Sample msxt does not exist at {:?}",
+        msxt_path
+    );
+
+    // Trigger local extension install inspection
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_install_extension(msxt_path.to_str().unwrap().into());
+
+    let modal_opened = wait_until(|| {
+        main_window
+            .global::<ExtensionDetailsState>()
+            .get_show_modal()
+    })
+    .await;
+    assert!(modal_opened);
+
+    let details_state = main_window.global::<ExtensionDetailsState>();
+    assert!(details_state.get_show_install_prompt());
+    assert_eq!(details_state.get_item().name, "Sample Extension (Rust)");
+    assert_eq!(details_state.get_item().network_permissions.row_count(), 2);
+    assert_eq!(
+        details_state
+            .get_item()
+            .network_permissions
+            .row_data(0)
+            .unwrap()
+            .justification,
+        "Access remote media streams and synchronize playlists"
+    );
+    assert_eq!(
+        details_state.get_item().filesystem_permissions.row_count(),
+        2
+    );
+    assert_eq!(
+        details_state
+            .get_item()
+            .filesystem_permissions
+            .row_data(0)
+            .unwrap()
+            .justification,
+        "Access local music files and cache sandbox storage"
+    );
+    assert_eq!(details_state.get_item().scopes.row_count(), 5);
+    assert_eq!(
+        details_state
+            .get_item()
+            .scopes
+            .row_data(0)
+            .unwrap()
+            .justification,
+        "Core playback, search, and context menu integration"
+    );
+
+    // Verify Reject & Approve action buttons are accessible
+    let reject_btn_found = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Reject Extension Installation")
+            .next()
+            .is_some()
+    })
+    .await;
+    assert!(reject_btn_found);
+
+    let approve_btn_found = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Approve Extension Installation")
+            .next()
+            .is_some()
+    })
+    .await;
+    assert!(approve_btn_found);
+
+    // Reject installation
+    details_state.invoke_reject();
+
+    let modal_closed = wait_until(|| {
+        !main_window
+            .global::<ExtensionDetailsState>()
+            .get_show_modal()
+    })
+    .await;
+    assert!(modal_closed);
+
+    // Trigger install again and approve
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_install_extension(msxt_path.to_str().unwrap().into());
+
+    let modal_opened_again = wait_until(|| {
+        main_window
+            .global::<ExtensionDetailsState>()
+            .get_show_modal()
+    })
+    .await;
+    assert!(modal_opened_again);
+
+    details_state.invoke_approve();
+
+    let modal_closed_after_approve = wait_until(|| {
+        !main_window
+            .global::<ExtensionDetailsState>()
+            .get_show_modal()
+    })
+    .await;
+    assert!(modal_closed_after_approve);
+
+    let ext_handler = state_manager.get_extension_handler();
+    let ext_installed = wait_until(|| {
+        ext_handler
+            .get_active_extensions()
+            .iter()
+            .any(|e| e.get_package_name() == "rs.sample")
+    })
+    .await;
+    assert!(ext_installed);
+
+    main_window
+        .global::<SettingsState>()
+        .set_show_settings(false);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_toggled(false);
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -1223,6 +1380,7 @@ integration_test!(
     // test_extension_preference_text_input => do_extension_preference_text_input,
     // test_extension_preference_toggle => do_extension_preference_toggle,
     test_extension_details_modal_lifecycle => do_extension_details_modal_lifecycle,
+    test_extension_install_prompt_lifecycle => do_extension_install_prompt_lifecycle,
     test_extension_get_lyrics => do_extension_get_lyrics,
     test_extension_song_context_menu => do_extension_song_context_menu,
     test_extension_playlist_context_menu => do_extension_playlist_context_menu,

@@ -42,7 +42,7 @@ use prost::Message;
 use tokio::sync::{mpsc::UnboundedSender, watch};
 use types::{
     player::{AudioPlayerContext, PlayerError, PlayerEventExt, ValidSrc},
-    prelude::core_to_proto_duration,
+    prelude::{ScopeListExt, core_to_proto_duration},
 };
 
 use crate::{
@@ -185,7 +185,10 @@ impl Extension {
         ));
         let socket_manager = Arc::new(SocketManager::new(allowed_paths));
 
-        let allowed_hosts = manifest.permissions.as_ref().map(|p| p.hosts.clone());
+        let allowed_hosts = manifest
+            .permissions
+            .as_ref()
+            .map(|p| p.hosts.iter().map(|h| h.host.clone()).collect::<Vec<_>>());
         let http_manager = Arc::new(HttpManager::new(allowed_hosts.clone()));
         let ws_manager = Arc::new(WsManager::new(allowed_hosts));
 
@@ -644,11 +647,10 @@ impl AudioPlayerContext for Extension {
 
     #[tracing::instrument(level = "debug", skip_all)]
     async fn can_play(&self, src: &ValidSrc<'_>) -> bool {
-        let is_player_provider = self
+        if !self
             .manifest
-            .scopes
-            .contains(&(ExtensionProviderScope::PlayerProvider as i32));
-        if !is_player_provider {
+            .contains_scope(ExtensionProviderScope::PlayerProvider)
+        {
             return false;
         }
 

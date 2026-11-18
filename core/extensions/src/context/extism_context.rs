@@ -6,7 +6,7 @@ use std::{
     path::{Path, PathBuf},
     process,
     str::FromStr,
-    sync::{Arc, Condvar, LazyLock, Mutex, OnceLock, atomic::Ordering},
+    sync::{Arc, Condvar, Mutex, OnceLock, atomic::Ordering},
     thread,
 };
 
@@ -19,7 +19,6 @@ use extism::{
     host_fn,
 };
 use extism_convert::Prost;
-use regex::{Captures, Regex};
 use tokio::sync::oneshot;
 
 use crate::{
@@ -28,11 +27,9 @@ use crate::{
     errors::ExtensionError,
     extension::Extension,
     models::SanitizeCommand,
+    resolve_env_vars,
     sanitize::Sanitize,
 };
-
-static ENV_VAR_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\{([A-Z_][A-Z0-9_]*)\}").unwrap());
 
 const HANDLE_EXTENSION_COMMAND: &str = "handle_extension_command";
 
@@ -132,7 +129,7 @@ impl TryFrom<&Extension> for Arc<ExtismContext> {
         if let Some(permissions) = &manifest.permissions {
             let allowed_paths = ExtismContext::get_allowed_paths(permissions, &ext_cache_dir);
             plugin_manifest = plugin_manifest
-                .with_allowed_hosts(permissions.hosts.clone().into_iter())
+                .with_allowed_hosts(permissions.hosts.iter().map(|h| h.host.clone()))
                 .with_allowed_paths(allowed_paths.into_iter())
                 .with_config_key("pid", format!("{}", process::id()));
         }
@@ -200,16 +197,10 @@ impl ExtismContext {
     ) -> HashMap<String, PathBuf> {
         let mut allowed_paths = HashMap::new();
 
-        for (key, value) in &permissions.paths {
-            let parsed = ENV_VAR_REGEX
-                .replace_all(key.as_str(), |caps: &Captures| {
-                    let var_name = &caps[1];
-                    if var_name == "CACHE_DIR" {
-                        return ext_cache_dir.to_string_lossy().to_string();
-                    }
-                    env::var(var_name).unwrap_or_else(|_| "".to_string())
-                })
-                .to_string();
+        for p in &permissions.paths {
+            let key = &p.source;
+            let value = &p.target;
+            let parsed = resolve_env_vars(key.as_str(), ext_cache_dir);
 
             let Ok(parsed_path) = PathBuf::from_str(&parsed);
             if parsed_path.exists() {

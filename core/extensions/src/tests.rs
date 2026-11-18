@@ -306,7 +306,13 @@ async fn test_handle_extension_command() {
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
         icon: "icon.png".to_string(),
-        scopes: vec![13, 0, 1, 2, 3, 4, 10],
+        scopes: [13, 0, 1, 2, 3, 4, 10]
+            .into_iter()
+            .map(|s| extensions_proto::moosync::types::ScopePermission {
+                scope: s,
+                justification: "test".to_string(),
+            })
+            .collect(),
         ..Default::default()
     };
     std::fs::write(
@@ -328,7 +334,8 @@ async fn test_handle_extension_command() {
         map.get("sample.pkg").unwrap().clone()
     };
 
-    assert_eq!(ext.manifest.scopes, vec![13, 0, 1, 2, 3, 4, 10]);
+    let actual_scopes: Vec<i32> = ext.manifest.scopes.iter().map(|s| s.scope).collect();
+    assert_eq!(actual_scopes, vec![13, 0, 1, 2, 3, 4, 10]);
 
     let ctx = ext.wait_context().await;
     if let Ok(c) = ctx {

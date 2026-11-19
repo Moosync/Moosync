@@ -36,7 +36,10 @@ fn test_preference_constants_definitions() {
         ARTIST_SPLITTER.pref_type,
         PreferenceType::TextInputGroup as i32
     );
-    assert_eq!(ARTIST_SPLITTER.placeholder.as_deref(), Some(","));
+    assert_eq!(
+        ARTIST_SPLITTER.placeholder.as_deref(),
+        Some(r",|;|&|\s+/\s+|(?i)\b(?:feat|ft)\.?")
+    );
 
     assert_eq!(SCAN_INTERVAL.id, "scan_interval");
     assert_eq!(

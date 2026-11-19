@@ -1849,3 +1849,104 @@ fn test_on_entity_updated_emitted(db_context: TestDbContext) {
     assert_len_eq_x!(&*playlists_captured, 1);
     assert_eq!(playlists_captured[0].playlist_name, "Playlist A Renamed");
 }
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_reinsert_existing_song_overwrites_bridges(db_context: TestDbContext) {
+    let TestDbContext { db, .. } = db_context;
+
+    let mut song1 = create_test_song("Song 1", "/music/song1.mp3");
+    song1.album = Some(Album {
+        album_name: Some("Old Album".to_string()),
+        ..Default::default()
+    });
+    song1.artists = vec![Artist {
+        artist_name: Some("Old Artist A; Old Artist B".to_string()),
+        ..Default::default()
+    }];
+    song1.genre = vec![Genre {
+        genre_name: Some("Old Genre".to_string()),
+        ..Default::default()
+    }];
+
+    let mut other_song = create_test_song("Other Song", "/music/other.mp3");
+    other_song.artists = vec![Artist {
+        artist_name: Some("Unrelated Artist".to_string()),
+        ..Default::default()
+    }];
+
+    assert_ok!(db.insert_songs(vec![song1, other_song]));
+
+    let mut rescanned_song1 = create_test_song("Song 1", "/music/song1.mp3");
+    rescanned_song1.album = Some(Album {
+        album_name: Some("New Album".to_string()),
+        ..Default::default()
+    });
+    rescanned_song1.artists = vec![
+        Artist {
+            artist_name: Some("Old Artist A".to_string()),
+            ..Default::default()
+        },
+        Artist {
+            artist_name: Some("Old Artist B".to_string()),
+            ..Default::default()
+        },
+    ];
+    rescanned_song1.genre = vec![Genre {
+        genre_name: Some("New Genre".to_string()),
+        ..Default::default()
+    }];
+
+    assert_ok!(db.insert_songs(vec![rescanned_song1]));
+
+    let fetched = db
+        .get_songs_by_options(GetSongOptions {
+            song: Some(SearchableSong {
+                path: Some("/music/song1.mp3".to_string()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        })
+        .unwrap();
+    assert_len_eq_x!(&fetched, 1);
+    let mut artist_names: Vec<_> = fetched[0]
+        .artists
+        .iter()
+        .filter_map(|a| a.artist_name.as_deref())
+        .collect();
+    artist_names.sort();
+    assert_eq!(artist_names, vec!["Old Artist A", "Old Artist B"]);
+    assert_eq!(
+        fetched[0]
+            .album
+            .as_ref()
+            .and_then(|a| a.album_name.as_deref()),
+        Some("New Album")
+    );
+    assert_eq!(
+        fetched[0]
+            .genre
+            .iter()
+            .filter_map(|g| g.genre_name.as_deref())
+            .collect::<Vec<_>>(),
+        vec!["New Genre"]
+    );
+
+    let all_artists = db
+        .get_entity_by_options(GetEntityOptions {
+            artist: Some(Artist::default()),
+            ..Default::default()
+        })
+        .unwrap();
+    let EntityResultVariant::Artists(artists_list) = all_artists.result.unwrap() else {
+        panic!("expected artists");
+    };
+    let all_artist_names: Vec<_> = artists_list
+        .artists
+        .iter()
+        .filter_map(|a| a.artist_name.as_deref())
+        .collect();
+    assert!(!all_artist_names.contains(&"Old Artist A; Old Artist B"));
+    assert!(all_artist_names.contains(&"Unrelated Artist"));
+}

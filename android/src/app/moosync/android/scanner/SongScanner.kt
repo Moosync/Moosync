@@ -306,17 +306,25 @@ object SongScanner {
             songBuilder.setAlbum(albumBuilder.build())
         }
 
-        val delimiter = artistSplit.ifEmpty { ";" }
         if (!artistStr.isNullOrBlank()) {
-            val artists = artistStr.split(delimiter)
-                .map { it.trim() }
-                .filter { it.isNotEmpty() }
-                .map { name ->
-                    Artist.newBuilder()
-                        .setArtistId(UUID.randomUUID().toString())
-                        .setArtistName(name)
-                        .build()
+            val rawNames = if (artistSplit.isEmpty()) {
+                listOf(artistStr.trim()).filter { it.isNotEmpty() }
+            } else {
+                val regex = try {
+                    Regex(artistSplit)
+                } catch (_: Exception) {
+                    Regex(Regex.escape(artistSplit))
                 }
+                artistStr.split(regex)
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() }
+            }
+            val artists = rawNames.map { name ->
+                Artist.newBuilder()
+                    .setArtistId(UUID.randomUUID().toString())
+                    .setArtistName(name)
+                    .build()
+            }
             songBuilder.addAllArtists(artists)
         }
 

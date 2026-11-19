@@ -204,33 +204,42 @@ impl Database {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn insert_songs_by_ref(&self, songs: &mut [Song]) -> Result<(), DatabaseError> {
-        let conn = self.pool.get().unwrap();
+        let mut conn = self.pool.get().unwrap();
         trace!("Inserting songs");
 
         // 1. Gather all unique albums, artists, genres from the songs
         let (unique_albums, unique_artists, unique_genres) = gather_unique_metadata(songs);
 
-        // 2. Fetch existing albums, artists, genres from the DB
+        // 2. Execute all reads, bridge replacements, and bulk insertions within
+        //    a transaction
+        let tx = conn.transaction().map_err(DatabaseError::Query)?;
+
+        // 3. Fetch existing song IDs and clear their old metadata bridges first
+        //    so decrement triggers don't remove newly-inserted zero-count
+        //    entities
+        let existing_song_ids = fetch_existing_song_ids(&tx, songs)?;
+        let existing_ids: Vec<&String> = existing_song_ids.values().collect();
+        delete_existing_bridge_entries(&tx, "album_bridge", &existing_ids)?;
+        delete_existing_bridge_entries(&tx, "artist_bridge", &existing_ids)?;
+        delete_existing_bridge_entries(&tx, "genre_bridge", &existing_ids)?;
+
+        // 4. Fetch remaining albums, artists, genres from the DB and insert new
+        //    ones
         let album_names: Vec<String> = unique_albums.keys().cloned().collect();
         let mut album_ids =
-            fetch_existing_entities(&conn, "albums", "album_id", "album_name", &album_names)?;
+            fetch_existing_entities(&tx, "albums", "album_id", "album_name", &album_names)?;
 
         let artist_names: Vec<String> = unique_artists.keys().cloned().collect();
         let mut artist_ids =
-            fetch_existing_entities(&conn, "artists", "artist_id", "artist_name", &artist_names)?;
+            fetch_existing_entities(&tx, "artists", "artist_id", "artist_name", &artist_names)?;
 
         let genre_names: Vec<String> = unique_genres.keys().cloned().collect();
         let mut genre_ids =
-            fetch_existing_entities(&conn, "genres", "genre_id", "genre_name", &genre_names)?;
+            fetch_existing_entities(&tx, "genres", "genre_id", "genre_name", &genre_names)?;
 
-        // 3. Collect new albums, artists, genres and insert them
-        insert_new_albums(&conn, &unique_albums, &mut album_ids)?;
-        insert_new_artists(&conn, &unique_artists, &mut artist_ids)?;
-        insert_new_genres(&conn, &unique_genres, &mut genre_ids)?;
-
-        // 4. Fetch existing song IDs for paths that already exist in the
-        //    database
-        let existing_song_ids = fetch_existing_song_ids(&conn, songs)?;
+        insert_new_albums(&tx, &unique_albums, &mut album_ids)?;
+        insert_new_artists(&tx, &unique_artists, &mut artist_ids)?;
+        insert_new_genres(&tx, &unique_genres, &mut genre_ids)?;
 
         // 5. Update the incoming songs slice with matched or new IDs
         update_song_metadata_ids(
@@ -244,11 +253,8 @@ impl Database {
         // 6. Map songs to DbSongRow and prepare bridge entries
         let rows_and_bridges = build_db_song_rows_and_bridges(songs);
 
-        // 7. Execute bulk insertions within a transaction
-        let mut conn = self.pool.get().unwrap();
-        let tx = conn.transaction().map_err(DatabaseError::Query)?;
-
         insert_bulk_db_song_rows(&tx, &rows_and_bridges.db_song_rows)?;
+
         insert_bulk_bridge_entries(
             &tx,
             "album_bridge",
@@ -2012,6 +2018,25 @@ fn insert_bulk_db_song_rows(
             library_item = excluded.library_item",
         );
 
+        tx.execute(&query, &*params).map_err(DatabaseError::Query)?;
+    }
+    Ok(())
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn delete_existing_bridge_entries(
+    tx: &rusqlite::Transaction,
+    table: &str,
+    song_ids: &[&String],
+) -> Result<(), DatabaseError> {
+    if song_ids.is_empty() {
+        return Ok(());
+    }
+    for chunk in song_ids.chunks(500) {
+        let placeholders = vec!["?"; chunk.len()].join(",");
+        let query = format!("DELETE FROM {} WHERE song IN ({})", table, placeholders);
+        let params: Vec<&dyn rusqlite::ToSql> =
+            chunk.iter().map(|id| *id as &dyn rusqlite::ToSql).collect();
         tx.execute(&query, &*params).map_err(DatabaseError::Query)?;
     }
     Ok(())

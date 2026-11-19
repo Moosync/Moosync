@@ -4,7 +4,7 @@ use assertables::assert_ok;
 use database::Database;
 use file_scanner::{PlaylistSongId, ScannerHolder};
 use preferences::{
-    keys::{MUSIC_PATHS, SCAN_THREADS},
+    keys::{ARTIST_SPLITTER, DEFAULT_ARTIST_SPLITTER, MUSIC_PATHS, SCAN_THREADS},
     preferences::PreferenceConfig,
 };
 use preferences_proto::moosync::types::{PreferenceItem, PreferenceValue, preference_value};
@@ -312,4 +312,99 @@ async fn test_sync_music_paths(sm_context: TestSmContext) {
     .await;
 
     assert!(!scanner.get_scan_dirs().is_empty());
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_load_artist_splitter_default_and_empty(sm_context: TestSmContext) {
+    let TestSmContext { sm, .. } = sm_context;
+    let pref = sm.get_preference_config();
+
+    assert_eq!(super::load_artist_splitter(&pref), DEFAULT_ARTIST_SPLITTER);
+
+    pref.save(PreferenceItem {
+        id: ARTIST_SPLITTER.id.clone(),
+        value: Some(PreferenceValue {
+            value: Some(preference_value::Value::StringValue(String::new())),
+        }),
+        ..ARTIST_SPLITTER.clone()
+    })
+    .unwrap();
+    assert_eq!(super::load_artist_splitter(&pref), "");
+
+    pref.save(PreferenceItem {
+        id: ARTIST_SPLITTER.id.clone(),
+        value: Some(PreferenceValue {
+            value: Some(preference_value::Value::StringValue(";".to_string())),
+        }),
+        ..ARTIST_SPLITTER.clone()
+    })
+    .unwrap();
+    assert_eq!(super::load_artist_splitter(&pref), ";");
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_artist_splitter_change_updates_scanner_and_rescans(sm_context: TestSmContext) {
+    let TestSmContext {
+        _temp_dir: temp_dir,
+        sm,
+    } = sm_context;
+    let music_dir = temp_dir.path().join("music");
+    std::fs::create_dir_all(&music_dir).unwrap();
+
+    let pref = sm.get_preference_config();
+    pref.save(PreferenceItem {
+        id: MUSIC_PATHS.id.clone(),
+        value: Some(PreferenceValue {
+            value: Some(preference_value::Value::ListValue(
+                preferences_proto::moosync::types::StringList {
+                    values: vec![music_dir.to_string_lossy().to_string()],
+                },
+            )),
+        }),
+        ..MUSIC_PATHS.clone()
+    })
+    .unwrap();
+
+    let hook = ScannerHook::new();
+    assert_ok!(hook.on_startup(&sm).await);
+    tokio::time::sleep(Duration::from_millis(50)).await;
+
+    let scanner = sm.get_scanner_holder();
+    assert_eq!(
+        scanner.get_artist_split().as_deref(),
+        Some(DEFAULT_ARTIST_SPLITTER)
+    );
+
+    let mut rx = scanner.add_subscriber();
+
+    pref.save(PreferenceItem {
+        id: ARTIST_SPLITTER.id.clone(),
+        value: Some(PreferenceValue {
+            value: Some(preference_value::Value::StringValue(";".to_string())),
+        }),
+        ..ARTIST_SPLITTER.clone()
+    })
+    .unwrap();
+
+    let mut saw_stopped = false;
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(2);
+    while tokio::time::Instant::now() < deadline {
+        match tokio::time::timeout(Duration::from_millis(200), rx.recv()).await {
+            Ok(Some(file_scanner::ScanProgress::STOPPED)) => {
+                saw_stopped = true;
+                break;
+            }
+            Ok(Some(_)) => {}
+            _ => break,
+        }
+    }
+
+    assert_eq!(scanner.get_artist_split().as_deref(), Some(";"));
+    assert!(saw_stopped, "expected rescan to run and emit STOPPED");
 }

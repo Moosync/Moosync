@@ -118,6 +118,11 @@ impl ScannerHolder {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
+    pub fn get_artist_split(&self) -> Option<String> {
+        self.config.lock().unwrap().artist_split.clone()
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn set_on_song<F, Fut>(&self, cb: F)
     where
         F: Fn(Option<String>, Vec<Song>) -> Fut + Send + Sync + 'static,

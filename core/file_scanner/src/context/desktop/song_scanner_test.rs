@@ -62,6 +62,42 @@ fn test_parse_artists_string() {
 #[rstest]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
+fn test_parse_artists_string_regex_and_empty() {
+    let default_pattern = r",|;|&|\s+/\s+|(?i)\b(?:feat|ft)\.?";
+
+    let parsed = parse_artists_string(
+        "Alice, Bob; Charlie & Dave / Eve feat. Frank ft. Grace",
+        default_pattern,
+    );
+    let names: Vec<_> = parsed
+        .iter()
+        .filter_map(|a| a.artist_name.as_deref())
+        .collect();
+    assert_eq!(
+        names,
+        vec!["Alice", "Bob", "Charlie", "Dave", "Eve", "Frank", "Grace"]
+    );
+
+    let preserved = parse_artists_string("AC/DC, Defeat", default_pattern);
+    let preserved_names: Vec<_> = preserved
+        .iter()
+        .filter_map(|a| a.artist_name.as_deref())
+        .collect();
+    assert_eq!(preserved_names, vec!["AC/DC", "Defeat"]);
+
+    let unsplit = parse_artists_string("Alice, Bob", "");
+    assert_len_eq_x!(&unsplit, 1);
+    assert_eq!(unsplit[0].artist_name.as_deref(), Some("Alice, Bob"));
+
+    let escaped = parse_artists_string("Alice ( Bob", "(");
+    assert_len_eq_x!(&escaped, 2);
+    assert_eq!(escaped[0].artist_name.as_deref(), Some("Alice"));
+    assert_eq!(escaped[1].artist_name.as_deref(), Some("Bob"));
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_update_scan_progress() {
     let progress_val = Arc::new(Mutex::new(None));
     let progress_clone = progress_val.clone();

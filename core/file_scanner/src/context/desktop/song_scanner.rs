@@ -10,6 +10,7 @@ use lofty::{
     read_from_path,
     tag::Tag,
 };
+use regex::{Regex, escape as regex_escape};
 use songs_proto::{
     duration_proto::google::protobuf::Duration,
     moosync::types::{Album, Artist, Genre, InnerSong, Song, SongType},
@@ -137,11 +138,29 @@ pub(crate) async fn extract_cover_art(
 
 #[tracing::instrument(level = "debug", skip_all)]
 pub(crate) fn parse_artists_string(artist_str: &str, artist_split: &str) -> Vec<Artist> {
-    artist_str
-        .split(artist_split)
+    if artist_split.is_empty() {
+        let trimmed = artist_str.trim();
+        if trimmed.is_empty() {
+            return Vec::new();
+        }
+        return vec![Artist {
+            artist_id: Some(Uuid::new_v4().to_string()),
+            artist_name: Some(trimmed.to_string()),
+            ..Default::default()
+        }];
+    }
+
+    let regex = Regex::new(artist_split)
+        .or_else(|_| Regex::new(&regex_escape(artist_split)))
+        .expect("escaped regex is always valid");
+
+    regex
+        .split(artist_str)
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
         .map(|s| Artist {
             artist_id: Some(Uuid::new_v4().to_string()),
-            artist_name: Some(s.trim().to_string()),
+            artist_name: Some(s.to_string()),
             ..Default::default()
         })
         .collect()

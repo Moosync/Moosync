@@ -4,6 +4,8 @@ use preferences_proto::moosync::types::{
     PreferenceItem, PreferenceOption, PreferenceType, PreferenceValue, StatusDot, preference_value,
 };
 
+pub const DEFAULT_ARTIST_SPLITTER: &str = r",|;|&|\s+/\s+|(?i)\b(?:feat|ft)\.?";
+
 pub trait FromPreferenceValue: Sized {
     fn extract(item: &PreferenceItem) -> Option<Self>;
 }
@@ -241,8 +243,8 @@ define_preferences! {
     ARTIST_SPLITTER = "artist_splitter" => {
         type: TextInputGroup,
         title: "Artist Splitter",
-        subtitle: "Character(s) used to separate multiple artists in track tags",
-        placeholder: ",",
+        subtitle: "Regex pattern or characters used to separate multiple artists in track tags",
+        placeholder: ",|;|&|\\s+/\\s+|(?i)\\b(?:feat|ft)\\.?",
     };
     SCAN_INTERVAL = "scan_interval" => {
         type: NumberInputGroup,

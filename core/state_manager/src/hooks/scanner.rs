@@ -10,7 +10,10 @@ use file_scanner::{PlaylistSongId, ScannerHolder};
 #[cfg(not(target_os = "android"))]
 use platform_dirs::UserDirs;
 use preferences::{
-    keys::{EXCLUDE_MUSIC_PATHS, MUSIC_PATHS, PreferenceItemExt, SCAN_INTERVAL, SCAN_THREADS},
+    keys::{
+        ARTIST_SPLITTER, DEFAULT_ARTIST_SPLITTER, EXCLUDE_MUSIC_PATHS, MUSIC_PATHS,
+        PreferenceItemExt, SCAN_INTERVAL, SCAN_THREADS,
+    },
     preferences::PreferenceConfig,
 };
 use songs_proto::moosync::types::{
@@ -79,6 +82,14 @@ async fn save_scanned_songs(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
+fn load_artist_splitter(preferences: &PreferenceConfig) -> String {
+    preferences
+        .load(&ARTIST_SPLITTER)
+        .value::<String>()
+        .unwrap_or_else(|| DEFAULT_ARTIST_SPLITTER.to_string())
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
 async fn sync_music_paths(
     key: String,
     scanner: Arc<ScannerHolder>,
@@ -114,6 +125,7 @@ async fn sync_music_paths(
     scanner.set_scan_dirs(scan_dirs.clone());
     scanner.set_exclude_dirs(exclude_dirs);
     scanner.set_scan_threads(threads);
+    scanner.set_artist_split(load_artist_splitter(&preferences));
 
     if key == MUSIC_PATHS.id {
         if !scan_dirs.is_empty()
@@ -167,7 +179,7 @@ impl Hook for ScannerHook {
         let preferences = state_manager.plugins.get::<PreferenceConfig>();
         let database = state_manager.plugins.get::<Database>();
 
-        scanner.set_artist_split(",".into());
+        scanner.set_artist_split(load_artist_splitter(&preferences));
         let thumbnail_dir = state_manager.get_cache_dir().join("thumbnails");
         let _ = std::fs::create_dir_all(&thumbnail_dir);
         scanner.set_thumbnail_dir(thumbnail_dir);
@@ -204,6 +216,33 @@ impl Hook for ScannerHook {
                 EXCLUDE_MUSIC_PATHS.id.clone(),
                 SCAN_THREADS.id.clone(),
             ],
+        );
+
+        preferences.on_preference_changed.listen_filtered(
+            {
+                let scanner = scanner.clone();
+                let preferences = preferences.clone();
+                move |_| {
+                    let scanner = scanner.clone();
+                    let preferences = preferences.clone();
+                    tokio::spawn(
+                        async move {
+                            let artist_split = load_artist_splitter(&preferences);
+                            scanner.set_artist_split(artist_split);
+                            if (!scanner.get_scan_dirs().is_empty() || cfg!(target_os = "android"))
+                                && let Err(e) = scanner.start_scan().await
+                            {
+                                tracing::error!(
+                                    "Rescan after artist splitter change failed: {:?}",
+                                    e
+                                );
+                            }
+                        }
+                        .in_current_span(),
+                    );
+                }
+            },
+            vec![ARTIST_SPLITTER.id.clone()],
         );
 
         let periodic_task = Arc::new(Mutex::new(None));

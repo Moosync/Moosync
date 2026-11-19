@@ -12,7 +12,7 @@ object MediaScanner {
         val mediaStoreFilter = PathFilter(request.scanDirsList, request.excludeDirsList)
         val dirScanDirs = request.scanDirsList.ifEmpty { defaultAndroidMusicDirs() }
         val dirFilter = PathFilter(dirScanDirs, request.excludeDirsList)
-        val artistSplit = request.artistSplit.ifEmpty { ";" }
+        val artistSplit = request.artistSplit
 
         val songsByPath = linkedMapOf<String, moosync.types.Songs.Song>()
         for (song in SongScanner.scan(context, mediaStoreFilter, request.thumbnailDir, artistSplit)) {
@@ -35,7 +35,7 @@ object MediaScanner {
     fun scanDirectories(requestBytes: ByteArray): ByteArray {
         val request = ScanRequest.parseFrom(requestBytes)
         val filter = PathFilter(request.scanDirsList, request.excludeDirsList)
-        val artistSplit = request.artistSplit.ifEmpty { ";" }
+        val artistSplit = request.artistSplit
 
         val songs = SongScanner.scanDirectories(
             filter = filter,

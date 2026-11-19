@@ -3,7 +3,7 @@
     "protoc-gen-prost 0.5.0",
     "slint-lsp 1.19.0"
   ],
-  "checksum": "66bbdd7b6ae8a2b2072a9021662acdf08830121f3555f5e353d1cd9c49fc8dd6",
+  "checksum": "808c9dcc6eef6ad370f09d9a564e77a659896cd0dc9e6893769511a025bba0f1",
   "conditions": {
     "aarch64-apple-darwin": [
       "aarch64-apple-darwin"
@@ -25414,6 +25414,10 @@
           {
             "id": "protoc-gen-prost 0.5.0",
             "target": "protoc_gen_prost"
+          },
+          {
+            "id": "pulldown-cmark 0.13.5",
+            "target": "pulldown_cmark"
           },
           {
             "id": "quote 1.0.47",
@@ -56558,6 +56562,7 @@
     "prost-types 0.14.4",
     "protobuf 3.7.2",
     "protoc-gen-prost 0.5.0",
+    "pulldown-cmark 0.13.5",
     "quote 1.0.47",
     "r2d2 0.8.10",
     "r2d2_sqlite 0.35.0",

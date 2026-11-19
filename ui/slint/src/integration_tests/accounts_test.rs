@@ -293,10 +293,258 @@ async fn do_accounts_deep_link_login(
     assert_eq!(submit_handles.len(), 0);
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_oauth_modal_plain_code_routing(
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) {
+    let _ext = ExtensionFixture::new(state_manager).await;
+    AccountsHandler::fetch_and_render_accounts(main_window.as_weak(), state_manager);
+
+    let loaded = wait_until(|| {
+        main_window
+            .global::<AccountsProps>()
+            .get_accounts()
+            .row_count()
+            == 1
+    })
+    .await;
+    assert!(loaded);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_account_login("rs.sample".into(), "sample_spotify".into());
+
+    let modal_shown =
+        wait_until(|| main_window.global::<OAuthState>().get_show_oauth_modal()).await;
+    assert!(modal_shown);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_submit_oauth_code("plain_code_789".into());
+
+    let logged_in = wait_until(|| {
+        let oauth = main_window.global::<OAuthState>();
+        !oauth.get_show_oauth_modal()
+            && main_window
+                .global::<AccountsProps>()
+                .get_accounts()
+                .row_data(0)
+                .is_some_and(|a| a.logged_in)
+    })
+    .await;
+    assert!(logged_in);
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_oauth_modal_extra_markdown_pairing(
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) {
+    let _ext = ExtensionFixture::new(state_manager).await;
+    AccountsHandler::fetch_and_render_accounts(main_window.as_weak(), state_manager);
+
+    let loaded = wait_until(|| {
+        main_window
+            .global::<AccountsProps>()
+            .get_accounts()
+            .row_count()
+            == 1
+    })
+    .await;
+    assert!(loaded);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_account_login("rs.sample".into(), "sample_spotify".into());
+
+    let modal_shown =
+        wait_until(|| main_window.global::<OAuthState>().get_show_oauth_modal()).await;
+    assert!(modal_shown);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_submit_oauth_code("pairing_md".into());
+
+    let pairing_shown = wait_until(|| {
+        let oauth = main_window.global::<OAuthState>();
+        oauth.get_show_oauth_modal()
+            && oauth.get_has_extra_content()
+            && oauth.get_modal_title() == "Complete Device Pairing"
+    })
+    .await;
+    assert!(pairing_shown);
+    assert_eq!(
+        main_window
+            .global::<OAuthState>()
+            .get_markdown_parts()
+            .row_count(),
+        1
+    );
+
+    let done_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Done").collect();
+    assert_eq!(done_handles.len(), 1);
+    done_handles[0]
+        .single_click(slint::platform::PointerEventButton::Left)
+        .await;
+
+    let closed = wait_until(|| !main_window.global::<OAuthState>().get_show_oauth_modal()).await;
+    assert!(closed);
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_oauth_modal_error_keeps_modal_open(
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) {
+    let _ext = ExtensionFixture::new(state_manager).await;
+    AccountsHandler::fetch_and_render_accounts(main_window.as_weak(), state_manager);
+
+    let loaded = wait_until(|| {
+        main_window
+            .global::<AccountsProps>()
+            .get_accounts()
+            .row_count()
+            == 1
+    })
+    .await;
+    assert!(loaded);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_account_login("rs.sample".into(), "sample_spotify".into());
+
+    let modal_shown =
+        wait_until(|| main_window.global::<OAuthState>().get_show_oauth_modal()).await;
+    assert!(modal_shown);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_submit_oauth_code("fail_oauth".into());
+
+    let error_shown = wait_until(|| {
+        let oauth = main_window.global::<OAuthState>();
+        oauth.get_show_oauth_modal() && !oauth.get_error_message().is_empty()
+    })
+    .await;
+    assert!(error_shown);
+    assert!(main_window.global::<OAuthState>().get_show_oauth_modal());
+    assert!(
+        main_window
+            .global::<OAuthState>()
+            .get_error_message()
+            .contains("Invalid authorization code")
+    );
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_oauth_modal_device_code_and_refresh(
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) {
+    let _ext = ExtensionFixture::new(state_manager).await;
+    AccountsHandler::fetch_and_render_accounts(main_window.as_weak(), state_manager);
+
+    let loaded = wait_until(|| {
+        main_window
+            .global::<AccountsProps>()
+            .get_accounts()
+            .row_count()
+            == 1
+    })
+    .await;
+    assert!(loaded);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_account_login("rs.sample".into(), "sample_device".into());
+
+    let device_shown = wait_until(|| {
+        let oauth = main_window.global::<OAuthState>();
+        oauth.get_show_oauth_modal()
+            && oauth.get_device_code() == "PAIR-1234"
+            && oauth.get_oauth_url() == "https://example.com/device"
+            && oauth.get_modal_title() == "Device Login"
+    })
+    .await;
+    assert!(device_shown);
+
+    let refresh_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Refresh").collect();
+    assert_eq!(refresh_handles.len(), 1);
+    refresh_handles[0]
+        .single_click(slint::platform::PointerEventButton::Left)
+        .await;
+
+    let closed = wait_until(|| {
+        let oauth = main_window.global::<OAuthState>();
+        !oauth.get_show_oauth_modal()
+            && main_window
+                .global::<AccountsProps>()
+                .get_accounts()
+                .row_data(0)
+                .is_some_and(|a| a.logged_in)
+    })
+    .await;
+    assert!(closed);
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_oauth_modal_click_inside_and_cancel(
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) {
+    let _ext = ExtensionFixture::new(state_manager).await;
+    AccountsHandler::fetch_and_render_accounts(main_window.as_weak(), state_manager);
+
+    let loaded = wait_until(|| {
+        main_window
+            .global::<AccountsProps>()
+            .get_accounts()
+            .row_count()
+            == 1
+    })
+    .await;
+    assert!(loaded);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_account_login("rs.sample".into(), "sample_spotify".into());
+
+    let modal_shown =
+        wait_until(|| main_window.global::<OAuthState>().get_show_oauth_modal()).await;
+    assert!(modal_shown);
+
+    let title_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Account Login").collect();
+    if let Some(title) = title_handles.first() {
+        title
+            .single_click(slint::platform::PointerEventButton::Left)
+            .await;
+    }
+    assert!(main_window.global::<OAuthState>().get_show_oauth_modal());
+
+    let cancel_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Cancel").collect();
+    assert_eq!(cancel_handles.len(), 1);
+    cancel_handles[0]
+        .single_click(slint::platform::PointerEventButton::Left)
+        .await;
+
+    let closed = wait_until(|| !main_window.global::<OAuthState>().get_show_oauth_modal()).await;
+    assert!(closed);
+}
+
 integration_test!(
     test_accounts_open_popup => do_accounts_open_popup,
     test_accounts_login_opens_oauth_modal => do_accounts_login_opens_oauth_modal,
     test_accounts_submit_oauth_code_and_modal_dismissal => do_accounts_submit_oauth_code_and_modal_dismissal,
     test_accounts_logout => do_accounts_logout,
     test_accounts_deep_link_login => do_accounts_deep_link_login,
+    test_oauth_modal_plain_code_routing => do_oauth_modal_plain_code_routing,
+    test_oauth_modal_extra_markdown_pairing => do_oauth_modal_extra_markdown_pairing,
+    test_oauth_modal_error_keeps_modal_open => do_oauth_modal_error_keeps_modal_open,
+    test_oauth_modal_device_code_and_refresh => do_oauth_modal_device_code_and_refresh,
+    test_oauth_modal_click_inside_and_cancel => do_oauth_modal_click_inside_and_cancel,
 );

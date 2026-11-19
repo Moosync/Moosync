@@ -1,5 +1,17 @@
+export struct MarkdownPart {
+    is_image: bool,
+    text: styled-text,
+    image_src: image,
+}
+
 export global OAuthState {
     in-out property <bool> show_oauth_modal: false;
+    in-out property <string> modal_title: @tr("Account Login");
     in-out property <string> oauth_url: "";
     in-out property <string> oauth_code: "";
+    in-out property <string> device_code: "";
+    in-out property <string> active_package_name: "";
+    in-out property <bool> has_extra_content: false;
+    in-out property <[MarkdownPart]> markdown_parts: [];
+    in-out property <string> error_message: "";
 }

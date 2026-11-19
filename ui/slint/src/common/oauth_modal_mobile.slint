@@ -1,3 +1,4 @@
+import { ScrollView } from "std-widgets.slint";
 import { Theme } from "../constants_mobile.slint";
 import { ButtonMobile } from "button_mobile.slint";
 import { IconButtonMobile } from "icon_button_mobile.slint";
@@ -12,6 +13,8 @@ export component OAuthModalMobile inherits Rectangle {
     width: 100%;
     height: 100%;
     background: Theme.primary;
+
+    TouchArea { }
 
     VerticalLayout {
         padding-top: Theme.mobileTopBarPaddingTop;
@@ -37,63 +40,233 @@ export component OAuthModalMobile inherits Rectangle {
             }
 
             Text {
-                text: @tr("Account Login");
+                text: OAuthState.modal_title;
                 font-size: Theme.modelTitle;
                 font-weight: 700;
                 color: Theme.textPrimary;
                 vertical-alignment: center;
+                wrap: word-wrap;
+                horizontal-stretch: 1;
             }
         }
 
-        // Form Card Container
+        if OAuthState.error_message != "": Rectangle {
+            background: Theme.danger.transparentize(0.85);
+            border-radius: Theme.borderRadiusMd;
+            border-width: Theme.borderWidth;
+            border-color: Theme.danger;
+
+            HorizontalLayout {
+                padding: Theme.paddingSm;
+                spacing: Theme.spacingSm;
+                alignment: start;
+
+                Image {
+                    width: Theme.iconSizeSm;
+                    height: Theme.iconSizeSm;
+                    source: @image-url("../icons/warning.svg");
+                    image-fit: contain;
+                    colorize: Theme.danger;
+                    vertical-alignment: center;
+                }
+
+                VerticalLayout {
+                    horizontal-stretch: 1;
+                    spacing: Theme.spacingTiny;
+
+                    Text {
+                        text: @tr("Authentication Error");
+                        font-size: Theme.caption;
+                        font-weight: 700;
+                        color: Theme.danger;
+                    }
+
+                    Text {
+                        text: OAuthState.error_message;
+                        font-size: Theme.caption;
+                        color: Theme.textSecondary;
+                        wrap: word-wrap;
+                    }
+                }
+            }
+        }
+
+        // Content Card Container
         Rectangle {
             vertical-stretch: 1;
             background: Theme.secondary;
             border-radius: Theme.borderRadiusXl;
             clip: true;
 
-            VerticalLayout {
+            if OAuthState.has_extra_content: ScrollView {
+                VerticalLayout {
+                    padding: Theme.paddingMd;
+                    spacing: Theme.spacingMd;
+                    alignment: start;
+
+                    for part in OAuthState.markdown_parts: VerticalLayout {
+                        spacing: Theme.spacingSm;
+
+                        if !part.is_image: StyledText {
+                            text: part.text;
+                            default-color: Theme.textPrimary;
+                            default-font-size: Theme.body;
+                            link-color: Theme.accent;
+                            link-clicked(url) => {
+                                if (url.starts-with("https://")) {
+                                    Platform.open-url(url);
+                                }
+                            }
+                        }
+
+                        if part.is_image: HorizontalLayout {
+                            alignment: center;
+
+                            Image {
+                                source: part.image_src;
+                                max-height: 220px;
+                                image-fit: contain;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if !OAuthState.has_extra_content: VerticalLayout {
                 padding: Theme.paddingMd;
                 spacing: Theme.spacingMd;
                 alignment: start;
 
-                Text {
-                    text: @tr("Paste the authorization code or redirected URL below:");
-                    font-size: Theme.caption;
-                    color: Theme.textSecondary;
-                    wrap: word-wrap;
+                if root.oauth_url != "": VerticalLayout {
+                    spacing: Theme.spacingTiny;
+
+                    Text {
+                        text: OAuthState.device_code != "" ? @tr("Visit the URL below in your browser and enter the device code:") : @tr("Authorization URL:");
+                        font-size: Theme.caption;
+                        color: Theme.textSecondary;
+                        wrap: word-wrap;
+                    }
+
+                    Rectangle {
+                        height: Theme.mobileInputHeight;
+                        border-radius: Theme.borderRadiusMd;
+                        background: Theme.tertiary;
+
+                        HorizontalLayout {
+                            padding-left: Theme.paddingSm;
+                            padding-right: Theme.paddingSm;
+                            spacing: Theme.spacingSm;
+
+                            url_input := TextInput {
+                                text: root.oauth_url;
+                                read-only: true;
+                                font-size: Theme.body;
+                                color: Theme.accent;
+                                vertical-alignment: center;
+                                horizontal-stretch: 1;
+                            }
+
+                            ButtonMobile {
+                                text: @tr("Copy");
+                                clicked => {
+                                    url_input.select-all();
+                                    url_input.copy();
+                                }
+                            }
+                        }
+                    }
                 }
 
-                Rectangle {
-                    height: Theme.mobileInputHeight;
-                    border-radius: Theme.borderRadiusMd;
-                    background: Theme.tertiary;
+                if OAuthState.device_code != "": VerticalLayout {
+                    spacing: Theme.spacingTiny;
 
-                    HorizontalLayout {
-                        padding-left: Theme.paddingSm;
-                        padding-right: Theme.paddingSm;
-                        TextInput {
-                            text <=> root.oauth_code;
-                            font-size: Theme.body;
-                            color: Theme.textPrimary;
-                            vertical-alignment: center;
+                    Text {
+                        text: @tr("Device Code");
+                        font-size: Theme.caption;
+                        font-weight: 600;
+                        color: Theme.textSecondary;
+                    }
+
+                    Rectangle {
+                        height: Theme.mobileInputHeight;
+                        border-radius: Theme.borderRadiusMd;
+                        border-color: Theme.accent;
+                        border-width: Theme.borderWidth;
+                        background: Theme.tertiary;
+
+                        HorizontalLayout {
+                            padding-left: Theme.paddingSm;
+                            padding-right: Theme.paddingSm;
+                            spacing: Theme.spacingSm;
+
+                            device_code_input := TextInput {
+                                text: OAuthState.device_code;
+                                read-only: true;
+                                font-size: Theme.modelTitle;
+                                font-weight: 700;
+                                color: Theme.accent;
+                                vertical-alignment: center;
+                                horizontal-stretch: 1;
+                            }
+
+                            ButtonMobile {
+                                text: @tr("Copy");
+                                clicked => {
+                                    device_code_input.select-all();
+                                    device_code_input.copy();
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if OAuthState.device_code == "": VerticalLayout {
+                    spacing: Theme.spacingTiny;
+
+                    Text {
+                        text: @tr("Paste the authorization code or redirected URL below:");
+                        font-size: Theme.caption;
+                        color: Theme.textSecondary;
+                        wrap: word-wrap;
+                    }
+
+                    Rectangle {
+                        height: Theme.mobileInputHeight;
+                        border-radius: Theme.borderRadiusMd;
+                        background: Theme.tertiary;
+
+                        HorizontalLayout {
+                            padding-left: Theme.paddingSm;
+                            padding-right: Theme.paddingSm;
+
+                            TextInput {
+                                text <=> root.oauth_code;
+                                font-size: Theme.body;
+                                color: Theme.textPrimary;
+                                vertical-alignment: center;
+                            }
                         }
                     }
                 }
             }
         }
 
-        // Submit Button at bottom
+        // Bottom Action Button
         HorizontalLayout {
             alignment: center;
             padding-bottom: Theme.paddingMd;
 
             ButtonMobile {
-                text: @tr("Submit");
+                text: OAuthState.has_extra_content ? @tr("Done") : (OAuthState.device_code != "" ? @tr("Refresh") : @tr("Submit"));
                 width: 100%;
                 clicked => {
-                    root.submit_code(root.oauth_code);
-                    root.close();
+                    if (OAuthState.has_extra_content) {
+                        root.close();
+                    } else if (OAuthState.device_code != "") {
+                        root.submit_code("");
+                    } else {
+                        root.submit_code(root.oauth_code);
+                    }
                 }
             }
         }

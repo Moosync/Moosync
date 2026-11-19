@@ -77,3 +77,39 @@ async fn test_accounts_handler_deep_link_and_browser(
 
     tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 }
+
+#[rstest]
+#[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_build_callback_url_routes_plain_codes_and_refresh(
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    sm.register_oauth_path("ext.spotify".to_string(), "spotify_first".to_string());
+    sm.register_oauth_path("ext.spotify".to_string(), "spotify_second".to_string());
+
+    assert_eq!(
+        AccountsHandler::build_callback_url("moosync://spotify_second?code=1", "ext.spotify", &sm),
+        "moosync://spotify_second?code=1"
+    );
+    assert_eq!(
+        AccountsHandler::build_callback_url("https://localhost:8080/cb?code=2", "ext.spotify", &sm),
+        "https://localhost:8080/cb?code=2"
+    );
+    assert_eq!(
+        AccountsHandler::build_callback_url("plain_abc", "ext.spotify", &sm),
+        "moosync://spotify_first?code=plain_abc"
+    );
+    assert_eq!(
+        AccountsHandler::build_callback_url("code=xyz", "ext.spotify", &sm),
+        "moosync://spotify_first?code=xyz"
+    );
+    assert_eq!(
+        AccountsHandler::build_callback_url("?code=q1", "ext.spotify", &sm),
+        "moosync://spotify_first?code=q1"
+    );
+    assert_eq!(
+        AccountsHandler::build_callback_url("", "ext.spotify", &sm),
+        "moosync://spotify_first"
+    );
+}

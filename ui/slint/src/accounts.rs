@@ -1,11 +1,14 @@
-use extensions_proto::moosync::types::ExtensionProviderScope;
-use slint::{ComponentHandle, ModelRc, VecModel, Weak};
-use state_manager::StateManager;
+use extensions::ExtensionError;
+use extensions_proto::moosync::types::{ExtensionProviderScope, PerformAccountLoginRequest};
+use slint::{ComponentHandle, Image, ModelRc, SharedString, StyledText, VecModel, Weak};
+use state_manager::{
+    StateManager, oauth::ProcessedOauthResponse, oauth_markdown::OauthContentPart,
+};
 use tracing::Instrument;
 
 #[cfg(target_os = "android")]
 use crate::utils::android::get_android_context;
-use crate::{AccountItem, AccountsProps, AppCallbacks, MainWindow, OAuthState};
+use crate::{AccountItem, AccountsProps, AppCallbacks, MainWindow, MarkdownPart, OAuthState};
 
 pub struct AccountsHandler;
 
@@ -97,12 +100,10 @@ impl AccountsHandler {
         };
 
         let resp = match ext
-            .perform_account_login(
-                extensions_proto::moosync::types::PerformAccountLoginRequest {
-                    account_id,
-                    login_status: true,
-                },
-            )
+            .perform_account_login(PerformAccountLoginRequest {
+                account_id,
+                login_status: true,
+            })
             .await
         {
             Ok(resp) => resp,
@@ -112,17 +113,33 @@ impl AccountsHandler {
             }
         };
 
-        tracing::debug!("perform_account_login response status: {}", resp.status);
-        let url = resp.status;
+        tracing::debug!("perform_account_login response url: {}", resp.url);
+        let url = resp.url;
+        let device_code = resp.device_code.unwrap_or_default();
         #[cfg(not(test))]
-        Self::open_browser(&url);
+        if !url.is_empty() {
+            Self::open_browser(&url);
+        }
 
-        let url_shared: slint::SharedString = url.into();
+        let pkg_shared: SharedString = package_name.into();
+        let url_shared: SharedString = url.into();
+        let device_code_shared: SharedString = device_code.clone().into();
+        let modal_title: SharedString = if device_code.is_empty() {
+            "Account Login".into()
+        } else {
+            "Device Login".into()
+        };
         let _ = slint::invoke_from_event_loop(move || {
             if let Some(main_window) = main_window_weak.upgrade() {
                 let oauth_state = main_window.global::<OAuthState>();
+                oauth_state.set_active_package_name(pkg_shared);
+                oauth_state.set_modal_title(modal_title);
                 oauth_state.set_oauth_url(url_shared);
-                oauth_state.set_oauth_code(slint::SharedString::default());
+                oauth_state.set_oauth_code(SharedString::default());
+                oauth_state.set_device_code(device_code_shared);
+                oauth_state.set_has_extra_content(false);
+                oauth_state.set_markdown_parts(ModelRc::new(VecModel::default()));
+                oauth_state.set_error_message(SharedString::default());
                 oauth_state.set_show_oauth_modal(true);
             }
         });
@@ -194,6 +211,110 @@ impl AccountsHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
+    pub(crate) fn build_callback_url(
+        code: &str,
+        active_package_name: &str,
+        state_manager: &StateManager,
+    ) -> String {
+        let trimmed = code.trim();
+        if trimmed.starts_with("moosync://")
+            || trimmed.starts_with("http://")
+            || trimmed.starts_with("https://")
+        {
+            return trimmed.to_string();
+        }
+
+        let host = state_manager
+            .find_oauth_host_for_package(active_package_name)
+            .unwrap_or_else(|| active_package_name.to_string());
+
+        if trimmed.is_empty() {
+            format!("moosync://{}", host)
+        } else if trimmed.starts_with('?') {
+            format!("moosync://{}{}", host, trimmed)
+        } else if trimmed.starts_with("code=") {
+            format!("moosync://{}?{}", host, trimmed)
+        } else {
+            format!("moosync://{}?code={}", host, trimmed)
+        }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub(crate) fn process_oauth_callback_result(
+        res: Result<ProcessedOauthResponse, ExtensionError>,
+        main_window_weak: Weak<MainWindow>,
+    ) {
+        let _ = slint::invoke_from_event_loop(move || {
+            let Some(main_window) = main_window_weak.upgrade() else {
+                return;
+            };
+            let oauth_state = main_window.global::<OAuthState>();
+
+            match res {
+                Ok(resp) => {
+                    if let Some(extra) = resp.extra_content {
+                        if let Some(title) = extra.title {
+                            oauth_state.set_modal_title(title.into());
+                        } else {
+                            oauth_state.set_modal_title("Account Login".into());
+                        }
+
+                        let mut slint_parts = Vec::new();
+                        for part in extra.parts {
+                            match part {
+                                OauthContentPart::Text(md) => {
+                                    let styled =
+                                        StyledText::from_markdown(&md).unwrap_or_else(|err| {
+                                            tracing::warn!(
+                                                "Failed to parse markdown for StyledText: {:?}",
+                                                err
+                                            );
+                                            StyledText::from_plain_text(&md)
+                                        });
+                                    slint_parts.push(MarkdownPart {
+                                        is_image: false,
+                                        text: styled,
+                                        image_src: Image::default(),
+                                    });
+                                }
+                                OauthContentPart::Image(path) => match Image::load_from_path(&path)
+                                {
+                                    Ok(img) => {
+                                        slint_parts.push(MarkdownPart {
+                                            is_image: true,
+                                            text: StyledText::default(),
+                                            image_src: img,
+                                        });
+                                    }
+                                    Err(err) => {
+                                        tracing::error!(
+                                            "Failed to load markdown image {:?}: {:?}",
+                                            path,
+                                            err
+                                        );
+                                    }
+                                },
+                            }
+                        }
+
+                        oauth_state.set_markdown_parts(ModelRc::new(VecModel::from(slint_parts)));
+                        oauth_state.set_has_extra_content(true);
+                        oauth_state.set_error_message(SharedString::default());
+                        oauth_state.set_show_oauth_modal(true);
+                    } else {
+                        oauth_state.set_show_oauth_modal(false);
+                    }
+                }
+                Err(err) => {
+                    tracing::error!("Failed to handle oauth callback: {:?}", err);
+                    oauth_state.set_error_message(err.to_string().into());
+                    oauth_state.set_show_oauth_modal(true);
+                }
+            }
+        });
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
     fn setup_oauth_code_callback(
         main_window: &'static MainWindow,
         state_manager: &'static StateManager,
@@ -202,29 +323,21 @@ impl AccountsHandler {
         main_window
             .global::<AppCallbacks>()
             .on_submit_oauth_code(move |code| {
-                let code_str = if !code.starts_with("moosync://") {
-                    format!("moosync://{}", code)
-                } else {
-                    code.to_string()
-                };
+                let active_pkg = main_window_weak
+                    .upgrade()
+                    .map(|mw| {
+                        mw.global::<OAuthState>()
+                            .get_active_package_name()
+                            .to_string()
+                    })
+                    .unwrap_or_default();
+                let code_str = Self::build_callback_url(&code, &active_pkg, state_manager);
                 tracing::debug!("Using code str: {}", code_str);
                 let main_window_weak = main_window_weak.clone();
                 tokio::spawn(
                     async move {
-                        match state_manager.handle_oauth_callback(&code_str).await {
-                            Ok(_) => {
-                                let _ = slint::invoke_from_event_loop(move || {
-                                    if let Some(main_window) = main_window_weak.upgrade() {
-                                        main_window
-                                            .global::<OAuthState>()
-                                            .set_show_oauth_modal(false);
-                                    }
-                                });
-                            }
-                            Err(e) => {
-                                tracing::error!("Failed to handle oauth callback code: {:?}", e);
-                            }
-                        }
+                        let res = state_manager.handle_oauth_callback(&code_str).await;
+                        Self::process_oauth_callback_result(res, main_window_weak);
                     }
                     .in_current_span(),
                 );
@@ -315,20 +428,8 @@ impl AccountsHandler {
         let main_window_weak = main_window.as_weak();
         tokio::spawn(
             async move {
-                match state_manager.handle_oauth_callback(&url_str).await {
-                    Ok(_) => {
-                        let _ = slint::invoke_from_event_loop(move || {
-                            if let Some(main_window) = main_window_weak.upgrade() {
-                                main_window
-                                    .global::<OAuthState>()
-                                    .set_show_oauth_modal(false);
-                            }
-                        });
-                    }
-                    Err(e) => {
-                        tracing::error!("Failed to handle deep link callback {}: {:?}", url_str, e);
-                    }
-                }
+                let res = state_manager.handle_oauth_callback(&url_str).await;
+                Self::process_oauth_callback_result(res, main_window_weak);
             }
             .in_current_span(),
         );

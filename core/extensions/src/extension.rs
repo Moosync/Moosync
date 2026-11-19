@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     fs,
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::{
         Arc, Mutex, OnceLock, RwLock,
         atomic::{AtomicU8, Ordering},
@@ -215,6 +215,9 @@ impl Extension {
 
         Ok(ext)
     }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn extension_path(&self) -> &Path { &self.extension_path }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn spawn_extension(&self) { let _ = Arc::<ExtismContext>::try_from(self); }

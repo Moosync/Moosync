@@ -11,6 +11,7 @@ use moosync_edk::{
         get_volume, open_external_url, register_extension, register_oauth,
         register_user_preference, set_account, system_time, unregister_user_preference,
     },
+    handler::MoosyncError,
     info,
     types::{
         AddPlaylistRequest, AddSongsRequest, AddToPlaylistRequest, Album, Artist,
@@ -75,23 +76,45 @@ impl Accounts for SampleExtension {
             let _ = register_oauth(RegisterOauthRequest {
                 url: "sample_callback".to_string(),
             });
-            Ok(PerformAccountLoginResponse {
-                status: "https://example.com/oauth/authorize".to_string(),
-            })
+            if req.account_id == "sample_device" {
+                Ok(PerformAccountLoginResponse {
+                    url: "https://example.com/device".to_string(),
+                    device_code: Some("PAIR-1234".to_string()),
+                })
+            } else {
+                Ok(PerformAccountLoginResponse {
+                    url: "https://example.com/oauth/authorize".to_string(),
+                    device_code: None,
+                })
+            }
         } else {
             LOGGED_IN.store(false, Ordering::SeqCst);
             sync_account();
             Ok(PerformAccountLoginResponse {
-                status: "logged_out".to_string(),
+                url: "logged_out".to_string(),
+                device_code: None,
             })
         }
     }
 
     fn oauth_callback(&self, req: OauthCallbackRequest) -> MoosyncResult<OauthCallbackResponse> {
         info!("oauth_callback called with code: {}", req.callback_uri);
+        if req.callback_uri.contains("fail_oauth") {
+            return Err(MoosyncError::String(
+                "Invalid authorization code".to_string(),
+            ));
+        }
         LOGGED_IN.store(true, Ordering::SeqCst);
         sync_account();
-        Ok(OauthCallbackResponse {})
+        let extra_content = if req.callback_uri.contains("pairing_md") {
+            Some(
+                "# Complete Device Pairing\n\nEnter **PAIR-99** or visit [Pairing Portal](https://example.com/pair)."
+                    .to_string(),
+            )
+        } else {
+            None
+        };
+        Ok(OauthCallbackResponse { extra_content })
     }
 }
 

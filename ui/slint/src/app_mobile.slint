@@ -96,7 +96,7 @@ import { TopBarProps } from "topbar/top_bar_props.slint";
 import { SettingsState } from "settings/settings_props.slint";
 import { SavePlaylistState } from "common/save_playlist_modal_props.slint";
 import { SaveThemeState } from "common/save_theme_modal_props.slint";
-import { OAuthState } from "common/oauth_modal_props.slint";
+import { OAuthState, MarkdownPart } from "common/oauth_modal_props.slint";
 import { AllSongsPageProps } from "main_content/all_songs_props.slint";
 import { PlaylistsPageProps } from "main_content/playlists_props.slint";
 import {
@@ -123,6 +123,7 @@ export {
     ExtensionsPreferenceProps,
     ExtensionPreferenceGroup,
     OAuthState,
+    MarkdownPart,
     SavePlaylistState,
     SaveThemeState,
     ExtensionDetailsState,
@@ -254,66 +255,77 @@ export component MainWindow inherits Window {
             PageWrapperMobile {
                 page-type: Pages.Search;
                 active-page <=> AppProps.active_page;
+
                 SearchPageMobile { }
             }
 
             PageWrapperMobile {
                 page-type: Pages.AllSongs;
                 active-page <=> AppProps.active_page;
+
                 AllSongsMobile { }
             }
 
             PageWrapperMobile {
                 page-type: Pages.Playlists;
                 active-page <=> AppProps.active_page;
+
                 PlaylistsPageMobile { }
             }
 
             PageWrapperMobile {
                 page-type: Pages.PlaylistContent;
                 active-page <=> AppProps.active_page;
+
                 PlaylistContentMobile { }
             }
 
             PageWrapperMobile {
                 page-type: Pages.Artists;
                 active-page <=> AppProps.active_page;
+
                 ArtistsPageMobile { }
             }
 
             PageWrapperMobile {
                 page-type: Pages.ArtistContent;
                 active-page <=> AppProps.active_page;
+
                 ArtistContentMobile { }
             }
 
             PageWrapperMobile {
                 page-type: Pages.Albums;
                 active-page <=> AppProps.active_page;
+
                 AlbumsPageMobile { }
             }
 
             PageWrapperMobile {
                 page-type: Pages.AlbumContent;
                 active-page <=> AppProps.active_page;
+
                 AlbumContentMobile { }
             }
 
             PageWrapperMobile {
                 page-type: Pages.Genres;
                 active-page <=> AppProps.active_page;
+
                 GenresPageMobile { }
             }
 
             PageWrapperMobile {
                 page-type: Pages.GenreContent;
                 active-page <=> AppProps.active_page;
+
                 GenreContentMobile { }
             }
 
             PageWrapperMobile {
                 page-type: Pages.Explore;
                 active-page <=> AppProps.active_page;
+
                 ExplorePageMobile { }
             }
         }

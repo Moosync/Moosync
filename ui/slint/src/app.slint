@@ -93,7 +93,7 @@ import {
 import { ThemesPageProps } from "settings/themes_props.slint";
 import { Utils, DefaultIconType } from "utils.slint";
 import { OAuthModal } from "common/oauth_modal.slint";
-import { OAuthState } from "common/oauth_modal_props.slint";
+import { OAuthState, MarkdownPart } from "common/oauth_modal_props.slint";
 import { ExtensionDetailsModal } from "common/extension_details_modal.slint";
 import {
     ExtensionDetailsState,
@@ -112,6 +112,7 @@ export {
     ExtensionsPreferenceProps,
     ExtensionPreferenceGroup,
     OAuthState,
+    MarkdownPart,
     SavePlaylistState,
     SaveThemeState,
     ExtensionDetailsState,
@@ -234,65 +235,76 @@ export component MainWindow inherits Window {
                         PageWrapper {
                             page-type: Pages.Search;
                             active-page <=> AppProps.active_page;
+
                             SearchPage { }
                         }
 
                         PageWrapper {
                             active-page <=> AppProps.active_page;
+
                             AllSongs { }
                         }
 
                         PageWrapper {
                             page-type: Pages.Playlists;
                             active-page <=> AppProps.active_page;
+
                             PlaylistsPage { }
                         }
 
                         PageWrapper {
                             page-type: Pages.PlaylistContent;
                             active-page <=> AppProps.active_page;
+
                             PlaylistContent { }
                         }
 
                         PageWrapper {
                             page-type: Pages.Artists;
                             active-page <=> AppProps.active_page;
+
                             ArtistsPage { }
                         }
 
                         PageWrapper {
                             page-type: Pages.ArtistContent;
                             active-page <=> AppProps.active_page;
+
                             ArtistContent { }
                         }
 
                         PageWrapper {
                             page-type: Pages.Albums;
                             active-page <=> AppProps.active_page;
+
                             AlbumsPage { }
                         }
 
                         PageWrapper {
                             page-type: Pages.AlbumContent;
                             active-page <=> AppProps.active_page;
+
                             AlbumContent { }
                         }
 
                         PageWrapper {
                             page-type: Pages.Genres;
                             active-page <=> AppProps.active_page;
+
                             GenresPage { }
                         }
 
                         PageWrapper {
                             page-type: Pages.GenreContent;
                             active-page <=> AppProps.active_page;
+
                             GenreContent { }
                         }
 
                         PageWrapper {
                             page-type: Pages.Explore;
                             active-page <=> AppProps.active_page;
+
                             ExplorePage { }
                         }
                     }

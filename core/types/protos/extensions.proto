@@ -113,7 +113,9 @@ message OauthCallbackRequest {
   string callback_uri = 1;
 }
 
-message OauthCallbackResponse {}
+message OauthCallbackResponse {
+  optional string extra_content = 1;
+}
 
 message SongQueueChangedRequest {
   QueueState queue_state = 1;
@@ -299,7 +301,8 @@ message PerformAccountLoginRequest {
 }
 
 message PerformAccountLoginResponse {
-  string status = 1;
+  string url = 1;
+  optional string device_code = 2;
 }
 
 message RequestedCoverArtRequest {

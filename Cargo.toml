@@ -55,6 +55,7 @@ prost = "0.14.4"
 prost-types = { version = "0.14.4", default-features = false }
 protobuf = { version = "3.7.2", default-features = false, features = ["bytes"] }
 protoc-gen-prost = "0.5.0"
+pulldown-cmark = { version = "0.13.5", default-features = false }
 quote = "1.0.47"
 r2d2 = "0.8.10"
 r2d2_sqlite = "0.35.0"

@@ -17,6 +17,7 @@ pub mod android;
 pub mod hooks;
 pub mod interceptors;
 pub mod oauth;
+pub mod oauth_markdown;
 mod reply_handler;
 
 #[cfg(test)]

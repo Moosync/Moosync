@@ -60,13 +60,15 @@ impl Accounts for EmptySampleExtension {
                     url: "sample_callback".to_string(),
                 });
                 Ok(PerformAccountLoginResponse {
-                    status: "https://example.com/oauth/authorize".to_string(),
+                    url: "https://example.com/oauth/authorize".to_string(),
+                    device_code: None,
                 })
             }
             false => {
                 update_spotify_account(false);
                 Ok(PerformAccountLoginResponse {
-                    status: "logged_out".to_string(),
+                    url: "logged_out".to_string(),
+                    device_code: None,
                 })
             }
         }
@@ -75,7 +77,9 @@ impl Accounts for EmptySampleExtension {
     fn oauth_callback(&self, req: OauthCallbackRequest) -> MoosyncResult<OauthCallbackResponse> {
         info!("oauth_callback called with code: {}", req.callback_uri);
         update_spotify_account(true);
-        Ok(OauthCallbackResponse {})
+        Ok(OauthCallbackResponse {
+            extra_content: None,
+        })
     }
 }
 

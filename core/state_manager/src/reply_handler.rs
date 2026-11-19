@@ -246,7 +246,8 @@ impl ReplyHandler for StateReplyHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     fn register_oauth(&self, package_name: &str, url: String) -> Result<bool, ExtensionError> {
         self.state_manager
-            .register_oauth_path(package_name.to_string(), url);
+            .get_oauth_manager()
+            .register_path(package_name.to_string(), url);
         Ok(true)
     }
 

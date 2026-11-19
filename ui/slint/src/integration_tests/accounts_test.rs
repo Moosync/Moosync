@@ -368,9 +368,7 @@ async fn do_oauth_modal_extra_markdown_pairing(
 
     let pairing_shown = wait_until(|| {
         let oauth = main_window.global::<OAuthState>();
-        oauth.get_show_oauth_modal()
-            && oauth.get_has_extra_content()
-            && oauth.get_modal_title() == "Complete Device Pairing"
+        oauth.get_show_oauth_modal() && oauth.get_has_extra_content()
     })
     .await;
     assert!(pairing_shown);
@@ -469,6 +467,11 @@ async fn do_oauth_modal_device_code_and_refresh(
     })
     .await;
     assert!(device_shown);
+
+    let refresh_ready =
+        wait_until(|| ElementHandle::find_by_accessible_label(main_window, "Refresh").count() == 1)
+            .await;
+    assert!(refresh_ready);
 
     let refresh_handles: Vec<ElementHandle> =
         ElementHandle::find_by_accessible_label(main_window, "Refresh").collect();

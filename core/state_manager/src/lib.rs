@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    sync::{Arc, RwLock},
-};
+use std::sync::Arc;
 
 use tokio::runtime::Handle;
 #[cfg(target_os = "android")]
@@ -16,8 +13,7 @@ pub mod android;
 
 pub mod hooks;
 pub mod interceptors;
-pub mod oauth;
-pub mod oauth_markdown;
+pub mod oauth_handler;
 mod reply_handler;
 
 #[cfg(test)]
@@ -34,7 +30,8 @@ plugin_macro::generate_plugin_system!(
     extensions::ExtensionHandler,
     player::PlayerHandler,
     themes::themes::ThemeHolder,
-    mpris::MprisHolder
+    mpris::MprisHolder,
+    oauth::OauthManager
 );
 
 #[derive(Clone)]
@@ -45,8 +42,6 @@ pub struct StateManager {
 
     runtime: Handle,
     pub hooks: Arc<tokio::sync::Mutex<Vec<Arc<dyn hooks::Hook>>>>,
-    pub oauth: oauth::OAuthManager,
-    pub oauth_routes: Arc<RwLock<HashMap<String, String>>>,
 }
 
 impl StateManager {
@@ -129,8 +124,6 @@ impl StateManager {
             Arc::new(hooks::cover_art::CoverArtHook::new()),
         ];
         let hooks = Arc::new(tokio::sync::Mutex::new(hooks_vec));
-        let oauth = oauth::OAuthManager::new();
-        let oauth_routes = oauth.routes.clone();
 
         Ok(Self {
             plugins: Arc::new(plugins),
@@ -138,8 +131,6 @@ impl StateManager {
             cache_dir: context.cache_dir,
             runtime,
             hooks,
-            oauth,
-            oauth_routes,
         })
     }
 

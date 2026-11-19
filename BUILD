@@ -209,6 +209,7 @@ test_suite(
         "//core/extensions:extensions_test",
         "//core/file_scanner:file_scanner_test",
         "//core/mpris:mpris_test",
+        "//core/oauth:oauth_test",
         "//core/player:player_test",
         "//core/plugin_macro:plugin_macro_test",
         "//core/preferences:preferences_test",

@@ -1,14 +1,28 @@
+use std::path::{Path, PathBuf};
+
 use extensions::ExtensionError;
 use extensions_proto::moosync::types::{ExtensionProviderScope, PerformAccountLoginRequest};
-use slint::{ComponentHandle, Image, ModelRc, SharedString, StyledText, VecModel, Weak};
-use state_manager::{
-    StateManager, oauth::ProcessedOauthResponse, oauth_markdown::OauthContentPart,
+use pulldown_cmark::{Event, Options, Parser, Tag, TagEnd};
+use slint::{
+    ComponentHandle, Image, ModelRc, Rgba8Pixel, SharedPixelBuffer, SharedString, StyledText,
+    VecModel, Weak,
 };
+use state_manager::{StateManager, oauth_handler::ProcessedOauthResponse};
 use tracing::Instrument;
 
 #[cfg(target_os = "android")]
 use crate::utils::android::get_android_context;
-use crate::{AccountItem, AccountsProps, AppCallbacks, MainWindow, MarkdownPart, OAuthState};
+use crate::{
+    AccountItem, AccountsProps, AppCallbacks, MainWindow, MarkdownPart, OAuthState,
+    utils::image::download_image_as_pixel_buffer,
+};
+
+#[derive(Debug, Clone)]
+pub(crate) enum ParsedMarkdownPart {
+    Text(String),
+    LocalImage(PathBuf),
+    RemoteImage(SharedPixelBuffer<Rgba8Pixel>),
+}
 
 pub struct AccountsHandler;
 
@@ -225,7 +239,8 @@ impl AccountsHandler {
         }
 
         let host = state_manager
-            .find_oauth_host_for_package(active_package_name)
+            .get_oauth_manager()
+            .find_host_for_package(active_package_name)
             .unwrap_or_else(|| active_package_name.to_string());
 
         if trimmed.is_empty() {
@@ -240,74 +255,180 @@ impl AccountsHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub(crate) fn process_oauth_callback_result(
+    async fn resolve_oauth_image(
+        dest_url: &str,
+        extension_path: &Path,
+    ) -> Option<ParsedMarkdownPart> {
+        if dest_url.starts_with("https://") {
+            return download_image_as_pixel_buffer(dest_url)
+                .await
+                .map(ParsedMarkdownPart::RemoteImage);
+        }
+
+        if dest_url.contains("://") || dest_url.starts_with('/') || dest_url.starts_with('\\') {
+            tracing::warn!("Ignoring non-https or absolute image URL: {}", dest_url);
+            return None;
+        }
+
+        let canonical_ext = match extension_path.canonicalize() {
+            Ok(path) => path,
+            Err(err) => {
+                tracing::error!(
+                    "Failed to canonicalize extension path {:?}: {:?}",
+                    extension_path,
+                    err
+                );
+                return None;
+            }
+        };
+
+        let candidate = extension_path.join(dest_url);
+        let canonical_img = match candidate.canonicalize() {
+            Ok(path) => path,
+            Err(err) => {
+                tracing::warn!("Failed to resolve local image {:?}: {:?}", candidate, err);
+                return None;
+            }
+        };
+
+        if canonical_img.starts_with(&canonical_ext) && canonical_img.is_file() {
+            Some(ParsedMarkdownPart::LocalImage(canonical_img))
+        } else {
+            tracing::warn!(
+                "Rejected image path outside extension directory: {:?}",
+                canonical_img
+            );
+            None
+        }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub(crate) async fn parse_oauth_markdown(
+        raw_markdown: &str,
+        extension_path: &Path,
+    ) -> Vec<ParsedMarkdownPart> {
+        let mut options = Options::empty();
+        options.insert(Options::ENABLE_STRIKETHROUGH);
+
+        let mut image_spans: Vec<(usize, usize, String)> = Vec::new();
+        let mut img_start = None;
+        let mut pending_img_url = None;
+
+        for (event, range) in Parser::new_ext(raw_markdown, options).into_offset_iter() {
+            match event {
+                Event::Start(Tag::Image { dest_url, .. }) => {
+                    img_start = Some(range.start);
+                    pending_img_url = Some(dest_url.to_string());
+                }
+                Event::End(TagEnd::Image) => {
+                    if let (Some(start), Some(url)) = (img_start.take(), pending_img_url.take()) {
+                        image_spans.push((start, range.end, url));
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        let mut parts = Vec::new();
+        let mut cursor = 0;
+        for (start, end, img_url) in image_spans {
+            let slice = raw_markdown[cursor..start].trim();
+            if !slice.is_empty() {
+                parts.push(ParsedMarkdownPart::Text(slice.to_string()));
+            }
+            if let Some(img_part) = Self::resolve_oauth_image(&img_url, extension_path).await {
+                parts.push(img_part);
+            }
+            cursor = end;
+        }
+
+        let tail = raw_markdown[cursor..].trim();
+        if !tail.is_empty() {
+            parts.push(ParsedMarkdownPart::Text(tail.to_string()));
+        }
+
+        parts
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn build_slint_markdown_parts(parts: Vec<ParsedMarkdownPart>) -> Vec<MarkdownPart> {
+        let mut slint_parts = Vec::new();
+        for part in parts {
+            match part {
+                ParsedMarkdownPart::Text(md) => {
+                    let styled = StyledText::from_markdown(&md).unwrap_or_else(|err| {
+                        tracing::warn!("Failed to parse markdown for StyledText: {:?}", err);
+                        StyledText::from_plain_text(&md)
+                    });
+                    slint_parts.push(MarkdownPart {
+                        is_image: false,
+                        text: styled,
+                        image_src: Image::default(),
+                    });
+                }
+                ParsedMarkdownPart::LocalImage(path) => match Image::load_from_path(&path) {
+                    Ok(img) => slint_parts.push(MarkdownPart {
+                        is_image: true,
+                        text: StyledText::default(),
+                        image_src: img,
+                    }),
+                    Err(err) => {
+                        tracing::error!("Failed to load markdown image {:?}: {:?}", path, err);
+                    }
+                },
+                ParsedMarkdownPart::RemoteImage(buf) => slint_parts.push(MarkdownPart {
+                    is_image: true,
+                    text: StyledText::default(),
+                    image_src: Image::from_rgba8(buf),
+                }),
+            }
+        }
+        slint_parts
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub(crate) async fn process_oauth_callback_result(
         res: Result<ProcessedOauthResponse, ExtensionError>,
         main_window_weak: Weak<MainWindow>,
     ) {
+        enum UiOutcome {
+            Close,
+            ShowExtra(Vec<ParsedMarkdownPart>),
+            ShowError(String),
+        }
+
+        let outcome = match res {
+            Ok(resp) => {
+                if let Some(raw_md) = resp.extra_content {
+                    let parts = Self::parse_oauth_markdown(&raw_md, &resp.extension_path).await;
+                    UiOutcome::ShowExtra(parts)
+                } else {
+                    UiOutcome::Close
+                }
+            }
+            Err(err) => {
+                tracing::error!("Failed to handle oauth callback: {:?}", err);
+                UiOutcome::ShowError(err.to_string())
+            }
+        };
+
         let _ = slint::invoke_from_event_loop(move || {
             let Some(main_window) = main_window_weak.upgrade() else {
                 return;
             };
             let oauth_state = main_window.global::<OAuthState>();
 
-            match res {
-                Ok(resp) => {
-                    if let Some(extra) = resp.extra_content {
-                        if let Some(title) = extra.title {
-                            oauth_state.set_modal_title(title.into());
-                        } else {
-                            oauth_state.set_modal_title("Account Login".into());
-                        }
-
-                        let mut slint_parts = Vec::new();
-                        for part in extra.parts {
-                            match part {
-                                OauthContentPart::Text(md) => {
-                                    let styled =
-                                        StyledText::from_markdown(&md).unwrap_or_else(|err| {
-                                            tracing::warn!(
-                                                "Failed to parse markdown for StyledText: {:?}",
-                                                err
-                                            );
-                                            StyledText::from_plain_text(&md)
-                                        });
-                                    slint_parts.push(MarkdownPart {
-                                        is_image: false,
-                                        text: styled,
-                                        image_src: Image::default(),
-                                    });
-                                }
-                                OauthContentPart::Image(path) => match Image::load_from_path(&path)
-                                {
-                                    Ok(img) => {
-                                        slint_parts.push(MarkdownPart {
-                                            is_image: true,
-                                            text: StyledText::default(),
-                                            image_src: img,
-                                        });
-                                    }
-                                    Err(err) => {
-                                        tracing::error!(
-                                            "Failed to load markdown image {:?}: {:?}",
-                                            path,
-                                            err
-                                        );
-                                    }
-                                },
-                            }
-                        }
-
-                        oauth_state.set_markdown_parts(ModelRc::new(VecModel::from(slint_parts)));
-                        oauth_state.set_has_extra_content(true);
-                        oauth_state.set_error_message(SharedString::default());
-                        oauth_state.set_show_oauth_modal(true);
-                    } else {
-                        oauth_state.set_show_oauth_modal(false);
-                    }
+            match outcome {
+                UiOutcome::Close => oauth_state.set_show_oauth_modal(false),
+                UiOutcome::ShowExtra(parts) => {
+                    let slint_parts = Self::build_slint_markdown_parts(parts);
+                    oauth_state.set_markdown_parts(ModelRc::new(VecModel::from(slint_parts)));
+                    oauth_state.set_has_extra_content(true);
+                    oauth_state.set_error_message(SharedString::default());
+                    oauth_state.set_show_oauth_modal(true);
                 }
-                Err(err) => {
-                    tracing::error!("Failed to handle oauth callback: {:?}", err);
-                    oauth_state.set_error_message(err.to_string().into());
+                UiOutcome::ShowError(err_msg) => {
+                    oauth_state.set_error_message(err_msg.into());
                     oauth_state.set_show_oauth_modal(true);
                 }
             }
@@ -337,7 +458,7 @@ impl AccountsHandler {
                 tokio::spawn(
                     async move {
                         let res = state_manager.handle_oauth_callback(&code_str).await;
-                        Self::process_oauth_callback_result(res, main_window_weak);
+                        Self::process_oauth_callback_result(res, main_window_weak).await;
                     }
                     .in_current_span(),
                 );
@@ -429,7 +550,7 @@ impl AccountsHandler {
         tokio::spawn(
             async move {
                 let res = state_manager.handle_oauth_callback(&url_str).await;
-                Self::process_oauth_callback_result(res, main_window_weak);
+                Self::process_oauth_callback_result(res, main_window_weak).await;
             }
             .in_current_span(),
         );

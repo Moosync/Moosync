@@ -68,6 +68,18 @@ async fn download_image_bytes(cover_url: &str) -> Option<Vec<u8>> {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
+pub async fn download_image_as_pixel_buffer(url: &str) -> Option<SharedPixelBuffer<Rgba8Pixel>> {
+    let bytes = download_image_bytes(url).await?;
+    match load_from_memory(&bytes) {
+        Ok(img) => Some(dynamic_image_to_pixel_buffer(&img)),
+        Err(error) => {
+            tracing::error!("Failed to decode image from memory for {url}: {error:?}");
+            None
+        }
+    }
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
 async fn fetch_and_decode(cover_url: &str) -> Option<(DynamicImage, DynamicImage)> {
     let bytes = download_image_bytes(cover_url).await?;
     let dynamic_image = match load_from_memory(&bytes) {

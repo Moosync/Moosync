@@ -376,7 +376,7 @@ async fn test_reply_handler_register_oauth(reply_context: TestReplyContext) {
 
     assert_ok!(res);
     assert_eq!(
-        sm.find_package_for_oauth_host("callback"),
+        sm.get_oauth_manager().find_package_for_host("callback"),
         Some("test_pkg".to_string())
     );
 }

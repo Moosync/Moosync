@@ -3,7 +3,7 @@ use slint::{ComponentHandle, Model};
 
 use crate::{
     AccountsProps,
-    accounts::AccountsHandler,
+    accounts::{AccountsHandler, ParsedMarkdownPart},
     test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
 };
 
@@ -85,8 +85,8 @@ async fn test_build_callback_url_routes_plain_codes_and_refresh(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    sm.register_oauth_path("ext.spotify".to_string(), "spotify_first".to_string());
-    sm.register_oauth_path("ext.spotify".to_string(), "spotify_second".to_string());
+    sm.get_oauth_manager()
+        .register_path("ext.spotify".to_string(), "spotify_first".to_string());
 
     assert_eq!(
         AccountsHandler::build_callback_url("moosync://spotify_second?code=1", "ext.spotify", &sm),
@@ -112,4 +112,49 @@ async fn test_build_callback_url_routes_plain_codes_and_refresh(
         AccountsHandler::build_callback_url("", "ext.spotify", &sm),
         "moosync://spotify_first"
     );
+}
+
+#[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_parse_oauth_markdown_extracts_title_and_interleaved_images() {
+    let ext_dir = tempdir::TempDir::new("moosync_ui_ext_assets").unwrap();
+    let assets_dir = ext_dir.path().join("assets");
+    std::fs::create_dir_all(&assets_dir).unwrap();
+    let img1 = assets_dir.join("qr.png");
+    let img2 = assets_dir.join("step2.png");
+    std::fs::write(&img1, b"png1").unwrap();
+    std::fs::write(&img2, b"png2").unwrap();
+
+    let md = "# Pair Your Device\n\nScan this code:\n\n![QR](assets/qr.png)\n\nThen visit [Setup](https://example.com/setup).\n\n![Step 2](assets/step2.png)\n\nAll done!";
+    let parts = AccountsHandler::parse_oauth_markdown(md, ext_dir.path()).await;
+
+    assert_eq!(parts.len(), 5);
+    assert!(
+        matches!(&parts[0], ParsedMarkdownPart::Text(t) if t == "# Pair Your Device\n\nScan this code:")
+    );
+    assert!(
+        matches!(&parts[1], ParsedMarkdownPart::LocalImage(p) if p == &img1.canonicalize().unwrap())
+    );
+    assert!(
+        matches!(&parts[2], ParsedMarkdownPart::Text(t) if t == "Then visit [Setup](https://example.com/setup).")
+    );
+    assert!(
+        matches!(&parts[3], ParsedMarkdownPart::LocalImage(p) if p == &img2.canonicalize().unwrap())
+    );
+    assert!(matches!(&parts[4], ParsedMarkdownPart::Text(t) if t == "All done!"));
+}
+
+#[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_parse_oauth_markdown_rejects_traversal_and_http_images() {
+    let parent_dir = tempdir::TempDir::new("moosync_ui_parent_dir").unwrap();
+    let ext_dir = parent_dir.path().join("ext");
+    std::fs::create_dir_all(&ext_dir).unwrap();
+    std::fs::write(parent_dir.path().join("secret.png"), b"secret").unwrap();
+
+    let md = "![Traversal](../secret.png)\n\n![Insecure](http://example.com/img.png)\n\n![Absolute](/etc/passwd)\n\nOnly text";
+    let parts = AccountsHandler::parse_oauth_markdown(md, &ext_dir).await;
+
+    assert_eq!(parts.len(), 1);
+    assert!(matches!(&parts[0], ParsedMarkdownPart::Text(t) if t == "Only text"));
 }

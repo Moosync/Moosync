@@ -39,7 +39,7 @@ rust_library(
         "src/interceptors/mod.rs",
         "src/lib.rs",
         "src/lib_test.rs",
-        "src/oauth.rs",
+        "src/oauth_handler.rs",
         "src/oauth_markdown.rs",
         "src/oauth_test.rs",
         "src/reply_handler.rs",
@@ -81,6 +81,7 @@ rust_library(
         "@crates//:url",
         "@crates//:uuid",
         "//core/mpris",
+        "//core/oauth",
     ] + select({
         "@platforms//os:android": [
             "@crates//:jni",

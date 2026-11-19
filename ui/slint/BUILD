@@ -574,6 +574,7 @@ COMMON_DEPS = [
     "@crates//:platform-dirs",
     "@crates//:prost",
     "@crates//:prost-types",
+    "@crates//:pulldown-cmark",
     "@crates//:regex",
     "@crates//:reqwest",
     "@crates//:rstest",

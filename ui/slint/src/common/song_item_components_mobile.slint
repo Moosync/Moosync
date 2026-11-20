@@ -39,6 +39,7 @@ export component SongItemThumbnailMobile inherits Rectangle {
     Rectangle {
         visible: root.show_play_overlay && touch.has-hover;
         background: rgba(0, 0, 0, 0.6);
+
         Image {
             source: @image-url("../icons/play.svg");
         }

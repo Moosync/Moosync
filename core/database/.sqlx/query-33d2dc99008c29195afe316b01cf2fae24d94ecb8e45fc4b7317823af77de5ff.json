@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT lyrics FROM song_lyrics WHERE song_id = ?1",
+  "describe": {
+    "columns": [
+      {
+        "name": "lyrics",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "33d2dc99008c29195afe316b01cf2fae24d94ecb8e45fc4b7317823af77de5ff"
+}

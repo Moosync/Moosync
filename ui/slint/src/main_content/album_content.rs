@@ -73,7 +73,10 @@ impl EntitySongProvider for AlbumSongProvider {
             album: Some(album),
             ..Default::default()
         };
-        database.get_songs_by_options(options).map_err(|e| e.into())
+        database
+            .get_songs_by_options(options)
+            .await
+            .map_err(|e| e.into())
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT song_id, play_time FROM analytics ORDER BY play_time DESC LIMIT 10",
+  "describe": {
+    "columns": [
+      {
+        "name": "song_id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "play_time",
+        "ordinal": 1,
+        "type_info": "Float"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "8c0752c23cab1bfeeb75dc21c7c9f5d7f2b14ebeb27258ed7a55d3deda47d0aa"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO song_lyrics (song_id, lyrics) VALUES (?1, ?2)\n             ON CONFLICT(song_id) DO UPDATE SET lyrics = excluded.lyrics",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "5540c69d88de69cfbac83a8af648b89e78cbb3fa4f7c4385a4a15de2220da870"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE playlists SET\n                playlist_name = ?1, playlist_coverpath = ?2, playlist_song_count = ?3,\n                playlist_desc = ?4, playlist_path = ?5, extension = ?6, icon = ?7,\n                library_item = COALESCE(?8, library_item)\n             WHERE playlist_id = ?9",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 9
+    },
+    "nullable": []
+  },
+  "hash": "7d3e9c2d635647cc3eb425d3967fe95420c2ed53cd6e817bd85f665b6e33b5f9"
+}

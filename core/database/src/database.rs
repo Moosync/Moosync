@@ -1,37 +1,29 @@
-use std::{cmp::min, fmt::Debug, fs, path::PathBuf, sync::Arc, vec};
+use std::{fmt::Debug, fs, path::PathBuf, sync::Arc};
 
-use prost::Message;
-use rusqlite::OptionalExtension;
 use songs_proto::moosync::types::{
-    Album, AlbumList, AllAnalytics, Artist, ArtistList, EntityResult, Genre, GenreList,
-    GetEntityOptions, GetSongOptions, InnerSong, Lyrics, Playlist, PlaylistList, SearchResult,
-    SearchableSong, Song, all_analytics::SongListenTime,
+    Album, AllAnalytics, Artist, Genre, GetSongOptions, InnerSong, Lyrics, Playlist, SearchResult,
+    Song,
 };
-use tracing::{debug, info, trace, warn};
+use tracing::{debug, info};
 use types::{
     plugin::{Plugin, PluginContext},
-    prelude::SongsExt,
     subscription::SubscriberList,
 };
-use uuid::Uuid;
 
-use super::migrations::run_migrations;
 use crate::{
-    error::DatabaseError,
-    utils::{
-        map_row_to_album, map_row_to_artist, map_row_to_genre, map_row_to_inner_song,
-        map_row_to_playlist, proto_to_db_ms, song_type_to_str,
-    },
+    analytics::AnalyticsRepository, cache::CacheRepository, entities::EntityRepository,
+    error::DatabaseError, playlists::PlaylistRepository, pool::create_pools,
+    search::SearchRepository, songs::SongRepository,
 };
-
-const ALLSONGS_COLUMNS: &str = "a._id, a.path, a.size, a.inode, a.deviceno, a.title, a.date, a.year, NULL as lyrics, a.releasetype, \
-                                a.bitrate, a.codec, a.container, a.duration, a.samplerate, a.hash, a.type, a.url, \
-                                a.song_coverpath_high, a.playbackurl, a.song_coverpath_low, a.date_added, \
-                                a.provider_extension, a.icon, a.show_in_library, a.track_no, a.library_item";
 
 #[derive(Clone)]
 pub struct Database {
-    pub pool: r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>,
+    songs: SongRepository,
+    entities: EntityRepository,
+    playlists: PlaylistRepository,
+    search: SearchRepository,
+    analytics: AnalyticsRepository,
+    cache: CacheRepository,
     pub on_songs_added: SubscriberList<Vec<Song>>,
     pub on_song_updated: SubscriberList<Song>,
     pub on_album_updated: SubscriberList<Album>,
@@ -42,1038 +34,275 @@ pub struct Database {
 #[plugin_macro::generate]
 impl Database {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(path: PathBuf) -> Self {
+    pub async fn new(path: PathBuf) -> Self {
         debug!("Creating database handler");
         if !path.exists() {
             fs::create_dir_all(&path).expect("Failed to create dir to store database");
         }
 
-        let db = Self {
-            pool: Self::connect(path.join("songs.db")),
+        let db_path = path.join("songs.db");
+        let pools = create_pools(&db_path)
+            .await
+            .expect("Failed to initialize database pools");
+
+        info!("Created DB instance");
+        Self {
+            songs: SongRepository::new(pools.clone()),
+            entities: EntityRepository::new(pools.clone()),
+            playlists: PlaylistRepository::new(pools.clone()),
+            search: SearchRepository::new(pools.clone()),
+            analytics: AnalyticsRepository::new(pools.clone()),
+            cache: CacheRepository::new(pools),
             on_songs_added: SubscriberList::new(),
             on_song_updated: SubscriberList::new(),
             on_album_updated: SubscriberList::new(),
             on_artist_updated: SubscriberList::new(),
             on_playlist_updated: SubscriberList::new(),
-        };
-
-        let mut conn = db.pool.get().expect("Failed to get connection to DB");
-        run_migrations(&mut conn);
-        conn.execute_batch("
-            PRAGMA journal_mode = WAL;          -- better write-concurrency
-            PRAGMA synchronous = NORMAL;        -- fsync only in critical moments
-            PRAGMA wal_autocheckpoint = 1000;   -- write WAL changes back every 1000 pages, for an in average 1MB WAL file. May affect readers if number is increased
-            PRAGMA wal_checkpoint(TRUNCATE);    -- free some space by truncating possibly massive WAL files from the last run.
-            PRAGMA busy_timeout = 250;          -- sleep if the database is busy
-        ").expect("Failed to set DB options");
-
-        db.init_cache_table()
-            .expect("Failed to initialize cache table");
-
-        info!("Created DB instance");
-        db
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn connect(path: PathBuf) -> r2d2::Pool<r2d2_sqlite::SqliteConnectionManager> {
-        let manager = r2d2_sqlite::SqliteConnectionManager::file(path).with_init(|conn| {
-            conn.trace_v2(
-                rusqlite::trace::TraceEventCodes::SQLITE_TRACE_STMT,
-                Some(|event| {
-                    if let rusqlite::trace::TraceEvent::Stmt(_, sql) = event {
-                        tracing::trace!("Executing SQL: {}", sql);
-                    }
-                }),
-            );
-            Ok(())
-        });
-
-        r2d2::Pool::builder()
-            .build(manager)
-            .expect("Failed to create pool.")
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn insert_playlist(
-        &self,
-        conn: &mut rusqlite::Connection,
-        playlist: Playlist,
-    ) -> Result<String, DatabaseError> {
-        let id = playlist.playlist_id.as_ref().unwrap().clone();
-        trace!("Inserting playlist");
-        conn.execute(
-            "INSERT INTO playlists (playlist_id, playlist_name, playlist_coverpath, playlist_song_count, playlist_desc, playlist_path, extension, icon, library_item)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
-            (
-                &playlist.playlist_id,
-                &playlist.playlist_name,
-                &playlist.playlist_coverpath,
-                &playlist.playlist_song_count,
-                &playlist.playlist_desc,
-                &playlist.playlist_path,
-                &playlist.extension,
-                &playlist.icon,
-                &playlist.library_item,
-            ),
-        )
-        .map_err(DatabaseError::Query)?;
-        info!("Inserted playlist");
-        Ok(id)
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub fn create_playlist(&self, playlist: Playlist) -> Result<String, DatabaseError> {
-        let mut playlist = playlist;
-        let mut conn = self.pool.get().unwrap();
-
-        trace!("Sanitizing playlist");
-
-        if playlist.playlist_id.is_none() {
-            playlist.playlist_id = Some(Uuid::new_v4().to_string());
         }
-
-        if playlist.playlist_name.is_empty() {
-            playlist.playlist_name = "New playlist".to_string();
-        }
-
-        if playlist.playlist_path.is_some() {
-            let fetched = self.get_playlists(
-                Playlist {
-                    playlist_path: playlist.playlist_path.clone(),
-                    ..Default::default()
-                },
-                false,
-                &mut conn,
-            )?;
-            if !fetched.is_empty() {
-                return Ok(fetched[0].playlist_id.clone().unwrap());
-            }
-        }
-
-        self.insert_playlist(&mut conn, playlist)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn create_playlist_with_songs(
+    pub async fn create_playlist(&self, playlist: Playlist) -> Result<String, DatabaseError> {
+        self.playlists.create_playlist(playlist).await
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub async fn create_playlist_with_songs(
         &self,
         playlist: Playlist,
         songs: &[Song],
     ) -> Result<(), DatabaseError> {
-        let playlist_id = match self.create_playlist(playlist.clone()) {
-            Ok(id) => id,
-            Err(e) => {
-                if let Some(ref id) = playlist.playlist_id {
-                    id.clone()
-                } else {
-                    return Err(e);
-                }
-            }
-        };
-        if songs.is_empty() {
-            return Ok(());
-        }
-        self.add_to_playlist(&playlist_id, songs)?;
-        Ok(())
+        self.playlists
+            .create_playlist_with_songs(playlist, songs)
+            .await
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn add_to_playlist_bridge(
+    pub async fn add_to_playlist_bridge(
         &self,
         playlist_id: String,
         song_id: String,
     ) -> Result<(), DatabaseError> {
-        let conn = self.pool.get().unwrap();
-        trace!("Inserting song in playlist bridge");
-        conn.execute(
-            "INSERT INTO playlist_bridge (playlist, song) VALUES (?1, ?2)",
-            (&playlist_id, &song_id),
-        )
-        .map_err(DatabaseError::Query)?;
-
-        trace!("Inserted song in playlist bridge");
-
-        Ok(())
+        self.playlists
+            .add_to_playlist_bridge(&playlist_id, &song_id)
+            .await
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn insert_songs(&self, songs: Vec<Song>) -> Result<Vec<Song>, DatabaseError> {
+    pub async fn insert_songs(&self, songs: Vec<Song>) -> Result<Vec<Song>, DatabaseError> {
         let mut songs = songs;
-        self.insert_songs_by_ref(&mut songs)?;
+        self.insert_songs_by_ref(&mut songs).await?;
         Ok(songs)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn insert_songs_by_ref(&self, songs: &mut [Song]) -> Result<(), DatabaseError> {
-        let mut conn = self.pool.get().unwrap();
-        trace!("Inserting songs");
-
-        // 1. Gather all unique albums, artists, genres from the songs
-        let (unique_albums, unique_artists, unique_genres) = gather_unique_metadata(songs);
-
-        // 2. Execute all reads, bridge replacements, and bulk insertions within
-        //    a transaction
-        let tx = conn.transaction().map_err(DatabaseError::Query)?;
-
-        // 3. Fetch existing song IDs and clear their old metadata bridges first
-        //    so decrement triggers don't remove newly-inserted zero-count
-        //    entities
-        let existing_song_ids = fetch_existing_song_ids(&tx, songs)?;
-        let existing_ids: Vec<&String> = existing_song_ids.values().collect();
-        delete_existing_bridge_entries(&tx, "album_bridge", &existing_ids)?;
-        delete_existing_bridge_entries(&tx, "artist_bridge", &existing_ids)?;
-        delete_existing_bridge_entries(&tx, "genre_bridge", &existing_ids)?;
-
-        // 4. Fetch remaining albums, artists, genres from the DB and insert new
-        //    ones
-        let album_names: Vec<String> = unique_albums.keys().cloned().collect();
-        let mut album_ids =
-            fetch_existing_entities(&tx, "albums", "album_id", "album_name", &album_names)?;
-
-        let artist_names: Vec<String> = unique_artists.keys().cloned().collect();
-        let mut artist_ids =
-            fetch_existing_entities(&tx, "artists", "artist_id", "artist_name", &artist_names)?;
-
-        let genre_names: Vec<String> = unique_genres.keys().cloned().collect();
-        let mut genre_ids =
-            fetch_existing_entities(&tx, "genres", "genre_id", "genre_name", &genre_names)?;
-
-        insert_new_albums(&tx, &unique_albums, &mut album_ids)?;
-        insert_new_artists(&tx, &unique_artists, &mut artist_ids)?;
-        insert_new_genres(&tx, &unique_genres, &mut genre_ids)?;
-
-        // 5. Update the incoming songs slice with matched or new IDs
-        update_song_metadata_ids(
-            songs,
-            &existing_song_ids,
-            &album_ids,
-            &artist_ids,
-            &genre_ids,
-        );
-
-        // 6. Map songs to DbSongRow and prepare bridge entries
-        let rows_and_bridges = build_db_song_rows_and_bridges(songs);
-
-        insert_bulk_db_song_rows(&tx, &rows_and_bridges.db_song_rows)?;
-
-        insert_bulk_bridge_entries(
-            &tx,
-            "album_bridge",
-            "song",
-            "album",
-            &rows_and_bridges.album_bridges,
-        )?;
-        insert_bulk_bridge_entries(
-            &tx,
-            "artist_bridge",
-            "song",
-            "artist",
-            &rows_and_bridges.artist_bridges,
-        )?;
-        insert_bulk_bridge_entries(
-            &tx,
-            "genre_bridge",
-            "song",
-            "genre",
-            &rows_and_bridges.genre_bridges,
-        )?;
-
-        tx.commit().map_err(DatabaseError::Transaction)?;
+    pub async fn insert_songs_by_ref(&self, songs: &mut [Song]) -> Result<(), DatabaseError> {
+        self.songs.insert_songs_by_ref(songs).await?;
         if !songs.is_empty() {
             self.on_songs_added.emit(songs.to_vec());
         }
-        info!("Inserted all songs");
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn remove_songs<T>(&self, ids: &[T]) -> Result<(), DatabaseError>
+    pub async fn remove_songs<T>(&self, ids: &[T]) -> Result<(), DatabaseError>
     where
-        T: AsRef<str> + rusqlite::ToSql + Debug,
+        T: AsRef<str> + Debug + Sync,
     {
-        trace!("Removing song");
-        let mut conn = self.pool.get().unwrap();
-        let tx = conn.transaction().map_err(DatabaseError::Query)?;
-        for id in ids {
-            let s: &str = id.as_ref();
-            tx.execute("DELETE FROM analytics WHERE song_id = ?1", [&s])
-                .map_err(DatabaseError::Query)?;
-            tx.execute("DELETE FROM album_bridge WHERE song = ?1", [&id])
-                .map_err(DatabaseError::Query)?;
-            tx.execute("DELETE FROM artist_bridge WHERE song = ?1", [&id])
-                .map_err(DatabaseError::Query)?;
-            tx.execute("DELETE FROM genre_bridge WHERE song = ?1", [&id])
-                .map_err(DatabaseError::Query)?;
-            tx.execute("DELETE FROM playlist_bridge WHERE song = ?1", [&id])
-                .map_err(DatabaseError::Query)?;
-            tx.execute("DELETE FROM allsongs WHERE _id = ?1", [&id])
-                .map_err(DatabaseError::Query)?;
-        }
-        tx.commit().map_err(DatabaseError::Transaction)?;
-        info!("Removed song");
-        Ok(())
+        self.songs.remove_songs(ids).await
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn remove_songs_outside_directories(
+    pub async fn remove_songs_outside_directories(
         &self,
         scan_dirs: &[PathBuf],
     ) -> Result<(), DatabaseError> {
-        if scan_dirs.is_empty() {
-            return Ok(());
-        }
-
-        let conn = self.pool.get().unwrap();
-        let mut stmt = conn
-            .prepare("SELECT _id, path FROM allsongs WHERE path IS NOT NULL AND path != ''")
-            .map_err(DatabaseError::Query)?;
-
-        let rows = stmt
-            .query_map([], |row| {
-                let id: String = row.get(0)?;
-                let path: String = row.get(1)?;
-                Ok((id, path))
-            })
-            .map_err(DatabaseError::Query)?;
-
-        let mut ids_to_remove = Vec::new();
-        for row in rows {
-            let (id, path_str) = row.map_err(DatabaseError::Query)?;
-            let song_path = std::path::Path::new(&path_str);
-            let mut matches = false;
-            for dir in scan_dirs {
-                if song_path.starts_with(dir) {
-                    matches = true;
-                    break;
-                }
-            }
-            if !matches {
-                ids_to_remove.push(id);
-            }
-        }
-
-        if !ids_to_remove.is_empty() {
-            info!(
-                "Removing {} songs outside scan directories",
-                ids_to_remove.len()
-            );
-            self.remove_songs(&ids_to_remove)?;
-        }
-        Ok(())
+        self.songs.remove_songs_outside_directories(scan_dirs).await
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn update_song(&self, song: &InnerSong) -> Result<(), DatabaseError> {
-        trace!("Updating song");
-        if let Some(id) = song.id.as_ref() {
-            let song_type = song_type_to_str(song.r#type);
-            let params: &[&dyn rusqlite::ToSql] = &[
-                &song.path,
-                &song.size,
-                &None::<String>,
-                &None::<String>,
-                &song.title,
-                &song.date,
-                &song.year,
-                &song.lyrics.as_ref().map(|l| l.encode_to_vec()),
-                &song.release_type,
-                &song.bitrate,
-                &song.codec,
-                &song.container,
-                &proto_to_db_ms(&song.duration),
-                &song.sample_rate,
-                &song.hash,
-                &song_type,
-                &song.url,
-                &song.song_cover_path_high,
-                &song.playback_url,
-                &song.song_cover_path_low,
-                &song.date_added,
-                &None::<String>,
-                &None::<String>,
-                &None::<bool>,
-                &song.track_no,
-                &None::<bool>,
-                id,
-            ];
-            {
-                let conn = self.pool.get().unwrap();
-                conn.execute(
-                    "UPDATE allsongs SET
-                        path = ?1, size = ?2, inode = ?3, deviceno = ?4, title = ?5, date = ?6,
-                        year = ?7, lyrics = ?8, releasetype = ?9, bitrate = ?10, codec = ?11,
-                        container = ?12, duration = ?13, samplerate = ?14, hash = ?15, type = ?16,
-                        url = ?17, song_coverpath_high = ?18, playbackurl = ?19, song_coverpath_low = ?20,
-                        date_added = ?21, provider_extension = ?22, icon = ?23, show_in_library = ?24,
-                        track_no = ?25, library_item = ?26
-                     WHERE _id = ?27",
-                    params,
-                ).map_err(DatabaseError::Query)?;
-            }
+    pub async fn update_song(&self, song: &InnerSong) -> Result<(), DatabaseError> {
+        if self.songs.update_song(song).await? {
             self.emit_song_updated(Song {
                 song: Some(song.clone()),
                 ..Default::default()
             });
-            debug!("Updated song");
-        } else {
-            debug!("Song does not have an ID");
         }
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn get_albums(
-        &self,
-        options: Album,
-        inclusive: bool,
-        conn: &mut rusqlite::Connection,
-    ) -> Result<Vec<Album>, DatabaseError> {
-        let mut query = "SELECT album_id, album_name, album_artist, album_coverpath_high, album_song_count, year, album_coverpath_low FROM albums".to_string();
-        let (clauses, params) = build_album_filter(&options, "");
-        apply_where_clause(&mut query, &clauses, inclusive);
-
-        trace!("Getting albums");
-        let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
-        let fetched = stmt
-            .query_map(&*params, map_row_to_album)
-            .map_err(DatabaseError::Query)?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(DatabaseError::Query)?;
-        info!("Fetched albums");
-        Ok(fetched)
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn get_artists(
-        &self,
-        options: Artist,
-        inclusive: bool,
-        conn: &mut rusqlite::Connection,
-    ) -> Result<Vec<Artist>, DatabaseError> {
-        let mut query = "SELECT artist_id, artist_mbid, artist_name, artist_coverpath, artist_song_count, sanitized_artist_name FROM artists".to_string();
-        let (clauses, params) = build_artist_filter(&options, "");
-        apply_where_clause(&mut query, &clauses, inclusive);
-
-        trace!("Fetching artists");
-        let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
-        let fetched = stmt
-            .query_map(&*params, map_row_to_artist)
-            .map_err(DatabaseError::Query)?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(DatabaseError::Query)?;
-        info!("Fetched artists");
-        Ok(fetched)
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn get_genres(
-        &self,
-        options: Genre,
-        inclusive: bool,
-        conn: &mut rusqlite::Connection,
-    ) -> Result<Vec<Genre>, DatabaseError> {
-        let mut query = "SELECT genre_id, genre_name, genre_song_count FROM genres".to_string();
-        let (clauses, params) = build_genre_filter(&options, "");
-        apply_where_clause(&mut query, &clauses, inclusive);
-
-        trace!("Fetching genres");
-        let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
-        let fetched = stmt
-            .query_map(&*params, map_row_to_genre)
-            .map_err(DatabaseError::Query)?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(DatabaseError::Query)?;
-        info!("Fetched genres");
-        Ok(fetched)
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn get_playlists(
-        &self,
-        options: Playlist,
-        inclusive: bool,
-        conn: &mut rusqlite::Connection,
-    ) -> Result<Vec<Playlist>, DatabaseError> {
-        let mut query = "SELECT playlist_id, playlist_name, playlist_coverpath, playlist_song_count, playlist_desc, playlist_path, extension, icon, library_item FROM playlists".to_string();
-        let (clauses, params) = build_playlist_filter(&options, "");
-        apply_where_clause(&mut query, &clauses, inclusive);
-
-        trace!("Fetching playlists");
-        let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
-        let fetched = stmt
-            .query_map(&*params, map_row_to_playlist)
-            .map_err(DatabaseError::Query)?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(DatabaseError::Query)?;
-        Ok(fetched)
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub fn is_song_in_playlist(
+    pub async fn is_song_in_playlist(
         &self,
         playlist_id: &str,
         song_id: &str,
     ) -> Result<bool, DatabaseError> {
-        let conn = self.pool.get().unwrap();
-        let count: i64 = conn
-            .query_row(
-                "SELECT COUNT(*) FROM playlist_bridge WHERE playlist = ?1 AND song = ?2",
-                (playlist_id, song_id),
-                |row| row.get(0),
-            )
-            .map_err(DatabaseError::Query)?;
-        Ok(count > 0)
+        self.playlists
+            .is_song_in_playlist(playlist_id, song_id)
+            .await
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn get_entity_by_options(
-        &self,
-        options: GetEntityOptions,
-    ) -> Result<EntityResult, DatabaseError> {
-        let mut conn = self.pool.get().unwrap();
-        let inclusive = options.inclusive.unwrap_or_default();
-
-        trace!("Getting entity by options");
-
-        if let Some(album) = options.album {
-            return Ok(EntityResult {
-                result: Some(songs_proto::moosync::types::entity_result::Result::Albums(
-                    AlbumList {
-                        albums: self.get_albums(album, inclusive, &mut conn)?,
-                    },
-                )),
-            });
-        }
-
-        if let Some(artist) = options.artist {
-            return Ok(EntityResult {
-                result: Some(songs_proto::moosync::types::entity_result::Result::Artists(
-                    ArtistList {
-                        artists: self.get_artists(artist, inclusive, &mut conn)?,
-                    },
-                )),
-            });
-        }
-
-        if let Some(genre) = options.genre {
-            return Ok(EntityResult {
-                result: Some(songs_proto::moosync::types::entity_result::Result::Genres(
-                    GenreList {
-                        genres: self.get_genres(genre, inclusive, &mut conn)?,
-                    },
-                )),
-            });
-        }
-
-        if let Some(playlist) = options.playlist {
-            return Ok(EntityResult {
-                result: Some(
-                    songs_proto::moosync::types::entity_result::Result::Playlists(PlaylistList {
-                        playlists: self.get_playlists(playlist, inclusive, &mut conn)?,
-                    }),
-                ),
-            });
-        }
-
-        Ok(EntityResult { result: None })
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub fn get_album_songs(
+    pub async fn get_albums(
         &self,
         options: Album,
         inclusive: bool,
-        conn: &mut rusqlite::Connection,
-    ) -> Result<Vec<InnerSong>, DatabaseError> {
-        trace!("Fetching album songs");
-        let mut query = format!(
-            "SELECT {ALLSONGS_COLUMNS} FROM allsongs a JOIN album_bridge b ON a._id = b.song JOIN albums al ON b.album = al.album_id"
-        );
-        let (clauses, params) = build_album_filter(&options, "al.");
-        apply_where_clause(&mut query, &clauses, inclusive);
-
-        let fetched = query_inner_songs(conn, &query, &params)?;
-        info!("Fetched album songs");
-        Ok(fetched)
+    ) -> Result<Vec<Album>, DatabaseError> {
+        self.entities.get_albums(options, inclusive).await
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn get_artist_songs(
+    pub async fn get_artists(
         &self,
         options: Artist,
         inclusive: bool,
-        conn: &mut rusqlite::Connection,
-    ) -> Result<Vec<InnerSong>, DatabaseError> {
-        trace!("Fetching artist songs");
-        let mut query = format!(
-            "SELECT {ALLSONGS_COLUMNS} FROM allsongs a JOIN artist_bridge b ON a._id = b.song JOIN artists ar ON b.artist = ar.artist_id"
-        );
-        let (clauses, params) = build_artist_filter(&options, "ar.");
-        apply_where_clause(&mut query, &clauses, inclusive);
-
-        let fetched = query_inner_songs(conn, &query, &params)?;
-        info!("Fetched artist songs");
-        Ok(fetched)
+    ) -> Result<Vec<Artist>, DatabaseError> {
+        self.entities.get_artists(options, inclusive).await
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn get_genre_songs(
+    pub async fn get_genres(
         &self,
         options: Genre,
         inclusive: bool,
-        conn: &mut rusqlite::Connection,
-    ) -> Result<Vec<InnerSong>, DatabaseError> {
-        trace!("Fetching genre songs");
-        let mut query = format!(
-            "SELECT {ALLSONGS_COLUMNS} FROM allsongs a JOIN genre_bridge b ON a._id = b.song JOIN genres g ON b.genre = g.genre_id"
-        );
-        let (clauses, params) = build_genre_filter(&options, "g.");
-        apply_where_clause(&mut query, &clauses, inclusive);
-
-        let fetched = query_inner_songs(conn, &query, &params)?;
-        info!("Fetched genre songs");
-        Ok(fetched)
+    ) -> Result<Vec<Genre>, DatabaseError> {
+        self.entities.get_genres(options, inclusive).await
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn get_playlist_songs(
+    pub async fn get_playlists(
         &self,
         options: Playlist,
         inclusive: bool,
-        conn: &mut rusqlite::Connection,
-    ) -> Result<Vec<InnerSong>, DatabaseError> {
-        trace!("Fetching playlist songs");
-        let mut query = format!(
-            "SELECT {ALLSONGS_COLUMNS} FROM allsongs a JOIN playlist_bridge b ON a._id = b.song JOIN playlists p ON b.playlist = p.playlist_id"
-        );
-        let (clauses, params) = build_playlist_filter(&options, "p.");
-        apply_where_clause(&mut query, &clauses, inclusive);
-
-        let fetched = query_inner_songs(conn, &query, &params)?;
-        info!("Fetched playlist songs");
-        Ok(fetched)
+    ) -> Result<Vec<Playlist>, DatabaseError> {
+        self.entities.get_playlists(options, inclusive).await
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn fetch_inner_songs(
-        &self,
-        options: &GetSongOptions,
-        inclusive: bool,
-        conn: &mut rusqlite::Connection,
-    ) -> Result<Vec<InnerSong>, DatabaseError> {
-        if let Some(song) = &options.song {
-            fetch_inner_songs_by_song_options(conn, song, inclusive)
-        } else if let Some(album) = options.album.clone() {
-            self.get_album_songs(album, inclusive, conn)
-        } else if let Some(artist) = options.artist.clone() {
-            self.get_artist_songs(artist, inclusive, conn)
-        } else if let Some(genre) = options.genre.clone() {
-            self.get_genre_songs(genre, inclusive, conn)
-        } else if let Some(playlist) = options.playlist.clone() {
-            self.get_playlist_songs(playlist, inclusive, conn)
-        } else {
-            Ok(vec![])
-        }
+    pub async fn get_album_songs(&self, album_id: &str) -> Result<Vec<Song>, DatabaseError> {
+        self.get_songs_by_options(GetSongOptions {
+            album: Some(Album {
+                album_id: Some(album_id.to_string()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        })
+        .await
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn get_songs_by_options(
+    pub async fn get_artist_songs(&self, artist_id: &str) -> Result<Vec<Song>, DatabaseError> {
+        self.get_songs_by_options(GetSongOptions {
+            artist: Some(Artist {
+                artist_id: Some(artist_id.to_string()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        })
+        .await
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub async fn get_genre_songs(&self, genre_id: &str) -> Result<Vec<Song>, DatabaseError> {
+        self.get_songs_by_options(GetSongOptions {
+            genre: Some(Genre {
+                genre_id: Some(genre_id.to_string()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        })
+        .await
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub async fn get_playlist_songs(&self, playlist_id: &str) -> Result<Vec<Song>, DatabaseError> {
+        self.get_songs_by_options(GetSongOptions {
+            playlist: Some(Playlist {
+                playlist_id: Some(playlist_id.to_string()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        })
+        .await
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub async fn get_songs_by_options(
         &self,
         options: GetSongOptions,
     ) -> Result<Vec<Song>, DatabaseError> {
-        trace!("Getting songs by options");
-        let inclusive = options.inclusive.unwrap_or_default();
-        let mut conn = self.pool.get().unwrap();
-        let fetched_songs = self.fetch_inner_songs(&options, inclusive, &mut conn)?;
-
-        if fetched_songs.is_empty() {
-            return Ok(vec![]);
-        }
-
-        let song_ids: Vec<String> = fetched_songs.iter().filter_map(|s| s.id.clone()).collect();
-        let mut albums_map = fetch_song_albums(&conn, &song_ids)?;
-        let mut artists_map = fetch_song_artists(&conn, &song_ids)?;
-        let mut genres_map = fetch_song_genres(&conn, &song_ids)?;
-
-        let mut ret = Vec::with_capacity(fetched_songs.len());
-        for s in fetched_songs {
-            let id = s.id.clone().unwrap_or_default();
-            let album = albums_map.remove(&id);
-            let artists = artists_map.remove(&id).unwrap_or_default();
-            let genre = genres_map.remove(&id).unwrap_or_default();
-            ret.push(Song {
-                song: Some(s),
-                album,
-                artists,
-                genre,
-            });
-        }
-        Ok(ret)
+        self.entities.get_songs_by_options(options).await
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn search_all(&self, term: &str) -> Result<SearchResult, DatabaseError> {
-        trace!("Searching all by term");
-
-        let term = format!("%{}%", term);
-        let songs = self.get_songs_by_options(GetSongOptions {
-            song: Some(SearchableSong {
-                id: None,
-                path: Some(term.clone()),
-                title: Some(term.clone()),
-                sample_rate: None,
-                hash: None,
-                r#type: None,
-                url: None,
-                playback_url: None,
-                ..Default::default()
-            }),
-            artist: None,
-            album: None,
-            genre: None,
-            playlist: None,
-            inclusive: Some(false),
-        })?;
-
-        let mut conn = self.pool.get().unwrap();
-        let _albums = self.get_albums(
-            Album {
-                album_id: None,
-                album_name: Some(term.clone()),
-                album_artist: None,
-                album_coverpath_high: None,
-                album_song_count: 0f64,
-                year: None,
-                album_coverpath_low: None,
-                extension: None,
-            },
-            false,
-            &mut conn,
-        )?;
-
-        let _artists = self.get_artists(
-            Artist {
-                artist_id: None,
-                artist_mbid: None,
-                artist_name: Some(term.clone()),
-                artist_coverpath: None,
-                artist_song_count: 0f64,
-                sanitized_artist_name: None,
-                extension: None,
-            },
-            false,
-            &mut conn,
-        )?;
-
-        let _genres = self.get_genres(
-            Genre {
-                genre_id: None,
-                genre_name: Some(term.clone()),
-                genre_song_count: 0f64,
-            },
-            false,
-            &mut conn,
-        )?;
-
-        let _playlists = self.get_playlists(
-            Playlist {
-                playlist_id: None,
-                playlist_name: term.clone(),
-                playlist_coverpath: None,
-                playlist_song_count: 0f64,
-                playlist_desc: Some(term.clone()),
-                playlist_path: Some(term.clone()),
-                extension: None,
-                icon: None,
-                library_item: None,
-            },
-            false,
-            &mut conn,
-        )?;
-
-        info!("Searched all by term");
-
-        Ok(SearchResult {
-            songs,
-            artists: _artists,
-            playlists: _playlists,
-            albums: _albums,
-            genres: _genres,
-        })
+    pub async fn search_all(&self, term: &str) -> Result<SearchResult, DatabaseError> {
+        self.search.search_all(term).await
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn files_not_in_db(
+    pub async fn files_not_in_db(
         &self,
         file_list: Vec<(PathBuf, f64)>,
     ) -> Result<Vec<(PathBuf, f64)>, DatabaseError> {
-        let mut file_list = file_list;
-        let conn = self.pool.get().unwrap();
-
-        let len = file_list.len();
-        let mut ret = vec![];
-        let exp_limit = 300;
-
-        for _ in 0..len / exp_limit + 1 {
-            let curr_len = min(file_list.len(), exp_limit);
-            if curr_len == 0 {
-                break;
-            }
-
-            let mut temp_paths = Vec::with_capacity(curr_len);
-            for _ in 0..curr_len {
-                let data = file_list.pop().unwrap();
-                let path_str = data.0.to_string_lossy().to_string();
-                temp_paths.push((path_str, data.1));
-            }
-
-            let missing = find_missing_in_chunk(&conn, temp_paths)?;
-            ret.extend(missing);
-        }
-        Ok(ret)
+        self.songs.files_not_in_db(file_list).await
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn add_to_playlist(&self, id: &str, songs: &[Song]) -> Result<(), DatabaseError> {
-        trace!("Adding to playlist");
-        let conn = self.pool.get().unwrap();
-        for s in songs {
-            if s.song.is_none() {
-                continue;
-            }
-
-            let sid = s.get_id().unwrap_or_default();
-
-            if let Err(e) = conn.execute(
-                "INSERT INTO playlist_bridge (playlist, song) VALUES (?1, ?2)",
-                (&id, &sid),
-            ) {
-                warn!("Failed to add {:?} to playlist: {:?}", s, e);
-            }
-        }
-        info!("Added to playlist");
-        Ok(())
+    pub async fn add_to_playlist(&self, id: &str, songs: &[Song]) -> Result<(), DatabaseError> {
+        self.playlists.add_to_playlist(id, songs).await
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn remove_from_playlist<T>(&self, id: &str, songs: &[T]) -> Result<(), DatabaseError>
+    pub async fn remove_from_playlist<T>(&self, id: &str, songs: &[T]) -> Result<(), DatabaseError>
     where
-        T: AsRef<str> + rusqlite::ToSql + Debug,
+        T: AsRef<str> + Debug + Sync,
     {
-        trace!("Removing from playlist");
-        let conn = self.pool.get().unwrap();
-        for sid in songs {
-            conn.execute(
-                "DELETE FROM playlist_bridge WHERE playlist = ?1 AND song = ?2",
-                (&id, sid),
-            )
-            .map_err(DatabaseError::Query)?;
-        }
-        info!("Removed from playlist");
-        Ok(())
+        self.playlists.remove_from_playlist(id, songs).await
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn remove_playlist(&self, id: &str) -> Result<(), DatabaseError> {
-        trace!("Removing playlist");
-        let conn = self.pool.get().unwrap();
-        conn.execute("DELETE FROM playlist_bridge WHERE playlist = ?1", [&id])
-            .map_err(DatabaseError::Query)?;
-        conn.execute("DELETE FROM playlists WHERE playlist_id = ?1", [&id])
-            .map_err(DatabaseError::Query)?;
-
-        info!("Removed playlist");
-        Ok(())
+    pub async fn remove_playlist(&self, id: &str) -> Result<(), DatabaseError> {
+        self.playlists.remove_playlist(id).await
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn update_album(&self, album: Album) -> Result<(), DatabaseError> {
-        trace!("Updating album");
-        {
-            let conn = self.pool.get().unwrap();
-            conn.execute(
-                "UPDATE albums SET
-                    album_name = ?1, album_artist = ?2, album_coverpath_high = ?3,
-                    album_song_count = ?4, year = ?5, album_coverpath_low = ?6
-                 WHERE album_id = ?7",
-                (
-                    &album.album_name,
-                    &album.album_artist,
-                    &album.album_coverpath_high,
-                    &album.album_song_count,
-                    &album.year,
-                    &album.album_coverpath_low,
-                    &album.album_id,
-                ),
-            )
-            .map_err(DatabaseError::Query)?;
-        }
+    pub async fn update_album(&self, album: Album) -> Result<(), DatabaseError> {
+        self.entities.update_album(&album).await?;
         self.on_album_updated.emit(album);
-
-        info!("Updated album");
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn update_artist(&self, artist: Artist) -> Result<(), DatabaseError> {
-        trace!("Updating artist");
-        {
-            let conn = self.pool.get().unwrap();
-            conn.execute(
-                "UPDATE artists SET
-                    artist_mbid = ?1, artist_name = ?2, artist_coverpath = ?3,
-                    artist_song_count = ?4, sanitized_artist_name = ?5
-                 WHERE artist_id = ?6",
-                (
-                    &artist.artist_mbid,
-                    &artist.artist_name,
-                    &artist.artist_coverpath,
-                    &artist.artist_song_count,
-                    &artist.sanitized_artist_name,
-                    &artist.artist_id,
-                ),
-            )
-            .map_err(DatabaseError::Query)?;
-        }
+    pub async fn update_artist(&self, artist: Artist) -> Result<(), DatabaseError> {
+        self.entities.update_artist(&artist).await?;
         self.on_artist_updated.emit(artist);
-        info!("Updated artist");
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn update_playlist(&self, playlist: Playlist) -> Result<(), DatabaseError> {
-        trace!("Updating playlist");
-        {
-            let conn = self.pool.get().unwrap();
-            conn.execute(
-                "UPDATE playlists SET
-                    playlist_name = ?1, playlist_coverpath = ?2, playlist_song_count = ?3,
-                    playlist_desc = ?4, playlist_path = ?5, extension = ?6, icon = ?7, library_item = ?8
-                 WHERE playlist_id = ?9",
-                (
-                    &playlist.playlist_name,
-                    &playlist.playlist_coverpath,
-                    &playlist.playlist_song_count,
-                    &playlist.playlist_desc,
-                    &playlist.playlist_path,
-                    &playlist.extension,
-                    &playlist.icon,
-                    &playlist.library_item,
-                    &playlist.playlist_id,
-                ),
-            )
-            .map_err(DatabaseError::Query)?;
-        }
+    pub async fn update_playlist(&self, playlist: Playlist) -> Result<(), DatabaseError> {
+        self.playlists.update_playlist(&playlist).await?;
         self.on_playlist_updated.emit(playlist);
-        info!("Updated playlist");
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn update_songs(&self, songs: Vec<Song>) -> Result<(), DatabaseError> {
-        trace!("Updating songs");
-
-        for song in &songs {
-            if let Some(inner_song) = &song.song {
-                if let Some(album) = &song.album {
-                    self.update_album(album.clone())?;
-                }
-
-                for a in &song.artists {
-                    self.update_artist(a.clone())?;
-                }
-
-                let song_type = song_type_to_str(inner_song.r#type);
-                let params: &[&dyn rusqlite::ToSql] = &[
-                    &inner_song.path,
-                    &inner_song.size,
-                    &None::<String>,
-                    &None::<String>,
-                    &inner_song.title,
-                    &inner_song.date,
-                    &inner_song.year,
-                    &inner_song.lyrics.as_ref().map(|l| l.encode_to_vec()),
-                    &inner_song.release_type,
-                    &inner_song.bitrate,
-                    &inner_song.codec,
-                    &inner_song.container,
-                    &proto_to_db_ms(&inner_song.duration),
-                    &inner_song.sample_rate,
-                    &inner_song.hash,
-                    &song_type,
-                    &inner_song.url,
-                    &inner_song.song_cover_path_high,
-                    &inner_song.playback_url,
-                    &inner_song.song_cover_path_low,
-                    &inner_song.date_added,
-                    &None::<String>,
-                    &None::<String>,
-                    &None::<bool>,
-                    &inner_song.track_no,
-                    &None::<bool>,
-                    &inner_song.id,
-                ];
-
-                {
-                    let conn = self.pool.get().unwrap();
-                    conn.execute(
-                        "UPDATE allsongs SET
-                            path = ?1, size = ?2, inode = ?3, deviceno = ?4, title = ?5, date = ?6,
-                            year = ?7, lyrics = ?8, releasetype = ?9, bitrate = ?10, codec = ?11,
-                            container = ?12, duration = ?13, samplerate = ?14, hash = ?15, type = ?16,
-                            url = ?17, song_coverpath_high = ?18, playbackurl = ?19, song_coverpath_low = ?20,
-                            date_added = ?21, provider_extension = ?22, icon = ?23, show_in_library = ?24,
-                            track_no = ?25, library_item = ?26
-                         WHERE _id = ?27",
-                        params,
-                    ).map_err(DatabaseError::Query)?;
-                }
-            }
-        }
+    pub async fn update_songs(&self, songs: Vec<Song>) -> Result<(), DatabaseError> {
+        self.songs.update_songs(&songs).await?;
         for song in songs {
             self.emit_song_updated(song);
         }
-        info!("Updated songs");
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn get_lyrics(&self, id: &str) -> Result<Option<Lyrics>, DatabaseError> {
-        trace!("Getting lyrics for song {id}");
-        let conn = self.pool.get().unwrap();
-        let lyrics_bytes = conn
-            .query_row("SELECT lyrics FROM allsongs WHERE _id = ?1", [id], |row| {
-                row.get::<_, Option<Vec<u8>>>(0)
-            })
-            .optional()
-            .map_err(DatabaseError::Query)?
-            .flatten();
-
-        let lyrics = match lyrics_bytes {
-            Some(bytes) => match Lyrics::decode(bytes.as_slice()) {
-                Ok(l) => Some(l),
-                Err(e) => {
-                    tracing::error!("Failed to decode lyrics protobuf: {e:?}");
-                    None
-                }
-            },
-            None => None,
-        };
-        info!("Fetched lyrics for song {id}");
-        Ok(lyrics)
+    pub async fn get_lyrics(&self, id: &str) -> Result<Option<Lyrics>, DatabaseError> {
+        self.songs.get_lyrics(id).await
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn update_lyrics(&self, id: &str, lyrics: &Lyrics) -> Result<(), DatabaseError> {
-        trace!("Updating lyrics for song {id}");
-        let lyrics_bytes = lyrics.encode_to_vec();
-        {
-            let conn = self.pool.get().unwrap();
-            conn.execute(
-                "UPDATE allsongs SET lyrics = ?1 WHERE _id = ?2",
-                rusqlite::params![lyrics_bytes, id],
-            )
-            .map_err(DatabaseError::Query)?;
-        }
+    pub async fn update_lyrics(&self, id: &str, lyrics: &Lyrics) -> Result<(), DatabaseError> {
+        self.songs.update_lyrics(id, lyrics).await?;
         self.emit_song_updated(Song {
             song: Some(InnerSong {
                 id: Some(id.to_string()),
@@ -1082,26 +311,19 @@ impl Database {
             }),
             ..Default::default()
         });
-        info!("Updated lyrics for song {id}");
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn update_song_cover(
+    pub async fn update_song_cover(
         &self,
         id: &str,
         cover_high: Option<&str>,
         cover_low: Option<&str>,
     ) -> Result<(), DatabaseError> {
-        trace!("Updating cover for song {id}");
-        {
-            let conn = self.pool.get().unwrap();
-            conn.execute(
-                "UPDATE allsongs SET song_coverpath_high = ?1, song_coverpath_low = ?2 WHERE _id = ?3",
-                rusqlite::params![cover_high, cover_low, id],
-            )
-            .map_err(DatabaseError::Query)?;
-        }
+        self.songs
+            .update_song_cover(id, cover_high, cover_low)
+            .await?;
         self.emit_song_updated(Song {
             song: Some(InnerSong {
                 id: Some(id.to_string()),
@@ -1111,7 +333,6 @@ impl Database {
             }),
             ..Default::default()
         });
-        info!("Updated cover for song {id}");
         Ok(())
     }
 
@@ -1119,1062 +340,66 @@ impl Database {
     fn emit_song_updated(&self, song: Song) { self.on_song_updated.emit(song); }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn increment_play_count(&self, id: &str) -> Result<(), DatabaseError> {
-        trace!("Incrementing play count");
-        let conn = self.pool.get().unwrap();
-        let play_count_res: std::result::Result<Option<i32>, rusqlite::Error> = conn.query_row(
-            "SELECT play_count FROM analytics WHERE song_id = ?1",
-            [&id],
-            |row| row.get(0),
-        );
-
-        if play_count_res.is_err() {
-            conn.execute(
-                "INSERT INTO analytics (id, song_id, play_count, play_time) VALUES (?1, ?2, ?3, ?4)",
-                (
-                    &Uuid::new_v4().to_string(),
-                    &id,
-                    &Some(1),
-                    &Some(0f64),
-                ),
-            ).map_err(DatabaseError::Query)?;
-            return Ok(());
-        }
-
-        conn.execute(
-            "UPDATE analytics SET play_count = COALESCE(play_count, 0) + 1 WHERE song_id = ?1",
-            [&id],
-        )
-        .map_err(DatabaseError::Query)?;
-
-        info!("Incremented play count");
-        Ok(())
+    pub async fn increment_play_count(&self, id: &str) -> Result<(), DatabaseError> {
+        self.analytics.increment_play_count(id).await
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn increment_play_time(&self, id: &str, duration: f64) -> Result<(), DatabaseError> {
-        trace!("Incrementing play time");
-        let conn = self.pool.get().unwrap();
-        let play_time_res: std::result::Result<Option<f64>, rusqlite::Error> = conn.query_row(
-            "SELECT play_time FROM analytics WHERE song_id = ?1",
-            [&id],
-            |row| row.get(0),
-        );
-
-        if play_time_res.is_err() {
-            conn.execute(
-                "INSERT INTO analytics (id, song_id, play_count, play_time) VALUES (?1, ?2, ?3, ?4)",
-                (
-                    &Uuid::new_v4().to_string(),
-                    &id,
-                    &Some(0),
-                    &duration,
-                ),
-            ).map_err(DatabaseError::Query)?;
-            info!("Added new play time");
-            return Ok(());
-        }
-
-        conn.execute(
-            "UPDATE analytics SET play_time = COALESCE(play_time, 0.0) + ?1 WHERE song_id = ?2",
-            (duration, &id),
-        )
-        .map_err(DatabaseError::Query)?;
-
-        info!("Incremented playtime");
-
-        Ok(())
+    pub async fn increment_play_time(&self, id: &str, duration: f64) -> Result<(), DatabaseError> {
+        self.analytics.increment_play_time(id, duration).await
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn get_top_listened_songs(&self) -> Result<AllAnalytics, DatabaseError> {
-        let conn = self.pool.get().unwrap();
-        let mut stmt = conn
-            .prepare("SELECT song_id, play_time FROM analytics ORDER BY play_time DESC LIMIT 10")
-            .map_err(DatabaseError::Query)?;
-
-        let song_rows = stmt
-            .query_map([], |row| {
-                let song_id: Option<String> = row.get(0)?;
-                let play_time: Option<f64> = row.get(1)?;
-                Ok((song_id, play_time))
-            })
-            .map_err(DatabaseError::Query)?;
-
-        let mut songs = Vec::new();
-        for r in song_rows {
-            let (s_id, time) = r.map_err(DatabaseError::Query)?;
-            if let Some(s) = s_id {
-                songs.push(SongListenTime {
-                    song_id: s,
-                    time: time.unwrap_or_default(),
-                });
-            }
-        }
-
-        let total_listen_time: Option<f64> = conn
-            .query_row("SELECT SUM(play_time) FROM analytics", [], |row| row.get(0))
-            .unwrap_or(Some(0.0));
-
-        Ok(AllAnalytics {
-            total_listen_time: total_listen_time.unwrap_or_default(),
-            songs,
-        })
+    pub async fn get_top_listened_songs(&self) -> Result<AllAnalytics, DatabaseError> {
+        self.analytics.get_top_listened_songs().await
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn export_playlist(&self, playlist_id: &str) -> Result<String, DatabaseError> {
-        let mut conn = self.pool.get().unwrap();
-
-        let binding = self.get_playlists(
-            Playlist {
-                playlist_id: Some(playlist_id.to_string()),
-                ..Default::default()
-            },
-            true,
-            &mut conn,
-        )?;
-        let playlist = binding.first().ok_or(DatabaseError::PlaylistNotFound)?;
-
-        let playlist_songs = self.get_songs_by_options(GetSongOptions {
-            playlist: Some(Playlist {
-                playlist_id: Some(playlist_id.to_string()),
-                ..Default::default()
-            }),
-            ..Default::default()
-        })?;
-
-        let mut ret = format!("#EXTM3U\n#PLAYLIST:{}\n", playlist.playlist_name);
-
-        for song in playlist_songs {
-            if let Some(entry) = format_song_playlist_entry(&song) {
-                ret.push_str(&entry);
-            }
-        }
-
-        Ok(ret.replace("\n\n", "\n"))
-    }
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn format_song_playlist_entry(song: &Song) -> Option<String> {
-    let inner_song = song.song.as_ref()?;
-    let location = if let Some(path) = &inner_song.path {
-        format!("file://{}", path)
-    } else if let Some(url) = &inner_song.url {
-        url.clone()
-    } else {
-        return None;
-    };
-
-    let duration = inner_song
-        .duration
-        .as_ref()
-        .map(|d| d.seconds)
-        .unwrap_or_default();
-    let title = inner_song.title.as_deref().unwrap_or_default();
-    let album_info = song
-        .album
-        .as_ref()
-        .and_then(|a| a.album_name.as_deref())
-        .map_or(String::new(), |name| format!("#EXTALB:{}", name));
-    let genre_info = if !song.genre.is_empty() {
-        format!(
-            "#EXTGENRE:{}",
-            song.genre
-                .iter()
-                .filter_map(|g| g.genre_name.clone())
-                .collect::<Vec<String>>()
-                .join(",")
-        )
-    } else {
-        String::new()
-    };
-    let cover_path = inner_song
-        .song_cover_path_high
-        .as_ref()
-        .map_or(String::new(), |cover| format!("#EXTIMG:{}", cover));
-    let song_info = format!("#MOOSINF:{}", inner_song.r#type);
-
-    Some(format!(
-        "#EXTINF:{},{}\n{}\n{}\n{}\n{}\n{}\n",
-        duration, title, album_info, genre_info, cover_path, song_info, location
-    ))
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn find_missing_in_chunk(
-    conn: &rusqlite::Connection,
-    temp_paths: Vec<(String, f64)>,
-) -> Result<Vec<(PathBuf, f64)>, DatabaseError> {
-    let mut clauses = Vec::with_capacity(temp_paths.len());
-    let mut params: Vec<&dyn rusqlite::ToSql> = Vec::with_capacity(temp_paths.len() * 2);
-    for temp_path in &temp_paths {
-        clauses.push("(path = ? AND size = ?)".to_string());
-        params.push(&temp_path.0);
-        params.push(&temp_path.1);
+    pub async fn export_playlist(&self, playlist_id: &str) -> Result<String, DatabaseError> {
+        self.playlists.export_playlist(playlist_id).await
     }
 
-    let query = format!(
-        "SELECT path, size FROM allsongs WHERE {}",
-        clauses.join(" OR ")
-    );
-    let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
-    let rows = stmt
-        .query_map(&*params, |row| {
-            let p: Option<String> = row.get(0)?;
-            let s: Option<f64> = row.get(1)?;
-            Ok((p, s))
-        })
-        .map_err(DatabaseError::Query)?;
-
-    let mut found = std::collections::HashSet::new();
-    for r in rows {
-        let (path_opt, size_opt) = r.map_err(DatabaseError::Query)?;
-        if let (Some(p), Some(s)) = (path_opt, size_opt) {
-            found.insert((p, s.to_bits()));
-        }
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub async fn get_extension_cache(
+        &self,
+        package_name: &str,
+        key: &str,
+    ) -> Result<Option<Vec<u8>>, DatabaseError> {
+        self.cache.get_extension_cache(package_name, key).await
     }
 
-    let mut missing = Vec::new();
-    for (path_str, size) in temp_paths {
-        if !found.contains(&(path_str.clone(), size.to_bits())) {
-            missing.push((PathBuf::from(path_str), size));
-        }
-    }
-    Ok(missing)
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn fetch_inner_songs_by_song_options(
-    conn: &rusqlite::Connection,
-    song: &SearchableSong,
-    inclusive: bool,
-) -> Result<Vec<InnerSong>, DatabaseError> {
-    let mut query = "SELECT _id, path, size, inode, deviceno, title, date, year, NULL as lyrics, releasetype, bitrate, codec, container, duration, samplerate, hash, type, url, song_coverpath_high, playbackurl, song_coverpath_low, date_added, provider_extension, icon, show_in_library, track_no, library_item FROM allsongs".to_string();
-    let mut clauses = Vec::new();
-    let mut params = Vec::new();
-    let song_type_str;
-
-    if let Some(ref v) = song.id {
-        clauses.push("_id = ?".to_string());
-        params.push(v as &dyn rusqlite::ToSql);
-    }
-    if let Some(ref v) = song.path {
-        clauses.push("path LIKE ?".to_string());
-        params.push(v as &dyn rusqlite::ToSql);
-    }
-    if let Some(ref v) = song.title {
-        clauses.push("title LIKE ?".to_string());
-        params.push(v as &dyn rusqlite::ToSql);
-    }
-    if let Some(ref v) = song.sample_rate {
-        clauses.push("samplerate = ?".to_string());
-        params.push(v as &dyn rusqlite::ToSql);
-    }
-    if let Some(ref v) = song.hash {
-        clauses.push("hash = ?".to_string());
-        params.push(v as &dyn rusqlite::ToSql);
-    }
-    if let Some(v) = song.r#type {
-        song_type_str = song_type_to_str(v);
-        clauses.push("type = ?".to_string());
-        params.push(&song_type_str as &dyn rusqlite::ToSql);
-    }
-    if let Some(ref v) = song.url {
-        clauses.push("url LIKE ?".to_string());
-        params.push(v as &dyn rusqlite::ToSql);
-    }
-    if let Some(ref v) = song.playback_url {
-        clauses.push("playbackurl LIKE ?".to_string());
-        params.push(v as &dyn rusqlite::ToSql);
-    }
-    if let Some(ref v) = song.extension {
-        clauses.push("provider_extension = ?".to_string());
-        params.push(v as &dyn rusqlite::ToSql);
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub async fn set_extension_cache(
+        &self,
+        package_name: &str,
+        key: &str,
+        data: &[u8],
+        ttl_seconds: u64,
+    ) -> Result<(), DatabaseError> {
+        self.cache
+            .set_extension_cache(package_name, key, data, ttl_seconds)
+            .await
     }
 
-    if !clauses.is_empty() {
-        let joiner = if inclusive { " AND " } else { " OR " };
-        query.push_str(" WHERE ");
-        query.push_str(&clauses.join(joiner));
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub async fn remove_extension_cache(&self, package_name: &str) -> Result<(), DatabaseError> {
+        self.cache.remove_extension_cache(package_name).await
     }
-
-    let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
-    let rows = stmt
-        .query_map(&*params, map_row_to_inner_song)
-        .map_err(DatabaseError::Query)?;
-
-    let mut fetched = Vec::new();
-    for r in rows {
-        fetched.push(r.map_err(DatabaseError::Query)?);
-    }
-    Ok(fetched)
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn query_song_bridge_chunks<T, F>(
-    conn: &rusqlite::Connection,
-    song_ids: &[String],
-    query_template: &str,
-    map_row: F,
-) -> Result<Vec<(String, T)>, DatabaseError>
-where
-    F: Fn(&rusqlite::Row<'_>) -> rusqlite::Result<(String, T)> + Copy,
-{
-    let mut results = Vec::new();
-    for chunk in song_ids.chunks(500) {
-        let placeholders = vec!["?"; chunk.len()].join(",");
-        let query = query_template.replace("{}", &placeholders);
-        let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
-        let params: Vec<&dyn rusqlite::ToSql> =
-            chunk.iter().map(|s| s as &dyn rusqlite::ToSql).collect();
-        let rows = stmt
-            .query_map(&*params, map_row)
-            .map_err(DatabaseError::Query)?;
-        for r in rows {
-            results.push(r.map_err(DatabaseError::Query)?);
-        }
-    }
-    Ok(results)
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn fetch_song_albums(
-    conn: &rusqlite::Connection,
-    song_ids: &[String],
-) -> Result<std::collections::HashMap<String, Album>, DatabaseError> {
-    let query_template = "SELECT a.album_id, a.album_name, a.album_artist, a.album_coverpath_high, a.album_song_count, a.year, a.album_coverpath_low, b.song FROM albums a JOIN album_bridge b ON a.album_id = b.album WHERE b.song IN ({})";
-    let rows = query_song_bridge_chunks(conn, song_ids, query_template, |row| {
-        Ok((row.get(7)?, map_row_to_album(row)?))
-    })?;
-    Ok(rows.into_iter().collect())
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn fetch_song_artists(
-    conn: &rusqlite::Connection,
-    song_ids: &[String],
-) -> Result<std::collections::HashMap<String, Vec<Artist>>, DatabaseError> {
-    let query_template = "SELECT a.artist_id, a.artist_mbid, a.artist_name, a.artist_coverpath, a.artist_song_count, a.sanitized_artist_name, b.song FROM artists a JOIN artist_bridge b ON a.artist_id = b.artist WHERE b.song IN ({})";
-    let rows = query_song_bridge_chunks(conn, song_ids, query_template, |row| {
-        Ok((row.get(6)?, map_row_to_artist(row)?))
-    })?;
-    let mut artists_map: std::collections::HashMap<String, Vec<Artist>> =
-        std::collections::HashMap::new();
-    for (song_id, artist) in rows {
-        artists_map.entry(song_id).or_default().push(artist);
-    }
-    Ok(artists_map)
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn fetch_song_genres(
-    conn: &rusqlite::Connection,
-    song_ids: &[String],
-) -> Result<std::collections::HashMap<String, Vec<Genre>>, DatabaseError> {
-    let query_template = "SELECT a.genre_id, a.genre_name, a.genre_song_count, b.song FROM genres a JOIN genre_bridge b ON a.genre_id = b.genre WHERE b.song IN ({})";
-    let rows = query_song_bridge_chunks(conn, song_ids, query_template, |row| {
-        Ok((row.get(3)?, map_row_to_genre(row)?))
-    })?;
-    let mut genres_map: std::collections::HashMap<String, Vec<Genre>> =
-        std::collections::HashMap::new();
-    for (song_id, genre) in rows {
-        genres_map.entry(song_id).or_default().push(genre);
-    }
-    Ok(genres_map)
-}
-
-struct DbSongRow {
-    id: Option<String>,
-    path: Option<String>,
-    size: Option<f64>,
-    inode: Option<String>,
-    deviceno: Option<String>,
-    title: Option<String>,
-    date: Option<String>,
-    year: Option<String>,
-    lyrics: Option<Vec<u8>>,
-    release_type: Option<String>,
-    bitrate: Option<f64>,
-    codec: Option<String>,
-    container: Option<String>,
-    duration: Option<i64>,
-    sample_rate: Option<f64>,
-    hash: Option<String>,
-    r#type: String,
-    url: Option<String>,
-    song_cover_path_high: Option<String>,
-    playback_url: Option<String>,
-    song_cover_path_low: Option<String>,
-    date_added: Option<i64>,
-    provider_extension: Option<String>,
-    icon: Option<String>,
-    show_in_library: Option<bool>,
-    track_no: Option<f64>,
-    library_item: Option<bool>,
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn gather_unique_metadata(
-    songs: &[Song],
-) -> (
-    std::collections::HashMap<String, Album>,
-    std::collections::HashMap<String, Artist>,
-    std::collections::HashMap<String, Genre>,
-) {
-    let mut unique_albums = std::collections::HashMap::new();
-    let mut unique_artists = std::collections::HashMap::new();
-    let mut unique_genres = std::collections::HashMap::new();
-
-    for song in songs {
-        if let Some(album) = &song.album
-            && let Some(ref name) = album.album_name
-            && !name.is_empty()
-        {
-            unique_albums
-                .entry(name.clone())
-                .or_insert_with(|| album.clone());
-        }
-        for artist in &song.artists {
-            if let Some(ref name) = artist.artist_name
-                && !name.is_empty()
-            {
-                unique_artists
-                    .entry(name.clone())
-                    .or_insert_with(|| artist.clone());
-            }
-        }
-        for genre in &song.genre {
-            if let Some(ref name) = genre.genre_name
-                && !name.is_empty()
-            {
-                unique_genres
-                    .entry(name.clone())
-                    .or_insert_with(|| genre.clone());
-            }
-        }
-    }
-    (unique_albums, unique_artists, unique_genres)
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn fetch_existing_entities(
-    conn: &rusqlite::Connection,
-    table: &str,
-    id_col: &str,
-    name_col: &str,
-    names: &[String],
-) -> Result<std::collections::HashMap<String, String>, DatabaseError> {
-    let mut entity_ids = std::collections::HashMap::new();
-    if names.is_empty() {
-        return Ok(entity_ids);
-    }
-    for chunk in names.chunks(500) {
-        let placeholders = vec!["?"; chunk.len()].join(",");
-        let query = format!(
-            "SELECT {}, {} FROM {} WHERE {} IN ({})",
-            id_col, name_col, table, name_col, placeholders
-        );
-        let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
-        let params = chunk
-            .iter()
-            .map(|n| n as &dyn rusqlite::ToSql)
-            .collect::<Vec<_>>();
-        let rows = stmt
-            .query_map(&*params, |row| {
-                let id: String = row.get(0)?;
-                let name: String = row.get(1)?;
-                Ok((name, id))
-            })
-            .map_err(DatabaseError::Query)?;
-        for r in rows {
-            let (name, id) = r.map_err(DatabaseError::Query)?;
-            entity_ids.insert(name, id);
-        }
-    }
-    Ok(entity_ids)
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn insert_new_albums(
-    conn: &rusqlite::Connection,
-    unique_albums: &std::collections::HashMap<String, Album>,
-    album_ids: &mut std::collections::HashMap<String, String>,
-) -> Result<(), DatabaseError> {
-    let mut new_albums = Vec::new();
-    for (name, album) in unique_albums.iter() {
-        if !album_ids.contains_key(name) {
-            let id = Uuid::new_v4().to_string();
-            album_ids.insert(name.clone(), id.clone());
-            let mut alb = album.clone();
-            alb.album_id = Some(id);
-            new_albums.push(alb);
-        }
-    }
-    if new_albums.is_empty() {
-        return Ok(());
-    }
-    for chunk in new_albums.chunks(100) {
-        let mut query = "INSERT INTO albums (album_id, album_name, album_artist, album_coverpath_high, album_song_count, year, album_coverpath_low) VALUES ".to_string();
-        let mut placeholders = Vec::new();
-        let mut params: Vec<&dyn rusqlite::ToSql> = Vec::new();
-        for (i, alb) in chunk.iter().enumerate() {
-            let offset = i * 7;
-            placeholders.push(format!(
-                "(?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{})",
-                offset + 1,
-                offset + 2,
-                offset + 3,
-                offset + 4,
-                offset + 5,
-                offset + 6,
-                offset + 7
-            ));
-            params.push(alb.album_id.as_ref().unwrap());
-            params.push(&alb.album_name);
-            params.push(&alb.album_artist);
-            params.push(&alb.album_coverpath_high);
-            params.push(&alb.album_song_count);
-            params.push(&alb.year);
-            params.push(&alb.album_coverpath_low);
-        }
-        query.push_str(&placeholders.join(", "));
-        conn.execute(&query, &*params)
-            .map_err(DatabaseError::Query)?;
-    }
-    Ok(())
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn insert_new_artists(
-    conn: &rusqlite::Connection,
-    unique_artists: &std::collections::HashMap<String, Artist>,
-    artist_ids: &mut std::collections::HashMap<String, String>,
-) -> Result<(), DatabaseError> {
-    let mut new_artists = Vec::new();
-    for (name, artist) in unique_artists.iter() {
-        if !artist_ids.contains_key(name) {
-            let id = Uuid::new_v4().to_string();
-            artist_ids.insert(name.clone(), id.clone());
-            let mut art = artist.clone();
-            art.artist_id = Some(id);
-            new_artists.push(art);
-        }
-    }
-    if new_artists.is_empty() {
-        return Ok(());
-    }
-    for chunk in new_artists.chunks(100) {
-        let mut query = "INSERT INTO artists (artist_id, artist_mbid, artist_name, artist_coverpath, artist_song_count, artist_extra_info, sanitized_artist_name) VALUES ".to_string();
-        let mut placeholders = Vec::new();
-        let mut params: Vec<&dyn rusqlite::ToSql> = Vec::new();
-        for (i, art) in chunk.iter().enumerate() {
-            let offset = i * 7;
-            placeholders.push(format!(
-                "(?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{})",
-                offset + 1,
-                offset + 2,
-                offset + 3,
-                offset + 4,
-                offset + 5,
-                offset + 6,
-                offset + 7
-            ));
-            params.push(art.artist_id.as_ref().unwrap());
-            params.push(&art.artist_mbid);
-            params.push(&art.artist_name);
-            params.push(&art.artist_coverpath);
-            params.push(&art.artist_song_count);
-            params.push(&None::<String>);
-            params.push(&art.sanitized_artist_name);
-        }
-        query.push_str(&placeholders.join(", "));
-        conn.execute(&query, &*params)
-            .map_err(DatabaseError::Query)?;
-    }
-    Ok(())
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn insert_new_genres(
-    conn: &rusqlite::Connection,
-    unique_genres: &std::collections::HashMap<String, Genre>,
-    genre_ids: &mut std::collections::HashMap<String, String>,
-) -> Result<(), DatabaseError> {
-    let mut new_genres = Vec::new();
-    for (name, genre) in unique_genres.iter() {
-        if !genre_ids.contains_key(name) {
-            let id = Uuid::new_v4().to_string();
-            genre_ids.insert(name.clone(), id.clone());
-            let mut genre_obj = genre.clone();
-            genre_obj.genre_id = Some(id);
-            new_genres.push(genre_obj);
-        }
-    }
-    if new_genres.is_empty() {
-        return Ok(());
-    }
-    for chunk in new_genres.chunks(100) {
-        let mut query =
-            "INSERT INTO genres (genre_id, genre_name, genre_song_count) VALUES ".to_string();
-        let mut placeholders = Vec::new();
-        let mut params: Vec<&dyn rusqlite::ToSql> = Vec::new();
-        for (i, genre_obj) in chunk.iter().enumerate() {
-            let offset = i * 3;
-            placeholders.push(format!(
-                "(?{}, ?{}, ?{})",
-                offset + 1,
-                offset + 2,
-                offset + 3
-            ));
-            params.push(genre_obj.genre_id.as_ref().unwrap());
-            params.push(&genre_obj.genre_name);
-            params.push(&genre_obj.genre_song_count);
-        }
-        query.push_str(&placeholders.join(", "));
-        conn.execute(&query, &*params)
-            .map_err(DatabaseError::Query)?;
-    }
-    Ok(())
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn fetch_existing_song_ids(
-    conn: &rusqlite::Connection,
-    songs: &[Song],
-) -> Result<std::collections::HashMap<String, String>, DatabaseError> {
-    let mut paths_to_query = Vec::new();
-    for song in songs.iter() {
-        if let Some(inner_song) = &song.song
-            && let Some(ref path) = inner_song.path
-            && !path.is_empty()
-        {
-            paths_to_query.push(path.clone());
-        }
-    }
-
-    let mut existing_song_ids = std::collections::HashMap::new();
-    if paths_to_query.is_empty() {
-        return Ok(existing_song_ids);
-    }
-    for chunk in paths_to_query.chunks(500) {
-        let placeholders = vec!["?"; chunk.len()].join(",");
-        let query = format!(
-            "SELECT _id, path FROM allsongs WHERE path IN ({})",
-            placeholders
-        );
-        let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
-        let params = chunk
-            .iter()
-            .map(|n| n as &dyn rusqlite::ToSql)
-            .collect::<Vec<_>>();
-        let rows = stmt
-            .query_map(&*params, |row| {
-                let id: String = row.get(0)?;
-                let path: String = row.get(1)?;
-                Ok((path, id))
-            })
-            .map_err(DatabaseError::Query)?;
-        for r in rows {
-            let (path, id) = r.map_err(DatabaseError::Query)?;
-            existing_song_ids.insert(path, id);
-        }
-    }
-    Ok(existing_song_ids)
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn update_single_song_metadata_ids(
-    song: &mut Song,
-    existing_song_ids: &std::collections::HashMap<String, String>,
-    album_ids: &std::collections::HashMap<String, String>,
-    artist_ids: &std::collections::HashMap<String, String>,
-    genre_ids: &std::collections::HashMap<String, String>,
-) {
-    if let Some(inner_song) = song.song.as_mut() {
-        let existing = inner_song
-            .path
-            .as_deref()
-            .filter(|p| !p.is_empty())
-            .and_then(|p| existing_song_ids.get(p).cloned());
-        inner_song.id = existing
-            .or_else(|| inner_song.id.take())
-            .or_else(|| Some(Uuid::new_v4().to_string()));
-    }
-    if let Some(album) = song.album.as_mut()
-        && let Some(name) = &album.album_name
-        && let Some(id) = album_ids.get(name)
-    {
-        album.album_id = Some(id.clone());
-    }
-    for artist in &mut song.artists {
-        if let Some(name) = &artist.artist_name
-            && let Some(id) = artist_ids.get(name)
-        {
-            artist.artist_id = Some(id.clone());
-        }
-    }
-    for genre in &mut song.genre {
-        if let Some(name) = &genre.genre_name
-            && let Some(id) = genre_ids.get(name)
-        {
-            genre.genre_id = Some(id.clone());
-        }
-    }
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn update_song_metadata_ids(
-    songs: &mut [Song],
-    existing_song_ids: &std::collections::HashMap<String, String>,
-    album_ids: &std::collections::HashMap<String, String>,
-    artist_ids: &std::collections::HashMap<String, String>,
-    genre_ids: &std::collections::HashMap<String, String>,
-) {
-    for song in songs.iter_mut() {
-        update_single_song_metadata_ids(song, existing_song_ids, album_ids, artist_ids, genre_ids);
-    }
-}
-
-struct SongRowsAndBridges {
-    db_song_rows: Vec<DbSongRow>,
-    album_bridges: Vec<(String, String)>,
-    artist_bridges: Vec<(String, String)>,
-    genre_bridges: Vec<(String, String)>,
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn to_db_song_row(inner_song: &InnerSong) -> DbSongRow {
-    DbSongRow {
-        id: inner_song.id.clone(),
-        path: inner_song.path.clone(),
-        size: inner_song.size,
-        inode: None,
-        deviceno: None,
-        title: inner_song.title.clone(),
-        date: inner_song.date.clone(),
-        year: inner_song.year.clone(),
-        lyrics: inner_song.lyrics.as_ref().map(|l| l.encode_to_vec()),
-        release_type: inner_song.release_type.clone(),
-        bitrate: inner_song.bitrate,
-        codec: inner_song.codec.clone(),
-        container: inner_song.container.clone(),
-        duration: Some(proto_to_db_ms(&inner_song.duration)),
-        sample_rate: inner_song.sample_rate,
-        hash: inner_song.hash.clone(),
-        r#type: song_type_to_str(inner_song.r#type).to_string(),
-        url: inner_song.url.clone(),
-        song_cover_path_high: inner_song.song_cover_path_high.clone(),
-        playback_url: inner_song.playback_url.clone(),
-        song_cover_path_low: inner_song.song_cover_path_low.clone(),
-        date_added: inner_song.date_added,
-        provider_extension: None,
-        icon: None,
-        show_in_library: None,
-        track_no: inner_song.track_no,
-        library_item: None,
-    }
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn collect_song_bridges(
-    song: &Song,
-    song_id: &str,
-    album_bridges: &mut Vec<(String, String)>,
-    artist_bridges: &mut Vec<(String, String)>,
-    genre_bridges: &mut Vec<(String, String)>,
-) {
-    if let Some(album) = &song.album
-        && let Some(ref album_id) = album.album_id
-    {
-        album_bridges.push((song_id.to_string(), album_id.clone()));
-    }
-
-    for artist in &song.artists {
-        if let Some(ref artist_id) = artist.artist_id {
-            artist_bridges.push((song_id.to_string(), artist_id.clone()));
-        }
-    }
-
-    for genre in &song.genre {
-        if let Some(ref genre_id) = genre.genre_id {
-            genre_bridges.push((song_id.to_string(), genre_id.clone()));
-        }
-    }
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn build_db_song_rows_and_bridges(songs: &[Song]) -> SongRowsAndBridges {
-    let mut db_song_rows = Vec::with_capacity(songs.len());
-    let mut album_bridges = Vec::new();
-    let mut artist_bridges = Vec::new();
-    let mut genre_bridges = Vec::new();
-
-    for song in songs {
-        let Some(inner_song) = &song.song else {
-            continue;
-        };
-        let song_id = inner_song.id.clone().unwrap_or_default();
-        db_song_rows.push(to_db_song_row(inner_song));
-        collect_song_bridges(
-            song,
-            &song_id,
-            &mut album_bridges,
-            &mut artist_bridges,
-            &mut genre_bridges,
-        );
-    }
-
-    SongRowsAndBridges {
-        db_song_rows,
-        album_bridges,
-        artist_bridges,
-        genre_bridges,
-    }
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn insert_bulk_db_song_rows(
-    tx: &rusqlite::Transaction,
-    db_song_rows: &[DbSongRow],
-) -> Result<(), DatabaseError> {
-    for chunk in db_song_rows.chunks(30) {
-        let mut query = "INSERT INTO allsongs (
-            _id, path, size, inode, deviceno, title, date, year, lyrics, releasetype,
-            bitrate, codec, container, duration, samplerate, hash, type, url,
-            song_coverpath_high, playbackurl, song_coverpath_low, date_added,
-            provider_extension, icon, show_in_library, track_no, library_item
-        ) VALUES "
-            .to_string();
-        let mut placeholders = Vec::new();
-        let mut params: Vec<&dyn rusqlite::ToSql> = Vec::new();
-
-        for (i, row) in chunk.iter().enumerate() {
-            let offset = i * 27;
-            placeholders.push(format!(
-                "(?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{})",
-                offset + 1, offset + 2, offset + 3, offset + 4, offset + 5, offset + 6, offset + 7, offset + 8, offset + 9, offset + 10,
-                offset + 11, offset + 12, offset + 13, offset + 14, offset + 15, offset + 16, offset + 17, offset + 18, offset + 19, offset + 20,
-                offset + 21, offset + 22, offset + 23, offset + 24, offset + 25, offset + 26, offset + 27
-            ));
-
-            params.push(&row.id);
-            params.push(&row.path);
-            params.push(&row.size);
-            params.push(&row.inode);
-            params.push(&row.deviceno);
-            params.push(&row.title);
-            params.push(&row.date);
-            params.push(&row.year);
-            params.push(&row.lyrics);
-            params.push(&row.release_type);
-            params.push(&row.bitrate);
-            params.push(&row.codec);
-            params.push(&row.container);
-            params.push(&row.duration);
-            params.push(&row.sample_rate);
-            params.push(&row.hash);
-            params.push(&row.r#type);
-            params.push(&row.url);
-            params.push(&row.song_cover_path_high);
-            params.push(&row.playback_url);
-            params.push(&row.song_cover_path_low);
-            params.push(&row.date_added);
-            params.push(&row.provider_extension);
-            params.push(&row.icon);
-            params.push(&row.show_in_library);
-            params.push(&row.track_no);
-            params.push(&row.library_item);
-        }
-
-        query.push_str(&placeholders.join(", "));
-        query.push_str(
-            " ON CONFLICT(path) DO UPDATE SET
-            size = excluded.size,
-            inode = excluded.inode,
-            deviceno = excluded.deviceno,
-            title = excluded.title,
-            date = excluded.date,
-            year = excluded.year,
-            lyrics = excluded.lyrics,
-            releasetype = excluded.releasetype,
-            bitrate = excluded.bitrate,
-            codec = excluded.codec,
-            container = excluded.container,
-            duration = excluded.duration,
-            samplerate = excluded.samplerate,
-            hash = excluded.hash,
-            type = excluded.type,
-            url = excluded.url,
-            song_coverpath_high = excluded.song_coverpath_high,
-            playbackurl = excluded.playbackurl,
-            song_coverpath_low = excluded.song_coverpath_low,
-            date_added = excluded.date_added,
-            provider_extension = excluded.provider_extension,
-            icon = excluded.icon,
-            show_in_library = excluded.show_in_library,
-            track_no = excluded.track_no,
-            library_item = excluded.library_item",
-        );
-
-        tx.execute(&query, &*params).map_err(DatabaseError::Query)?;
-    }
-    Ok(())
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn delete_existing_bridge_entries(
-    tx: &rusqlite::Transaction,
-    table: &str,
-    song_ids: &[&String],
-) -> Result<(), DatabaseError> {
-    if song_ids.is_empty() {
-        return Ok(());
-    }
-    for chunk in song_ids.chunks(500) {
-        let placeholders = vec!["?"; chunk.len()].join(",");
-        let query = format!("DELETE FROM {} WHERE song IN ({})", table, placeholders);
-        let params: Vec<&dyn rusqlite::ToSql> =
-            chunk.iter().map(|id| *id as &dyn rusqlite::ToSql).collect();
-        tx.execute(&query, &*params).map_err(DatabaseError::Query)?;
-    }
-    Ok(())
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn insert_bulk_bridge_entries(
-    tx: &rusqlite::Transaction,
-    table: &str,
-    col1: &str,
-    col2: &str,
-    entries: &[(String, String)],
-) -> Result<(), DatabaseError> {
-    for chunk in entries.chunks(400) {
-        let mut query = format!("INSERT INTO {} ({}, {}) VALUES ", table, col1, col2);
-        let mut placeholders = Vec::new();
-        let mut params: Vec<&dyn rusqlite::ToSql> = Vec::new();
-        for (i, (val1, val2)) in chunk.iter().enumerate() {
-            let offset = i * 2;
-            placeholders.push(format!("(?{}, ?{})", offset + 1, offset + 2));
-            params.push(val1);
-            params.push(val2);
-        }
-        query.push_str(&placeholders.join(", "));
-        query.push_str(" ON CONFLICT DO NOTHING");
-        tx.execute(&query, &*params).map_err(DatabaseError::Query)?;
-    }
-    Ok(())
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn apply_where_clause(query: &mut String, clauses: &[String], inclusive: bool) {
-    if !clauses.is_empty() {
-        let joiner = if inclusive { " AND " } else { " OR " };
-        query.push_str(" WHERE ");
-        query.push_str(&clauses.join(joiner));
-    }
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn build_album_filter<'a>(
-    options: &'a Album,
-    prefix: &str,
-) -> (Vec<String>, Vec<&'a dyn rusqlite::ToSql>) {
-    let mut clauses = Vec::new();
-    let mut params = Vec::new();
-    if let Some(ref v) = options.album_id {
-        clauses.push(format!("{prefix}album_id = ?"));
-        params.push(v as &dyn rusqlite::ToSql);
-    }
-    if let Some(ref v) = options.album_name {
-        clauses.push(format!("{prefix}album_name LIKE ?"));
-        params.push(v as &dyn rusqlite::ToSql);
-    }
-    (clauses, params)
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn build_artist_filter<'a>(
-    options: &'a Artist,
-    prefix: &str,
-) -> (Vec<String>, Vec<&'a dyn rusqlite::ToSql>) {
-    let mut clauses = Vec::new();
-    let mut params = Vec::new();
-    if let Some(ref v) = options.artist_id {
-        clauses.push(format!("{prefix}artist_id = ?"));
-        params.push(v as &dyn rusqlite::ToSql);
-    }
-    if let Some(ref v) = options.artist_name {
-        clauses.push(format!("{prefix}artist_name LIKE ?"));
-        params.push(v as &dyn rusqlite::ToSql);
-    }
-    if let Some(ref v) = options.artist_mbid {
-        clauses.push(format!("{prefix}artist_mbid = ?"));
-        params.push(v as &dyn rusqlite::ToSql);
-    }
-    (clauses, params)
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn build_genre_filter<'a>(
-    options: &'a Genre,
-    prefix: &str,
-) -> (Vec<String>, Vec<&'a dyn rusqlite::ToSql>) {
-    let mut clauses = Vec::new();
-    let mut params = Vec::new();
-    if let Some(ref v) = options.genre_id {
-        clauses.push(format!("{prefix}genre_id = ?"));
-        params.push(v as &dyn rusqlite::ToSql);
-    }
-    if let Some(ref v) = options.genre_name {
-        clauses.push(format!("{prefix}genre_name LIKE ?"));
-        params.push(v as &dyn rusqlite::ToSql);
-    }
-    (clauses, params)
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn build_playlist_filter<'a>(
-    options: &'a Playlist,
-    prefix: &str,
-) -> (Vec<String>, Vec<&'a dyn rusqlite::ToSql>) {
-    let mut clauses = Vec::new();
-    let mut params = Vec::new();
-    if let Some(ref v) = options.playlist_id {
-        clauses.push(format!("{prefix}playlist_id = ?"));
-        params.push(v as &dyn rusqlite::ToSql);
-    }
-    if !options.playlist_name.is_empty() {
-        clauses.push(format!("{prefix}playlist_name LIKE ?"));
-        params.push(&options.playlist_name as &dyn rusqlite::ToSql);
-    }
-    if let Some(ref v) = options.playlist_path {
-        clauses.push(format!("{prefix}playlist_path LIKE ?"));
-        params.push(v as &dyn rusqlite::ToSql);
-    }
-    (clauses, params)
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn query_inner_songs(
-    conn: &mut rusqlite::Connection,
-    query: &str,
-    params: &[&dyn rusqlite::ToSql],
-) -> Result<Vec<InnerSong>, DatabaseError> {
-    let mut stmt = conn.prepare(query).map_err(DatabaseError::Query)?;
-    let rows = stmt
-        .query_map(params, map_row_to_inner_song)
-        .map_err(DatabaseError::Query)?;
-    let songs = rows
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(DatabaseError::Query)?;
-    Ok(songs)
 }
 
 impl Plugin for Database {
     #[tracing::instrument(level = "debug", skip_all)]
     fn init(context: &PluginContext) -> Arc<Self> {
-        Arc::new(Database::new(context.data_dir.clone()))
+        let data_dir = context.data_dir.clone();
+        std::thread::spawn(move || {
+            tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .expect("Failed to create Tokio runtime for Database init")
+                .block_on(Database::new(data_dir))
+        })
+        .join()
+        .expect("Database init thread panicked")
+        .into()
     }
 }

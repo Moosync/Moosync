@@ -16,6 +16,7 @@ export component ExplorePageMobile inherits Rectangle {
 
         if (ExplorePageProps.provider-recommendations.length == 0): Rectangle {
             vertical-stretch: 1;
+
             Text {
                 text: @tr("No recommendations available");
                 color: Theme.textSecondary;
@@ -44,6 +45,7 @@ export component ExplorePageMobile inherits Rectangle {
 
             Rectangle {
                 vertical-stretch: 1;
+
                 SongListViewMobile {
                     songs: ExplorePageProps.provider-recommendations[root.selected-provider].songs;
                 }

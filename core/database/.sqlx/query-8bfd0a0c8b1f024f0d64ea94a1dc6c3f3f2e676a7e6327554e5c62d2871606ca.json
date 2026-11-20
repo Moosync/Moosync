@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT _id, path FROM allsongs WHERE path IS NOT NULL AND path != ''",
+  "describe": {
+    "columns": [
+      {
+        "name": "_id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "path",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "8bfd0a0c8b1f024f0d64ea94a1dc6c3f3f2e676a7e6327554e5c62d2871606ca"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE albums SET\n                album_name = ?1, album_artist = ?2, album_coverpath_high = ?3,\n                album_song_count = ?4, year = ?5, album_coverpath_low = ?6\n             WHERE album_id = ?7",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": []
+  },
+  "hash": "b19fa9a8c352c51ddbfd7b7181c6ab200635291b1172cc438662fc62b45a1714"
+}

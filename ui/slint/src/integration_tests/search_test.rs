@@ -17,7 +17,7 @@ async fn do_search_category_songs(
 ) {
     let database = state_manager.get_database();
     let song = create_test_song("s4", "Searchable Melody", "Mix Album", "Mix Artist");
-    database.insert_songs(vec![song]).unwrap();
+    database.insert_songs(vec![song]).await.unwrap();
 
     main_window
         .global::<AppCallbacks>()
@@ -68,7 +68,7 @@ async fn do_search_category_albums(
 ) {
     let database = state_manager.get_database();
     let song = create_test_song("s_album_disc", "Mix Track", "Searchable Disc", "Mix Artist");
-    database.insert_songs(vec![song]).unwrap();
+    database.insert_songs(vec![song]).await.unwrap();
 
     main_window
         .global::<AppCallbacks>()
@@ -121,7 +121,7 @@ async fn do_search_category_artists(
 ) {
     let database = state_manager.get_database();
     let song = create_test_song("s4", "Mix Track", "Mix Album", "Searchable Singer");
-    database.insert_songs(vec![song]).unwrap();
+    database.insert_songs(vec![song]).await.unwrap();
 
     main_window
         .global::<AppCallbacks>()
@@ -173,7 +173,7 @@ async fn do_search_category_playlists(
 ) {
     let database = state_manager.get_database();
     let song = create_test_song("s4", "Mix Track", "Mix Album", "Mix Artist");
-    database.insert_songs(vec![song.clone()]).unwrap();
+    database.insert_songs(vec![song.clone()]).await.unwrap();
     let playlist = Playlist {
         playlist_id: Some("pl_search".into()),
         playlist_name: "Searchable Mix".into(),
@@ -181,6 +181,7 @@ async fn do_search_category_playlists(
     };
     database
         .create_playlist_with_songs(playlist, &[song])
+        .await
         .unwrap();
 
     main_window
@@ -434,7 +435,7 @@ async fn do_search_network_covers_ui_hang(
         }
         songs.push(song);
     }
-    database.insert_songs(songs).unwrap();
+    database.insert_songs(songs).await.unwrap();
 
     main_window.global::<AppCallbacks>().invoke_resize();
 
@@ -597,7 +598,7 @@ async fn do_search_click_album_navigates_to_album_content(
 ) {
     let database = state_manager.get_database();
     let song = create_test_song("s_alb_nav", "Track One", "Clickable Album", "Album Artist");
-    database.insert_songs(vec![song]).unwrap();
+    database.insert_songs(vec![song]).await.unwrap();
 
     main_window
         .global::<AppCallbacks>()
@@ -657,7 +658,7 @@ async fn do_search_click_artist_navigates_to_artist_content(
 ) {
     let database = state_manager.get_database();
     let song = create_test_song("s_art_nav", "Track Two", "Album Two", "Clickable Artist");
-    database.insert_songs(vec![song]).unwrap();
+    database.insert_songs(vec![song]).await.unwrap();
 
     main_window
         .global::<AppCallbacks>()
@@ -722,7 +723,7 @@ async fn do_search_click_playlist_navigates_to_playlist_content(
 ) {
     let database = state_manager.get_database();
     let song = create_test_song("s_pl_song", "Pl Track", "Pl Album", "Pl Artist");
-    database.insert_songs(vec![song.clone()]).unwrap();
+    database.insert_songs(vec![song.clone()]).await.unwrap();
     let playlist = Playlist {
         playlist_id: Some("pl_search_click".into()),
         playlist_name: "Clickable Playlist".into(),
@@ -730,6 +731,7 @@ async fn do_search_click_playlist_navigates_to_playlist_content(
     };
     database
         .create_playlist_with_songs(playlist, &[song])
+        .await
         .unwrap();
 
     main_window
@@ -874,7 +876,7 @@ async fn do_search_extension_album_without_scope_does_not_enable_provider(
     if let Some(ref mut alb) = song.album {
         alb.extension = Some("rs.sample.empty".into());
     }
-    database.insert_songs(vec![song]).unwrap();
+    database.insert_songs(vec![song]).await.unwrap();
 
     main_window
         .global::<AppCallbacks>()

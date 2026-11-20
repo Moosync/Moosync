@@ -35,6 +35,7 @@ export component LyricsViewMobile inherits Rectangle {
 
         if (root.lyrics_loading): Rectangle {
             vertical-stretch: 1;
+
             Text {
                 text: @tr("Loading lyrics...");
                 color: Theme.textSecondary;
@@ -46,6 +47,7 @@ export component LyricsViewMobile inherits Rectangle {
 
         if (!root.lyrics_loading && !root.has_lyrics): Rectangle {
             vertical-stretch: 1;
+
             Text {
                 text: @tr("No lyrics available");
                 color: Theme.textSecondary;

@@ -8,10 +8,7 @@ use std::{
 use extensions::ExtensionInfo;
 use image::{DynamicImage, ImageFormat, RgbImage};
 use rstest::rstest;
-use songs_proto::moosync::types::{
-    Album, Artist, EntityResult, GetEntityOptions, GetSongOptions, InnerSong, SearchableSong, Song,
-    entity_result,
-};
+use songs_proto::moosync::types::{Album, Artist, GetSongOptions, InnerSong, SearchableSong, Song};
 use tempdir::TempDir;
 use tokio::time::sleep;
 use tracing_test::traced_test;
@@ -124,7 +121,7 @@ async fn setup_mock_cover_server() -> (MockServer, String) {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn insert_test_entities(sm: &StateManager, server_uri: &str) {
+async fn insert_test_entities(sm: &StateManager, server_uri: &str) {
     let db = sm.get_database();
     let song = Song {
         song: Some(InnerSong {
@@ -157,7 +154,7 @@ fn insert_test_entities(sm: &StateManager, server_uri: &str) {
         }],
         genre: vec![],
     };
-    db.insert_songs(vec![song]).unwrap();
+    db.insert_songs(vec![song]).await.unwrap();
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -173,6 +170,7 @@ async fn wait_for_covers_to_show_up(sm: &StateManager) {
                 song: Some(SearchableSong::default()),
                 ..Default::default()
             })
+            .await
             .unwrap_or_default();
         let song_has_cover = songs.iter().any(|s| {
             if let Some(inner) = &s.song
@@ -186,14 +184,9 @@ async fn wait_for_covers_to_show_up(sm: &StateManager) {
             }
         });
 
-        let albums_res = db.get_entity_by_options(GetEntityOptions {
-            album: Some(Album::default()),
-            ..Default::default()
-        });
+        let albums_res = db.get_albums(Album::default(), false).await;
         let album_has_cover = match albums_res {
-            Ok(EntityResult {
-                result: Some(entity_result::Result::Albums(list)),
-            }) => list.albums.iter().any(|a| {
+            Ok(albums) => albums.iter().any(|a| {
                 if let Some(high) = &a.album_coverpath_high
                     && !high.is_empty()
                     && Path::new(high).exists()
@@ -206,14 +199,9 @@ async fn wait_for_covers_to_show_up(sm: &StateManager) {
             _ => false,
         };
 
-        let artists_res = db.get_entity_by_options(GetEntityOptions {
-            artist: Some(Artist::default()),
-            ..Default::default()
-        });
+        let artists_res = db.get_artists(Artist::default(), false).await;
         let artist_has_cover = match artists_res {
-            Ok(EntityResult {
-                result: Some(entity_result::Result::Artists(list)),
-            }) => list.artists.iter().any(|a| {
+            Ok(artists) => artists.iter().any(|a| {
                 if let Some(cover) = &a.artist_coverpath
                     && !cover.is_empty()
                     && Path::new(cover).exists()
@@ -244,7 +232,7 @@ async fn wait_for_covers_to_show_up(sm: &StateManager) {
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_user_journey_1_existing_extension_on_startup() {
     let (_mock_server, server_uri) = setup_mock_cover_server().await;
-    let TestSmContext { sm, .. } = create_test_sm();
+    let TestSmContext { _temp_dir, sm } = create_test_sm();
 
     let ext_handler = sm.get_extension_handler();
     let sample_src = find_sample_extension_dir();
@@ -261,7 +249,7 @@ async fn test_user_journey_1_existing_extension_on_startup() {
     )
     .unwrap();
 
-    insert_test_entities(&sm, &server_uri);
+    insert_test_entities(&sm, &server_uri).await;
 
     sm.setup().await;
 
@@ -274,10 +262,10 @@ async fn test_user_journey_1_existing_extension_on_startup() {
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_user_journey_2_install_extension_dynamically() {
     let (_mock_server, server_uri) = setup_mock_cover_server().await;
-    let TestSmContext { sm, .. } = create_test_sm();
+    let TestSmContext { _temp_dir, sm } = create_test_sm();
 
     sm.setup().await;
-    insert_test_entities(&sm, &server_uri);
+    insert_test_entities(&sm, &server_uri).await;
 
     let db = sm.get_database();
     let initial_songs = db
@@ -285,6 +273,7 @@ async fn test_user_journey_2_install_extension_dynamically() {
             song: Some(SearchableSong::default()),
             ..Default::default()
         })
+        .await
         .unwrap();
     assert!(
         initial_songs[0]

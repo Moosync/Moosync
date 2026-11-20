@@ -119,6 +119,7 @@ export component AccountsPopupMobile inherits Rectangle {
 
                         if (AccountsProps.accounts.length == 0): Rectangle {
                             height: 60px;
+
                             Text {
                                 text: @tr("No accounts configured");
                                 color: Theme.textSecondary;
@@ -172,6 +173,7 @@ export component AccountsPopupMobile inherits Rectangle {
 
                         VerticalLayout {
                             alignment: center;
+
                             Image {
                                 width: Theme.playbackControlsIconSize;
                                 height: Theme.playbackControlsIconSize;

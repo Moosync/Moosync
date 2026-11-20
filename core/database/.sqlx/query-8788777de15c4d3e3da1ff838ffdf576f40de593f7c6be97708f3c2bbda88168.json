@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO analytics (song_id, play_count, play_time)\n             VALUES (?1, 0, ?2)\n             ON CONFLICT(song_id) DO UPDATE SET play_time = play_time + excluded.play_time",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "8788777de15c4d3e3da1ff838ffdf576f40de593f7c6be97708f3c2bbda88168"
+}

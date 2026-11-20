@@ -99,11 +99,61 @@ pub fn run() {
         .in_current_span(),
     );
 
+    setup_signal_handlers(state_manager);
+
     slint::run_event_loop().unwrap();
 
     runtime.block_on(
         async {
             state_manager.shutdown().await;
+        }
+        .in_current_span(),
+    );
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn setup_signal_handlers(state_manager: &'static StateManager) {
+    tokio::spawn(
+        async move {
+            #[cfg(unix)]
+            {
+                use tokio::signal::unix::{SignalKind, signal};
+                match signal(SignalKind::terminate()) {
+                    Ok(mut sigterm) => {
+                        tokio::select! {
+                            res = tokio::signal::ctrl_c() => {
+                                if let Err(e) = res {
+                                    tracing::error!("Failed to listen for ctrl_c: {:?}", e);
+                                    return;
+                                }
+                            }
+                            _ = sigterm.recv() => {}
+                        }
+                    }
+                    Err(e) => {
+                        tracing::error!("Failed to register SIGTERM handler: {:?}", e);
+                        if let Err(err) = tokio::signal::ctrl_c().await {
+                            tracing::error!("Failed to listen for ctrl_c: {:?}", err);
+                            return;
+                        }
+                    }
+                }
+            }
+
+            #[cfg(not(unix))]
+            {
+                if let Err(e) = tokio::signal::ctrl_c().await {
+                    tracing::error!("Failed to listen for ctrl_c: {:?}", e);
+                    return;
+                }
+            }
+
+            tracing::info!("Received termination signal, shutting down...");
+            state_manager.shutdown().await;
+            if let Err(e) = slint::quit_event_loop() {
+                tracing::error!("Failed to quit Slint event loop: {:?}", e);
+                std::process::exit(0);
+            }
         }
         .in_current_span(),
     );

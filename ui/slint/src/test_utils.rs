@@ -80,8 +80,7 @@ pub mod integration {
     use prost::Message;
     use slint::{ComponentHandle, ModelRc, VecModel};
     use songs_proto::moosync::types::{
-        Album, Artist, Genre, GetEntityOptions, GetSongOptions, InnerSong, Playlist,
-        SearchableSong, Song, SongType, entity_result,
+        Album, Artist, Genre, GetSongOptions, InnerSong, Playlist, SearchableSong, Song, SongType,
     };
     use state_manager::StateManager;
     use types::prelude::ScopePermissionExt;
@@ -197,30 +196,30 @@ pub mod integration {
     #[tracing::instrument(level = "debug", skip_all)]
     fn reset_test_database(state_manager: &'static StateManager) {
         let database = state_manager.get_database();
-        if let Ok(songs) = database.get_songs_by_options(GetSongOptions {
-            song: Some(SearchableSong::default()),
-            ..Default::default()
-        }) {
-            let ids: Vec<String> = songs
-                .into_iter()
-                .filter_map(|s| s.song.and_then(|is| is.id))
-                .collect();
-            if !ids.is_empty() {
-                let _ = database.remove_songs(&ids);
+        runtime().block_on(async move {
+            if let Ok(songs) = database
+                .get_songs_by_options(GetSongOptions {
+                    song: Some(SearchableSong::default()),
+                    ..Default::default()
+                })
+                .await
+            {
+                let ids: Vec<String> = songs
+                    .into_iter()
+                    .filter_map(|s| s.song.and_then(|is| is.id))
+                    .collect();
+                if !ids.is_empty() {
+                    let _ = database.remove_songs(&ids).await;
+                }
             }
-        }
-        if let Ok(playlists_res) = database.get_entity_by_options(GetEntityOptions {
-            playlist: Some(Playlist::default()),
-            ..Default::default()
-        }) {
-            if let Some(entity_result::Result::Playlists(pl)) = playlists_res.result {
-                for p in pl.playlists {
+            if let Ok(playlists) = database.get_playlists(Playlist::default(), false).await {
+                for p in playlists {
                     if let Some(id) = p.playlist_id {
-                        let _ = database.remove_playlist(&id);
+                        let _ = database.remove_playlist(&id).await;
                     }
                 }
             }
-        }
+        });
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -399,6 +398,31 @@ pub mod integration {
         F: FnMut() -> bool,
     {
         wait_until_timeout(Duration::from_secs(14), condition).await
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub async fn wait_until_timeout_async<F, Fut>(timeout: Duration, mut condition: F) -> bool
+    where
+        F: FnMut() -> Fut,
+        Fut: std::future::Future<Output = bool>,
+    {
+        let iterations = (timeout.as_millis() / 10).max(1);
+        for _ in 0..iterations {
+            if condition().await {
+                return true;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        condition().await
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub async fn wait_until_async<F, Fut>(condition: F) -> bool
+    where
+        F: FnMut() -> Fut,
+        Fut: std::future::Future<Output = bool>,
+    {
+        wait_until_timeout_async(Duration::from_secs(14), condition).await
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

@@ -3,13 +3,11 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use assertables::{
-    assert_err, assert_len_eq_x, assert_none, assert_ok, assert_some, assert_some_eq_x,
-};
-use rstest::{fixture, rstest};
+use assertables::{assert_err, assert_len_eq_x, assert_ok, assert_some, assert_some_eq_x};
+use rstest::rstest;
 use songs_proto::moosync::types::{
-    Album, Artist, Genre, GetEntityOptions, GetSongOptions, InnerSong, LyricLine, Lyrics, Playlist,
-    SearchableSong, Song, SongType, entity_result::Result as EntityResultVariant,
+    Album, Artist, Genre, GetSongOptions, InnerSong, LyricLine, Lyrics, Playlist, SearchableSong,
+    Song, SongType,
 };
 use tempdir::TempDir;
 use tracing_test::traced_test;
@@ -22,12 +20,11 @@ struct TestDbContext {
     pub db: Database,
 }
 
-#[fixture]
 #[tracing::instrument(level = "debug", skip_all)]
-fn db_context() -> TestDbContext {
+async fn db_context() -> TestDbContext {
     let temp_dir = TempDir::new("moosync_test_db").expect("failed to create temp dir");
     let db_path = temp_dir.path().join("test.db");
-    let db = Database::new(db_path);
+    let db = Database::new(db_path).await;
     TestDbContext {
         _temp_dir: temp_dir,
         db,
@@ -72,14 +69,15 @@ fn create_test_song(title: &str, path: &str) -> Song {
     }
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_insert_song(db_context: TestDbContext) {
+async fn test_insert_song() {
+    let db_context = db_context().await;
     let TestDbContext { db, .. } = db_context;
 
     let test_song = create_test_song("Test Song", "/path/to/test.mp3");
-    let result = db.insert_songs(vec![test_song]).unwrap();
+    let result = db.insert_songs(vec![test_song]).await.unwrap();
 
     assert_len_eq_x!(&result, 1);
     let song = result[0].song.as_ref().unwrap();
@@ -99,10 +97,11 @@ fn test_insert_song(db_context: TestDbContext) {
     assert_some_eq_x!(result[0].genre[0].genre_name.as_deref(), "Test Genre");
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_get_songs_by_options(db_context: TestDbContext) {
+async fn test_get_songs_by_options() {
+    let db_context = db_context().await;
     let TestDbContext { db, .. } = db_context;
 
     db.insert_songs(vec![
@@ -110,6 +109,7 @@ fn test_get_songs_by_options(db_context: TestDbContext) {
         create_test_song("Song 2", "/path/to/song2.mp3"),
         create_test_song("Different", "/path/to/different.mp3"),
     ])
+    .await
     .unwrap();
 
     let options = GetSongOptions {
@@ -121,7 +121,7 @@ fn test_get_songs_by_options(db_context: TestDbContext) {
         ..Default::default()
     };
 
-    let songs = db.get_songs_by_options(options).unwrap();
+    let songs = db.get_songs_by_options(options).await.unwrap();
     assert_len_eq_x!(&songs, 2);
     assert!(
         songs
@@ -143,7 +143,7 @@ fn test_get_songs_by_options(db_context: TestDbContext) {
         ..Default::default()
     };
 
-    let songs = db.get_songs_by_options(options).unwrap();
+    let songs = db.get_songs_by_options(options).await.unwrap();
     assert_len_eq_x!(&songs, 1);
     assert_some_eq_x!(
         songs[0].song.as_ref().and_then(|is| is.title.as_deref()),
@@ -151,10 +151,11 @@ fn test_get_songs_by_options(db_context: TestDbContext) {
     );
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_update_song(db_context: TestDbContext) {
+async fn test_update_song() {
+    let db_context = db_context().await;
     let TestDbContext { db, .. } = db_context;
 
     // Insert a test song
@@ -163,6 +164,7 @@ fn test_update_song(db_context: TestDbContext) {
             "Original Title",
             "/path/to/original.mp3",
         )])
+        .await
         .unwrap();
     let song_id = songs[0].song.clone().unwrap().id.clone().unwrap();
 
@@ -173,7 +175,7 @@ fn test_update_song(db_context: TestDbContext) {
         ..Default::default()
     };
 
-    db.update_song(&updatable_song).unwrap();
+    db.update_song(&updatable_song).await.unwrap();
 
     // Fetch the updated song
     let options = GetSongOptions {
@@ -185,7 +187,7 @@ fn test_update_song(db_context: TestDbContext) {
         ..Default::default()
     };
 
-    let updated_songs = db.get_songs_by_options(options).unwrap();
+    let updated_songs = db.get_songs_by_options(options).await.unwrap();
     assert_len_eq_x!(&updated_songs, 1);
     assert_eq!(
         updated_songs[0]
@@ -199,10 +201,11 @@ fn test_update_song(db_context: TestDbContext) {
     );
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_remove_songs(db_context: TestDbContext) {
+async fn test_remove_songs() {
+    let db_context = db_context().await;
     let TestDbContext { db, .. } = db_context;
 
     // Insert test songs
@@ -211,6 +214,7 @@ fn test_remove_songs(db_context: TestDbContext) {
             create_test_song("Song to Keep", "/path/to/keep.mp3"),
             create_test_song("Song to Remove", "/path/to/remove.mp3"),
         ])
+        .await
         .unwrap();
 
     // Get IDs
@@ -227,17 +231,18 @@ fn test_remove_songs(db_context: TestDbContext) {
             inclusive: Some(true),
             ..Default::default()
         })
+        .await
         .unwrap();
     assert_len_eq_x!(&initial_songs, 2);
 
     // Add analytics data to both songs
-    db.increment_play_count(&keep_id).unwrap();
-    db.increment_play_count(&remove_id).unwrap();
-    db.increment_play_time(&keep_id, 60.0).unwrap();
-    db.increment_play_time(&remove_id, 120.0).unwrap();
+    db.increment_play_count(&keep_id).await.unwrap();
+    db.increment_play_count(&remove_id).await.unwrap();
+    db.increment_play_time(&keep_id, 60.0).await.unwrap();
+    db.increment_play_time(&remove_id, 120.0).await.unwrap();
 
     // Remove one song
-    db.remove_songs(&[&remove_id]).unwrap();
+    db.remove_songs(&[&remove_id]).await.unwrap();
 
     // Verify only one song remains
     let all_songs = db
@@ -249,6 +254,7 @@ fn test_remove_songs(db_context: TestDbContext) {
             inclusive: Some(true),
             ..Default::default()
         })
+        .await
         .unwrap();
     assert_len_eq_x!(&all_songs, 1);
     assert_eq!(
@@ -257,7 +263,7 @@ fn test_remove_songs(db_context: TestDbContext) {
     );
 
     // Verify analytics data for the removed song is also gone
-    let analytics = db.get_top_listened_songs().unwrap();
+    let analytics = db.get_top_listened_songs().await.unwrap();
     let removed_song_analytics = analytics
         .songs
         .iter()
@@ -284,14 +290,15 @@ fn test_remove_songs(db_context: TestDbContext) {
         ..Default::default()
     };
 
-    let removed_songs = db.get_songs_by_options(removed_options).unwrap();
+    let removed_songs = db.get_songs_by_options(removed_options).await.unwrap();
     assert_len_eq_x!(&removed_songs, 0);
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_playlist_operations(db_context: TestDbContext) {
+async fn test_playlist_operations() {
+    let db_context = db_context().await;
     let TestDbContext { db, .. } = db_context;
 
     // Create a playlist
@@ -307,7 +314,7 @@ fn test_playlist_operations(db_context: TestDbContext) {
         ..Default::default()
     };
 
-    let playlist_id = db.create_playlist(playlist).unwrap();
+    let playlist_id = db.create_playlist(playlist).await.unwrap();
 
     // Insert songs
     let songs = db
@@ -315,10 +322,11 @@ fn test_playlist_operations(db_context: TestDbContext) {
             create_test_song("Playlist Song 1", "/path/to/playlist1.mp3"),
             create_test_song("Playlist Song 2", "/path/to/playlist2.mp3"),
         ])
+        .await
         .unwrap();
 
     // Add songs to playlist
-    db.add_to_playlist(&playlist_id, &songs).unwrap();
+    db.add_to_playlist(&playlist_id, &songs).await.unwrap();
 
     // Verify playlist songs were added
     let pl_songs = db
@@ -329,6 +337,7 @@ fn test_playlist_operations(db_context: TestDbContext) {
             }),
             ..Default::default()
         })
+        .await
         .unwrap();
     assert_len_eq_x!(&pl_songs, 2);
 
@@ -339,19 +348,14 @@ fn test_playlist_operations(db_context: TestDbContext) {
     };
 
     let result = db
-        .get_entity_by_options(GetEntityOptions {
-            playlist: Some(playlist_options.clone()),
-            inclusive: Some(false),
-            ..Default::default()
-        })
+        .get_playlists(playlist_options.clone(), false)
+        .await
         .unwrap();
 
     // The result is returned as a Playlists variant
-    let Some(EntityResultVariant::Playlists(playlists_list)) = result.result else {
-        panic!("Expected Playlists variant");
-    };
-    assert_len_eq_x!(&playlists_list.playlists, 1);
-    let playlist = &playlists_list.playlists[0];
+    let playlists_list = result;
+    assert_len_eq_x!(&playlists_list, 1);
+    let playlist = &playlists_list[0];
 
     // Verify we can access the playlist's properties
     assert!(playlist.playlist_name.contains("Test Playlist"));
@@ -359,6 +363,7 @@ fn test_playlist_operations(db_context: TestDbContext) {
     // Remove one song from playlist
     let song_id_to_remove = songs[0].song.clone().unwrap().id.clone().unwrap();
     db.remove_from_playlist(&playlist_id, &[song_id_to_remove])
+        .await
         .unwrap();
 
     // Verify song was removed from playlist
@@ -370,6 +375,7 @@ fn test_playlist_operations(db_context: TestDbContext) {
             }),
             ..Default::default()
         })
+        .await
         .unwrap();
     assert_len_eq_x!(&pl_songs_after, 1);
     assert_eq!(
@@ -378,27 +384,20 @@ fn test_playlist_operations(db_context: TestDbContext) {
     );
 
     // Delete the playlist
-    db.remove_playlist(&playlist_id).unwrap();
+    db.remove_playlist(&playlist_id).await.unwrap();
 
     // Verify playlist is gone
-    let all_playlists = db
-        .get_entity_by_options(GetEntityOptions {
-            playlist: Some(Playlist::default()),
-            inclusive: Some(true),
-            ..Default::default()
-        })
-        .unwrap();
+    let all_playlists = db.get_playlists(Playlist::default(), true).await.unwrap();
 
-    let Some(EntityResultVariant::Playlists(playlists_list)) = all_playlists.result else {
-        panic!("Expected Playlists variant");
-    };
-    assert_len_eq_x!(&playlists_list.playlists, 0);
+    let playlists_list = all_playlists;
+    assert_len_eq_x!(&playlists_list, 0);
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_album_operations(db_context: TestDbContext) {
+async fn test_album_operations() {
+    let db_context = db_context().await;
     let TestDbContext { db, .. } = db_context;
 
     // Insert songs with the same album
@@ -406,6 +405,7 @@ fn test_album_operations(db_context: TestDbContext) {
         create_test_song("Album Song 1", "/path/to/album1.mp3"),
         create_test_song("Album Song 2", "/path/to/album2.mp3"),
     ])
+    .await
     .unwrap();
 
     // Get the album
@@ -414,20 +414,12 @@ fn test_album_operations(db_context: TestDbContext) {
         ..Default::default()
     };
 
-    let result = db
-        .get_entity_by_options(GetEntityOptions {
-            album: Some(album_options.clone()),
-            inclusive: Some(false),
-            ..Default::default()
-        })
-        .unwrap();
+    let result = db.get_albums(album_options.clone(), false).await.unwrap();
 
     // The result is returned as an Albums variant
-    let Some(EntityResultVariant::Albums(albums_list)) = result.result else {
-        panic!("Expected Albums variant");
-    };
-    assert_len_eq_x!(&albums_list.albums, 1);
-    let album = &albums_list.albums[0];
+    let albums_list = result;
+    assert_len_eq_x!(&albums_list, 1);
+    let album = &albums_list[0];
 
     // Verify we can access the album's properties
     assert!(album.album_name.as_deref().unwrap().contains("Test Album"));
@@ -439,46 +431,37 @@ fn test_album_operations(db_context: TestDbContext) {
     };
 
     // First get the album ID
-    let albums = db
-        .get_entity_by_options(GetEntityOptions {
-            album: Some(album_options),
-            inclusive: Some(false),
-            ..Default::default()
-        })
-        .unwrap();
+    let albums = db.get_albums(album_options, false).await.unwrap();
 
-    let Some(EntityResultVariant::Albums(albums_list)) = albums.result else {
-        panic!("Expected Albums variant");
-    };
-    let album_id = albums_list.albums[0].album_id.clone().unwrap();
+    let albums_list = albums;
+    let album_id = albums_list[0].album_id.clone().unwrap();
 
     album_to_update.album_id = Some(album_id.clone());
-    db.update_album(album_to_update).unwrap();
+    db.update_album(album_to_update).await.unwrap();
 
     // Verify update
     let updated_album = db
-        .get_entity_by_options(GetEntityOptions {
-            album: Some(Album {
+        .get_albums(
+            Album {
                 album_id: Some(album_id),
                 ..Default::default()
-            }),
-            inclusive: Some(false),
-            ..Default::default()
-        })
+            },
+            false,
+        )
+        .await
         .unwrap();
 
-    let Some(EntityResultVariant::Albums(updated_albums_list)) = updated_album.result else {
-        panic!("Expected Albums variant");
-    };
-    let year = updated_albums_list.albums[0].year.as_deref().unwrap();
+    let updated_albums_list = updated_album;
+    let year = updated_albums_list[0].year.as_deref().unwrap();
 
     assert_eq!(year, "2023");
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_artist_operations(db_context: TestDbContext) {
+async fn test_artist_operations() {
+    let db_context = db_context().await;
     let TestDbContext { db, .. } = db_context;
 
     // Insert songs with the same artist
@@ -486,6 +469,7 @@ fn test_artist_operations(db_context: TestDbContext) {
         create_test_song("Artist Song 1", "/path/to/artist1.mp3"),
         create_test_song("Artist Song 2", "/path/to/artist2.mp3"),
     ])
+    .await
     .unwrap();
 
     // Get the artist
@@ -494,23 +478,15 @@ fn test_artist_operations(db_context: TestDbContext) {
         ..Default::default()
     };
 
-    let result = db
-        .get_entity_by_options(GetEntityOptions {
-            artist: Some(artist_options.clone()),
-            inclusive: Some(false),
-            ..Default::default()
-        })
-        .unwrap();
+    let result = db.get_artists(artist_options.clone(), false).await.unwrap();
 
     // The result is returned as an Artists variant
-    let Some(EntityResultVariant::Artists(artists_list)) = result.result else {
-        panic!("Expected Artists variant");
-    };
+    let artists_list = result;
     assert!(
-        !artists_list.artists.is_empty(),
+        !artists_list.is_empty(),
         "Should return at least one artist"
     );
-    let artist = &artists_list.artists[0];
+    let artist = &artists_list[0];
 
     // Verify we can access the artist's properties
     assert!(
@@ -528,53 +504,43 @@ fn test_artist_operations(db_context: TestDbContext) {
     };
 
     // First get the artist ID
-    let artists = db
-        .get_entity_by_options(GetEntityOptions {
-            artist: Some(artist_options),
-            inclusive: Some(false),
-            ..Default::default()
-        })
-        .unwrap();
+    let artists = db.get_artists(artist_options, false).await.unwrap();
 
-    let Some(EntityResultVariant::Artists(artists_list)) = artists.result else {
-        panic!("Expected Artists variant");
-    };
+    let artists_list = artists;
     assert!(
-        !artists_list.artists.is_empty(),
+        !artists_list.is_empty(),
         "Artists array should not be empty"
     );
 
-    let artist_id = artists_list.artists[0].artist_id.clone().unwrap();
+    let artist_id = artists_list[0].artist_id.clone().unwrap();
     assert!(
         !artist_id.empty_or_whitespace(),
         "artistId should not be empty"
     );
 
     artist_to_update.artist_id = Some(artist_id.clone());
-    db.update_artist(artist_to_update).unwrap();
+    db.update_artist(artist_to_update).await.unwrap();
 
     // Verify update
     let updated_artist = db
-        .get_entity_by_options(GetEntityOptions {
-            artist: Some(Artist {
+        .get_artists(
+            Artist {
                 artist_id: Some(artist_id.clone()),
                 ..Default::default()
-            }),
-            inclusive: Some(false),
-            ..Default::default()
-        })
+            },
+            false,
+        )
+        .await
         .unwrap();
 
-    let Some(EntityResultVariant::Artists(updated_artists_list)) = updated_artist.result else {
-        panic!("Expected Artists variant");
-    };
+    let updated_artists_list = updated_artist;
     assert!(
-        !updated_artists_list.artists.is_empty(),
+        !updated_artists_list.is_empty(),
         "Updated artists array should not be empty"
     );
 
     // Check if the update was successful by verifying the artist_id matches
-    let retrieved_id = updated_artists_list.artists[0]
+    let retrieved_id = updated_artists_list[0]
         .artist_id
         .as_deref()
         .expect("artistId should exist");
@@ -584,7 +550,7 @@ fn test_artist_operations(db_context: TestDbContext) {
         "Retrieved artist ID should match the one we set"
     );
     assert_eq!(
-        updated_artists_list.artists[0].artist_coverpath.as_deref(),
+        updated_artists_list[0].artist_coverpath.as_deref(),
         Some("https://example.com/cover.jpg")
     );
 }
@@ -597,10 +563,11 @@ impl EmptyOrWhitespace for String {
     fn empty_or_whitespace(&self) -> bool { self.trim().is_empty() }
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_search(db_context: TestDbContext) {
+async fn test_search() {
+    let db_context = db_context().await;
     let TestDbContext { db, .. } = db_context;
 
     // Insert variety of entities
@@ -608,6 +575,7 @@ fn test_search(db_context: TestDbContext) {
         create_test_song("Searchable Song", "/path/to/searchable.mp3"),
         create_test_song("Another Track", "/path/to/track.mp3"),
     ])
+    .await
     .unwrap();
 
     // Create a searchable playlist
@@ -619,10 +587,10 @@ fn test_search(db_context: TestDbContext) {
         ..Default::default()
     };
 
-    db.create_playlist(playlist).unwrap();
+    db.create_playlist(playlist).await.unwrap();
 
     // Search for "Search"
-    let search_results = db.search_all("Search").unwrap();
+    let search_results = db.search_all("Search").await.unwrap();
 
     assert!(!search_results.songs.is_empty());
     assert!(!search_results.playlists.is_empty());
@@ -645,10 +613,11 @@ fn test_search(db_context: TestDbContext) {
     );
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_analytics(db_context: TestDbContext) {
+async fn test_analytics() {
+    let db_context = db_context().await;
     let TestDbContext { db, .. } = db_context;
 
     // Insert a song
@@ -657,21 +626,22 @@ fn test_analytics(db_context: TestDbContext) {
             "Analytics Test",
             "/path/to/analytics.mp3",
         )])
+        .await
         .unwrap();
 
     let song_id = songs[0].song.clone().unwrap().id.unwrap();
 
     // Increment play count multiple times
     for _ in 0..5 {
-        db.increment_play_count(&song_id).unwrap();
+        db.increment_play_count(&song_id).await.unwrap();
     }
 
     // Add some play time
-    db.increment_play_time(&song_id, 120.0).unwrap();
-    db.increment_play_time(&song_id, 180.0).unwrap();
+    db.increment_play_time(&song_id, 120.0).await.unwrap();
+    db.increment_play_time(&song_id, 180.0).await.unwrap();
 
     // Get top listened songs
-    let analytics = db.get_top_listened_songs().unwrap();
+    let analytics = db.get_top_listened_songs().await.unwrap();
 
     // Verify analytics contains songs
     assert!(
@@ -693,15 +663,16 @@ fn test_analytics(db_context: TestDbContext) {
 }
 
 #[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_db_creation_and_playlist() {
+async fn test_db_creation_and_playlist() {
     let temp_dir = TempDir::new("moosync_test_dir").expect("failed to create temp dir");
     let base_dir = temp_dir.path().join("sub_db_dir");
     assert!(!base_dir.exists());
 
     // Database::new() creates directory
-    let db = Database::new(base_dir.clone());
+    let db = Database::new(base_dir.clone()).await;
     assert!(base_dir.exists());
 
     // Create playlist without ID
@@ -709,7 +680,7 @@ fn test_db_creation_and_playlist() {
         playlist_name: "No ID Playlist".to_string(),
         ..Default::default()
     };
-    let id_1 = db.create_playlist(pl_no_id).unwrap();
+    let id_1 = db.create_playlist(pl_no_id).await.unwrap();
     assert!(!id_1.is_empty());
 
     // Create playlist without Name (should default to "New playlist")
@@ -718,24 +689,22 @@ fn test_db_creation_and_playlist() {
         playlist_name: "".to_string(),
         ..Default::default()
     };
-    let id_2 = db.create_playlist(pl_no_name).unwrap();
+    let id_2 = db.create_playlist(pl_no_name).await.unwrap();
 
     // Fetch and verify name
     let entity_res = db
-        .get_entity_by_options(GetEntityOptions {
-            playlist: Some(Playlist {
+        .get_playlists(
+            Playlist {
                 playlist_id: Some(id_2),
                 ..Default::default()
-            }),
-            inclusive: Some(false),
-            ..Default::default()
-        })
+            },
+            false,
+        )
+        .await
         .unwrap();
-    let Some(EntityResultVariant::Playlists(playlists_list)) = entity_res.result else {
-        panic!("Expected Playlists variant");
-    };
-    assert_len_eq_x!(&playlists_list.playlists, 1);
-    assert_eq!(&playlists_list.playlists[0].playlist_name, "New playlist");
+    let playlists_list = entity_res;
+    assert_len_eq_x!(&playlists_list, 1);
+    assert_eq!(&playlists_list[0].playlist_name, "New playlist");
 
     // With Path (Duplicate check)
     let unique_path = "/path/to/unique_playlist".to_string();
@@ -744,21 +713,22 @@ fn test_db_creation_and_playlist() {
         playlist_path: Some(unique_path.clone()),
         ..Default::default()
     };
-    let pl_path_id_1 = db.create_playlist(pl_path_1).unwrap();
+    let pl_path_id_1 = db.create_playlist(pl_path_1).await.unwrap();
 
     let pl_path_2 = Playlist {
         playlist_name: "Playlist Path 2 (Duplicate Path)".to_string(),
         playlist_path: Some(unique_path),
         ..Default::default()
     };
-    let pl_path_id_2 = db.create_playlist(pl_path_2).unwrap();
+    let pl_path_id_2 = db.create_playlist(pl_path_2).await.unwrap();
     assert_eq!(pl_path_id_1, pl_path_id_2);
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_is_song_in_playlist(db_context: TestDbContext) {
+async fn test_is_song_in_playlist() {
+    let db_context = db_context().await;
     let TestDbContext { db, .. } = db_context;
 
     let playlist_id = db
@@ -766,31 +736,46 @@ fn test_is_song_in_playlist(db_context: TestDbContext) {
             playlist_name: "PL".to_string(),
             ..Default::default()
         })
+        .await
         .unwrap();
 
     let song = create_test_song("Song", "/path/song.mp3");
-    let inserted = db.insert_songs(vec![song]).unwrap();
+    let inserted = db.insert_songs(vec![song]).await.unwrap();
     let song_id = inserted[0].song.clone().unwrap().id.unwrap();
 
     // False when not in playlist
-    assert!(!db.is_song_in_playlist(&playlist_id, &song_id).unwrap());
+    assert!(
+        !db.is_song_in_playlist(&playlist_id, &song_id)
+            .await
+            .unwrap()
+    );
 
     // True when in playlist
-    db.add_to_playlist(&playlist_id, &inserted).unwrap();
-    assert!(db.is_song_in_playlist(&playlist_id, &song_id).unwrap());
+    db.add_to_playlist(&playlist_id, &inserted).await.unwrap();
+    assert!(
+        db.is_song_in_playlist(&playlist_id, &song_id)
+            .await
+            .unwrap()
+    );
 
     // False for non-existent IDs
-    assert!(!db.is_song_in_playlist("non_existent_pl", &song_id).unwrap());
+    assert!(
+        !db.is_song_in_playlist("non_existent_pl", &song_id)
+            .await
+            .unwrap()
+    );
     assert!(
         !db.is_song_in_playlist(&playlist_id, "non_existent_song")
+            .await
             .unwrap()
     );
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_insert_songs_edge_cases(db_context: TestDbContext) {
+async fn test_insert_songs_edge_cases() {
+    let db_context = db_context().await;
     let TestDbContext { db, .. } = db_context;
 
     // Song is None (should be skipped)
@@ -798,7 +783,7 @@ fn test_insert_songs_edge_cases(db_context: TestDbContext) {
         song: None,
         ..Default::default()
     };
-    let res = db.insert_songs(vec![song_none]).unwrap();
+    let res = db.insert_songs(vec![song_none]).await.unwrap();
     assert_len_eq_x!(&res, 1);
 
     // Create an entity first
@@ -822,7 +807,7 @@ fn test_insert_songs_edge_cases(db_context: TestDbContext) {
         }],
     };
 
-    let inserted_1 = db.insert_songs(vec![song_1]).unwrap();
+    let inserted_1 = db.insert_songs(vec![song_1]).await.unwrap();
     let album_id = inserted_1[0]
         .album
         .as_ref()
@@ -854,7 +839,7 @@ fn test_insert_songs_edge_cases(db_context: TestDbContext) {
         }],
     };
 
-    let inserted_2 = db.insert_songs(vec![song_2]).unwrap();
+    let inserted_2 = db.insert_songs(vec![song_2]).await.unwrap();
     let album_id_2 = inserted_2[0]
         .album
         .as_ref()
@@ -877,7 +862,7 @@ fn test_insert_songs_edge_cases(db_context: TestDbContext) {
         }),
         ..Default::default()
     };
-    let _ = db.insert_songs(vec![song_update]).unwrap();
+    let _ = db.insert_songs(vec![song_update]).await.unwrap();
 
     let fetched = db
         .get_songs_by_options(GetSongOptions {
@@ -888,6 +873,7 @@ fn test_insert_songs_edge_cases(db_context: TestDbContext) {
             inclusive: Some(false),
             ..Default::default()
         })
+        .await
         .unwrap();
 
     assert_len_eq_x!(&fetched, 1);
@@ -897,14 +883,15 @@ fn test_insert_songs_edge_cases(db_context: TestDbContext) {
     );
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_files_not_in_db(db_context: TestDbContext) {
+async fn test_files_not_in_db() {
+    let db_context = db_context().await;
     let TestDbContext { db, .. } = db_context;
 
     // Empty input
-    let empty_res = db.files_not_in_db(vec![]).unwrap();
+    let empty_res = db.files_not_in_db(vec![]).await.unwrap();
     assert!(empty_res.is_empty());
 
     // Insert some files
@@ -912,24 +899,25 @@ fn test_files_not_in_db(db_context: TestDbContext) {
         create_test_song("Song 1", "/path/to/song1.mp3"),
         create_test_song("Song 2", "/path/to/song2.mp3"),
     ])
+    .await
     .unwrap();
 
     // Matching path and size -> already in DB, so it should NOT be returned
     let files = vec![(PathBuf::from("/path/to/song1.mp3"), 0.0)];
-    let res = db.files_not_in_db(files).unwrap();
+    let res = db.files_not_in_db(files).await.unwrap();
     assert!(res.is_empty());
 
     // Path matches but size differs -> treated as modified / not in DB with
     // this size
     let files_mismatch = vec![(PathBuf::from("/path/to/song1.mp3"), 100.0)];
-    let res_mismatch = db.files_not_in_db(files_mismatch).unwrap();
+    let res_mismatch = db.files_not_in_db(files_mismatch).await.unwrap();
     assert_len_eq_x!(&res_mismatch, 1);
     assert_eq!(res_mismatch[0].0.to_str().unwrap(), "/path/to/song1.mp3");
     assert_eq!(res_mismatch[0].1, 100.0);
 
     // New file not in DB -> should return it
     let new_files = vec![(PathBuf::from("/path/to/new_song.mp3"), 0.0)];
-    let res_new = db.files_not_in_db(new_files).unwrap();
+    let res_new = db.files_not_in_db(new_files).await.unwrap();
     assert_len_eq_x!(&res_new, 1);
     assert_eq!(res_new[0].0.to_str().unwrap(), "/path/to/new_song.mp3");
 
@@ -938,13 +926,14 @@ fn test_files_not_in_db(db_context: TestDbContext) {
     for i in 0..1005 {
         big_list.push((PathBuf::from(format!("/path/to/song_{}.mp3", i)), 0.0));
     }
-    let res_big = db.files_not_in_db(big_list.clone()).unwrap();
+    let res_big = db.files_not_in_db(big_list.clone()).await.unwrap();
     assert_len_eq_x!(&res_big, 1005);
 
     // Insert one of the big list files and check (should return 1004 files)
     db.insert_songs(vec![create_test_song("Song 999", "/path/to/song_999.mp3")])
+        .await
         .unwrap();
-    let res_big_with_match = db.files_not_in_db(big_list).unwrap();
+    let res_big_with_match = db.files_not_in_db(big_list).await.unwrap();
     assert_len_eq_x!(&res_big_with_match, 1004);
     assert!(
         !res_big_with_match
@@ -953,14 +942,15 @@ fn test_files_not_in_db(db_context: TestDbContext) {
     );
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_export_playlist(db_context: TestDbContext) {
+async fn test_export_playlist() {
+    let db_context = db_context().await;
     let TestDbContext { db, .. } = db_context;
 
     // Non-existent playlist
-    let err_res = db.export_playlist("non_existent");
+    let err_res = db.export_playlist("non_existent").await;
     assert_err!(&err_res);
     assert!(
         err_res
@@ -974,7 +964,7 @@ fn test_export_playlist(db_context: TestDbContext) {
         playlist_name: "Export PL".to_string(),
         ..Default::default()
     };
-    let playlist_id = db.create_playlist(playlist).unwrap();
+    let playlist_id = db.create_playlist(playlist).await.unwrap();
 
     // Local song
     let local_song = Song {
@@ -1015,10 +1005,13 @@ fn test_export_playlist(db_context: TestDbContext) {
         ..Default::default()
     };
 
-    let inserted = db.insert_songs(vec![local_song, remote_song]).unwrap();
-    db.add_to_playlist(&playlist_id, &inserted).unwrap();
+    let inserted = db
+        .insert_songs(vec![local_song, remote_song])
+        .await
+        .unwrap();
+    db.add_to_playlist(&playlist_id, &inserted).await.unwrap();
 
-    let export = db.export_playlist(&playlist_id).unwrap();
+    let export = db.export_playlist(&playlist_id).await.unwrap();
 
     // Verify format
     assert!(export.starts_with("#EXTM3U"));
@@ -1036,10 +1029,11 @@ fn test_export_playlist(db_context: TestDbContext) {
     assert!(export.contains("https://example.com/stream.mp3"));
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_playlist_ops_edge_cases(db_context: TestDbContext) {
+async fn test_playlist_ops_edge_cases() {
+    let db_context = db_context().await;
     let TestDbContext { db, .. } = db_context;
 
     let playlist_id = db
@@ -1047,6 +1041,7 @@ fn test_playlist_ops_edge_cases(db_context: TestDbContext) {
             playlist_name: "Ops PL".to_string(),
             ..Default::default()
         })
+        .await
         .unwrap();
 
     // add_to_playlist with None song field
@@ -1054,44 +1049,57 @@ fn test_playlist_ops_edge_cases(db_context: TestDbContext) {
         song: None,
         ..Default::default()
     };
-    db.add_to_playlist(&playlist_id, &[empty_song]).unwrap();
+    db.add_to_playlist(&playlist_id, &[empty_song])
+        .await
+        .unwrap();
 
     // add_to_playlist duplicate songs
     let song = create_test_song("Song", "/path.mp3");
-    let inserted = db.insert_songs(vec![song]).unwrap();
+    let inserted = db.insert_songs(vec![song]).await.unwrap();
     let song_id = inserted[0].song.clone().unwrap().id.unwrap();
 
-    db.add_to_playlist(&playlist_id, &inserted).unwrap();
-    db.add_to_playlist(&playlist_id, &inserted).unwrap();
+    db.add_to_playlist(&playlist_id, &inserted).await.unwrap();
+    db.add_to_playlist(&playlist_id, &inserted).await.unwrap();
 
-    assert!(db.is_song_in_playlist(&playlist_id, &song_id).unwrap());
+    assert!(
+        db.is_song_in_playlist(&playlist_id, &song_id)
+            .await
+            .unwrap()
+    );
 
     // remove_from_playlist for song not in playlist
     db.remove_from_playlist(&playlist_id, &["non_existent_song"])
+        .await
         .unwrap();
 
     // remove_playlist
-    db.remove_playlist(&playlist_id).unwrap();
-    assert!(!db.is_song_in_playlist(&playlist_id, &song_id).unwrap());
+    db.remove_playlist(&playlist_id).await.unwrap();
+    assert!(
+        !db.is_song_in_playlist(&playlist_id, &song_id)
+            .await
+            .unwrap()
+    );
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_update_song_without_id_is_noop(db_context: TestDbContext) {
+async fn test_update_song_without_id_is_noop() {
+    let db_context = db_context().await;
     let TestDbContext { db, .. } = db_context;
 
     let song_no_id = InnerSong {
         title: Some("No ID".to_string()),
         ..Default::default()
     };
-    assert!(db.update_song(&song_no_id).is_ok());
+    assert!(db.update_song(&song_no_id).await.is_ok());
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_update_playlist_name(db_context: TestDbContext) {
+async fn test_update_playlist_name() {
+    let db_context = db_context().await;
     let TestDbContext { db, .. } = db_context;
 
     let playlist_id = db
@@ -1099,6 +1107,7 @@ fn test_update_playlist_name(db_context: TestDbContext) {
             playlist_name: "Initial PL".to_string(),
             ..Default::default()
         })
+        .await
         .unwrap();
 
     db.update_playlist(Playlist {
@@ -1106,27 +1115,28 @@ fn test_update_playlist_name(db_context: TestDbContext) {
         playlist_name: "Updated PL".to_string(),
         ..Default::default()
     })
+    .await
     .unwrap();
 
     let entity_res = db
-        .get_entity_by_options(GetEntityOptions {
-            playlist: Some(Playlist {
+        .get_playlists(
+            Playlist {
                 playlist_id: Some(playlist_id),
                 ..Default::default()
-            }),
-            ..Default::default()
-        })
+            },
+            false,
+        )
+        .await
         .unwrap();
-    let Some(EntityResultVariant::Playlists(playlists_list)) = entity_res.result else {
-        panic!("Expected Playlists variant");
-    };
-    assert_eq!(&playlists_list.playlists[0].playlist_name, "Updated PL");
+    let playlists_list = entity_res;
+    assert_eq!(&playlists_list[0].playlist_name, "Updated PL");
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_update_songs_cascades_album_and_artist(db_context: TestDbContext) {
+async fn test_update_songs_cascades_album_and_artist() {
+    let db_context = db_context().await;
     let TestDbContext { db, .. } = db_context;
 
     let song = Song {
@@ -1145,7 +1155,7 @@ fn test_update_songs_cascades_album_and_artist(db_context: TestDbContext) {
         }],
         ..Default::default()
     };
-    let inserted = db.insert_songs(vec![song]).unwrap();
+    let inserted = db.insert_songs(vec![song]).await.unwrap();
     let song_id = inserted[0].song.as_ref().unwrap().id.clone().unwrap();
     let album_id = inserted[0]
         .album
@@ -1161,7 +1171,7 @@ fn test_update_songs_cascades_album_and_artist(db_context: TestDbContext) {
     updated_song.album.as_mut().unwrap().album_name = Some("Updated Album".to_string());
     updated_song.artists[0].artist_name = Some("Updated Artist".to_string());
 
-    db.update_songs(vec![updated_song]).unwrap();
+    db.update_songs(vec![updated_song]).await.unwrap();
 
     let fetched_songs = db
         .get_songs_by_options(GetSongOptions {
@@ -1171,6 +1181,7 @@ fn test_update_songs_cascades_album_and_artist(db_context: TestDbContext) {
             }),
             ..Default::default()
         })
+        .await
         .unwrap();
     assert_eq!(
         fetched_songs[0]
@@ -1184,45 +1195,44 @@ fn test_update_songs_cascades_album_and_artist(db_context: TestDbContext) {
     );
 
     let fetched_albums = db
-        .get_entity_by_options(GetEntityOptions {
-            album: Some(Album {
+        .get_albums(
+            Album {
                 album_id: Some(album_id),
                 ..Default::default()
-            }),
-            ..Default::default()
-        })
+            },
+            false,
+        )
+        .await
         .unwrap();
-    let Some(EntityResultVariant::Albums(albums_list)) = fetched_albums.result else {
-        panic!("Expected Albums variant");
-    };
+    let albums_list = fetched_albums;
     assert_eq!(
-        albums_list.albums[0].album_name.as_deref().unwrap(),
+        albums_list[0].album_name.as_deref().unwrap(),
         "Updated Album"
     );
 
     let fetched_artists = db
-        .get_entity_by_options(GetEntityOptions {
-            artist: Some(Artist {
+        .get_artists(
+            Artist {
                 artist_id: Some(artist_id),
                 ..Default::default()
-            }),
-            ..Default::default()
-        })
+            },
+            false,
+        )
+        .await
         .unwrap();
-    let Some(EntityResultVariant::Artists(artists_list)) = fetched_artists.result else {
-        panic!("Expected Artists variant");
-    };
+    let artists_list = fetched_artists;
     assert_eq!(
-        artists_list.artists[0].artist_name.as_deref().unwrap(),
+        artists_list[0].artist_name.as_deref().unwrap(),
         "Updated Artist"
     );
 }
 
 #[rstest]
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_get_lyrics_success(db_context: TestDbContext) {
+async fn test_get_lyrics_success() {
+    let db_context = db_context().await;
     let TestDbContext { db, .. } = db_context;
     let mut song = create_test_song("Lyric Song", "/path/to/lyrics.mp3");
     song.song.as_mut().unwrap().lyrics = Some(Lyrics {
@@ -1238,10 +1248,10 @@ fn test_get_lyrics_success(db_context: TestDbContext) {
         ],
         is_synced: true,
     });
-    let inserted = db.insert_songs(vec![song]).unwrap();
+    let inserted = db.insert_songs(vec![song]).await.unwrap();
     let song_id = inserted[0].song.as_ref().unwrap().id.clone().unwrap();
 
-    let lyrics = db.get_lyrics(&song_id);
+    let lyrics = db.get_lyrics(&song_id).await;
 
     assert_ok!(lyrics.as_ref());
     let lyrics_val = lyrics.unwrap().unwrap();
@@ -1251,27 +1261,29 @@ fn test_get_lyrics_success(db_context: TestDbContext) {
     assert_eq!(lyrics_val.lines[0].time_ms, 1000);
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_get_lyrics_not_found(db_context: TestDbContext) {
+async fn test_get_lyrics_not_found() {
+    let db_context = db_context().await;
     let TestDbContext { db, .. } = db_context;
 
-    let lyrics = db.get_lyrics("non_existent_song_id");
+    let lyrics = db.get_lyrics("non_existent_song_id").await;
 
     assert_ok!(lyrics.as_ref());
     assert_eq!(lyrics.unwrap(), None);
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_get_entity_songs_and_create_playlist_with_songs(db_context: TestDbContext) {
+async fn test_get_entity_songs_and_create_playlist_with_songs() {
+    let db_context = db_context().await;
     let TestDbContext { db, .. } = db_context;
 
     let song1 = create_test_song("Entity Song 1", "/path/1.mp3");
     let song2 = create_test_song("Entity Song 2", "/path/2.mp3");
-    let inserted = db.insert_songs(vec![song1, song2]).unwrap();
+    let inserted = db.insert_songs(vec![song1, song2]).await.unwrap();
 
     let album_id = inserted[0]
         .album
@@ -1283,45 +1295,16 @@ fn test_get_entity_songs_and_create_playlist_with_songs(db_context: TestDbContex
     let artist_id = inserted[0].artists[0].artist_id.clone().unwrap();
     let genre_id = inserted[0].genre[0].genre_id.clone().unwrap();
 
-    let mut conn = db.pool.get().unwrap();
-
     // get_album_songs
-    let album_songs = db
-        .get_album_songs(
-            Album {
-                album_id: Some(album_id),
-                ..Default::default()
-            },
-            false,
-            &mut conn,
-        )
-        .unwrap();
+    let album_songs = db.get_album_songs(&album_id).await.unwrap();
     assert_len_eq_x!(&album_songs, 2);
 
     // get_artist_songs
-    let artist_songs = db
-        .get_artist_songs(
-            Artist {
-                artist_id: Some(artist_id),
-                ..Default::default()
-            },
-            false,
-            &mut conn,
-        )
-        .unwrap();
+    let artist_songs = db.get_artist_songs(&artist_id).await.unwrap();
     assert_len_eq_x!(&artist_songs, 2);
 
     // get_genre_songs
-    let genre_songs = db
-        .get_genre_songs(
-            Genre {
-                genre_id: Some(genre_id),
-                ..Default::default()
-            },
-            false,
-            &mut conn,
-        )
-        .unwrap();
+    let genre_songs = db.get_genre_songs(&genre_id).await.unwrap();
     assert_len_eq_x!(&genre_songs, 2);
 
     // create_playlist_with_songs
@@ -1330,36 +1313,45 @@ fn test_get_entity_songs_and_create_playlist_with_songs(db_context: TestDbContex
         ..Default::default()
     };
     db.create_playlist_with_songs(pl.clone(), &inserted)
+        .await
         .unwrap();
 
-    let pl_songs = db.get_playlist_songs(pl, false, &mut conn).unwrap();
+    let pl_songs = db
+        .get_songs_by_options(GetSongOptions {
+            playlist: Some(pl),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
     assert_len_eq_x!(&pl_songs, 2);
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_empty_inputs_database(db_context: TestDbContext) {
+async fn test_empty_inputs_database() {
+    let db_context = db_context().await;
     let TestDbContext { db, .. } = db_context;
 
-    let inserted = db.insert_songs(vec![]).unwrap();
+    let inserted = db.insert_songs(vec![]).await.unwrap();
     assert!(inserted.is_empty());
 
-    assert!(db.update_songs(vec![]).is_ok());
-    assert!(db.remove_songs::<&str>(&[]).is_ok());
+    assert!(db.update_songs(vec![]).await.is_ok());
+    assert!(db.remove_songs::<&str>(&[]).await.is_ok());
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_special_characters_search(db_context: TestDbContext) {
+async fn test_special_characters_search() {
+    let db_context = db_context().await;
     let TestDbContext { db, .. } = db_context;
 
     let special_song = create_test_song(
         "Rock & Roll (100%) [AC/DC] 'Special' \"Quotes\" 🎵",
         "/path/special.mp3",
     );
-    db.insert_songs(vec![special_song]).unwrap();
+    db.insert_songs(vec![special_song]).await.unwrap();
 
     let fetched = db
         .get_songs_by_options(GetSongOptions {
@@ -1370,6 +1362,7 @@ fn test_special_characters_search(db_context: TestDbContext) {
             inclusive: Some(true),
             ..Default::default()
         })
+        .await
         .unwrap();
     assert_len_eq_x!(&fetched, 1);
     assert!(
@@ -1384,17 +1377,16 @@ fn test_special_characters_search(db_context: TestDbContext) {
     );
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_get_entity_by_options(db_context: TestDbContext) {
+async fn test_get_entity_by_options() {
+    let db_context = db_context().await;
     let TestDbContext { db, .. } = db_context;
 
-    // Null case
-    let null_res = db
-        .get_entity_by_options(GetEntityOptions::default())
-        .unwrap();
-    assert_none!(&null_res.result);
+    // Empty DB returns empty albums
+    let null_res = db.get_albums(Album::default(), false).await.unwrap();
+    assert!(null_res.is_empty());
 
     // Insert data
     let song = Song {
@@ -1416,115 +1408,85 @@ fn test_get_entity_by_options(db_context: TestDbContext) {
             ..Default::default()
         }],
     };
-    db.insert_songs(vec![song]).unwrap();
+    db.insert_songs(vec![song]).await.unwrap();
 
     // Query Album (exact vs partial)
     let alb_opt_exact = Album {
         album_name: Some("UniqueAlbumName".to_string()),
         ..Default::default()
     };
-    let alb_res_exact = db
-        .get_entity_by_options(GetEntityOptions {
-            album: Some(alb_opt_exact),
-            inclusive: Some(false),
-            ..Default::default()
-        })
-        .unwrap();
-    let Some(EntityResultVariant::Albums(alb_exact)) = alb_res_exact.result else {
-        panic!("Expected Albums variant");
-    };
-    assert_len_eq_x!(&alb_exact.albums, 1);
+    let alb_res_exact = db.get_albums(alb_opt_exact, false).await.unwrap();
+    let alb_exact = alb_res_exact;
+    assert_len_eq_x!(&alb_exact, 1);
 
     let alb_opt_partial = Album {
         album_name: Some("%Unique%".to_string()),
         ..Default::default()
     };
-    let alb_res_partial = db
-        .get_entity_by_options(GetEntityOptions {
-            album: Some(alb_opt_partial),
-            inclusive: Some(true),
-            ..Default::default()
-        })
-        .unwrap();
-    let Some(EntityResultVariant::Albums(alb_partial)) = alb_res_partial.result else {
-        panic!("Expected Albums variant");
-    };
-    assert_len_eq_x!(&alb_partial.albums, 1);
+    let alb_res_partial = db.get_albums(alb_opt_partial, true).await.unwrap();
+    let alb_partial = alb_res_partial;
+    assert_len_eq_x!(&alb_partial, 1);
 
     // Query Artist
     let art_opt = Artist {
         artist_name: Some("UniqueArtistName".to_string()),
         ..Default::default()
     };
-    let art_res = db
-        .get_entity_by_options(GetEntityOptions {
-            artist: Some(art_opt),
-            inclusive: Some(false),
-            ..Default::default()
-        })
-        .unwrap();
-    let Some(EntityResultVariant::Artists(art_list)) = art_res.result else {
-        panic!("Expected Artists variant");
-    };
-    assert_len_eq_x!(&art_list.artists, 1);
+    let art_res = db.get_artists(art_opt, false).await.unwrap();
+    let art_list = art_res;
+    assert_len_eq_x!(&art_list, 1);
 
     // Query Genre
     let gen_opt = Genre {
         genre_name: Some("UniqueGenreName".to_string()),
         ..Default::default()
     };
-    let gen_res = db
-        .get_entity_by_options(GetEntityOptions {
-            genre: Some(gen_opt),
-            inclusive: Some(false),
-            ..Default::default()
-        })
-        .unwrap();
-    let Some(EntityResultVariant::Genres(gen_list)) = gen_res.result else {
-        panic!("Expected Genres variant");
-    };
-    assert_len_eq_x!(&gen_list.genres, 1);
+    let gen_res = db.get_genres(gen_opt, false).await.unwrap();
+    let gen_list = gen_res;
+    assert_len_eq_x!(&gen_list, 1);
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_analytics_edge_cases(db_context: TestDbContext) {
+async fn test_analytics_edge_cases() {
+    let db_context = db_context().await;
     let TestDbContext { db, .. } = db_context;
 
     let song = create_test_song("Song", "/path.mp3");
-    let inserted = db.insert_songs(vec![song]).unwrap();
+    let inserted = db.insert_songs(vec![song]).await.unwrap();
     let song_id = inserted[0].song.as_ref().unwrap().id.clone().unwrap();
 
     // Increment count when it does not exist
-    db.increment_play_count(&song_id).unwrap();
+    db.increment_play_count(&song_id).await.unwrap();
 
     // Increment time when it exists
-    db.increment_play_time(&song_id, 50.0).unwrap();
+    db.increment_play_time(&song_id, 50.0).await.unwrap();
 
     // Fetch and check
-    let analytics1 = db.get_top_listened_songs().unwrap();
+    let analytics1 = db.get_top_listened_songs().await.unwrap();
     assert_len_eq_x!(&analytics1.songs, 1);
     assert_eq!(analytics1.songs[0].song_id, song_id);
     assert_eq!(analytics1.songs[0].time, 50.0);
 
     // Increment time when it does not exist for another song
     let song2 = create_test_song("Song 2", "/path2.mp3");
-    let inserted2 = db.insert_songs(vec![song2]).unwrap();
+    let inserted2 = db.insert_songs(vec![song2]).await.unwrap();
     let song_id2 = inserted2[0].song.as_ref().unwrap().id.clone().unwrap();
 
-    db.increment_play_time(&song_id2, 120.0).unwrap();
+    db.increment_play_time(&song_id2, 120.0).await.unwrap();
 
-    let analytics2 = db.get_top_listened_songs().unwrap();
+    let analytics2 = db.get_top_listened_songs().await.unwrap();
     assert_len_eq_x!(&analytics2.songs, 2);
     assert_eq!(analytics2.songs[0].time, 120.0);
     assert_eq!(analytics2.total_listen_time, 170.0);
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_get_songs_by_entities(db_context: TestDbContext) {
+async fn test_get_songs_by_entities() {
+    let db_context = db_context().await;
     let TestDbContext { db, .. } = db_context;
 
     // Insert songs with album, artist, genre
@@ -1548,7 +1510,7 @@ fn test_get_songs_by_entities(db_context: TestDbContext) {
         }],
     };
 
-    let inserted = db.insert_songs(vec![song]).unwrap();
+    let inserted = db.insert_songs(vec![song]).await.unwrap();
     let song_id = inserted[0].song.as_ref().unwrap().id.clone().unwrap();
 
     let songs_by_album = db
@@ -1559,6 +1521,7 @@ fn test_get_songs_by_entities(db_context: TestDbContext) {
             }),
             ..Default::default()
         })
+        .await
         .unwrap();
     assert_len_eq_x!(&songs_by_album, 1);
     assert_eq!(
@@ -1580,6 +1543,7 @@ fn test_get_songs_by_entities(db_context: TestDbContext) {
             }),
             ..Default::default()
         })
+        .await
         .unwrap();
     assert_len_eq_x!(&songs_by_artist, 1);
     assert_eq!(
@@ -1601,6 +1565,7 @@ fn test_get_songs_by_entities(db_context: TestDbContext) {
             }),
             ..Default::default()
         })
+        .await
         .unwrap();
     assert_len_eq_x!(&songs_by_genre, 1);
     assert_eq!(
@@ -1619,17 +1584,24 @@ fn test_get_songs_by_entities(db_context: TestDbContext) {
             playlist_name: "Bridge PL".to_string(),
             ..Default::default()
         })
+        .await
         .unwrap();
 
     db.add_to_playlist_bridge(playlist_id.clone(), song_id.clone())
+        .await
         .unwrap();
-    assert!(db.is_song_in_playlist(&playlist_id, &song_id).unwrap());
+    assert!(
+        db.is_song_in_playlist(&playlist_id, &song_id)
+            .await
+            .unwrap()
+    );
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_remove_songs_outside_directories(db_context: TestDbContext) {
+async fn test_remove_songs_outside_directories() {
+    let db_context = db_context().await;
     let TestDbContext { db, .. } = db_context;
 
     // Insert 1 song inside the directory we will scan
@@ -1644,6 +1616,7 @@ fn test_remove_songs_outside_directories(db_context: TestDbContext) {
     }
 
     db.insert_songs(vec![song_inside, song_outside, song_no_path])
+        .await
         .unwrap();
 
     // Verify all 3 songs are initially inserted
@@ -1651,14 +1624,19 @@ fn test_remove_songs_outside_directories(db_context: TestDbContext) {
         song: Some(SearchableSong::default()),
         ..Default::default()
     };
-    let songs = db.get_songs_by_options(query_options.clone()).unwrap();
+    let songs = db
+        .get_songs_by_options(query_options.clone())
+        .await
+        .unwrap();
     assert_len_eq_x!(&songs, 3);
 
     // Call remove_songs_outside_directories with /music/folders as scan_dir
     let scan_dirs = vec![PathBuf::from("/music/folders")];
-    db.remove_songs_outside_directories(&scan_dirs).unwrap();
+    db.remove_songs_outside_directories(&scan_dirs)
+        .await
+        .unwrap();
 
-    let remaining = db.get_songs_by_options(query_options).unwrap();
+    let remaining = db.get_songs_by_options(query_options).await.unwrap();
     assert_len_eq_x!(&remaining, 2);
 
     let titles: Vec<String> = remaining
@@ -1671,10 +1649,11 @@ fn test_remove_songs_outside_directories(db_context: TestDbContext) {
     assert!(!titles.contains(&"Outside".to_string()));
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_get_entities_by_mbid_and_id(db_context: TestDbContext) {
+async fn test_get_entities_by_mbid_and_id() {
+    let db_context = db_context().await;
     let TestDbContext { db, .. } = db_context;
 
     let mut song = create_test_song("MBID Song", "/music/mbid.mp3");
@@ -1687,65 +1666,48 @@ fn test_get_entities_by_mbid_and_id(db_context: TestDbContext) {
         genre_name: Some("MBID Genre".to_string()),
         ..Default::default()
     }];
-    let inserted = db.insert_songs(vec![song]).unwrap();
+    let inserted = db.insert_songs(vec![song]).await.unwrap();
     assert_len_eq_x!(&inserted, 1);
 
-    let entity_artist = db
-        .get_entity_by_options(GetEntityOptions {
-            artist: Some(Artist {
+    let artists_by_mbid = db
+        .get_artists(
+            Artist {
                 artist_mbid: Some("mbid-12345".to_string()),
                 ..Default::default()
-            }),
-            inclusive: Some(true),
-            ..Default::default()
-        })
+            },
+            true,
+        )
+        .await
         .unwrap();
-    let artists_by_mbid = match entity_artist.result {
-        Some(EntityResultVariant::Artists(a)) => a.artists,
-        _ => panic!("expected artists"),
-    };
     assert_len_eq_x!(&artists_by_mbid, 1);
     assert_eq!(
         artists_by_mbid[0].artist_name.as_deref(),
         Some("MBID Artist")
     );
 
-    let all_genres_res = db
-        .get_entity_by_options(GetEntityOptions {
-            genre: Some(Genre::default()),
-            inclusive: Some(true),
-            ..Default::default()
-        })
-        .unwrap();
-    let all_genres = match all_genres_res.result {
-        Some(EntityResultVariant::Genres(g)) => g.genres,
-        _ => panic!("expected genres"),
-    };
+    let all_genres = db.get_genres(Genre::default(), true).await.unwrap();
     assert!(!all_genres.is_empty());
     let genre_id = all_genres[0].genre_id.clone().unwrap();
 
-    let entity_genre = db
-        .get_entity_by_options(GetEntityOptions {
-            genre: Some(Genre {
+    let genres_by_id = db
+        .get_genres(
+            Genre {
                 genre_id: Some(genre_id.clone()),
                 ..Default::default()
-            }),
-            inclusive: Some(true),
-            ..Default::default()
-        })
+            },
+            true,
+        )
+        .await
         .unwrap();
-    let genres_by_id = match entity_genre.result {
-        Some(EntityResultVariant::Genres(g)) => g.genres,
-        _ => panic!("expected genres"),
-    };
     assert_len_eq_x!(&genres_by_id, 1);
     assert_eq!(genres_by_id[0].genre_id.as_ref(), Some(&genre_id));
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_on_songs_added_emitted_on_insert(db_context: TestDbContext) {
+async fn test_on_songs_added_emitted_on_insert() {
+    let db_context = db_context().await;
     let TestDbContext { db, .. } = db_context;
     let emitted = Arc::new(Mutex::new(Vec::new()));
     let emitted_clone = emitted.clone();
@@ -1754,7 +1716,7 @@ fn test_on_songs_added_emitted_on_insert(db_context: TestDbContext) {
     });
     let song = create_test_song("Notified Song", "/notified.mp3");
 
-    let inserted = db.insert_songs(vec![song]).unwrap();
+    let inserted = db.insert_songs(vec![song]).await.unwrap();
 
     assert_len_eq_x!(&inserted, 1);
     let captured = emitted.lock().unwrap();
@@ -1765,10 +1727,11 @@ fn test_on_songs_added_emitted_on_insert(db_context: TestDbContext) {
     );
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_on_entity_updated_emitted(db_context: TestDbContext) {
+async fn test_on_entity_updated_emitted() {
+    let db_context = db_context().await;
     let TestDbContext { db, .. } = db_context;
     let updated_songs = Arc::new(Mutex::new(Vec::new()));
     let updated_songs_clone = updated_songs.clone();
@@ -1800,7 +1763,7 @@ fn test_on_entity_updated_emitted(db_context: TestDbContext) {
         artist_name: Some("Artist A".to_string()),
         ..Default::default()
     }];
-    let inserted = db.insert_songs(vec![song]).unwrap();
+    let inserted = db.insert_songs(vec![song]).await.unwrap();
     let song_id = inserted[0].song.as_ref().unwrap().id.clone().unwrap();
     let mut album = inserted[0].album.clone().unwrap();
     album.album_coverpath_high = Some("/album_high.webp".to_string());
@@ -1811,17 +1774,20 @@ fn test_on_entity_updated_emitted(db_context: TestDbContext) {
             playlist_name: "Playlist A".to_string(),
             ..Default::default()
         })
+        .await
         .unwrap();
 
     db.update_song_cover(&song_id, Some("/song_high.webp"), Some("/song_low.webp"))
+        .await
         .unwrap();
-    db.update_album(album).unwrap();
-    db.update_artist(artist).unwrap();
+    db.update_album(album).await.unwrap();
+    db.update_artist(artist).await.unwrap();
     db.update_playlist(Playlist {
         playlist_id: Some(playlist_id),
         playlist_name: "Playlist A Renamed".to_string(),
         ..Default::default()
     })
+    .await
     .unwrap();
 
     let songs_captured = updated_songs.lock().unwrap();
@@ -1850,10 +1816,11 @@ fn test_on_entity_updated_emitted(db_context: TestDbContext) {
     assert_eq!(playlists_captured[0].playlist_name, "Playlist A Renamed");
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_reinsert_existing_song_overwrites_bridges(db_context: TestDbContext) {
+async fn test_reinsert_existing_song_overwrites_bridges() {
+    let db_context = db_context().await;
     let TestDbContext { db, .. } = db_context;
 
     let mut song1 = create_test_song("Song 1", "/music/song1.mp3");
@@ -1876,7 +1843,7 @@ fn test_reinsert_existing_song_overwrites_bridges(db_context: TestDbContext) {
         ..Default::default()
     }];
 
-    assert_ok!(db.insert_songs(vec![song1, other_song]));
+    assert_ok!(db.insert_songs(vec![song1, other_song]).await);
 
     let mut rescanned_song1 = create_test_song("Song 1", "/music/song1.mp3");
     rescanned_song1.album = Some(Album {
@@ -1898,7 +1865,7 @@ fn test_reinsert_existing_song_overwrites_bridges(db_context: TestDbContext) {
         ..Default::default()
     }];
 
-    assert_ok!(db.insert_songs(vec![rescanned_song1]));
+    assert_ok!(db.insert_songs(vec![rescanned_song1]).await);
 
     let fetched = db
         .get_songs_by_options(GetSongOptions {
@@ -1908,6 +1875,7 @@ fn test_reinsert_existing_song_overwrites_bridges(db_context: TestDbContext) {
             }),
             ..Default::default()
         })
+        .await
         .unwrap();
     assert_len_eq_x!(&fetched, 1);
     let mut artist_names: Vec<_> = fetched[0]
@@ -1933,17 +1901,8 @@ fn test_reinsert_existing_song_overwrites_bridges(db_context: TestDbContext) {
         vec!["New Genre"]
     );
 
-    let all_artists = db
-        .get_entity_by_options(GetEntityOptions {
-            artist: Some(Artist::default()),
-            ..Default::default()
-        })
-        .unwrap();
-    let EntityResultVariant::Artists(artists_list) = all_artists.result.unwrap() else {
-        panic!("expected artists");
-    };
+    let artists_list = db.get_artists(Artist::default(), false).await.unwrap();
     let all_artist_names: Vec<_> = artists_list
-        .artists
         .iter()
         .filter_map(|a| a.artist_name.as_deref())
         .collect();

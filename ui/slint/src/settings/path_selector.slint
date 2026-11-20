@@ -15,9 +15,11 @@ export component PathSelector {
         HorizontalLayout {
             padding-bottom: Theme.paddingMd;
             spacing: Theme.spacingLg;
+
             VerticalLayout {
                 alignment: start;
                 horizontal-stretch: 1;
+
                 Text {
                     text: root.title;
                     font-size: Theme.modelTitle;
@@ -55,6 +57,7 @@ export component PathSelector {
 
         ScrollView {
             height: Theme.numberInputWidth;
+
             VerticalLayout {
                 spacing: Theme.spacingXxs;
                 padding-right: Theme.paddingLg;
@@ -63,12 +66,14 @@ export component PathSelector {
                     border-radius: Theme.borderRadiusLg;
                     border-width: Theme.borderWidth;
                     border-color: Theme.textSecondary;
+
                     HorizontalLayout {
                         padding-top: Theme.extensionItemPaddingY;
                         padding-bottom: Theme.extensionItemPaddingY;
                         padding-left: Theme.paddingSm;
                         padding-right: Theme.paddingSm;
                         spacing: Theme.spacingLg;
+
                         Image {
                             width: Theme.iconSizeMd;
                             source: @image-url("../icons/folder_hollow.svg");

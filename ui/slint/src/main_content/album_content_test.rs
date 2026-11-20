@@ -104,7 +104,7 @@ async fn test_album_song_provider_fetch_local_songs_success(
         ..Default::default()
     };
     let db = sm.get_database();
-    assert_ok!(db.insert_songs(vec![song]));
+    assert_ok!(db.insert_songs(vec![song]).await);
 
     let songs_res = AlbumSongProvider::fetch_local_songs(&sm, album).await;
 

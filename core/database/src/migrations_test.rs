@@ -1,39 +1,35 @@
-use rstest::{fixture, rstest};
-use rusqlite::Connection;
+use rstest::rstest;
+use sqlx::SqlitePool;
 use tracing_test::traced_test;
 
 use crate::migrations::run_migrations;
 
-#[fixture]
-#[tracing::instrument(level = "debug", skip_all)]
-fn memory_connection() -> Connection {
-    Connection::open_in_memory().expect("failed to open memory sqlite connection")
-}
-
 #[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_run_migrations_creates_schema_and_is_idempotent(mut memory_connection: Connection) {
-    run_migrations(&mut memory_connection);
-    let migration_count: i64 = memory_connection
-        .query_row(
-            "SELECT count(*) FROM __diesel_schema_migrations",
-            [],
-            |row| row.get(0),
-        )
-        .unwrap();
-    assert_eq!(migration_count, 5);
+async fn test_run_migrations_creates_schema_and_is_idempotent() {
+    let pool = SqlitePool::connect("sqlite::memory:")
+        .await
+        .expect("failed to open memory sqlite pool");
 
-    let tables: Vec<String> = memory_connection
-        .prepare("SELECT name FROM sqlite_master WHERE type='table'")
-        .unwrap()
-        .query_map([], |row| row.get(0))
-        .unwrap()
-        .filter_map(|res| res.ok())
-        .collect();
+    run_migrations(&pool).await.expect("migrations failed");
+
+    let migration_count: i64 = sqlx::query_scalar("SELECT count(*) FROM _sqlx_migrations")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(migration_count, 1);
+
+    let tables: Vec<String> =
+        sqlx::query_scalar("SELECT name FROM sqlite_master WHERE type='table'")
+            .fetch_all(&pool)
+            .await
+            .unwrap();
 
     for table in &[
         "allsongs",
+        "song_lyrics",
         "albums",
         "artists",
         "genres",
@@ -42,17 +38,19 @@ fn test_run_migrations_creates_schema_and_is_idempotent(mut memory_connection: C
         "artist_bridge",
         "genre_bridge",
         "analytics",
+        "extension_cache",
+        "search_fts",
     ] {
-        assert!(tables.contains(&table.to_string()));
+        assert!(tables.contains(&table.to_string()), "missing table {table}");
     }
 
-    run_migrations(&mut memory_connection);
-    let migration_count_second_run: i64 = memory_connection
-        .query_row(
-            "SELECT count(*) FROM __diesel_schema_migrations",
-            [],
-            |row| row.get(0),
-        )
-        .unwrap();
-    assert_eq!(migration_count_second_run, 5);
+    run_migrations(&pool)
+        .await
+        .expect("second migration run failed");
+    let migration_count_second_run: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM _sqlx_migrations")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(migration_count_second_run, 1);
 }

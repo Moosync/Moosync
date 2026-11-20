@@ -111,7 +111,7 @@ async fn test_all_songs_fetch_songs(state_manager_fixture: TestSlintSmContext) {
         ..Default::default()
     };
     let db = sm.get_database();
-    db.insert_songs(vec![song]).unwrap();
+    db.insert_songs(vec![song]).await.unwrap();
 
     let fetched = AllSongsPageHandler::fetch_songs(&sm).await;
 
@@ -179,6 +179,7 @@ async fn test_all_songs_refresh_on_songs_added(
     state_manager
         .get_database()
         .insert_songs(vec![song])
+        .await
         .unwrap();
     tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
@@ -214,6 +215,7 @@ async fn test_all_songs_refresh_debounces_rapid_additions(
         state_manager
             .get_database()
             .insert_songs(vec![song])
+            .await
             .unwrap();
     }
     tokio::time::sleep(std::time::Duration::from_millis(250)).await;

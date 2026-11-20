@@ -79,86 +79,6 @@ pub fn song_type_to_str(t: i32) -> &'static str {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-pub fn map_row_to_album(row: &rusqlite::Row) -> rusqlite::Result<Album> {
-    Ok(Album {
-        album_id: row.get(0)?,
-        album_name: row.get(1)?,
-        album_artist: row.get(2)?,
-        album_coverpath_high: row.get(3)?,
-        album_song_count: row.get(4)?,
-        year: row.get(5)?,
-        album_coverpath_low: row.get(6)?,
-        extension: None,
-    })
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-pub fn map_row_to_artist(row: &rusqlite::Row) -> rusqlite::Result<Artist> {
-    Ok(Artist {
-        artist_id: row.get(0)?,
-        artist_mbid: row.get(1)?,
-        artist_name: row.get(2)?,
-        artist_coverpath: row.get(3)?,
-        artist_song_count: row.get(4)?,
-        sanitized_artist_name: row.get(5)?,
-        extension: None,
-    })
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-pub fn map_row_to_genre(row: &rusqlite::Row) -> rusqlite::Result<Genre> {
-    Ok(Genre {
-        genre_id: row.get(0)?,
-        genre_name: row.get(1)?,
-        genre_song_count: row.get(2)?,
-    })
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-pub fn map_row_to_playlist(row: &rusqlite::Row) -> rusqlite::Result<Playlist> {
-    Ok(Playlist {
-        playlist_id: row.get(0)?,
-        playlist_name: row.get(1).unwrap_or_default(),
-        playlist_coverpath: row.get(2)?,
-        playlist_song_count: row.get(3).unwrap_or_default(),
-        playlist_desc: row.get(4)?,
-        playlist_path: row.get(5)?,
-        extension: row.get(6)?,
-        icon: row.get(7)?,
-        library_item: row.get(8)?,
-    })
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-pub fn map_row_to_inner_song(row: &rusqlite::Row) -> rusqlite::Result<InnerSong> {
-    let type_str: String = row.get(16)?;
-    Ok(InnerSong {
-        id: row.get(0)?,
-        path: row.get(1)?,
-        size: row.get(2)?,
-        title: row.get(5)?,
-        date: row.get(6)?,
-        year: row.get(7)?,
-        lyrics: None,
-        release_type: row.get(9)?,
-        bitrate: row.get(10)?,
-        codec: row.get(11)?,
-        container: row.get(12)?,
-        duration: Some(db_ms_to_proto(row.get::<_, f64>(13)? as i64)),
-        sample_rate: row.get(14)?,
-        hash: row.get(15)?,
-        r#type: song_type_from_str(&type_str),
-        url: row.get(17)?,
-        song_cover_path_high: row.get(18)?,
-        playback_url: row.get(19)?,
-        song_cover_path_low: row.get(20)?,
-        date_added: row.get(21)?,
-        extension: row.get(22)?,
-        track_no: row.get(25)?,
-    })
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
 pub(crate) fn proto_to_db_ms(
     proto_dur: &Option<songs_proto::duration_proto::google::protobuf::Duration>,
 ) -> i64 {
@@ -168,14 +88,12 @@ pub(crate) fn proto_to_db_ms(
     }
 }
 
-// Convert DB milliseconds back to Protobuf Duration
 #[tracing::instrument(level = "debug", skip_all)]
 pub(crate) fn db_ms_to_proto(
     db_ms: i64,
 ) -> songs_proto::duration_proto::google::protobuf::Duration {
     songs_proto::duration_proto::google::protobuf::Duration {
         seconds: db_ms / 1000,
-        // Remainder converted back to nanos
         nanos: ((db_ms % 1000) * 1_000_000) as i32,
     }
 }

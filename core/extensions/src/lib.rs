@@ -298,9 +298,19 @@ impl ExtensionHandler {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn remove_extension(&self, package_name: String) -> Result<(), ExtensionError> {
-        let ext_path = self.extensions_dir.join(&package_name);
-        if ext_path.exists() {
-            let _ = fs::remove_dir_all(ext_path);
+        let ext_path = self
+            .get_extension(&package_name)
+            .map(|ext| ext.extension_path().to_path_buf())
+            .unwrap_or_else(|_| self.extensions_dir.join(&package_name));
+        if ext_path != self.extensions_dir
+            && ext_path.exists()
+            && let Err(err) = fs::remove_dir_all(&ext_path)
+        {
+            tracing::error!(
+                "Failed to remove extension directory {:?}: {:?}",
+                ext_path,
+                err
+            );
         }
         self.send_remove_extension(PackageName { package_name })?;
         self.find_new_extensions()?;
@@ -340,6 +350,9 @@ impl ExtensionHandler {
 
         ret
     }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn shutdown(&self) { self.inner.shutdown(); }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn send_remove_extension(&self, package_name: PackageName) -> Result<(), ExtensionError> {

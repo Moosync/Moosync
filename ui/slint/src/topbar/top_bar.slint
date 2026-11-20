@@ -23,6 +23,7 @@ export component TopBar inherits Rectangle {
 
     VerticalLayout {
         alignment: center;
+
         HorizontalLayout {
             padding-left: Theme.paddingLg;
             padding-right: Theme.paddingLg;
@@ -45,6 +46,7 @@ export component TopBar inherits Rectangle {
                     horizontal-stretch: 1;
                     padding-right: Theme.paddingLg;
                     padding-left: Theme.paddingLg;
+
                     SearchBar {
                         horizontal-stretch: 1;
                         accepted(txt) => {

@@ -37,7 +37,7 @@ async fn test_fetch_song_lyrics_from_database(state_manager_fixture: TestSlintSm
         }),
         ..Default::default()
     };
-    db.insert_songs(vec![song.clone()]).unwrap();
+    db.insert_songs(vec![song.clone()]).await.unwrap();
 
     let lyrics = fetch_song_lyrics(&sm, &song).await;
 

@@ -320,7 +320,6 @@ message RequestedCoverArtResponse {
 message MainCommand {
   oneof command {
     GetSongRequest get_song = 1;
-    GetEntityRequest get_entity = 2;
     GetCurrentSongRequest get_current_song = 3;
     GetPlayerStateRequest get_player_state = 4;
     GetVolumeRequest get_volume = 5;
@@ -359,13 +358,17 @@ message MainCommand {
     WriteSockRequest write_sock = 38;
     ReadSockRequest read_sock = 39;
     BatchHttpRequest batch_http_request = 40;
+    GetAlbumsRequest get_albums = 41;
+    GetArtistsRequest get_artists = 42;
+    GetGenresRequest get_genres = 43;
+    GetPlaylistsRequest get_playlists = 44;
   }
+  reserved 2;
 }
 
 message MainCommandResponse {
   oneof response {
     GetSongResponse get_song = 1;
-    GetEntityResponse get_entity = 2;
     GetCurrentSongResponse get_current_song = 3;
     GetPlayerStateResponse get_player_state = 4;
     GetVolumeResponse get_volume = 5;
@@ -405,7 +408,12 @@ message MainCommandResponse {
     WriteSockResponse write_sock = 39;
     ReadSockResponse read_sock = 40;
     BatchHttpResponse batch_http_request = 41;
+    GetAlbumsResponse get_albums = 42;
+    GetArtistsResponse get_artists = 43;
+    GetGenresResponse get_genres = 44;
+    GetPlaylistsResponse get_playlists = 45;
   }
+  reserved 2;
 }
 
 message GetCacheRequest {
@@ -434,12 +442,40 @@ message GetSongResponse {
   repeated Song songs = 1;
 }
 
-message GetEntityRequest {
-  GetEntityOptions options = 1;
+message GetAlbumsRequest {
+  moosync.types.Album options = 1;
+  optional bool inclusive = 2;
 }
 
-message GetEntityResponse {
-  EntityResult entity = 1;
+message GetAlbumsResponse {
+  repeated moosync.types.Album albums = 1;
+}
+
+message GetArtistsRequest {
+  moosync.types.Artist options = 1;
+  optional bool inclusive = 2;
+}
+
+message GetArtistsResponse {
+  repeated moosync.types.Artist artists = 1;
+}
+
+message GetGenresRequest {
+  moosync.types.Genre options = 1;
+  optional bool inclusive = 2;
+}
+
+message GetGenresResponse {
+  repeated moosync.types.Genre genres = 1;
+}
+
+message GetPlaylistsRequest {
+  moosync.types.Playlist options = 1;
+  optional bool inclusive = 2;
+}
+
+message GetPlaylistsResponse {
+  repeated moosync.types.Playlist playlists = 1;
 }
 
 message GetCurrentSongRequest {}

@@ -44,7 +44,7 @@ impl SearchPageHandler {
         term: &str,
     ) -> Result<ProtoSearchResult, UiError> {
         let database = state_manager.get_database();
-        Ok(database.search_all(term)?)
+        Ok(database.search_all(term).await?)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

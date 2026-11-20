@@ -40,6 +40,7 @@ export component BottomBarMobile inherits Rectangle {
 
         VerticalLayout {
             alignment: center;
+
             IconButton {
                 accessible-label: PlayerProps.playing ? @tr("Pause") : @tr("Play");
                 icon_source: PlayerProps.playing ? @image-url("../icons/playback_pause.svg") : @image-url("../icons/playback_play.svg");

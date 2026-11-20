@@ -5,7 +5,7 @@ use extensions::ReplyHandler;
 use extensions_proto::moosync::types::{PlayerState, SystemTimeRequest};
 use rstest::{fixture, rstest};
 use songs_proto::moosync::types::{
-    GetEntityOptions, GetSongOptions, InnerSong, Playlist, SearchableSong, Song,
+    Album, GetSongOptions, InnerSong, Playlist, SearchableSong, Song,
 };
 use tempdir::TempDir;
 use tracing_test::traced_test;
@@ -354,7 +354,7 @@ async fn test_reply_handler_get_entity(reply_context: TestReplyContext) {
     let TestReplyContext { handler, .. } = reply_context;
 
     let result =
-        tokio::task::spawn_blocking(move || handler.get_entity("pkg", GetEntityOptions::default()))
+        tokio::task::spawn_blocking(move || handler.get_albums("pkg", Album::default(), false))
             .await
             .unwrap();
 

@@ -71,6 +71,6 @@ async fn test_extensions_hook_on_songs_added_listener(sm_context: TestSmContext)
         }),
         ..Default::default()
     };
-    let inserted = sm.get_database().insert_songs(vec![song]);
+    let inserted = sm.get_database().insert_songs(vec![song]).await;
     assert_ok!(inserted);
 }

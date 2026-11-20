@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM playlists WHERE playlist_id = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "694752d9f067b1bf3bc3739998414876522229ec6221c432ca6a0e0f9c47ca34"
+}

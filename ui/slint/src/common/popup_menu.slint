@@ -61,6 +61,7 @@ export component PopupMenu inherits Rectangle {
                             // Optional Icon (only rendered when an icon is provided)
                             if (item.icon.width > 0): VerticalLayout {
                                 alignment: center;
+
                                 Image {
                                     width: Theme.iconSizeSm;
                                     height: Theme.iconSizeSm;
@@ -82,6 +83,7 @@ export component PopupMenu inherits Rectangle {
                             // Selection indicator on the right
                             if (item.is-selected): VerticalLayout {
                                 alignment: center;
+
                                 Rectangle {
                                     width: Theme.borderWidthXxl;
                                     height: Theme.subtitle;

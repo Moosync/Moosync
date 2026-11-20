@@ -9,10 +9,10 @@ use slint_app::{
     SongSelectionState,
     test_utils::integration::{
         ExtensionFixture, click_element, create_test_song, integration_test, parameterized_test,
-        wait_until, wait_until_timeout,
+        wait_until, wait_until_async, wait_until_timeout,
     },
 };
-use songs_proto::moosync::types::{GetEntityOptions, Playlist, entity_result};
+use songs_proto::moosync::types::Playlist;
 use state_manager::StateManager;
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -180,7 +180,7 @@ async fn do_mobile_bottombar_play_pause(
         "Mobile Album",
         "Mobile Artist",
     );
-    database.insert_songs(vec![song.clone()]).unwrap();
+    database.insert_songs(vec![song.clone()]).await.unwrap();
 
     if main_window.global::<AppProps>().get_active_page() == Pages::AllSongs {
         main_window
@@ -242,7 +242,10 @@ async fn do_mobile_now_playing_controls(
     let s1 = create_test_song("mob_c1", "Track One", "Alb", "Art");
     let s2 = create_test_song("mob_c2", "Track Two", "Alb", "Art");
     let database = state_manager.get_database();
-    database.insert_songs(vec![s1.clone(), s2.clone()]).unwrap();
+    database
+        .insert_songs(vec![s1.clone(), s2.clone()])
+        .await
+        .unwrap();
 
     let ph = state_manager.get_player_handler();
     ph.add_to_queue(vec![s1.clone(), s2.clone()]).await;
@@ -545,7 +548,7 @@ async fn do_mobile_song_selection_toggle(
 ) {
     let song = create_test_song("mob_sel", "Selection Track", "Sel Album", "Sel Artist");
     let database = state_manager.get_database();
-    database.insert_songs(vec![song]).unwrap();
+    database.insert_songs(vec![song]).await.unwrap();
 
     if main_window.global::<AppProps>().get_active_page() == Pages::AllSongs {
         main_window
@@ -743,7 +746,7 @@ async fn do_mobile_context_menu_drag_handle_click(
 ) {
     let song = create_test_song("mob_ctx", "Context Track", "Ctx Album", "Ctx Artist");
     let database = state_manager.get_database();
-    database.insert_songs(vec![song]).unwrap();
+    database.insert_songs(vec![song]).await.unwrap();
 
     if main_window.global::<AppProps>().get_active_page() == Pages::AllSongs {
         main_window
@@ -816,7 +819,7 @@ async fn do_mobile_context_menu_drag_fills_bottom(
 ) {
     let song = create_test_song("mob_ctx2", "Context Track 2", "Ctx Album 2", "Ctx Artist 2");
     let database = state_manager.get_database();
-    database.insert_songs(vec![song]).unwrap();
+    database.insert_songs(vec![song]).await.unwrap();
 
     if main_window.global::<AppProps>().get_active_page() == Pages::AllSongs {
         main_window
@@ -958,7 +961,7 @@ async fn do_mobile_context_menu_submenu_navigation(
 ) {
     let song = create_test_song("mob_ctx_sub", "Submenu Track", "Sub Album", "Sub Artist");
     let database = state_manager.get_database();
-    database.insert_songs(vec![song]).unwrap();
+    database.insert_songs(vec![song]).await.unwrap();
 
     if main_window.global::<AppProps>().get_active_page() == Pages::AllSongs {
         main_window
@@ -1040,7 +1043,7 @@ async fn do_mobile_progress_bar_tap_bounds(
 ) {
     let s1 = create_test_song("mob_seek1", "Seek Track", "Seek Album", "Seek Artist");
     let database = state_manager.get_database();
-    database.insert_songs(vec![s1.clone()]).unwrap();
+    database.insert_songs(vec![s1.clone()]).await.unwrap();
 
     main_window
         .global::<AppCallbacks>()
@@ -1087,7 +1090,7 @@ async fn do_mobile_multi_song_selection_and_context_menu(
     let s1 = create_test_song("mob_msel1", "Multi Track 1", "Sel Alb", "Sel Art");
     let s2 = create_test_song("mob_msel2", "Multi Track 2", "Sel Alb", "Sel Art");
     let database = state_manager.get_database();
-    database.insert_songs(vec![s1, s2]).unwrap();
+    database.insert_songs(vec![s1, s2]).await.unwrap();
 
     if main_window.global::<AppProps>().get_active_page() == Pages::AllSongs {
         main_window
@@ -1240,7 +1243,7 @@ async fn do_mobile_context_menu_close_animation_and_on_hide(
 ) {
     let song = create_test_song("mob_ctx_anim", "Anim Track", "Anim Album", "Anim Artist");
     let database = state_manager.get_database();
-    database.insert_songs(vec![song]).unwrap();
+    database.insert_songs(vec![song]).await.unwrap();
 
     if main_window.global::<AppProps>().get_active_page() == Pages::AllSongs {
         main_window
@@ -1342,15 +1345,16 @@ async fn do_mobile_topbar_context_menu_extensions(
         "PL Ext Artist",
     );
     let database = state_manager.get_database();
-    database.insert_songs(vec![song.clone()]).unwrap();
+    database.insert_songs(vec![song.clone()]).await.unwrap();
 
     let playlist = Playlist {
         playlist_name: "Mobile Ext Playlist".into(),
         ..Default::default()
     };
-    let playlist_id = database.create_playlist(playlist).unwrap();
+    let playlist_id = database.create_playlist(playlist).await.unwrap();
     database
         .add_to_playlist(&playlist_id, std::slice::from_ref(&song))
+        .await
         .unwrap();
 
     main_window
@@ -1407,21 +1411,18 @@ async fn do_mobile_topbar_context_menu_extensions(
             .expect("Sample Playlist Action button found");
     click_element(&pl_action_button).await;
 
-    let playlist_action_executed = wait_until(|| {
+    let playlist_action_executed = wait_until_async(|| async {
         database
-            .get_entity_by_options(GetEntityOptions {
-                playlist: Some(Playlist {
+            .get_playlists(
+                Playlist {
                     playlist_id: Some("rs.sample:ctx_action_playlist".into()),
                     ..Default::default()
-                }),
-                ..Default::default()
-            })
-            .is_ok_and(|res| match res.result {
-                Some(entity_result::Result::Playlists(list)) => {
-                    list.playlists.len() == 1
-                        && list.playlists[0].playlist_name == "Context Action Playlist"
-                }
-                _ => false,
+                },
+                false,
+            )
+            .await
+            .is_ok_and(|playlists| {
+                playlists.len() == 1 && playlists[0].playlist_name == "Context Action Playlist"
             })
     })
     .await;

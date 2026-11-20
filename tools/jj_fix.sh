@@ -46,6 +46,14 @@ find_rlocation() {
   grep -m1 "$1" "$MANIFEST" | cut -d' ' -f1
 }
 
+if [[ "${1:-}" == core/database/src/*.rs ]] || [[ "${1:-}" == core/database/migrations/*.sql ]]; then
+  SQLX_LOCK="/tmp/moosync_sqlx_prepare.lock"
+  (
+    flock 201
+    bazel run --ui_event_filters=-info,-stdout --noshow_progress //tools:sqlx_prepare >&2 || true
+  ) 201>"$SQLX_LOCK"
+fi
+
 exec "$WORKSPACE_DIR/tools/format.sh" \
   "$(find_rlocation "upstream_wrapper/rustfmt")" \
   "$(find_rlocation "slint-lsp")" \

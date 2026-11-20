@@ -117,3 +117,20 @@ sh_binary(
     name = "sonar",
     srcs = ["sonar.sh"],
 )
+
+rust_binary(
+    name = "sqlx_prepare",
+    srcs = ["sqlx_prepare.rs"],
+    edition = "2024",
+    deps = [
+        "@crates//:hex",
+        "@crates//:proc-macro2",
+        "@crates//:serde",
+        "@crates//:serde_json",
+        "@crates//:sha2",
+        "@crates//:sqlx",
+        "@crates//:syn",
+        "@crates//:tokio",
+        "@crates//:tracing",
+    ],
+)

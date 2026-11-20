@@ -35,6 +35,7 @@ export component TopBarMobile inherits Rectangle {
 
         VerticalLayout {
             alignment: center;
+
             Text {
                 accessible-role: text;
                 accessible-label: "Selection Count";
@@ -52,6 +53,7 @@ export component TopBarMobile inherits Rectangle {
 
             VerticalLayout {
                 alignment: center;
+
                 IconButton {
                     accessible-label: @tr("Select all");
                     icon_source: @image-url("../icons/select_all.svg");
@@ -66,6 +68,7 @@ export component TopBarMobile inherits Rectangle {
 
             VerticalLayout {
                 alignment: center;
+
                 IconButton {
                     accessible-label: @tr("More options");
                     icon_source: @image-url("../icons/ellipsis.svg");
@@ -106,6 +109,7 @@ export component TopBarMobile inherits Rectangle {
         // Search Quick Action
         VerticalLayout {
             alignment: center;
+
             IconButton {
                 accessible-label: @tr("Search");
                 icon_source: @image-url("../icons/search.svg");
@@ -121,6 +125,7 @@ export component TopBarMobile inherits Rectangle {
         // New Playlist Quick Action (only on Playlists page)
         if AppProps.active_page == Pages.Playlists: VerticalLayout {
             alignment: center;
+
             IconButton {
                 accessible-label: @tr("New Playlist");
                 icon_source: @image-url("../icons/plus.svg");
@@ -137,6 +142,7 @@ export component TopBarMobile inherits Rectangle {
         // Accounts Action
         VerticalLayout {
             alignment: center;
+
             IconButton {
                 accessible-label: @tr("Accounts");
                 icon_source: @image-url("../icons/profile.svg");
@@ -152,6 +158,7 @@ export component TopBarMobile inherits Rectangle {
         // Context Menu Action (Always shown in top bar)
         VerticalLayout {
             alignment: center;
+
             IconButton {
                 accessible-label: @tr("More options");
                 icon_source: @image-url("../icons/ellipsis.svg");
@@ -185,6 +192,7 @@ export component TopBarMobile inherits Rectangle {
 
         VerticalLayout {
             alignment: center;
+
             IconButton {
                 accessible-label: @tr("Close Search");
                 icon_source: @image-url("../icons/nav_button.svg");

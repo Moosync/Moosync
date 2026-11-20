@@ -164,5 +164,6 @@ impl StateManager {
                 tracing::error!("Hook on_exit error: {:?}", e);
             }
         }
+        self.get_extension_handler().shutdown();
     }
 }

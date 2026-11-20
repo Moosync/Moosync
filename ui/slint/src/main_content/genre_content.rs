@@ -43,7 +43,10 @@ impl EntitySongProvider for GenreSongProvider {
             genre: Some(genre),
             ..Default::default()
         };
-        database.get_songs_by_options(options).map_err(Into::into)
+        database
+            .get_songs_by_options(options)
+            .await
+            .map_err(Into::into)
     }
 }
 

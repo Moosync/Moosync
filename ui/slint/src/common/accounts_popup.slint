@@ -28,6 +28,7 @@ export component AccountItemButton inherits Button {
 
         VerticalLayout {
             alignment: center;
+
             Image {
                 source: Utils.load_image_or_default(root.item.icon, DefaultIconType.Extension);
                 width: Theme.iconSizeMd;
@@ -74,6 +75,7 @@ export component AccountsPopupContent inherits Rectangle {
             height: Theme.accountItemHeight;
             accessible-role: text;
             accessible-label: @tr("No accounts configured");
+
             Text {
                 text: @tr("No accounts configured");
                 color: Theme.textSecondary;

@@ -43,6 +43,7 @@ component ThemeCardMobile inherits Rectangle {
             VerticalLayout {
                 padding: Theme.borderRadiusMd;
                 alignment: space-between;
+
                 Rectangle {
                     width: Theme.percent40;
                     height: Theme.borderRadiusMd;
@@ -52,6 +53,7 @@ component ThemeCardMobile inherits Rectangle {
 
                 HorizontalLayout {
                     spacing: Theme.spacingXs;
+
                     Rectangle {
                         width: Theme.sizeMd;
                         height: Theme.sizeMd;
@@ -62,6 +64,7 @@ component ThemeCardMobile inherits Rectangle {
                     VerticalLayout {
                         spacing: Theme.borderWidthXxl;
                         alignment: center;
+
                         Rectangle {
                             width: 100%;
                             height: Theme.sizeXxs;
@@ -76,6 +79,7 @@ component ThemeCardMobile inherits Rectangle {
         VerticalLayout {
             alignment: center;
             spacing: Theme.borderWidthLg;
+
             Text {
                 text: config.name;
                 font-size: Theme.caption;
@@ -207,6 +211,7 @@ export component ThemesPageMobile inherits SettingsPageLayoutMobile {
                         alignment: center;
                         spacing: Theme.borderWidthLg;
                         horizontal-stretch: 1;
+
                         Text {
                             text: @tr("Advanced Styling");
                             font-size: Theme.modelTitle;
@@ -224,6 +229,7 @@ export component ThemesPageMobile inherits SettingsPageLayoutMobile {
 
                     VerticalLayout {
                         alignment: center;
+
                         Text {
                             text: root.advanced-expanded ? "▲" : "▼";
                             color: Theme.textSecondary;

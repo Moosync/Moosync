@@ -58,7 +58,7 @@ pub async fn save_queue(
     };
 
     let database = state_manager.get_database();
-    if let Err(e) = database.create_playlist_with_songs(playlist, &songs) {
+    if let Err(e) = database.create_playlist_with_songs(playlist, &songs).await {
         tracing::error!("Failed to save playlist: {:?}", e);
     }
 }

@@ -147,4 +147,17 @@ impl ExtensionHandlerInner {
             .cloned()
             .ok_or_else(|| ExtensionError::NoExtensionFound)
     }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn shutdown(&self) {
+        let drained: Vec<Arc<Extension>> = {
+            let mut extensions_map = self.extensions_map.write().unwrap();
+            extensions_map.drain().map(|(_, ext)| ext).collect()
+        };
+        for ext in drained {
+            ext.process_manager.kill_all();
+            ext.socket_manager.close_all();
+            ext.ws_manager.close_all();
+        }
+    }
 }

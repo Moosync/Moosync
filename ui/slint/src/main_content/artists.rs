@@ -1,5 +1,5 @@
 use slint::{ComponentHandle, ModelRc};
-use songs_proto::moosync::types::{Artist, ArtistList, GetEntityOptions, entity_result};
+use songs_proto::moosync::types::Artist;
 use state_manager::StateManager;
 
 use crate::{
@@ -31,15 +31,7 @@ impl EntityListProvider for ArtistListProvider {
     async fn fetch_entities(state_manager: &StateManager) -> Result<Vec<Artist>, UiError> {
         tracing::debug!("Fetching artists from database");
         let database = state_manager.get_database();
-        let artists_res = database.get_entity_by_options(GetEntityOptions {
-            artist: Some(Artist::default()),
-            ..Default::default()
-        })?;
-
-        match artists_res.result {
-            Some(entity_result::Result::Artists(ArtistList { artists })) => Ok(artists),
-            _ => Err(UiError::EntityParseFailed),
-        }
+        Ok(database.get_artists(Artist::default(), false).await?)
     }
 }
 

@@ -170,6 +170,7 @@ impl Extension {
         let manifest = Self::read_manifest(manifest_path)?;
 
         let ext_cache_dir = cache_path.join("extensions").join(&manifest.name);
+        let ext_cache_dir_str = ext_cache_dir.to_string_lossy();
         let allowed_paths = manifest
             .permissions
             .as_ref()
@@ -177,7 +178,16 @@ impl Extension {
         let allowed_binaries = manifest
             .permissions
             .as_ref()
-            .map(|p| p.binaries.clone())
+            .map(|p| {
+                p.binaries
+                    .iter()
+                    .map(|b| {
+                        let mut b = b.clone();
+                        b.name = b.name.replace("{CACHE_DIR}", &ext_cache_dir_str);
+                        b
+                    })
+                    .collect()
+            })
             .unwrap_or_default();
         let process_manager = Arc::new(ExtensionProcessManager::new(
             allowed_paths.clone(),

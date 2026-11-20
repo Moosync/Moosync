@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT SUM(play_time) FROM analytics",
+  "describe": {
+    "columns": [
+      {
+        "name": "SUM(play_time)",
+        "ordinal": 0,
+        "type_info": "Float"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "9c438c53261343648a36e77b5099b5fb3fef19d6d71c9b69b6bcd4125a01b5e2"
+}

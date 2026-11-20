@@ -2,7 +2,7 @@ use extensions::{Extension, ExtensionGroupExt};
 use extensions_proto::moosync::types::{ExtensionProviderScope, RequestedPlaylistsRequest};
 use futures::StreamExt;
 use slint::{ComponentHandle, ModelRc, Weak};
-use songs_proto::moosync::types::{GetEntityOptions, Playlist, PlaylistList, entity_result};
+use songs_proto::moosync::types::Playlist;
 use state_manager::StateManager;
 use tracing::Instrument;
 
@@ -25,15 +25,7 @@ impl PlaylistListProvider {
         state_manager: &StateManager,
     ) -> Result<Vec<Playlist>, UiError> {
         let database = state_manager.get_database();
-        let playlists_res = database.get_entity_by_options(GetEntityOptions {
-            playlist: Some(Playlist::default()),
-            ..Default::default()
-        })?;
-
-        match playlists_res.result {
-            Some(entity_result::Result::Playlists(PlaylistList { playlists })) => Ok(playlists),
-            _ => Err(UiError::EntityParseFailed),
-        }
+        Ok(database.get_playlists(Playlist::default(), false).await?)
     }
 
     /// Requests playlists from a single extension and attaches its metadata.
@@ -149,7 +141,7 @@ impl PlaylistsPageHandler {
 
         let db = state_manager.get_database();
         for pid in &playlist_ids {
-            if let Err(e) = db.remove_playlist(pid) {
+            if let Err(e) = db.remove_playlist(pid).await {
                 tracing::error!("Failed to delete playlist '{}': {:?}", pid, e);
             }
         }

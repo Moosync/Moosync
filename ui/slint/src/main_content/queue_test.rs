@@ -3,9 +3,7 @@ use std::time::Duration;
 use assertables::{assert_len_eq_x, assert_ok};
 use rstest::rstest;
 use slint::{ComponentHandle, Model};
-use songs_proto::moosync::types::{
-    GetEntityOptions, InnerSong, LyricLine, Lyrics, Playlist, Song, entity_result,
-};
+use songs_proto::moosync::types::{InnerSong, LyricLine, Lyrics, Playlist, Song};
 use tracing_test::traced_test;
 
 use crate::{
@@ -110,20 +108,14 @@ async fn test_queue_save_queue_as_playlist(state_manager_fixture: TestSlintSmCon
     .await;
 
     let db = sm.get_database();
-    let playlists_res = db.get_entity_by_options(GetEntityOptions {
-        playlist: Some(Playlist::default()),
-        ..Default::default()
-    });
+    let playlists_res = db.get_playlists(Playlist::default(), false).await;
 
     assert_ok!(playlists_res.as_ref());
-    let res = playlists_res.unwrap().result;
-    let Some(entity_result::Result::Playlists(list)) = res else {
-        panic!("Expected playlists in entity result");
-    };
-    assert_len_eq_x!(&list.playlists, 1);
-    assert_eq!(list.playlists[0].playlist_name, "My Saved Queue");
+    let playlists = playlists_res.unwrap();
+    assert_len_eq_x!(&playlists, 1);
+    assert_eq!(playlists[0].playlist_name, "My Saved Queue");
     assert_eq!(
-        list.playlists[0].playlist_desc,
+        playlists[0].playlist_desc,
         Some("My Description".to_string())
     );
 }

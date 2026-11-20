@@ -2,7 +2,7 @@ use std::{fs, sync::Arc};
 
 use assertables::{assert_is_empty, assert_len_eq_x};
 use rstest::{fixture, rstest};
-use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Song};
+use songs_proto::moosync::types::{Album, Artist, Genre, GetSongOptions, Playlist, Song};
 use tempdir::TempDir;
 use tracing_test::traced_test;
 
@@ -15,8 +15,22 @@ impl ReplyHandler for DummyReply {
         Ok(vec![])
     }
     #[tracing::instrument(level = "debug", skip_all)]
-    fn get_entity(&self, _: &str, _: GetEntityOptions) -> Result<EntityResult, ExtensionError> {
-        Ok(EntityResult::default())
+    fn get_albums(&self, _: &str, _: Album, _: bool) -> Result<Vec<Album>, ExtensionError> {
+        Ok(vec![])
+    }
+    fn get_artists(&self, _: &str, _: Artist, _: bool) -> Result<Vec<Artist>, ExtensionError> {
+        Ok(vec![])
+    }
+    fn get_genres(&self, _: &str, _: Genre, _: bool) -> Result<Vec<Genre>, ExtensionError> {
+        Ok(vec![])
+    }
+    fn get_playlists(
+        &self,
+        _: &str,
+        _: Playlist,
+        _: bool,
+    ) -> Result<Vec<Playlist>, ExtensionError> {
+        Ok(vec![])
     }
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_current_song(&self, _: &str) -> Result<Option<Song>, ExtensionError> { Ok(None) }
@@ -71,11 +85,7 @@ impl ReplyHandler for DummyReply {
     #[tracing::instrument(level = "debug", skip_all)]
     fn update_song(&self, _: &str, s: Song) -> Result<Song, ExtensionError> { Ok(s) }
     #[tracing::instrument(level = "debug", skip_all)]
-    fn add_playlist(
-        &self,
-        _: &str,
-        _: songs_proto::moosync::types::Playlist,
-    ) -> Result<String, ExtensionError> {
+    fn add_playlist(&self, _: &str, _: Playlist) -> Result<String, ExtensionError> {
         Ok("".to_string())
     }
     #[tracing::instrument(level = "debug", skip_all)]

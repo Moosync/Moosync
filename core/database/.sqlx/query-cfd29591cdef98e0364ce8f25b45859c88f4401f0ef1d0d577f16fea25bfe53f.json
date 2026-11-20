@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM extension_cache WHERE package_name = ?1 AND key = ?2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "cfd29591cdef98e0364ce8f25b45859c88f4401f0ef1d0d577f16fea25bfe53f"
+}

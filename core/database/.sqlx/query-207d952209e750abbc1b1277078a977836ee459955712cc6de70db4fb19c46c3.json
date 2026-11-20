@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM playlist_bridge WHERE playlist = ?1 AND song = ?2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "207d952209e750abbc1b1277078a977836ee459955712cc6de70db4fb19c46c3"
+}

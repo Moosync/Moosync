@@ -12,10 +12,7 @@ use extensions_proto::moosync::types::{
 };
 use futures::StreamExt;
 use player::PlayerHandler;
-use songs_proto::moosync::types::{
-    Album, Artist, EntityResult, GetEntityOptions, GetSongOptions, SearchableSong, Song,
-    entity_result,
-};
+use songs_proto::moosync::types::{Album, Artist, GetSongOptions, SearchableSong, Song};
 use tokio::sync::Mutex;
 use tracing::{Instrument, debug, error};
 use types::{image::download_and_save_image, prelude::SongsExt};
@@ -43,15 +40,24 @@ impl CoverEntity {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn has_cover(&self) -> bool {
         match self {
-            CoverEntity::Song(song) => song
-                .song
-                .as_ref()
-                .and_then(|s| s.song_cover_path_high.as_ref())
-                .is_some_and(|h| !h.is_empty()),
-            CoverEntity::Album(album) => album
-                .album_coverpath_high
-                .as_ref()
-                .is_some_and(|h| !h.is_empty()),
+            CoverEntity::Song(song) => song.song.as_ref().is_some_and(|s| {
+                s.song_cover_path_high
+                    .as_ref()
+                    .is_some_and(|h| !h.is_empty())
+                    || s.song_cover_path_low
+                        .as_ref()
+                        .is_some_and(|l| !l.is_empty())
+            }),
+            CoverEntity::Album(album) => {
+                album
+                    .album_coverpath_high
+                    .as_ref()
+                    .is_some_and(|h| !h.is_empty())
+                    || album
+                        .album_coverpath_low
+                        .as_ref()
+                        .is_some_and(|l| !l.is_empty())
+            }
             CoverEntity::Artist(artist) => artist
                 .artist_coverpath
                 .as_ref()
@@ -79,7 +85,7 @@ impl CoverEntity {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn save_cover(&self, state_manager: &StateManager, high: &Path, low: &Path) {
+    pub async fn save_cover(&self, state_manager: &StateManager, high: &Path, low: &Path) {
         let high_str = high.to_str().unwrap_or_default();
         let low_str = low.to_str().unwrap_or_default();
         let db = state_manager.get_database();
@@ -87,7 +93,9 @@ impl CoverEntity {
         match self {
             CoverEntity::Song(_) => {
                 if let Some(id) = self.id()
-                    && let Err(e) = db.update_song_cover(&id, Some(high_str), Some(low_str))
+                    && let Err(e) = db
+                        .update_song_cover(&id, Some(high_str), Some(low_str))
+                        .await
                 {
                     error!("Failed to update song cover in database for {id}: {e:?}");
                 }
@@ -96,14 +104,14 @@ impl CoverEntity {
                 let mut updated_album = album.clone();
                 updated_album.album_coverpath_high = Some(high_str.to_string());
                 updated_album.album_coverpath_low = Some(low_str.to_string());
-                if let Err(e) = db.update_album(updated_album) {
+                if let Err(e) = db.update_album(updated_album).await {
                     error!("Failed to update album cover in database: {e:?}");
                 }
             }
             CoverEntity::Artist(artist) => {
                 let mut updated_artist = artist.clone();
                 updated_artist.artist_coverpath = Some(high_str.to_string());
-                if let Err(e) = db.update_artist(updated_artist) {
+                if let Err(e) = db.update_artist(updated_artist).await {
                     error!("Failed to update artist cover in database: {e:?}");
                 }
             }
@@ -197,7 +205,7 @@ impl CoverArtHook {
 
         let paths = self.fetch_and_save(state_manager, entity.to_item()).await;
         if let Some((high, low)) = paths {
-            entity.save_cover(state_manager, &high, &low);
+            entity.save_cover(state_manager, &high, &low).await;
         }
 
         let mut in_flight = self.in_flight.lock().await;
@@ -249,10 +257,13 @@ impl CoverArtHook {
 
         let db = state_manager.get_database();
 
-        match db.get_songs_by_options(GetSongOptions {
-            song: Some(SearchableSong::default()),
-            ..Default::default()
-        }) {
+        match db
+            .get_songs_by_options(GetSongOptions {
+                song: Some(SearchableSong::default()),
+                ..Default::default()
+            })
+            .await
+        {
             Ok(songs) => {
                 for song in songs {
                     let entity = CoverEntity::Song(Box::new(song));
@@ -266,41 +277,29 @@ impl CoverArtHook {
             }
         }
 
-        match db.get_entity_by_options(GetEntityOptions {
-            album: Some(Album::default()),
-            ..Default::default()
-        }) {
-            Ok(EntityResult {
-                result: Some(entity_result::Result::Albums(list)),
-            }) => {
-                for album in list.albums {
+        match db.get_albums(Album::default(), false).await {
+            Ok(albums) => {
+                for album in albums {
                     let entity = CoverEntity::Album(album);
                     if !entity.has_cover() {
                         self.resolve_cover(state_manager, entity).await;
                     }
                 }
             }
-            Ok(_) => {}
             Err(e) => {
                 error!("Failed to fetch albums for cover art resolution: {e:?}");
             }
         }
 
-        match db.get_entity_by_options(GetEntityOptions {
-            artist: Some(Artist::default()),
-            ..Default::default()
-        }) {
-            Ok(EntityResult {
-                result: Some(entity_result::Result::Artists(list)),
-            }) => {
-                for artist in list.artists {
+        match db.get_artists(Artist::default(), false).await {
+            Ok(artists) => {
+                for artist in artists {
                     let entity = CoverEntity::Artist(artist);
                     if !entity.has_cover() {
                         self.resolve_cover(state_manager, entity).await;
                     }
                 }
             }
-            Ok(_) => {}
             Err(e) => {
                 error!("Failed to fetch artists for cover art resolution: {e:?}");
             }

@@ -69,6 +69,7 @@ export component PlaybackControls inherits VerticalLayout {
     HorizontalLayout {
         HorizontalLayout {
             padding-right: Theme.paddingLg;
+
             Text {
                 text: root.current_pos_str + " / " + (root.duration_str != "" ? root.duration_str : "00:00");
                 color: Theme.textSecondary; // Text Secondary
@@ -78,6 +79,7 @@ export component PlaybackControls inherits VerticalLayout {
         }
 
         alignment: center;
+
         PlaybackButton {
             accessible-label: @tr("Previous");
             icon_source: @image-url("../icons/prev.svg");

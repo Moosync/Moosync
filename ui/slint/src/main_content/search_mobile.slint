@@ -48,6 +48,7 @@ component ProviderChipMobile inherits Rectangle {
 
         VerticalLayout {
             alignment: center;
+
             Image {
                 source: Utils.load_image_or_default(root.icon, root.is_local ? DefaultIconType.Folder : DefaultIconType.Extension);
                 width: Theme.playbackControlsIconSize;

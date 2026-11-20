@@ -111,6 +111,7 @@ component QueueItemMobile inherits Rectangle {
 
                 VerticalLayout {
                     alignment: center;
+
                     HorizontalLayout {
                         spacing: Theme.spacingLg;
                         alignment: end;
@@ -241,6 +242,7 @@ export component QueuePageMobile inherits Rectangle {
 
             HorizontalLayout {
                 alignment: center;
+
                 Rectangle {
                     y: (parent.height - Theme.spacingXs) / 2;
                     width: Theme.size3Xl;
@@ -278,6 +280,7 @@ export component QueuePageMobile inherits Rectangle {
                         padding-left: Theme.paddingLg;
                         padding-right: Theme.paddingLg;
                         alignment: center;
+
                         Text {
                             text: @tr("Playing");
                             font-size: Theme.caption;
@@ -311,6 +314,7 @@ export component QueuePageMobile inherits Rectangle {
                         padding-left: Theme.paddingLg;
                         padding-right: Theme.paddingLg;
                         alignment: center;
+
                         Text {
                             text: @tr("Queue");
                             font-size: Theme.caption;
@@ -344,6 +348,7 @@ export component QueuePageMobile inherits Rectangle {
                         padding-left: Theme.paddingLg;
                         padding-right: Theme.paddingLg;
                         alignment: center;
+
                         Text {
                             text: @tr("Lyrics");
                             font-size: Theme.caption;
@@ -437,6 +442,7 @@ export component QueuePageMobile inherits Rectangle {
 
                         HorizontalLayout {
                             spacing: Theme.spacingSm;
+
                             Button {
                                 text: @tr("Save");
                                 clicked => {

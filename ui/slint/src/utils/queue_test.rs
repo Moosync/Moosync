@@ -2,35 +2,28 @@ use std::fs;
 
 use assertables::{assert_len_eq_x, assert_ok, assert_some, assert_some_eq_x};
 use image::{DynamicImage, ImageFormat, RgbaImage};
-use songs_proto::moosync::types::{GetEntityOptions, InnerSong, Playlist, Song, entity_result};
+use songs_proto::moosync::types::{InnerSong, Playlist, Song};
 use state_manager::StateManager;
 use tempdir::TempDir;
 use tracing_test::traced_test;
 
 use super::save_queue;
-use crate::test_utils::{TestSlintSmContext, state_manager_fixture};
+use crate::test_utils::state_manager_fixture;
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn fetch_local_playlists(sm: &StateManager) -> Vec<Playlist> {
-    let res = sm
-        .get_database()
-        .get_entity_by_options(GetEntityOptions {
-            playlist: Some(Playlist::default()),
-            ..Default::default()
-        })
+async fn fetch_local_playlists(sm: &StateManager) -> Vec<Playlist> {
+    sm.get_database()
+        .get_playlists(Playlist::default(), false)
+        .await
         .unwrap()
-        .result;
-    match res {
-        Some(entity_result::Result::Playlists(list)) => list.playlists,
-        _ => panic!("Expected playlists in entity result"),
-    }
 }
 
 #[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_save_queue_creates_empty_playlist_without_songs() {
-    let TestSlintSmContext { sm, .. } = state_manager_fixture();
+    let ctx = state_manager_fixture();
+    let sm = ctx.sm.clone();
 
     save_queue(
         &sm,
@@ -41,7 +34,7 @@ async fn test_save_queue_creates_empty_playlist_without_songs() {
     )
     .await;
 
-    let playlists = fetch_local_playlists(&sm);
+    let playlists = fetch_local_playlists(&sm).await;
     assert_len_eq_x!(&playlists, 1);
     assert_eq!(playlists[0].playlist_name, "Empty Playlist");
     assert_eq!(playlists[0].playlist_coverpath, None);
@@ -51,7 +44,8 @@ async fn test_save_queue_creates_empty_playlist_without_songs() {
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_save_queue_skips_without_name_and_songs() {
-    let TestSlintSmContext { sm, .. } = state_manager_fixture();
+    let ctx = state_manager_fixture();
+    let sm = ctx.sm.clone();
 
     save_queue(
         &sm,
@@ -62,7 +56,7 @@ async fn test_save_queue_skips_without_name_and_songs() {
     )
     .await;
 
-    let playlists = fetch_local_playlists(&sm);
+    let playlists = fetch_local_playlists(&sm).await;
     assert_len_eq_x!(&playlists, 0);
 }
 
@@ -70,7 +64,8 @@ async fn test_save_queue_skips_without_name_and_songs() {
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_save_queue_converts_cover_to_webp() {
-    let TestSlintSmContext { sm, .. } = state_manager_fixture();
+    let ctx = state_manager_fixture();
+    let sm = ctx.sm.clone();
     let source_dir = TempDir::new("playlist_cover").unwrap();
     let source_path = source_dir.path().join("cover.png");
     DynamicImage::ImageRgba8(RgbaImage::new(4, 4))
@@ -86,7 +81,7 @@ async fn test_save_queue_converts_cover_to_webp() {
     )
     .await;
 
-    let playlists = fetch_local_playlists(&sm);
+    let playlists = fetch_local_playlists(&sm).await;
     assert_len_eq_x!(&playlists, 1);
     let cover = playlists[0].playlist_coverpath.clone();
     assert_some!(&cover);
@@ -101,7 +96,8 @@ async fn test_save_queue_converts_cover_to_webp() {
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_save_queue_creates_playlist_in_db() {
-    let TestSlintSmContext { sm, .. } = state_manager_fixture();
+    let ctx = state_manager_fixture();
+    let sm = ctx.sm.clone();
 
     let song = Song {
         song: Some(InnerSong {
@@ -128,19 +124,11 @@ async fn test_save_queue_creates_playlist_in_db() {
     .await;
 
     let db = sm.get_database();
-    let playlists_res = db.get_entity_by_options(GetEntityOptions {
-        playlist: Some(Playlist::default()),
-        ..Default::default()
-    });
+    let playlists_res = db.get_playlists(Playlist::default(), false).await;
 
     assert_ok!(playlists_res.as_ref());
-    let res = playlists_res.unwrap().result;
-    match res {
-        Some(entity_result::Result::Playlists(list)) => {
-            assert_len_eq_x!(&list.playlists, 1);
-            assert_eq!(list.playlists[0].playlist_name, "Custom Playlist");
-            assert_some_eq_x!(list.playlists[0].playlist_desc.as_deref(), "Custom Desc");
-        }
-        _ => panic!("Expected playlists in entity result"),
-    }
+    let playlists = playlists_res.unwrap();
+    assert_len_eq_x!(&playlists, 1);
+    assert_eq!(playlists[0].playlist_name, "Custom Playlist");
+    assert_some_eq_x!(playlists[0].playlist_desc.as_deref(), "Custom Desc");
 }

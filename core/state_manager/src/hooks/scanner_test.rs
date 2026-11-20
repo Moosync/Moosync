@@ -10,8 +10,7 @@ use preferences::{
 use preferences_proto::moosync::types::{PreferenceItem, PreferenceValue, preference_value};
 use rstest::{fixture, rstest};
 use songs_proto::moosync::types::{
-    GetEntityOptions, GetSongOptions, InnerSong, Playlist, SearchableSong, Song, SongType,
-    entity_result::Result as EntityResultVariant,
+    GetSongOptions, InnerSong, Playlist, SearchableSong, Song, SongType,
 };
 use tempdir::TempDir;
 use tracing_test::traced_test;
@@ -99,6 +98,7 @@ async fn test_save_scanned_songs_without_playlist(sm_context: TestSmContext) {
             }),
             ..Default::default()
         })
+        .await
         .expect("failed to get songs");
     assert_eq!(songs.len(), 1);
     assert_eq!(
@@ -119,6 +119,7 @@ async fn test_save_scanned_songs_with_playlist(sm_context: TestSmContext) {
             playlist_name: "Test Playlist".to_string(),
             ..Default::default()
         })
+        .await
         .expect("failed to create playlist");
 
     let test_song = Song {
@@ -142,6 +143,7 @@ async fn test_save_scanned_songs_with_playlist(sm_context: TestSmContext) {
             }),
             ..Default::default()
         })
+        .await
         .expect("failed to get playlist songs");
     assert_eq!(songs.len(), 1);
     assert_eq!(
@@ -159,7 +161,8 @@ async fn test_resolve_or_create_playlist_song_path_new(sm_context: TestSmContext
     let db = sm.plugins.get::<Database>();
     let path = PathBuf::from("/music/resolved_song.flac");
 
-    let resolved = super::resolve_or_create_playlist_song(&db, PlaylistSongId::Path(path.clone()));
+    let resolved =
+        super::resolve_or_create_playlist_song(&db, PlaylistSongId::Path(path.clone())).await;
 
     assert!(resolved.is_some());
     let song = resolved.unwrap();
@@ -177,7 +180,8 @@ async fn test_resolve_or_create_playlist_song_url_new(sm_context: TestSmContext)
     let db = sm.plugins.get::<Database>();
     let url = "https://example.com/stream.mp3".to_string();
 
-    let resolved = super::resolve_or_create_playlist_song(&db, PlaylistSongId::Url(url.clone()));
+    let resolved =
+        super::resolve_or_create_playlist_song(&db, PlaylistSongId::Url(url.clone())).await;
 
     assert!(resolved.is_some());
     let song = resolved.unwrap();
@@ -205,12 +209,15 @@ async fn test_resolve_or_create_playlist_song_existing(sm_context: TestSmContext
         }),
         ..Default::default()
     };
-    db.insert_songs(vec![existing_song]).expect("insert failed");
+    db.insert_songs(vec![existing_song])
+        .await
+        .expect("insert failed");
 
     let resolved = super::resolve_or_create_playlist_song(
         &db,
         PlaylistSongId::Path(PathBuf::from("/music/existing.mp3")),
-    );
+    )
+    .await;
 
     assert!(resolved.is_some());
     let song = resolved.unwrap();
@@ -238,22 +245,14 @@ async fn test_save_scanned_playlists(sm_context: TestSmContext) {
 
     super::save_scanned_playlists(db.clone(), vec![(playlist, identifiers)]).await;
 
-    let res = db
-        .get_entity_by_options(GetEntityOptions {
-            playlist: Some(Playlist::default()),
-            ..Default::default()
-        })
-        .expect("failed to get entities");
-    let Some(EntityResultVariant::Playlists(playlists_list)) = res.result else {
-        panic!("Expected Playlists variant");
-    };
-    assert_eq!(playlists_list.playlists.len(), 1);
-    assert_eq!(
-        playlists_list.playlists[0].playlist_name,
-        "Imported Playlist"
-    );
+    let playlists = db
+        .get_playlists(Playlist::default(), false)
+        .await
+        .expect("failed to get playlists");
+    assert_eq!(playlists.len(), 1);
+    assert_eq!(playlists[0].playlist_name, "Imported Playlist");
 
-    let playlist_id = playlists_list.playlists[0].playlist_id.as_ref().unwrap();
+    let playlist_id = playlists[0].playlist_id.as_ref().unwrap();
     let songs = db
         .get_songs_by_options(GetSongOptions {
             playlist: Some(Playlist {
@@ -262,6 +261,7 @@ async fn test_save_scanned_playlists(sm_context: TestSmContext) {
             }),
             ..Default::default()
         })
+        .await
         .expect("failed to get playlist songs");
     assert_eq!(songs.len(), 2);
 }

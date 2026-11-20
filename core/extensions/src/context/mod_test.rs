@@ -3,8 +3,8 @@ use std::sync::{Arc, Mutex, RwLock};
 use assertables::{assert_err, assert_none, assert_ok};
 use extensions_proto::moosync::types::{
     AddPlaylistRequest, AddSongsRequest, AddToPlaylistRequest, BatchHttpRequest, BatchHttpResponse,
-    ExtensionAccountDetail, ExtensionsUpdatedRequest, GetAppVersionRequest, GetCacheRequest,
-    GetCurrentSongRequest, GetEntityRequest, GetPlayerStateRequest, GetPreferenceRequest,
+    ExtensionAccountDetail, ExtensionsUpdatedRequest, GetAlbumsRequest, GetAppVersionRequest,
+    GetCacheRequest, GetCurrentSongRequest, GetPlayerStateRequest, GetPreferenceRequest,
     GetProcessStatusRequest, GetProcessStatusResponse, GetQueueRequest, GetSecureRequest,
     GetSongRequest, GetTimeRequest, GetVolumeRequest, KillProcessRequest, KillProcessResponse,
     NotifyPlayerEventRequest, NotifyPlayerEventResponse, OpenClientFdRequest, OpenClientFdResponse,
@@ -17,7 +17,7 @@ use extensions_proto::moosync::types::{
     WriteSockResponse, main_command, main_command_response, player_event::Event as PlayerEvent,
 };
 use preferences_proto::moosync::types::PreferenceItem;
-use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
+use songs_proto::moosync::types::{Album, Artist, Genre, GetSongOptions, Playlist, Song};
 use tokio::sync::mpsc;
 use tracing_test::traced_test;
 
@@ -41,8 +41,22 @@ impl ReplyHandler for MockReply {
         Ok(vec![Song::default()])
     }
     #[tracing::instrument(level = "debug", skip_all)]
-    fn get_entity(&self, _: &str, _: GetEntityOptions) -> Result<EntityResult, ExtensionError> {
-        Ok(EntityResult::default())
+    fn get_albums(&self, _: &str, _: Album, _: bool) -> Result<Vec<Album>, ExtensionError> {
+        Ok(vec![])
+    }
+    fn get_artists(&self, _: &str, _: Artist, _: bool) -> Result<Vec<Artist>, ExtensionError> {
+        Ok(vec![])
+    }
+    fn get_genres(&self, _: &str, _: Genre, _: bool) -> Result<Vec<Genre>, ExtensionError> {
+        Ok(vec![])
+    }
+    fn get_playlists(
+        &self,
+        _: &str,
+        _: Playlist,
+        _: bool,
+    ) -> Result<Vec<Playlist>, ExtensionError> {
+        Ok(vec![])
     }
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_current_song(&self, _: &str) -> Result<Option<Song>, ExtensionError> {
@@ -319,7 +333,10 @@ fn test_dispatch_song_and_queue_commands() {
 
     let cmd_song = main_command::Command::GetSong(GetSongRequest { options: None });
     let res_song = cmd_song.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
-    let cmd_entity = main_command::Command::GetEntity(GetEntityRequest { options: None });
+    let cmd_entity = main_command::Command::GetAlbums(GetAlbumsRequest {
+        options: None,
+        inclusive: None,
+    });
     let res_entity = cmd_entity.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
     let cmd_curr = main_command::Command::GetCurrentSong(GetCurrentSongRequest {});
     let res_curr = cmd_curr.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
@@ -336,8 +353,8 @@ fn test_dispatch_song_and_queue_commands() {
         _ => panic!("Expected GetSong"),
     }
     match res_entity.unwrap() {
-        main_command_response::Response::GetEntity(r) => assert!(r.entity.is_some()),
-        _ => panic!("Expected GetEntity"),
+        main_command_response::Response::GetAlbums(r) => assert!(r.albums.is_empty()),
+        _ => panic!("Expected GetAlbums"),
     }
     match res_curr.unwrap() {
         main_command_response::Response::GetCurrentSong(r) => assert!(r.song.is_some()),
@@ -535,6 +552,30 @@ fn test_dispatch_oauth_account_and_misc() {
     assert_err!(res_acc_err.as_ref());
     assert_ok!(res_updated.as_ref());
     assert_none!(mock.get_runtime_handle());
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_dispatch_set_account_logout_clears_memory_cache() {
+    let mock = MockReply::default();
+    let memory_cache = Mutex::new(ExtensionMemoryCache::default());
+    memory_cache.lock().unwrap().put(
+        "user_playlists".to_string(),
+        b"cached_playlists".to_vec(),
+        3600,
+    );
+    let cmd = main_command::Command::SetAccount(SetAccountRequest {
+        account: Some(ExtensionAccountDetail {
+            logged_in: false,
+            ..Default::default()
+        }),
+    });
+
+    let res = cmd.dispatch(&HostCommandContext::new(&mock, "pkg", &memory_cache));
+
+    assert_ok!(res.as_ref());
+    assert_none!(memory_cache.lock().unwrap().get("user_playlists"));
 }
 
 #[test]

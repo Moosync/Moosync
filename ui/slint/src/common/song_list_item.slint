@@ -79,12 +79,14 @@ export component SongListItem inherits Rectangle {
 
         VerticalLayout {
             alignment: center;
+
             HorizontalLayout {
                 spacing: Theme.spacingXxl + Theme.paddingLg;
                 alignment: end;
 
                 HorizontalLayout {
                     spacing: Theme.spacingXl;
+
                     Text {
                         accessible-role: none;
                         text: song.duration_str;

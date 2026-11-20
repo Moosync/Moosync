@@ -1,20 +1,13 @@
 use assertables::{assert_none, assert_ok, assert_some_eq_x};
-use rstest::{fixture, rstest};
-use rusqlite::Connection;
+use rstest::rstest;
 use songs_proto::moosync::types::{Album, Artist, Genre, InnerSong, Playlist, SongType};
+use sqlx::SqlitePool;
 use tracing_test::traced_test;
 
-use crate::utils::{
-    SearchByTerm, db_ms_to_proto, map_row_to_album, map_row_to_artist, map_row_to_genre,
-    map_row_to_inner_song, map_row_to_playlist, proto_to_db_ms, song_type_from_str,
-    song_type_to_str,
+use crate::{
+    models::{DbAlbumRow, DbArtistRow, DbGenreRow, DbInnerSongRow, DbPlaylistRow},
+    utils::{SearchByTerm, db_ms_to_proto, proto_to_db_ms, song_type_from_str, song_type_to_str},
 };
-
-#[fixture]
-#[tracing::instrument(level = "debug", skip_all)]
-fn memory_connection() -> Connection {
-    Connection::open_in_memory().expect("failed to open in-memory sqlite connection")
-}
 
 #[test]
 #[traced_test]
@@ -134,27 +127,25 @@ fn test_duration_conversions_roundtrip(
     assert_eq!(converted_back.nanos, nanos);
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_map_album_row(memory_connection: Connection) {
-    memory_connection
-        .execute(
-            "CREATE TABLE albums (id TEXT, name TEXT, artist TEXT, cover_high TEXT, song_count INTEGER, year TEXT, cover_low TEXT)",
-            [],
-        )
-        .unwrap();
-    memory_connection
-        .execute(
-            "INSERT INTO albums VALUES ('alb1', 'Dark Side', 'Pink Floyd', '/cov/h.jpg', 10, '1973', '/cov/l.jpg')",
-            [],
-        )
-        .unwrap();
+async fn test_map_album_row() {
+    let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
+    sqlx::raw_sql(
+        "CREATE TABLE albums (album_id TEXT, album_name TEXT, album_artist TEXT, album_coverpath_high TEXT, album_song_count INTEGER, year TEXT, album_coverpath_low TEXT);
+         INSERT INTO albums VALUES ('alb1', 'Dark Side', 'Pink Floyd', '/cov/h.jpg', 10, '1973', '/cov/l.jpg');",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
 
-    let album_res = memory_connection.query_row("SELECT * FROM albums", [], map_row_to_album);
+    let album_res: Result<DbAlbumRow, _> = sqlx::query_as("SELECT * FROM albums")
+        .fetch_one(&pool)
+        .await;
 
     assert_ok!(album_res.as_ref());
-    let album = album_res.unwrap();
+    let album: Album = album_res.unwrap().into();
     assert_some_eq_x!(album.album_id.as_deref(), "alb1");
     assert_some_eq_x!(album.album_name.as_deref(), "Dark Side");
     assert_some_eq_x!(album.album_artist.as_deref(), "Pink Floyd");
@@ -162,27 +153,25 @@ fn test_map_album_row(memory_connection: Connection) {
     assert_some_eq_x!(album.year.as_deref(), "1973");
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_map_artist_row(memory_connection: Connection) {
-    memory_connection
-        .execute(
-            "CREATE TABLE artists (id TEXT, mbid TEXT, name TEXT, cover TEXT, song_count INTEGER, sanitized TEXT)",
-            [],
-        )
-        .unwrap();
-    memory_connection
-        .execute(
-            "INSERT INTO artists VALUES ('art1', 'mbid123', 'Queen', '/art/cov.jpg', 25, 'queen')",
-            [],
-        )
-        .unwrap();
+async fn test_map_artist_row() {
+    let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
+    sqlx::raw_sql(
+        "CREATE TABLE artists (artist_id TEXT, artist_mbid TEXT, artist_name TEXT, artist_coverpath TEXT, artist_song_count INTEGER, sanitized_artist_name TEXT);
+         INSERT INTO artists VALUES ('art1', 'mbid123', 'Queen', '/art/cov.jpg', 25, 'queen');",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
 
-    let artist_res = memory_connection.query_row("SELECT * FROM artists", [], map_row_to_artist);
+    let artist_res: Result<DbArtistRow, _> = sqlx::query_as("SELECT * FROM artists")
+        .fetch_one(&pool)
+        .await;
 
     assert_ok!(artist_res.as_ref());
-    let artist = artist_res.unwrap();
+    let artist: Artist = artist_res.unwrap().into();
     assert_some_eq_x!(artist.artist_id.as_deref(), "art1");
     assert_some_eq_x!(artist.artist_mbid.as_deref(), "mbid123");
     assert_some_eq_x!(artist.artist_name.as_deref(), "Queen");
@@ -190,90 +179,84 @@ fn test_map_artist_row(memory_connection: Connection) {
     assert_some_eq_x!(artist.sanitized_artist_name.as_deref(), "queen");
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_map_genre_row(memory_connection: Connection) {
-    memory_connection
-        .execute(
-            "CREATE TABLE genres (id TEXT, name TEXT, song_count INTEGER)",
-            [],
-        )
-        .unwrap();
-    memory_connection
-        .execute("INSERT INTO genres VALUES ('gen1', 'Rock', 100)", [])
-        .unwrap();
+async fn test_map_genre_row() {
+    let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
+    sqlx::raw_sql(
+        "CREATE TABLE genres (genre_id TEXT, genre_name TEXT, genre_song_count INTEGER);
+         INSERT INTO genres VALUES ('gen1', 'Rock', 100);",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
 
-    let genre_res = memory_connection.query_row("SELECT * FROM genres", [], map_row_to_genre);
+    let genre_res: Result<DbGenreRow, _> = sqlx::query_as("SELECT * FROM genres")
+        .fetch_one(&pool)
+        .await;
 
     assert_ok!(genre_res.as_ref());
-    let genre = genre_res.unwrap();
+    let genre: Genre = genre_res.unwrap().into();
     assert_some_eq_x!(genre.genre_id.as_deref(), "gen1");
     assert_some_eq_x!(genre.genre_name.as_deref(), "Rock");
     assert_eq!(genre.genre_song_count, 100.0);
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_map_playlist_row(memory_connection: Connection) {
-    memory_connection
-        .execute(
-            "CREATE TABLE playlists (id TEXT, name TEXT, cover TEXT, song_count INTEGER, desc TEXT, path TEXT, ext TEXT, icon TEXT, lib INTEGER)",
-            [],
-        )
-        .unwrap();
-    memory_connection
-        .execute(
-            "INSERT INTO playlists VALUES ('pl1', 'Roadtrip', '/pl/cov.jpg', 15, 'Best songs', '/path/to/pl', 'm3u', 'music-note', 1)",
-            [],
-        )
-        .unwrap();
+async fn test_map_playlist_row() {
+    let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
+    sqlx::raw_sql(
+        "CREATE TABLE playlists (playlist_id TEXT, playlist_name TEXT, playlist_coverpath TEXT, playlist_song_count INTEGER, playlist_desc TEXT, playlist_path TEXT, extension TEXT, icon TEXT, library_item INTEGER);
+         INSERT INTO playlists VALUES ('pl1', 'Roadtrip', '/pl/cov.jpg', 15, 'Best songs', '/path/to/pl', 'm3u', 'music-note', 1);",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
 
-    let playlist_res =
-        memory_connection.query_row("SELECT * FROM playlists", [], map_row_to_playlist);
+    let playlist_res: Result<DbPlaylistRow, _> = sqlx::query_as("SELECT * FROM playlists")
+        .fetch_one(&pool)
+        .await;
 
     assert_ok!(playlist_res.as_ref());
-    let playlist = playlist_res.unwrap();
+    let playlist: Playlist = playlist_res.unwrap().into();
     assert_some_eq_x!(playlist.playlist_id.as_deref(), "pl1");
     assert_eq!(playlist.playlist_name, "Roadtrip");
     assert_eq!(playlist.playlist_song_count, 15.0);
     assert_some_eq_x!(playlist.playlist_path.as_deref(), "/path/to/pl");
 }
 
-#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_map_song_row(memory_connection: Connection) {
-    memory_connection
-        .execute(
-            "CREATE TABLE songs (
-            id TEXT, path TEXT, size REAL, dummy1 TEXT, dummy2 TEXT,
-            title TEXT, date TEXT, year TEXT, lyrics TEXT, release_type TEXT,
-            bitrate REAL, codec TEXT, container TEXT, duration REAL, sample_rate REAL,
-            hash TEXT, type TEXT, url TEXT, cover_high TEXT, playback_url TEXT,
-            cover_low TEXT, date_added INTEGER, d3 TEXT, d4 TEXT, d5 TEXT, track_no REAL
-        )",
-            [],
-        )
-        .unwrap();
-    memory_connection
-        .execute(
-            "INSERT INTO songs VALUES (
-            's1', '/music/track.mp3', 1024.0, '', '',
-            'Bohemian Rhapsody', '1975', '1975', 'Mama, just killed a man...', 'album',
-            320.0, 'mp3', 'id3', 354000.0, 44100.0,
-            'hash123', 'LOCAL', 'https://moosync.app', '/cov/h.jpg', 'https://stream.mp3',
-            '/cov/l.jpg', 1700000000, '', '', '', 1
-        )",
-            [],
-        )
-        .unwrap();
+async fn test_map_song_row() {
+    let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
+    sqlx::raw_sql(
+        "CREATE TABLE songs (
+            id TEXT, path TEXT, size REAL, title TEXT, date TEXT, year TEXT,
+            release_type TEXT, bitrate REAL, codec TEXT, container TEXT, duration INTEGER,
+            sample_rate REAL, hash TEXT, type TEXT, url TEXT, song_cover_path_high TEXT,
+            playback_url TEXT, song_cover_path_low TEXT, date_added INTEGER, extension TEXT,
+            track_no REAL
+        );
+        INSERT INTO songs VALUES (
+            's1', '/music/track.mp3', 1024.0, 'Bohemian Rhapsody', '1975', '1975',
+            'album', 320.0, 'mp3', 'id3', 354000, 44100.0, 'hash123', 'LOCAL',
+            'https://moosync.app', '/cov/h.jpg', 'https://stream.mp3', '/cov/l.jpg',
+            1700000000, '', 1.0
+        );",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
 
-    let song_res = memory_connection.query_row("SELECT * FROM songs", [], map_row_to_inner_song);
+    let song_res: Result<DbInnerSongRow, _> =
+        sqlx::query_as("SELECT * FROM songs").fetch_one(&pool).await;
 
     assert_ok!(song_res.as_ref());
-    let song = song_res.unwrap();
+    let song: InnerSong = song_res.unwrap().into();
     assert_some_eq_x!(song.id.as_deref(), "s1");
     assert_some_eq_x!(song.path.as_deref(), "/music/track.mp3");
     assert_some_eq_x!(song.title.as_deref(), "Bohemian Rhapsody");

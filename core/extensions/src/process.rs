@@ -297,12 +297,6 @@ impl ExtensionProcessManager {
         command.stdout(Stdio::piped());
         command.stderr(Stdio::null());
 
-        #[cfg(unix)]
-        {
-            use std::os::unix::process::CommandExt;
-            command.process_group(0);
-        }
-
         let mut child = command
             .spawn()
             .map_err(|e| ExtensionError::ProcessFailedToSpawn(e.to_string()))?;

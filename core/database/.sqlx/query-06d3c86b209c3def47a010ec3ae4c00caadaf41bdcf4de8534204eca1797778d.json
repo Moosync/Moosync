@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE artists SET\n                artist_mbid = ?1, artist_name = ?2, artist_coverpath = ?3,\n                artist_song_count = ?4, sanitized_artist_name = ?5\n             WHERE artist_id = ?6",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "06d3c86b209c3def47a010ec3ae4c00caadaf41bdcf4de8534204eca1797778d"
+}

@@ -203,6 +203,12 @@ impl ExtismContext {
             let parsed = resolve_env_vars(key.as_str(), ext_cache_dir);
 
             let Ok(parsed_path) = PathBuf::from_str(&parsed);
+            if !parsed_path.exists()
+                && parsed_path.starts_with(ext_cache_dir)
+                && let Err(e) = std::fs::create_dir_all(&parsed_path)
+            {
+                tracing::warn!("Failed to create cache path {:?}: {}", parsed_path, e);
+            }
             if parsed_path.exists() {
                 let Ok(value_path) = PathBuf::from_str(value);
                 allowed_paths.insert(parsed, value_path);

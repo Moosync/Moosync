@@ -26,6 +26,7 @@ export component SaveThemeModal inherits Modal {
 
             VerticalLayout {
                 spacing: Theme.spacingXs;
+
                 Text {
                     text: @tr("Save Custom Theme");
                     font-size: Theme.modelTitle;
@@ -63,6 +64,7 @@ export component SaveThemeModal inherits Modal {
 
             HorizontalLayout {
                 alignment: end;
+
                 ButtonGroup {
                     buttons: [
                         { id: "cancel", text: @tr("Cancel"), is-destructive: false, is-neutral: true },

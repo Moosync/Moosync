@@ -3,23 +3,24 @@ use std::{fmt::Debug, sync::Mutex};
 use extensions_proto::moosync::types::{
     AddPlaylistResponse, AddSongsResponse, AddToPlaylistResponse, BatchHttpRequest,
     BatchHttpResponse, ExtensionAccountDetail, ExtensionCommand, ExtensionCommandResponse,
-    ExtensionsUpdatedResponse, GetAppVersionResponse, GetCacheResponse, GetCurrentSongResponse,
-    GetEntityResponse, GetPlayerStateResponse, GetPreferenceResponse, GetProcessStatusRequest,
-    GetProcessStatusResponse, GetQueueResponse, GetSecureResponse, GetSongResponse,
-    GetTimeResponse, GetVolumeResponse, KillProcessRequest, KillProcessResponse,
-    NotifyPlayerEventRequest, NotifyPlayerEventResponse, OpenClientFdRequest, OpenClientFdResponse,
-    OpenExternalUrlResponse, PreferenceData, QueueState, ReadProcessStdoutRequest,
-    ReadProcessStdoutResponse, ReadSockRequest, ReadSockResponse, RegisterOauthResponse,
-    RegisterUserPreferenceResponse, RemoveSongResponse, SetAccountResponse, SetCacheResponse,
-    SetPreferenceResponse, SetSecureResponse, SpawnProcessRequest, SpawnProcessResponse,
-    SystemTimeRequest, SystemTimeResponse, UnregisterUserPreferenceResponse, UpdateSongResponse,
-    WriteProcessStdinRequest, WriteProcessStdinResponse, WriteSockRequest, WriteSockResponse,
-    WsCloseRequest, WsCloseResponse, WsConnectRequest, WsConnectResponse, WsReceiveRequest,
-    WsReceiveResponse, WsSendRequest, WsSendResponse, main_command, main_command_response,
+    ExtensionsUpdatedResponse, GetAlbumsResponse, GetAppVersionResponse, GetArtistsResponse,
+    GetCacheResponse, GetCurrentSongResponse, GetGenresResponse, GetPlayerStateResponse,
+    GetPlaylistsResponse, GetPreferenceResponse, GetProcessStatusRequest, GetProcessStatusResponse,
+    GetQueueResponse, GetSecureResponse, GetSongResponse, GetTimeResponse, GetVolumeResponse,
+    KillProcessRequest, KillProcessResponse, NotifyPlayerEventRequest, NotifyPlayerEventResponse,
+    OpenClientFdRequest, OpenClientFdResponse, OpenExternalUrlResponse, PreferenceData, QueueState,
+    ReadProcessStdoutRequest, ReadProcessStdoutResponse, ReadSockRequest, ReadSockResponse,
+    RegisterOauthResponse, RegisterUserPreferenceResponse, RemoveSongResponse, SetAccountResponse,
+    SetCacheResponse, SetPreferenceResponse, SetSecureResponse, SpawnProcessRequest,
+    SpawnProcessResponse, SystemTimeRequest, SystemTimeResponse, UnregisterUserPreferenceResponse,
+    UpdateSongResponse, WriteProcessStdinRequest, WriteProcessStdinResponse, WriteSockRequest,
+    WriteSockResponse, WsCloseRequest, WsCloseResponse, WsConnectRequest, WsConnectResponse,
+    WsReceiveRequest, WsReceiveResponse, WsSendRequest, WsSendResponse, main_command,
+    main_command_response,
 };
 pub use extism_context::ExtismContext;
 use preferences_proto::moosync::types::PreferenceItem;
-use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
+use songs_proto::moosync::types::{Album, Artist, Genre, GetSongOptions, Playlist, Song};
 
 use crate::{cache::ExtensionMemoryCache, errors::ExtensionError};
 
@@ -51,11 +52,30 @@ pub trait ReplyHandler: Send + Sync + 'static {
         _package_name: &str,
         _options: GetSongOptions,
     ) -> Result<Vec<Song>, ExtensionError>;
-    fn get_entity(
+    fn get_albums(
         &self,
         _package_name: &str,
-        _options: GetEntityOptions,
-    ) -> Result<EntityResult, ExtensionError>;
+        _options: Album,
+        _inclusive: bool,
+    ) -> Result<Vec<Album>, ExtensionError>;
+    fn get_artists(
+        &self,
+        _package_name: &str,
+        _options: Artist,
+        _inclusive: bool,
+    ) -> Result<Vec<Artist>, ExtensionError>;
+    fn get_genres(
+        &self,
+        _package_name: &str,
+        _options: Genre,
+        _inclusive: bool,
+    ) -> Result<Vec<Genre>, ExtensionError>;
+    fn get_playlists(
+        &self,
+        _package_name: &str,
+        _options: Playlist,
+        _inclusive: bool,
+    ) -> Result<Vec<Playlist>, ExtensionError>;
     fn get_current_song(&self, _package_name: &str) -> Result<Option<Song>, ExtensionError>;
     fn get_player_state(&self, _package_name: &str) -> Result<i32, ExtensionError>;
     fn get_volume(&self, _package_name: &str) -> Result<f64, ExtensionError>;
@@ -256,11 +276,42 @@ impl DispatchCommand for main_command::Command {
             main_command::Command::GetSong(req) => reply_handler
                 .get_song(package_name, req.options.unwrap_or_default())
                 .map(|songs| main_command_response::Response::GetSong(GetSongResponse { songs })),
-            main_command::Command::GetEntity(req) => reply_handler
-                .get_entity(package_name, req.options.unwrap_or_default())
-                .map(|entity| {
-                    main_command_response::Response::GetEntity(GetEntityResponse {
-                        entity: Some(entity),
+            main_command::Command::GetAlbums(req) => reply_handler
+                .get_albums(
+                    package_name,
+                    req.options.unwrap_or_default(),
+                    req.inclusive.unwrap_or_default(),
+                )
+                .map(|albums| {
+                    main_command_response::Response::GetAlbums(GetAlbumsResponse { albums })
+                }),
+            main_command::Command::GetArtists(req) => reply_handler
+                .get_artists(
+                    package_name,
+                    req.options.unwrap_or_default(),
+                    req.inclusive.unwrap_or_default(),
+                )
+                .map(|artists| {
+                    main_command_response::Response::GetArtists(GetArtistsResponse { artists })
+                }),
+            main_command::Command::GetGenres(req) => reply_handler
+                .get_genres(
+                    package_name,
+                    req.options.unwrap_or_default(),
+                    req.inclusive.unwrap_or_default(),
+                )
+                .map(|genres| {
+                    main_command_response::Response::GetGenres(GetGenresResponse { genres })
+                }),
+            main_command::Command::GetPlaylists(req) => reply_handler
+                .get_playlists(
+                    package_name,
+                    req.options.unwrap_or_default(),
+                    req.inclusive.unwrap_or_default(),
+                )
+                .map(|playlists| {
+                    main_command_response::Response::GetPlaylists(GetPlaylistsResponse {
+                        playlists,
                     })
                 }),
             main_command::Command::GetCurrentSong(_) => {
@@ -407,6 +458,9 @@ impl DispatchCommand for main_command::Command {
                         "Account detail missing from SetAccountRequest".to_string(),
                     )
                 })?;
+                if !account.logged_in {
+                    memory_cache.lock().unwrap().clear();
+                }
                 reply_handler
                     .set_account(package_name, account)
                     .map(|success| {

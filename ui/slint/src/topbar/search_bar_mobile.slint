@@ -21,6 +21,7 @@ export component SearchBarMobile inherits Rectangle {
 
         VerticalLayout {
             alignment: center;
+
             Image {
                 width: Theme.mobileSearchFilterIconSize;
                 height: Theme.mobileSearchFilterIconSize;
@@ -56,6 +57,7 @@ export component SearchBarMobile inherits Rectangle {
 
         if (root.text != ""): VerticalLayout {
             alignment: center;
+
             IconButtonMobile {
                 accessible-label: @tr("Clear");
                 icon_source: @image-url("../icons/cross.svg");

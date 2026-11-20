@@ -3,7 +3,7 @@ use std::{path::PathBuf, sync::Arc, time::Duration};
 use assertables::{assert_is_empty, assert_len_eq_x};
 use extensions_proto::moosync::types::{ExtensionAccountDetail, ExtensionLockData};
 use preferences_proto::moosync::types::{PreferenceItem, PreferenceType};
-use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
+use songs_proto::moosync::types::{Album, Artist, Genre, GetSongOptions, Playlist, Song};
 use tempdir::TempDir;
 use tokio::time::sleep;
 use tracing_test::traced_test;
@@ -55,12 +55,22 @@ impl ReplyHandler for TestReplyHandler {
         Ok(vec![])
     }
     #[tracing::instrument(level = "debug", skip_all)]
-    fn get_entity(
+    fn get_albums(&self, _: &str, _: Album, _: bool) -> Result<Vec<Album>, ExtensionError> {
+        Ok(vec![])
+    }
+    fn get_artists(&self, _: &str, _: Artist, _: bool) -> Result<Vec<Artist>, ExtensionError> {
+        Ok(vec![])
+    }
+    fn get_genres(&self, _: &str, _: Genre, _: bool) -> Result<Vec<Genre>, ExtensionError> {
+        Ok(vec![])
+    }
+    fn get_playlists(
         &self,
-        _package_name: &str,
-        _options: GetEntityOptions,
-    ) -> Result<EntityResult, ExtensionError> {
-        Ok(EntityResult::default())
+        _: &str,
+        _: Playlist,
+        _: bool,
+    ) -> Result<Vec<Playlist>, ExtensionError> {
+        Ok(vec![])
     }
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_current_song(&self, _package_name: &str) -> Result<Option<Song>, ExtensionError> {
@@ -209,11 +219,7 @@ impl ReplyHandler for TestReplyHandler {
 fn test_reply_handler_defaults() {
     let handler = TestReplyHandler;
     assert!(handler.get_song("pkg", GetSongOptions::default()).is_ok());
-    assert!(
-        handler
-            .get_entity("pkg", GetEntityOptions::default())
-            .is_ok()
-    );
+    assert!(handler.get_albums("pkg", Album::default(), false).is_ok());
     assert!(handler.get_current_song("pkg").is_ok());
     assert_eq!(handler.get_player_state("pkg").unwrap(), 0);
     assert_eq!(handler.get_volume("pkg").unwrap(), 0.0);

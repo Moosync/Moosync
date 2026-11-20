@@ -9,11 +9,10 @@ use slint_app::{
     PlaylistsPageProps, SettingsPages, SettingsState,
     test_utils::integration::{
         ExtensionFixture, create_test_song, get_sample_msxt_path, integration_test, wait_until,
+        wait_until_async,
     },
 };
-use songs_proto::moosync::types::{
-    GetEntityOptions, GetSongOptions, Playlist, SearchableSong, entity_result,
-};
+use songs_proto::moosync::types::{GetSongOptions, Playlist, SearchableSong};
 use state_manager::StateManager;
 
 // TODO: Re-enable extension preference tests once nested preference rendering
@@ -228,7 +227,7 @@ async fn do_playlists_extension_integration(
 ) {
     let database = state_manager.get_database();
     let song = create_test_song("p1", "Local Song", "Local Album", "Local Artist");
-    database.insert_songs(vec![song.clone()]).unwrap();
+    database.insert_songs(vec![song.clone()]).await.unwrap();
     let playlist = Playlist {
         playlist_id: Some("pl_local".into()),
         playlist_name: "Local Playlist".into(),
@@ -236,6 +235,7 @@ async fn do_playlists_extension_integration(
     };
     database
         .create_playlist_with_songs(playlist, &[song])
+        .await
         .unwrap();
 
     let _ext = ExtensionFixture::new(state_manager).await;
@@ -285,13 +285,16 @@ async fn do_extension_content_toggle_provider_off(
 ) {
     let database = state_manager.get_database();
     let song = create_test_song("p_ext_t", "Local Song", "Local Album", "Local Artist");
-    database.insert_songs(vec![song.clone()]).unwrap();
+    database.insert_songs(vec![song.clone()]).await.unwrap();
     let playlist = Playlist {
         playlist_name: "Toggle Playlist".into(),
         ..Default::default()
     };
-    let playlist_id = database.create_playlist(playlist).unwrap();
-    database.add_to_playlist(&playlist_id, &[song]).unwrap();
+    let playlist_id = database.create_playlist(playlist).await.unwrap();
+    database
+        .add_to_playlist(&playlist_id, &[song])
+        .await
+        .unwrap();
 
     let _ext = ExtensionFixture::new(state_manager).await;
 
@@ -368,13 +371,16 @@ async fn do_extension_content_toggle_provider_on(
 ) {
     let database = state_manager.get_database();
     let song = create_test_song("p_ext_on", "Local Song", "Local Album", "Local Artist");
-    database.insert_songs(vec![song.clone()]).unwrap();
+    database.insert_songs(vec![song.clone()]).await.unwrap();
     let playlist = Playlist {
         playlist_name: "Toggle Playlist On".into(),
         ..Default::default()
     };
-    let playlist_id = database.create_playlist(playlist).unwrap();
-    database.add_to_playlist(&playlist_id, &[song]).unwrap();
+    let playlist_id = database.create_playlist(playlist).await.unwrap();
+    database
+        .add_to_playlist(&playlist_id, &[song])
+        .await
+        .unwrap();
 
     let _ext = ExtensionFixture::new(state_manager).await;
 
@@ -476,7 +482,7 @@ async fn do_artist_content_extension_toggle_and_open(
 ) {
     let database = state_manager.get_database();
     let song = create_test_song("art_ext", "Local Song", "Local Album", "Artist Ext");
-    database.insert_songs(vec![song]).unwrap();
+    database.insert_songs(vec![song]).await.unwrap();
     let songs = database
         .get_songs_by_options(GetSongOptions {
             song: Some(SearchableSong {
@@ -485,6 +491,7 @@ async fn do_artist_content_extension_toggle_and_open(
             }),
             ..Default::default()
         })
+        .await
         .unwrap();
     let artist_id = songs[0].artists[0].artist_id.clone().unwrap();
 
@@ -551,7 +558,7 @@ async fn do_album_content_extension_toggle_and_open(
 ) {
     let database = state_manager.get_database();
     let song = create_test_song("alb_ext", "Local Song", "Album Ext", "Local Artist");
-    database.insert_songs(vec![song]).unwrap();
+    database.insert_songs(vec![song]).await.unwrap();
     let songs = database
         .get_songs_by_options(GetSongOptions {
             song: Some(SearchableSong {
@@ -560,6 +567,7 @@ async fn do_album_content_extension_toggle_and_open(
             }),
             ..Default::default()
         })
+        .await
         .unwrap();
     let album_id = songs[0].album.as_ref().unwrap().album_id.clone().unwrap();
 
@@ -1218,7 +1226,7 @@ async fn do_extension_song_context_menu(
         "Context Album",
         "Context Artist",
     );
-    database.insert_songs(vec![song]).unwrap();
+    database.insert_songs(vec![song]).await.unwrap();
 
     let _ext = ExtensionFixture::new(state_manager).await;
 
@@ -1272,7 +1280,7 @@ async fn do_extension_song_context_menu(
 
     action_handles[0].invoke_accessible_default_action();
 
-    let action_executed = wait_until(|| {
+    let action_executed = wait_until_async(|| async {
         database
             .get_songs_by_options(GetSongOptions {
                 song: Some(SearchableSong {
@@ -1281,6 +1289,7 @@ async fn do_extension_song_context_menu(
                 }),
                 ..Default::default()
             })
+            .await
             .is_ok_and(|songs| {
                 songs.len() == 1
                     && songs[0].song.as_ref().and_then(|s| s.title.as_deref())
@@ -1302,7 +1311,7 @@ async fn do_extension_playlist_context_menu(
         playlist_name: "Context Target Playlist".into(),
         ..Default::default()
     };
-    database.create_playlist(playlist).unwrap();
+    database.create_playlist(playlist).await.unwrap();
 
     let _ext = ExtensionFixture::new(state_manager).await;
 
@@ -1348,21 +1357,18 @@ async fn do_extension_playlist_context_menu(
 
     action_handles[0].invoke_accessible_default_action();
 
-    let action_executed = wait_until(|| {
+    let action_executed = wait_until_async(|| async {
         database
-            .get_entity_by_options(GetEntityOptions {
-                playlist: Some(Playlist {
+            .get_playlists(
+                Playlist {
                     playlist_id: Some("rs.sample:ctx_action_playlist".into()),
                     ..Default::default()
-                }),
-                ..Default::default()
-            })
-            .is_ok_and(|res| match res.result {
-                Some(entity_result::Result::Playlists(list)) => {
-                    list.playlists.len() == 1
-                        && list.playlists[0].playlist_name == "Context Action Playlist"
-                }
-                _ => false,
+                },
+                false,
+            )
+            .await
+            .is_ok_and(|playlists| {
+                playlists.len() == 1 && playlists[0].playlist_name == "Context Action Playlist"
             })
     })
     .await;

@@ -13,7 +13,7 @@ use extensions_proto::moosync::types::{
 };
 use preferences_proto::moosync::types::PreferenceItem;
 use prost::Message;
-use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
+use songs_proto::moosync::types::{Album, Artist, Genre, GetSongOptions, Playlist, Song};
 use tokio::fs::create_dir_all as async_create_dir_all;
 
 use crate::{context::ReplyHandler, errors::ExtensionError, ext_runner::ExtensionHandlerInner};
@@ -122,22 +122,28 @@ impl ReplyHandler for TestReplyRouter {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn get_entity(
+    fn get_albums(&self, _: &str, _: Album, _: bool) -> Result<Vec<Album>, ExtensionError> {
+        Ok(vec![])
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_artists(&self, _: &str, _: Artist, _: bool) -> Result<Vec<Artist>, ExtensionError> {
+        Ok(vec![])
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_genres(&self, _: &str, _: Genre, _: bool) -> Result<Vec<Genre>, ExtensionError> {
+        Ok(vec![])
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_playlists(
         &self,
-        package_name: &str,
-        options: GetEntityOptions,
-    ) -> Result<EntityResult, ExtensionError> {
-        if let Some(cmds) = self.get_captured_commands(package_name) {
-            let mut cmds = cmds.lock().unwrap();
-            cmds.push(MainCommand {
-                command: Some(main_command::Command::GetEntity(
-                    extensions_proto::moosync::types::GetEntityRequest {
-                        options: Some(options),
-                    },
-                )),
-            });
-        }
-        Ok(EntityResult::default())
+        _: &str,
+        _: Playlist,
+        _: bool,
+    ) -> Result<Vec<Playlist>, ExtensionError> {
+        Ok(vec![])
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

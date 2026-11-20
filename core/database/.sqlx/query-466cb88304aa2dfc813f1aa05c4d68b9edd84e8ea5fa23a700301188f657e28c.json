@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO extension_cache (package_name, key, data, size, expiry_timestamp)\n             VALUES (?1, ?2, ?3, ?4, ?5)\n             ON CONFLICT(package_name, key) DO UPDATE SET\n                 data = excluded.data,\n                 size = excluded.size,\n                 expiry_timestamp = excluded.expiry_timestamp",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "466cb88304aa2dfc813f1aa05c4d68b9edd84e8ea5fa23a700301188f657e28c"
+}

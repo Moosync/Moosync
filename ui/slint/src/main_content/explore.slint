@@ -25,6 +25,7 @@ export component ExplorePage inherits Rectangle {
 
         if (ExplorePageProps.provider-recommendations.length == 0): Rectangle {
             vertical-stretch: 1;
+
             Text {
                 text: @tr("No recommendations");
                 color: Theme.textSecondary;
@@ -49,6 +50,7 @@ export component ExplorePage inherits Rectangle {
             // Song list for selected provider
             Rectangle {
                 vertical-stretch: 1;
+
                 SongListView {
                     songs: ExplorePageProps.provider-recommendations[root.selected-provider].songs;
                 }

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE allsongs SET\n                path = ?1, size = ?2, title = ?3, date = ?4, year = ?5,\n                releasetype = ?6, bitrate = ?7, codec = ?8, container = ?9,\n                duration = ?10, samplerate = ?11, hash = ?12, type = ?13,\n                url = ?14, song_coverpath_high = ?15, playbackurl = ?16,\n                song_coverpath_low = ?17, date_added = ?18, track_no = ?19\n             WHERE _id = ?20",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 20
+    },
+    "nullable": []
+  },
+  "hash": "e62ab5535ae23ebc389e1c7d55486be1959cf26bdc481ac6026e9428d32377bb"
+}

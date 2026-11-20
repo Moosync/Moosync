@@ -47,11 +47,14 @@ async fn save_scanned_playlists(
     for (playlist, song_identifiers) in playlists {
         let mut playlist_songs = Vec::new();
         for identifier in song_identifiers {
-            if let Some(song) = resolve_or_create_playlist_song(&database, identifier) {
+            if let Some(song) = resolve_or_create_playlist_song(&database, identifier).await {
                 playlist_songs.push(song);
             }
         }
-        if let Err(e) = database.create_playlist_with_songs(playlist, &playlist_songs) {
+        if let Err(e) = database
+            .create_playlist_with_songs(playlist, &playlist_songs)
+            .await
+        {
             tracing::error!("Failed to create playlist with songs: {:?}", e);
         }
     }
@@ -63,7 +66,7 @@ async fn save_scanned_songs(
     playlist_id: Option<String>,
     songs: Vec<Song>,
 ) {
-    let songs = match database.insert_songs(songs) {
+    let songs = match database.insert_songs(songs).await {
         Ok(songs) => songs,
         Err(e) => {
             tracing::error!("Failed to insert scanned songs: {:?}", e);
@@ -71,7 +74,7 @@ async fn save_scanned_songs(
         }
     };
     if let Some(playlist_id) = playlist_id
-        && let Err(e) = database.add_to_playlist(&playlist_id, &songs)
+        && let Err(e) = database.add_to_playlist(&playlist_id, &songs).await
     {
         tracing::error!(
             "Failed to add scanned songs to playlist {}: {:?}",
@@ -129,7 +132,7 @@ async fn sync_music_paths(
 
     if key == MUSIC_PATHS.id {
         if !scan_dirs.is_empty()
-            && let Err(e) = database.remove_songs_outside_directories(&scan_dirs)
+            && let Err(e) = database.remove_songs_outside_directories(&scan_dirs).await
         {
             tracing::error!("Failed to clean up songs: {:?}", e);
         }
@@ -265,7 +268,10 @@ impl Hook for ScannerHook {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn resolve_or_create_playlist_song(db: &Database, identifier: PlaylistSongId) -> Option<Song> {
+async fn resolve_or_create_playlist_song(
+    db: &Database,
+    identifier: PlaylistSongId,
+) -> Option<Song> {
     let opt = match &identifier {
         PlaylistSongId::Url(url) => GetSongOptions {
             song: Some(SearchableSong {
@@ -283,7 +289,7 @@ fn resolve_or_create_playlist_song(db: &Database, identifier: PlaylistSongId) ->
         },
     };
 
-    let songs = match db.get_songs_by_options(opt) {
+    let songs = match db.get_songs_by_options(opt).await {
         Ok(songs) => songs,
         Err(e) => {
             tracing::error!("Failed to get song by options: {:?}", e);
@@ -320,7 +326,7 @@ fn resolve_or_create_playlist_song(db: &Database, identifier: PlaylistSongId) ->
         ..Default::default()
     };
 
-    let inserted = match db.insert_songs(vec![proto_song]) {
+    let inserted = match db.insert_songs(vec![proto_song]).await {
         Ok(inserted) => inserted,
         Err(e) => {
             tracing::error!("Failed to insert resolved playlist song: {:?}", e);

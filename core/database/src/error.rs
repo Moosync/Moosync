@@ -3,16 +3,16 @@ use std::time::SystemTimeError;
 #[derive(Debug, thiserror::Error)]
 pub enum DatabaseError {
     #[error("SQLite query failed")]
-    Query(#[source] rusqlite::Error),
+    Query(#[source] sqlx::Error),
 
     #[error("SQLite connection failed")]
-    Connection(#[source] rusqlite::Error),
+    Connection(#[source] sqlx::Error),
 
     #[error("SQLite migration failed")]
-    Migration(#[source] rusqlite::Error),
+    Migration(#[from] sqlx::migrate::MigrateError),
 
     #[error("SQLite transaction failed")]
-    Transaction(#[source] rusqlite::Error),
+    Transaction(#[source] sqlx::Error),
 
     #[error("System time error: {0}")]
     SystemTime(#[from] SystemTimeError),

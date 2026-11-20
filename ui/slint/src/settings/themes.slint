@@ -197,6 +197,7 @@ component FullColorPicker inherits VerticalLayout {
         // Alpha Slider
         HorizontalLayout {
             spacing: Theme.spacingSm;
+
             Text {
                 text: @tr("Opacity");
                 color: Theme.textSecondary;
@@ -292,6 +293,7 @@ export component ColorTabCard inherits Rectangle {
                 VerticalLayout {
                     horizontal-stretch: 1;
                     alignment: center;
+
                     Text {
                         text: root.title;
                         font-size: Theme.modelTitle;
@@ -324,6 +326,7 @@ export component ColorTabCard inherits Rectangle {
 
         if root.expanded: VerticalLayout {
             spacing: Theme.spacingMd;
+
             Rectangle {
                 height: Theme.borderWidth;
                 background: Theme.textSecondary.transparentize(Theme.percent80);
@@ -367,6 +370,7 @@ export component ThemeCard inherits TouchArea {
                 VerticalLayout {
                     padding: Theme.extensionItemPaddingY;
                     alignment: space-between;
+
                     Rectangle {
                         width: Theme.percent30;
                         height: Theme.sizeXs;
@@ -376,6 +380,7 @@ export component ThemeCard inherits TouchArea {
 
                     HorizontalLayout {
                         spacing: Theme.spacingXs;
+
                         Rectangle {
                             width: Theme.sizeXl;
                             height: Theme.sizeXl;
@@ -386,6 +391,7 @@ export component ThemeCard inherits TouchArea {
                         VerticalLayout {
                             spacing: Theme.spacingXxs;
                             alignment: center;
+
                             Rectangle {
                                 width: 100%;
                                 height: Theme.borderRadiusMd;
@@ -399,8 +405,10 @@ export component ThemeCard inherits TouchArea {
 
             HorizontalLayout {
                 alignment: space-between;
+
                 VerticalLayout {
                     alignment: center;
+
                     Text {
                         text: config.name;
                         font-size: Theme.modelTitle;
@@ -418,11 +426,13 @@ export component ThemeCard inherits TouchArea {
                     border-radius: Theme.borderRadiusSm;
                     background: Theme.accent.transparentize(0.85);
                     horizontal-stretch: 0;
+
                     HorizontalLayout {
                         padding-left: Theme.paddingXs;
                         padding-right: Theme.paddingXs;
                         padding-top: Theme.spacingTiny;
                         padding-bottom: Theme.spacingTiny;
+
                         Text {
                             text: config.registry;
                             font-size: Theme.caption;
@@ -461,6 +471,7 @@ export component ThemesPage inherits SettingsPageLayout {
     PreferenceGroup {
         VerticalLayout {
             spacing: Theme.spacingMd;
+
             Text {
                 text: @tr("Preset Themes");
                 font-size: Theme.modelTitle;
@@ -476,6 +487,7 @@ export component ThemesPage inherits SettingsPageLayout {
 
             ScrollView {
                 height: Theme.themeCardPreviewHeight + Theme.size6Xl;
+
                 HorizontalLayout {
                     spacing: Theme.spacingMd;
                     padding-bottom: Theme.paddingLg;
@@ -494,9 +506,11 @@ export component ThemesPage inherits SettingsPageLayout {
     PreferenceGroup {
         HorizontalLayout {
             spacing: Theme.spacingMd;
+
             VerticalLayout {
                 horizontal-stretch: 1;
                 alignment: center;
+
                 Text {
                     text: @tr("Quick Accent");
                     font-size: Theme.modelTitle;
@@ -512,6 +526,7 @@ export component ThemesPage inherits SettingsPageLayout {
 
             VerticalLayout {
                 alignment: center;
+
                 HorizontalLayout {
                     spacing: Theme.spacingMd;
                     for swatch in quick-accents: TouchArea {
@@ -522,6 +537,7 @@ export component ThemesPage inherits SettingsPageLayout {
                             let val-str = "rgba(" + round(swatch.r) + "," + round(swatch.g) + "," + round(swatch.b) + "," + swatch.a + ")";
                             AppCallbacks.theme_constant_changed("accent", val-str);
                         }
+
                         Rectangle {
                             border-radius: Theme.quickAccentSwatchSize / 2;
                             background: rgba(swatch.r, swatch.g, swatch.b, swatch.a);
@@ -552,6 +568,7 @@ export component ThemesPage inherits SettingsPageLayout {
                     VerticalLayout {
                         alignment: center;
                         spacing: Theme.spacingXs;
+
                         Text {
                             text: @tr("Advanced Styling");
                             font-size: Theme.modelTitle;
@@ -567,6 +584,7 @@ export component ThemesPage inherits SettingsPageLayout {
 
                     VerticalLayout {
                         alignment: center;
+
                         Text {
                             text: root.advanced-expanded ? "▲" : "▼";
                             color: accordion_touch.has-hover ? Theme.accent : Theme.textSecondary;
@@ -611,6 +629,7 @@ export component ThemesPage inherits SettingsPageLayout {
     PreferenceGroup {
         VerticalLayout {
             spacing: Theme.spacingMd;
+
             Text {
                 text: @tr("Export Theme");
                 font-size: Theme.modelTitle;

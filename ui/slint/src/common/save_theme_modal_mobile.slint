@@ -60,6 +60,7 @@ export component SaveThemeModalMobile inherits Rectangle {
 
                 VerticalLayout {
                     spacing: Theme.spacingXs;
+
                     Text {
                         text: @tr("Theme Name");
                         font-size: Theme.caption;
@@ -70,9 +71,11 @@ export component SaveThemeModalMobile inherits Rectangle {
                         height: Theme.mobileInputHeight;
                         background: Theme.tertiary;
                         border-radius: Theme.borderRadiusMd;
+
                         HorizontalLayout {
                             padding-left: Theme.paddingSm;
                             padding-right: Theme.paddingSm;
+
                             TextInput {
                                 text <=> root.theme_name;
                                 font-size: Theme.body;
@@ -85,6 +88,7 @@ export component SaveThemeModalMobile inherits Rectangle {
 
                 VerticalLayout {
                     spacing: Theme.spacingXs;
+
                     Text {
                         text: @tr("Author");
                         font-size: Theme.caption;
@@ -95,9 +99,11 @@ export component SaveThemeModalMobile inherits Rectangle {
                         height: Theme.mobileInputHeight;
                         background: Theme.tertiary;
                         border-radius: Theme.borderRadiusMd;
+
                         HorizontalLayout {
                             padding-left: Theme.paddingSm;
                             padding-right: Theme.paddingSm;
+
                             TextInput {
                                 text <=> root.theme_author;
                                 font-size: Theme.body;
@@ -110,6 +116,7 @@ export component SaveThemeModalMobile inherits Rectangle {
 
                 VerticalLayout {
                     spacing: Theme.spacingXs;
+
                     Text {
                         text: @tr("Description");
                         font-size: Theme.caption;
@@ -120,9 +127,11 @@ export component SaveThemeModalMobile inherits Rectangle {
                         height: Theme.mobileInputHeight;
                         background: Theme.tertiary;
                         border-radius: Theme.borderRadiusMd;
+
                         HorizontalLayout {
                             padding-left: Theme.paddingSm;
                             padding-right: Theme.paddingSm;
+
                             TextInput {
                                 text <=> root.theme_desc;
                                 font-size: Theme.body;

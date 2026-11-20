@@ -104,8 +104,11 @@ async fn test_playlist_song_provider_fetch_local_songs_success(
         ..Default::default()
     };
     let db = sm.get_database();
-    assert_ok!(db.insert_songs(vec![song.clone()]));
-    assert_ok!(db.create_playlist_with_songs(playlist.clone(), &[song]));
+    assert_ok!(db.insert_songs(vec![song.clone()]).await);
+    assert_ok!(
+        db.create_playlist_with_songs(playlist.clone(), &[song])
+            .await
+    );
 
     let songs_res = PlaylistSongProvider::fetch_local_songs(&sm, playlist).await;
 

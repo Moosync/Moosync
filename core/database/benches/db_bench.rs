@@ -3,8 +3,8 @@ use std::{env::temp_dir, fs, path::PathBuf, time::Duration};
 use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
 use database::Database;
 use songs_proto::moosync::types::{
-    Album, Artist, Genre, GetEntityOptions, GetSongOptions, InnerSong, LyricLine, Lyrics, Playlist,
-    SearchableSong, Song, SongType,
+    Album, Artist, Genre, GetSongOptions, InnerSong, LyricLine, Lyrics, Playlist, SearchableSong,
+    Song, SongType,
 };
 use uuid::Uuid;
 
@@ -122,21 +122,21 @@ fn generate_playlists(count: usize) -> Vec<Playlist> {
 }
 
 fn bench_db_ops(c: &mut Criterion) {
+    let rt = tokio::runtime::Runtime::new().unwrap();
     // 1. Setup a shared pre-populated database for read-only benchmarks
     let shared_db_path = get_test_db_path();
-    let shared_db = Database::new(shared_db_path.clone());
+    let shared_db = rt.block_on(Database::new(shared_db_path.clone()));
     let prep_songs = generate_complex_songs(1000);
-    let inserted_huge = shared_db.insert_songs(prep_songs).unwrap();
+    let inserted_huge = rt.block_on(shared_db.insert_songs(prep_songs)).unwrap();
 
     // Create 50 playlists in the shared DB
     let playlists = generate_playlists(50);
     for pl in playlists {
-        shared_db.create_playlist(pl).unwrap();
+        rt.block_on(shared_db.create_playlist(pl)).unwrap();
     }
     // Associate 500 songs to a playlist in the shared DB
     let playlist_id = "playlist-id-5".to_string();
-    shared_db
-        .add_to_playlist(&playlist_id, &inserted_huge[0..500])
+    rt.block_on(shared_db.add_to_playlist(&playlist_id, &inserted_huge[0..500]))
         .unwrap();
 
     // Group for Database Reads
@@ -146,92 +146,92 @@ fn bench_db_ops(c: &mut Criterion) {
 
     read_group.bench_function("query_by_title", |b| {
         b.iter(|| {
-            let _ = shared_db
-                .get_songs_by_options(GetSongOptions {
+            let _ = rt
+                .block_on(shared_db.get_songs_by_options(GetSongOptions {
                     song: Some(SearchableSong {
                         title: Some("%Complex Song 500%".to_string()),
                         ..Default::default()
                     }),
                     ..Default::default()
-                })
+                }))
                 .unwrap();
         });
     });
 
     read_group.bench_function("query_by_path", |b| {
         b.iter(|| {
-            let _ = shared_db
-                .get_songs_by_options(GetSongOptions {
+            let _ = rt
+                .block_on(shared_db.get_songs_by_options(GetSongOptions {
                     song: Some(SearchableSong {
                         path: Some("/path/to/complex_song_250.mp3".to_string()),
                         ..Default::default()
                     }),
                     ..Default::default()
-                })
+                }))
                 .unwrap();
         });
     });
 
     read_group.bench_function("query_by_album", |b| {
         b.iter(|| {
-            let _ = shared_db
-                .get_songs_by_options(GetSongOptions {
+            let _ = rt
+                .block_on(shared_db.get_songs_by_options(GetSongOptions {
                     album: Some(Album {
                         album_name: Some("Complex Album 5".to_string()),
                         ..Default::default()
                     }),
                     ..Default::default()
-                })
+                }))
                 .unwrap();
         });
     });
 
     read_group.bench_function("query_by_artist", |b| {
         b.iter(|| {
-            let _ = shared_db
-                .get_songs_by_options(GetSongOptions {
+            let _ = rt
+                .block_on(shared_db.get_songs_by_options(GetSongOptions {
                     artist: Some(Artist {
                         artist_name: Some("Primary Artist 3".to_string()),
                         ..Default::default()
                     }),
                     ..Default::default()
-                })
+                }))
                 .unwrap();
         });
     });
 
     read_group.bench_function("query_by_genre", |b| {
         b.iter(|| {
-            let _ = shared_db
-                .get_songs_by_options(GetSongOptions {
+            let _ = rt
+                .block_on(shared_db.get_songs_by_options(GetSongOptions {
                     genre: Some(Genre {
                         genre_name: Some("Genre 2".to_string()),
                         ..Default::default()
                     }),
                     ..Default::default()
-                })
+                }))
                 .unwrap();
         });
     });
 
     read_group.bench_function("query_by_type", |b| {
         b.iter(|| {
-            let _ = shared_db
-                .get_songs_by_options(GetSongOptions {
+            let _ = rt
+                .block_on(shared_db.get_songs_by_options(GetSongOptions {
                     song: Some(SearchableSong {
                         r#type: Some(SongType::Spotify.into()),
                         ..Default::default()
                     }),
                     ..Default::default()
-                })
+                }))
                 .unwrap();
         });
     });
 
     read_group.bench_function("query_combined", |b| {
         b.iter(|| {
-            let _ = shared_db
-                .get_songs_by_options(GetSongOptions {
+            let _ = rt
+                .block_on(shared_db.get_songs_by_options(GetSongOptions {
                     song: Some(SearchableSong {
                         title: Some("%Complex Song %".to_string()),
                         r#type: Some(SongType::Spotify.into()),
@@ -239,103 +239,112 @@ fn bench_db_ops(c: &mut Criterion) {
                     }),
                     inclusive: Some(true),
                     ..Default::default()
-                })
+                }))
                 .unwrap();
         });
     });
 
     read_group.bench_function("get_album_songs", |b| {
-        let mut conn = shared_db.pool.get().unwrap();
         let test_album = Album {
             album_name: Some("Complex Album 5".to_string()),
             ..Default::default()
         };
         b.iter(|| {
-            let _ = shared_db
-                .get_album_songs(test_album.clone(), true, &mut conn)
+            let _ = rt
+                .block_on(shared_db.get_songs_by_options(GetSongOptions {
+                    album: Some(test_album.clone()),
+                    inclusive: Some(true),
+                    ..Default::default()
+                }))
                 .unwrap();
         });
     });
 
     read_group.bench_function("get_artist_songs", |b| {
-        let mut conn = shared_db.pool.get().unwrap();
         let test_artist = Artist {
             artist_name: Some("Primary Artist 3".to_string()),
             ..Default::default()
         };
         b.iter(|| {
-            let _ = shared_db
-                .get_artist_songs(test_artist.clone(), true, &mut conn)
+            let _ = rt
+                .block_on(shared_db.get_songs_by_options(GetSongOptions {
+                    artist: Some(test_artist.clone()),
+                    inclusive: Some(true),
+                    ..Default::default()
+                }))
                 .unwrap();
         });
     });
 
     read_group.bench_function("get_genre_songs", |b| {
-        let mut conn = shared_db.pool.get().unwrap();
         let test_genre = Genre {
             genre_name: Some("Genre 2".to_string()),
             ..Default::default()
         };
         b.iter(|| {
-            let _ = shared_db
-                .get_genre_songs(test_genre.clone(), true, &mut conn)
+            let _ = rt
+                .block_on(shared_db.get_songs_by_options(GetSongOptions {
+                    genre: Some(test_genre.clone()),
+                    inclusive: Some(true),
+                    ..Default::default()
+                }))
                 .unwrap();
         });
     });
 
     read_group.bench_function("get_entity_albums", |b| {
         b.iter(|| {
-            let _ = shared_db
-                .get_entity_by_options(GetEntityOptions {
-                    album: Some(Album {
+            let _ = rt
+                .block_on(shared_db.get_albums(
+                    Album {
                         album_name: Some("%Complex Album%".to_string()),
                         ..Default::default()
-                    }),
-                    inclusive: Some(true),
-                    ..Default::default()
-                })
+                    },
+                    true,
+                ))
                 .unwrap();
         });
     });
 
     read_group.bench_function("get_entity_artists", |b| {
         b.iter(|| {
-            let _ = shared_db
-                .get_entity_by_options(GetEntityOptions {
-                    artist: Some(Artist {
+            let _ = rt
+                .block_on(shared_db.get_artists(
+                    Artist {
                         artist_name: Some("%Primary Artist%".to_string()),
                         ..Default::default()
-                    }),
-                    inclusive: Some(true),
-                    ..Default::default()
-                })
+                    },
+                    true,
+                ))
                 .unwrap();
         });
     });
 
     read_group.bench_function("search_all", |b| {
         b.iter(|| {
-            let _ = shared_db.search_all("Complex").unwrap();
+            let _ = rt.block_on(shared_db.search_all("Complex")).unwrap();
         });
     });
 
     read_group.bench_function("get_playlist_songs_500", |b| {
         b.iter(|| {
-            let _ = shared_db
-                .get_songs_by_options(GetSongOptions {
+            let _ = rt
+                .block_on(shared_db.get_songs_by_options(GetSongOptions {
                     playlist: Some(Playlist {
                         playlist_id: Some("playlist-id-5".to_string()),
                         ..Default::default()
                     }),
                     ..Default::default()
-                })
+                }))
                 .unwrap();
         });
     });
 
     read_group.bench_function("export_playlist", |b| {
         b.iter(|| {
-            let _ = shared_db.export_playlist("playlist-id-5").unwrap();
+            let _ = rt
+                .block_on(shared_db.export_playlist("playlist-id-5"))
+                .unwrap();
         });
     });
 
@@ -350,7 +359,7 @@ fn bench_db_ops(c: &mut Criterion) {
         let mut song_to_update = inserted_huge[0].song.clone().unwrap();
         song_to_update.title = Some("Updated Title for Bench".to_string());
         b.iter(|| {
-            shared_db.update_song(&song_to_update).unwrap();
+            rt.block_on(shared_db.update_song(&song_to_update)).unwrap();
         });
     });
 
@@ -370,27 +379,30 @@ fn bench_db_ops(c: &mut Criterion) {
             });
         }
         b.iter(|| {
-            shared_db.update_songs(songs_to_update.clone()).unwrap();
+            rt.block_on(shared_db.update_songs(songs_to_update.clone()))
+                .unwrap();
         });
     });
 
     update_group.bench_function("increment_play_count", |b| {
         let target_id = inserted_huge[0].song.as_ref().unwrap().id.clone().unwrap();
         b.iter(|| {
-            shared_db.increment_play_count(&target_id).unwrap();
+            rt.block_on(shared_db.increment_play_count(&target_id))
+                .unwrap();
         });
     });
 
     update_group.bench_function("increment_play_time", |b| {
         let target_id = inserted_huge[0].song.as_ref().unwrap().id.clone().unwrap();
         b.iter(|| {
-            shared_db.increment_play_time(&target_id, 245.5).unwrap();
+            rt.block_on(shared_db.increment_play_time(&target_id, 245.5))
+                .unwrap();
         });
     });
 
     update_group.bench_function("get_top_listened", |b| {
         b.iter(|| {
-            let _ = shared_db.get_top_listened_songs().unwrap();
+            let _ = rt.block_on(shared_db.get_top_listened_songs()).unwrap();
         });
     });
 
@@ -406,12 +418,12 @@ fn bench_db_ops(c: &mut Criterion) {
         b.iter_batched(
             || {
                 let db_path = get_test_db_path();
-                let db = Database::new(db_path.clone());
+                let db = rt.block_on(Database::new(db_path.clone()));
                 let songs = generate_complex_songs(10);
                 (db, songs, db_path)
             },
             |(db, songs, db_path)| {
-                let _ = db.insert_songs(songs).unwrap();
+                let _ = rt.block_on(db.insert_songs(songs)).unwrap();
                 cleanup(&db_path);
             },
             BatchSize::SmallInput,
@@ -422,12 +434,12 @@ fn bench_db_ops(c: &mut Criterion) {
         b.iter_batched(
             || {
                 let db_path = get_test_db_path();
-                let db = Database::new(db_path.clone());
+                let db = rt.block_on(Database::new(db_path.clone()));
                 let songs = generate_complex_songs(1000);
                 (db, songs, db_path)
             },
             |(db, songs, db_path)| {
-                let _ = db.insert_songs(songs).unwrap();
+                let _ = rt.block_on(db.insert_songs(songs)).unwrap();
                 cleanup(&db_path);
             },
             BatchSize::SmallInput,
@@ -438,12 +450,12 @@ fn bench_db_ops(c: &mut Criterion) {
         b.iter_batched(
             || {
                 let db_path = get_test_db_path();
-                let db = Database::new(db_path.clone());
+                let db = rt.block_on(Database::new(db_path.clone()));
                 let songs = generate_complex_songs(100000);
                 (db, songs, db_path)
             },
             |(db, songs, db_path)| {
-                let _ = db.insert_songs(songs).unwrap();
+                let _ = rt.block_on(db.insert_songs(songs)).unwrap();
                 cleanup(&db_path);
             },
             BatchSize::LargeInput,
@@ -454,14 +466,14 @@ fn bench_db_ops(c: &mut Criterion) {
         b.iter_batched(
             || {
                 let db_path = get_test_db_path();
-                let db = Database::new(db_path.clone());
+                let db = rt.block_on(Database::new(db_path.clone()));
                 let songs1 = generate_complex_songs(1000);
-                let _ = db.insert_songs(songs1).unwrap();
+                let _ = rt.block_on(db.insert_songs(songs1)).unwrap();
                 let songs2 = generate_complex_songs(1000);
                 (db, songs2, db_path)
             },
             |(db, songs, db_path)| {
-                let _ = db.insert_songs(songs).unwrap();
+                let _ = rt.block_on(db.insert_songs(songs)).unwrap();
                 cleanup(&db_path);
             },
             BatchSize::SmallInput,
@@ -472,9 +484,9 @@ fn bench_db_ops(c: &mut Criterion) {
         b.iter_batched(
             || {
                 let db_path = get_test_db_path();
-                let db = Database::new(db_path.clone());
+                let db = rt.block_on(Database::new(db_path.clone()));
                 let songs = generate_complex_songs(1000);
-                let inserted = db.insert_songs(songs).unwrap();
+                let inserted = rt.block_on(db.insert_songs(songs)).unwrap();
                 let ids: Vec<String> = inserted[100..600]
                     .iter()
                     .map(|s| s.song.as_ref().unwrap().id.clone().unwrap())
@@ -482,7 +494,7 @@ fn bench_db_ops(c: &mut Criterion) {
                 (db, ids, db_path)
             },
             |(db, ids, db_path)| {
-                db.remove_songs(&ids).unwrap();
+                rt.block_on(db.remove_songs(&ids)).unwrap();
                 cleanup(&db_path);
             },
             BatchSize::SmallInput,

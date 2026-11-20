@@ -15,7 +15,7 @@ async fn do_playback_play_song(
 ) {
     let database = state_manager.get_database();
     let song = create_test_song("s_play", "Playback Track", "Album", "Artist");
-    database.insert_songs(vec![song.clone()]).unwrap();
+    database.insert_songs(vec![song.clone()]).await.unwrap();
 
     main_window
         .global::<AppCallbacks>()
@@ -53,7 +53,7 @@ async fn do_playback_pause_song(
 ) {
     let database = state_manager.get_database();
     let song = create_test_song("s_pause", "Playback Track", "Album", "Artist");
-    database.insert_songs(vec![song.clone()]).unwrap();
+    database.insert_songs(vec![song.clone()]).await.unwrap();
 
     main_window
         .global::<AppCallbacks>()
@@ -89,7 +89,7 @@ async fn do_playback_resume_song(
 ) {
     let database = state_manager.get_database();
     let song = create_test_song("s_resume", "Playback Track", "Album", "Artist");
-    database.insert_songs(vec![song.clone()]).unwrap();
+    database.insert_songs(vec![song.clone()]).await.unwrap();
 
     main_window
         .global::<AppCallbacks>()
@@ -133,6 +133,7 @@ async fn do_playback_skip_next(
     let song2 = create_test_song("s_next2", "Track 2", "Album", "Artist");
     database
         .insert_songs(vec![song1.clone(), song2.clone()])
+        .await
         .unwrap();
 
     {
@@ -166,6 +167,7 @@ async fn do_playback_skip_previous(
     let song2 = create_test_song("s_prev2", "Track 2", "Album", "Artist");
     database
         .insert_songs(vec![song1.clone(), song2.clone()])
+        .await
         .unwrap();
 
     {
@@ -279,7 +281,7 @@ async fn do_playback_seek_debounced(
 ) {
     let database = state_manager.get_database();
     let song = create_test_song("s_seek_deb", "Seek Debounce Track", "Album", "Artist");
-    database.insert_songs(vec![song.clone()]).unwrap();
+    database.insert_songs(vec![song.clone()]).await.unwrap();
 
     main_window
         .global::<AppCallbacks>()

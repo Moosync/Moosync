@@ -39,7 +39,6 @@ jni = { version = "0.22.4", default-features = false, features = ["invocation"] 
 keyring = { version = "4.2.0", default-features = false, features = ["apple-native-keyring-store", "windows-native-keyring-store", "zbus-secret-service-keyring-store", "v1"] }
 lazy_static = "1.5.1"
 libpulse-binding = "2.30.1"
-libsqlite3-sys = { version = "0.38.2", features = ["bundled"] }
 lofty = { version = "0.24.0", default-features = false }
 lru = "0.19.0"
 md-5 = "0.10.6"
@@ -57,27 +56,27 @@ protobuf = { version = "3.7.2", default-features = false, features = ["bytes"] }
 protoc-gen-prost = "0.5.0"
 pulldown-cmark = { version = "0.13.5", default-features = false }
 quote = "1.0.47"
-r2d2 = "0.8.10"
-r2d2_sqlite = "0.35.0"
 rand = "0.9.5"
 regex = "1.13.1"
 reqwest = { version = "0.12.28", features = ["json", "stream"] }
 rfd = { version = "0.17.2", features = ["xdg-portal"] }
 rstest = { version = "0.28.0", default-features = false }
-rusqlite = { version = "0.40.0", features = ["trace"] }
 rusty_ffmpeg = { version = "0.16.7+ffmpeg.8", default-features = false, features = ["ffmpeg8"] }
 semver = "1.0.28"
 serde = { version = "1.0.229", default-features = false, features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10.9"
 slint = { version = "1.19.0", features = ["backend-android-activity-06", "mcp"] }
 slint-build = "1.19.0"
 slint-lsp = { version = "1.19.0", default-features = false }
 souvlaki = "0.8.3"
+sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio", "sqlite", "macros", "migrate"] }
 substring = "1.4.5"
 syn = { version = "3.0.9", features = ["full"] }
 tempdir = "0.3.7"
 thiserror = "2.0.21"
 tikv-jemallocator = "0.7.0"
-tokio = { version = "1.54.1", features = ["rt-multi-thread", "rt", "macros", "sync"] }
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "rt", "macros", "sync", "signal"] }
 tracing = { version = "0.1.44", default-features = false }
 tracing-appender = "0.2.5"
 tracing-subscriber = { version = "0.3.23", default-features = false, features = ["ansi", "env-filter"] }

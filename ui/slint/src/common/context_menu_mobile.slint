@@ -126,6 +126,7 @@ export component ContextMenuMobile inherits Rectangle {
 
                     HorizontalLayout {
                         alignment: center;
+
                         Rectangle {
                             y: (parent.height - Theme.sizeXxs) / 2;
                             width: Theme.searchBarHeight;
@@ -140,6 +141,7 @@ export component ContextMenuMobile inherits Rectangle {
                 if root.active_submenu_index >= 0: HorizontalLayout {
                     alignment: start;
                     spacing: Theme.spacingMd;
+
                     IconButton {
                         accessible-label: "Back";
                         icon_source: @image-url("../icons/nav_button.svg");
@@ -163,6 +165,7 @@ export component ContextMenuMobile inherits Rectangle {
                 // Main Menu Items in scrollable ScrollView
                 if root.active_submenu_index < 0: Rectangle {
                     vertical-stretch: 1;
+
                     main_scroll_activity := ScrollActivity {
                         position: main_scroll_view.content-y;
                     }
@@ -222,6 +225,7 @@ export component ContextMenuMobile inherits Rectangle {
 
                                         VerticalLayout {
                                             alignment: center;
+
                                             Rectangle {
                                                 width: Theme.iconSizeMd;
                                                 height: Theme.iconSizeMd;
@@ -246,6 +250,7 @@ export component ContextMenuMobile inherits Rectangle {
 
                                         if (root.selected_id != "" && action.action_id == root.selected_id): VerticalLayout {
                                             alignment: center;
+
                                             Rectangle {
                                                 width: Theme.borderWidthXxl;
                                                 height: Theme.sizeLg;
@@ -256,6 +261,7 @@ export component ContextMenuMobile inherits Rectangle {
 
                                         if (action.has_sub_menu || action.sub_items.length > 0): VerticalLayout {
                                             alignment: center;
+
                                             Image {
                                                 width: Theme.iconSizeSm;
                                                 height: Theme.iconSizeSm;
@@ -316,6 +322,7 @@ export component ContextMenuMobile inherits Rectangle {
 
                                         VerticalLayout {
                                             alignment: center;
+
                                             Rectangle {
                                                 width: Theme.iconSizeMd;
                                                 height: Theme.iconSizeMd;
@@ -340,6 +347,7 @@ export component ContextMenuMobile inherits Rectangle {
 
                                         if (root.selected_id != "" && item.action_id == root.selected_id): VerticalLayout {
                                             alignment: center;
+
                                             Rectangle {
                                                 width: Theme.borderWidthXxl;
                                                 height: Theme.sizeLg;
@@ -350,6 +358,7 @@ export component ContextMenuMobile inherits Rectangle {
 
                                         if (item.has_sub_menu || item.sub_items.length > 0): VerticalLayout {
                                             alignment: center;
+
                                             Image {
                                                 width: Theme.iconSizeSm;
                                                 height: Theme.iconSizeSm;
@@ -369,6 +378,7 @@ export component ContextMenuMobile inherits Rectangle {
                 // Submenu Items in scrollable ListView
                 if root.active_submenu_index >= 0: Rectangle {
                     vertical-stretch: 1;
+
                     sub_scroll_activity := ScrollActivity {
                         position: sub_menu_list.content-y;
                     }
@@ -411,6 +421,7 @@ export component ContextMenuMobile inherits Rectangle {
 
                                     VerticalLayout {
                                         alignment: center;
+
                                         Rectangle {
                                             width: Theme.iconSizeMd;
                                             height: Theme.iconSizeMd;

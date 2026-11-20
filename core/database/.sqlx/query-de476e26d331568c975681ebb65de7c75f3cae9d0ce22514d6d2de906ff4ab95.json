@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE allsongs SET song_coverpath_high = ?1, song_coverpath_low = ?2 WHERE _id = ?3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "de476e26d331568c975681ebb65de7c75f3cae9d0ce22514d6d2de906ff4ab95"
+}

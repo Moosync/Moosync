@@ -9,9 +9,7 @@ use extensions_proto::moosync::types::{
 };
 use futures::StreamExt;
 use slint::{ComponentHandle, Image, Model, ModelRc, SharedString, VecModel, Weak};
-use songs_proto::moosync::types::{
-    Album, Artist, Genre, GetEntityOptions, GetSongOptions, Playlist, Song, entity_result,
-};
+use songs_proto::moosync::types::{Album, Artist, Genre, GetSongOptions, Playlist, Song};
 use state_manager::StateManager;
 use tracing::Instrument;
 use types::prelude::SongsExt;
@@ -142,20 +140,13 @@ fn populate_navigation_items(
 
 /// Fetches all playlists from the database.
 #[tracing::instrument(level = "debug", skip_all)]
-fn fetch_playlists(db: &Database) -> Vec<Playlist> {
-    let res = match db.get_entity_by_options(GetEntityOptions {
-        playlist: Some(Playlist::default()),
-        ..Default::default()
-    }) {
-        Ok(r) => r,
+async fn fetch_playlists(db: &Database) -> Vec<Playlist> {
+    match db.get_playlists(Playlist::default(), false).await {
+        Ok(playlists) => playlists,
         Err(e) => {
             tracing::error!("Failed to fetch playlists for context menu: {:?}", e);
-            return Vec::new();
+            Vec::new()
         }
-    };
-    match res.result {
-        Some(entity_result::Result::Playlists(list)) => list.playlists,
-        _ => Vec::new(),
     }
 }
 
@@ -168,7 +159,7 @@ fn attach_playlist_submenu(
 ) {
     let _ = slint::spawn_local(
         async move {
-            let playlists = fetch_playlists(&state_manager.get_database());
+            let playlists = fetch_playlists(&state_manager.get_database()).await;
             let Some(window) = main_window_weak.upgrade() else {
                 return;
             };
@@ -431,7 +422,7 @@ async fn handle_remove_from_playlist(
         .collect();
 
     let db = state_manager.get_database();
-    if let Err(e) = db.remove_from_playlist(&selected_pid, &song_ids) {
+    if let Err(e) = db.remove_from_playlist(&selected_pid, &song_ids).await {
         tracing::error!(
             "Failed to remove songs from playlist '{}': {:?}",
             selected_pid,
@@ -439,13 +430,16 @@ async fn handle_remove_from_playlist(
         );
     }
 
-    let updated_songs = match db.get_songs_by_options(GetSongOptions {
-        playlist: Some(Playlist {
-            playlist_id: Some(selected_pid),
+    let updated_songs = match db
+        .get_songs_by_options(GetSongOptions {
+            playlist: Some(Playlist {
+                playlist_id: Some(selected_pid),
+                ..Default::default()
+            }),
             ..Default::default()
-        }),
-        ..Default::default()
-    }) {
+        })
+        .await
+    {
         Ok(songs) => songs,
         Err(e) => {
             tracing::error!("Failed to fetch updated songs for playlist: {:?}", e);
@@ -466,6 +460,7 @@ async fn handle_add_to_playlist(state_manager: &StateManager, songs: &[Song], pl
     if let Err(e) = state_manager
         .get_database()
         .add_to_playlist(playlist_id, songs)
+        .await
     {
         tracing::error!("Failed to add songs to playlist '{}': {:?}", playlist_id, e);
     }
@@ -473,48 +468,34 @@ async fn handle_add_to_playlist(state_manager: &StateManager, songs: &[Song], pl
 
 /// Looks up an album by ID from the database, falling back to an ID-only stub.
 #[tracing::instrument(level = "debug", skip_all)]
-fn fetch_album_by_id(db: &Database, id: &str) -> Album {
+async fn fetch_album_by_id(db: &Database, id: &str) -> Album {
     let fallback = || Album {
         album_id: Some(id.to_string()),
         ..Default::default()
     };
-    let res = match db.get_entity_by_options(GetEntityOptions {
-        album: Some(fallback()),
-        ..Default::default()
-    }) {
-        Ok(res) => res,
+    match db.get_albums(fallback(), false).await {
+        Ok(albums) => albums.into_iter().next().unwrap_or_else(fallback),
         Err(e) => {
             tracing::error!("Failed to fetch album by ID '{}': {:?}", id, e);
-            return fallback();
+            fallback()
         }
-    };
-    let Some(entity_result::Result::Albums(list)) = res.result else {
-        return fallback();
-    };
-    list.albums.into_iter().next().unwrap_or_else(fallback)
+    }
 }
 
 /// Looks up an artist by ID from the database, falling back to an ID-only stub.
 #[tracing::instrument(level = "debug", skip_all)]
-fn fetch_artist_by_id(db: &Database, id: &str) -> Artist {
+async fn fetch_artist_by_id(db: &Database, id: &str) -> Artist {
     let fallback = || Artist {
         artist_id: Some(id.to_string()),
         ..Default::default()
     };
-    let res = match db.get_entity_by_options(GetEntityOptions {
-        artist: Some(fallback()),
-        ..Default::default()
-    }) {
-        Ok(res) => res,
+    match db.get_artists(fallback(), false).await {
+        Ok(artists) => artists.into_iter().next().unwrap_or_else(fallback),
         Err(e) => {
             tracing::error!("Failed to fetch artist by ID '{}': {:?}", id, e);
-            return fallback();
+            fallback()
         }
-    };
-    let Some(entity_result::Result::Artists(list)) = res.result else {
-        return fallback();
-    };
-    list.artists.into_iter().next().unwrap_or_else(fallback)
+    }
 }
 
 /// Navigates to the album or artist content page for the given entity ID.
@@ -528,13 +509,13 @@ async fn handle_goto_entity_by_id(
     let db = state_manager.get_database();
     match target_page {
         Pages::AlbumContent => {
-            let album = fetch_album_by_id(&db, id);
+            let album = fetch_album_by_id(&db, id).await;
             let _ = weak.upgrade_in_event_loop(move |window| {
                 goto_album(&window, AlbumModel::from(album));
             });
         }
         Pages::ArtistContent => {
-            let artist = fetch_artist_by_id(&db, id);
+            let artist = fetch_artist_by_id(&db, id).await;
             let _ = weak.upgrade_in_event_loop(move |window| {
                 goto_artist(&window, ArtistModel::from(artist));
             });
@@ -677,7 +658,9 @@ async fn fetch_songs_for_album(state_manager: &StateManager, album: Album) -> Ve
         .get_songs_by_options(GetSongOptions {
             album: Some(album),
             ..Default::default()
-        }) {
+        })
+        .await
+    {
         Ok(songs) => songs,
         Err(error) => {
             tracing::error!("Failed to fetch songs for album: {:?}", error);
@@ -712,7 +695,9 @@ async fn fetch_songs_for_artist(state_manager: &StateManager, artist: Artist) ->
         .get_songs_by_options(GetSongOptions {
             artist: Some(artist),
             ..Default::default()
-        }) {
+        })
+        .await
+    {
         Ok(songs) => songs,
         Err(error) => {
             tracing::error!("Failed to fetch songs for artist: {:?}", error);
@@ -728,7 +713,9 @@ async fn fetch_songs_for_genre(state_manager: &StateManager, genre: Genre) -> Ve
         .get_songs_by_options(GetSongOptions {
             genre: Some(genre),
             ..Default::default()
-        }) {
+        })
+        .await
+    {
         Ok(songs) => songs,
         Err(error) => {
             tracing::error!("Failed to fetch songs for genre: {:?}", error);

@@ -1,5 +1,5 @@
 use slint::{ComponentHandle, ModelRc};
-use songs_proto::moosync::types::{Genre, GenreList, GetEntityOptions, entity_result};
+use songs_proto::moosync::types::Genre;
 use state_manager::StateManager;
 
 use crate::{
@@ -31,15 +31,7 @@ impl EntityListProvider for GenreListProvider {
     async fn fetch_entities(state_manager: &StateManager) -> Result<Vec<Genre>, UiError> {
         tracing::debug!("Fetching genres from database");
         let database = state_manager.get_database();
-        let genres_res = database.get_entity_by_options(GetEntityOptions {
-            genre: Some(Genre::default()),
-            ..Default::default()
-        })?;
-
-        match genres_res.result {
-            Some(entity_result::Result::Genres(GenreList { genres })) => Ok(genres),
-            _ => Err(UiError::EntityParseFailed),
-        }
+        Ok(database.get_genres(Genre::default(), false).await?)
     }
 }
 

@@ -85,7 +85,7 @@ async fn test_playlist_list_provider_fetch_entities_success(
         ..Default::default()
     };
     let db = sm.get_database();
-    assert_ok!(db.create_playlist_with_songs(playlist, &[]));
+    assert_ok!(db.create_playlist_with_songs(playlist, &[]).await);
 
     let entities_res = PlaylistListProvider::fetch_entities(&sm).await;
 
@@ -169,7 +169,7 @@ async fn test_playlists_page_handler_delete_action(
         ..Default::default()
     };
     let db = state_manager.get_database();
-    let id = db.create_playlist(playlist).unwrap();
+    let id = db.create_playlist(playlist).await.unwrap();
 
     PlaylistsPageHandler::handle_playlist_action(
         main_window.as_weak(),

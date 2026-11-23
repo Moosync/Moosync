@@ -17,7 +17,7 @@ use crate::{
     Theme, WINDOW_EVENTS,
 };
 
-#[tracing::instrument(level = "debug", skip_all)]
+#[tracing::instrument(level = "trace", skip_all)]
 pub fn make_lazy_song_model(
     main_window: &MainWindow,
     state_manager: &StateManager,
@@ -35,7 +35,7 @@ pub fn make_lazy_song_model(
     ))
 }
 
-#[tracing::instrument(level = "debug", skip_all)]
+#[tracing::instrument(level = "trace", skip_all)]
 pub fn make_lazy_card_model<T: LazyModel + 'static>(
     main_window: &MainWindow,
     state_manager: &StateManager,
@@ -53,7 +53,7 @@ pub fn make_lazy_card_model<T: LazyModel + 'static>(
     ))
 }
 
-#[tracing::instrument(level = "debug", skip_all)]
+#[tracing::instrument(level = "trace", skip_all)]
 pub fn calculate_window_limits(
     width: usize,
     height: usize,
@@ -84,7 +84,7 @@ pub trait LazyModel: Clone {
     fn update_from(&mut self, updated: Self);
 }
 
-#[tracing::instrument(level = "debug", skip_all)]
+#[tracing::instrument(level = "trace", skip_all)]
 pub fn update_lazy_model_item<T: LazyModel + 'static>(model: &ModelRc<T>, updated: T) -> bool {
     let target_id = updated.get_id();
     if target_id.is_empty() {
@@ -195,7 +195,7 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
         }
     }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     pub fn update_item(&self, updated: T) -> bool {
         let target_id = updated.get_id();
         if target_id.is_empty() {
@@ -212,17 +212,17 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
         true
     }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     pub fn max_len(&self) -> usize { self.max_items.get() + self.prefetch_count.get() * 2 }
 }
 
 impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {
     type Data = T;
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn row_count(&self) -> usize { self.array.borrow().len() }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn row_data(&self, row: usize) -> Option<Self::Data> {
         let song_model = {
             let array = self.array.borrow();
@@ -305,7 +305,7 @@ impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {
         Some(song_model)
     }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn set_row_data(&self, row: usize, data: Self::Data) {
         if row >= self.row_count() {
             return;
@@ -320,27 +320,27 @@ impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {
         }
     }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn model_tracker(&self) -> &dyn ModelTracker { &*self.notify }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn as_any(&self) -> &dyn core::any::Any { self }
 }
 
 impl LazyModel for ExtensionItem {
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn get_id(&self) -> &SharedString { &self.package_name }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn set_cover(&mut self, image: Image) { self.icon = image; }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn get_cover_url(&self) -> &SharedString { &self.icon_url }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn get_image(&self) -> &Image { &self.icon }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn update_from(&mut self, updated: Self) {
         self.loading = updated.loading;
         if !updated.name.is_empty() {
@@ -354,19 +354,19 @@ impl LazyModel for ExtensionItem {
 }
 
 impl LazyModel for SongModel {
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn get_id(&self) -> &SharedString { &self.id }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn set_cover(&mut self, image: Image) { self.coverPathLow = image }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn get_cover_url(&self) -> &SharedString { &self.coverPathUrlLow }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn get_image(&self) -> &Image { &self.coverPathLow }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn update_from(&mut self, updated: Self) {
         if !updated.title.is_empty() {
             self.title = updated.title;
@@ -405,19 +405,19 @@ impl LazyModel for SongModel {
 }
 
 impl LazyModel for AlbumModel {
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn get_id(&self) -> &SharedString { &self.id }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn set_cover(&mut self, image: Image) { self.coverPath = image; }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn get_cover_url(&self) -> &SharedString { &self.coverPathUrl }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn get_image(&self) -> &Image { &self.coverPath }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn update_from(&mut self, updated: Self) {
         if !updated.title.is_empty() {
             self.title = updated.title;
@@ -433,19 +433,19 @@ impl LazyModel for AlbumModel {
 }
 
 impl LazyModel for PlaylistModel {
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn get_id(&self) -> &SharedString { &self.id }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn set_cover(&mut self, image: Image) { self.coverPath = image; }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn get_cover_url(&self) -> &SharedString { &self.coverPathUrl }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn get_image(&self) -> &Image { &self.coverPath }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn update_from(&mut self, updated: Self) {
         if !updated.title.is_empty() {
             self.title = updated.title;
@@ -461,19 +461,19 @@ impl LazyModel for PlaylistModel {
 }
 
 impl LazyModel for ArtistModel {
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn get_id(&self) -> &SharedString { &self.id }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn set_cover(&mut self, image: Image) { self.coverPath = image; }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn get_cover_url(&self) -> &SharedString { &self.coverPathUrl }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn get_image(&self) -> &Image { &self.coverPath }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn update_from(&mut self, updated: Self) {
         if !updated.title.is_empty() {
             self.title = updated.title;
@@ -489,19 +489,19 @@ impl LazyModel for ArtistModel {
 }
 
 impl LazyModel for GenreModel {
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn get_id(&self) -> &SharedString { &self.id }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn set_cover(&mut self, image: Image) { self.coverPath = image; }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn get_cover_url(&self) -> &SharedString { &self.coverPathUrl }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn get_image(&self) -> &Image { &self.coverPath }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn update_from(&mut self, updated: Self) {
         if !updated.title.is_empty() {
             self.title = updated.title;

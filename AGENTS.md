@@ -64,6 +64,10 @@ Always activate and follow the **problem-solving** skill (`.agents/skills/proble
 
 7. Every Rust function definition must be decorated with `#[tracing::instrument(level = "...", skip_all)]` to ensure stack traces are preserved. All parameters must be skipped using `skip_all` to avoid compiler failures with non-`Debug` types.
 8. Validate instrumentation by running `bazel run //tools:check_instrument`. This check runs automatically in the Git pre-commit hook.
+9. **Log Level Distinction (`info` vs `debug` vs `trace`)**:
+   - **`info`**: Low-frequency, high-level lifecycle milestones and user-initiated or user-visible outcomes (e.g., app startup/shutdown, database migrations, extension activation, playback start/stop, preference updates). Must remain low-noise under default production logging.
+   - **`debug`**: Diagnostic context for investigating feature behavior (e.g., page show/hide, search/fetch requests and result counts, extension/IPC command handling, cache lookups, state transitions).
+   - **`trace`**: High-frequency, per-item, or hot-path operations that would flood logs at `debug` (e.g., Slint `Model`/`VecModel`/`LazySongVecModel` row accessors such as `row_data`, `row_count`, `set_row_data`, `update_from`, per-tick/per-frame callbacks, and fine-grained data conversions).
 
 ### Plugin System
 

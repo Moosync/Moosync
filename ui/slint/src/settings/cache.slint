@@ -1,0 +1,219 @@
+import { Theme } from "../constants.slint";
+import { SettingsPageLayout } from "settings_page_layout.slint";
+import { CacheState } from "cache_props.slint";
+import { GroupActionButton } from "button_group.slint";
+
+component CacheRow inherits Rectangle {
+    in property <string> title;
+    in property <string> description;
+    in property <string> size_text;
+    in property <string> detail_text;
+    callback clear_clicked();
+
+    background: Theme.secondary;
+    border-radius: Theme.borderRadiusMd;
+
+    HorizontalLayout {
+        padding: Theme.paddingMd;
+        spacing: Theme.spacingMd;
+        alignment: space-between;
+
+        VerticalLayout {
+            horizontal-stretch: 1;
+            spacing: Theme.spacingXs;
+            alignment: center;
+
+            HorizontalLayout {
+                spacing: Theme.spacingSm;
+                alignment: start;
+
+                Text {
+                    text: root.title;
+                    font-size: Theme.body;
+                    font-weight: 600;
+                    color: Theme.textPrimary;
+                    vertical-alignment: center;
+                }
+
+                Text {
+                    text: root.size_text;
+                    font-size: Theme.body;
+                    font-weight: 700;
+                    color: Theme.accent;
+                    vertical-alignment: center;
+                }
+            }
+
+            Text {
+                text: root.description;
+                font-size: Theme.caption;
+                color: Theme.textSecondary;
+                wrap: word-wrap;
+            }
+
+            if root.detail_text != "": Text {
+                text: root.detail_text;
+                font-size: Theme.extraSmall;
+                color: Theme.textSecondary;
+            }
+        }
+
+        VerticalLayout {
+            alignment: center;
+
+            GroupActionButton {
+                width: max(Theme.buttonMinWidth, self.preferred-width + Theme.spacingXl);
+                text: @tr("Clear");
+                is_destructive: true;
+                clicked => {
+                    root.clear_clicked();
+                }
+            }
+        }
+    }
+}
+
+export component CachePage inherits SettingsPageLayout {
+    title: @tr("Settings > Cache");
+
+    // Summary & bulk actions
+    Rectangle {
+        background: Theme.secondary;
+        border-radius: Theme.borderRadiusMd;
+
+        HorizontalLayout {
+            padding: Theme.paddingMd;
+            spacing: Theme.spacingMd;
+            alignment: space-between;
+
+            VerticalLayout {
+                horizontal-stretch: 1;
+                spacing: Theme.spacingXs;
+                alignment: center;
+
+                Text {
+                    text: @tr("Total Tracked & Orphan Cache");
+                    font-size: Theme.caption;
+                    color: Theme.textSecondary;
+                }
+
+                Text {
+                    text: CacheState.is_loading ? @tr("Scanning...") : CacheState.total_size_text;
+                    font-size: Theme.modelTitle;
+                    font-weight: 700;
+                    color: Theme.textPrimary;
+                }
+            }
+
+            HorizontalLayout {
+                spacing: Theme.spacingSm;
+                alignment: end;
+
+                VerticalLayout {
+                    alignment: center;
+
+                    GroupActionButton {
+                        width: max(Theme.buttonMinWidth, self.preferred-width + Theme.spacingXl);
+                        text: @tr("Refresh");
+                        is_neutral: true;
+                        clicked => {
+                            CacheState.refresh_cache();
+                        }
+                    }
+                }
+
+                if CacheState.orphan_caches.length > 0: VerticalLayout {
+                    alignment: center;
+
+                    GroupActionButton {
+                        width: max(Theme.buttonMinWidth, self.preferred-width + Theme.spacingXl);
+                        text: @tr("Clear Orphans");
+                        is_destructive: true;
+                        clicked => {
+                            CacheState.clear_all_orphans();
+                        }
+                    }
+                }
+
+                VerticalLayout {
+                    alignment: center;
+
+                    GroupActionButton {
+                        width: max(Theme.buttonMinWidth, self.preferred-width + Theme.spacingXl);
+                        text: @tr("Clear All");
+                        is_destructive: true;
+                        clicked => {
+                            CacheState.clear_all_cache();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // App Caches
+    Text {
+        text: @tr("Application Cache");
+        font-size: Theme.modelTitle;
+        font-weight: 700;
+        color: Theme.textPrimary;
+    }
+
+    for entry in CacheState.category_caches: CacheRow {
+        title: CacheState.category_title(entry.category);
+        description: CacheState.category_description(entry.category);
+        size_text: entry.size_text;
+        detail_text: @tr("{} files", entry.entry_count);
+        clear_clicked => {
+            CacheState.clear_cache_category(entry.category);
+        }
+    }
+
+    // Extension Caches
+    Text {
+        text: @tr("Extension Caches");
+        font-size: Theme.modelTitle;
+        font-weight: 700;
+        color: Theme.textPrimary;
+    }
+
+    if CacheState.extension_caches.length == 0: Text {
+        text: @tr("No installed extensions");
+        font-size: Theme.body;
+        color: Theme.textSecondary;
+    }
+
+    for entry in CacheState.extension_caches: CacheRow {
+        title: entry.display_name;
+        description: @tr("Package: {}", entry.package_name);
+        size_text: entry.size_text;
+        detail_text: @tr("Disk: {} | DB: {} ({} entries)", entry.disk_size_text, entry.db_size_text, entry.db_entries);
+        clear_clicked => {
+            CacheState.clear_extension_cache(entry.package_name);
+        }
+    }
+
+    // Orphan Cache Entries
+    Text {
+        text: @tr("Orphan Cache Entries");
+        font-size: Theme.modelTitle;
+        font-weight: 700;
+        color: Theme.textPrimary;
+    }
+
+    if CacheState.orphan_caches.length == 0: Text {
+        text: @tr("No orphan cache entries found");
+        font-size: Theme.body;
+        color: Theme.textSecondary;
+    }
+
+    for entry in CacheState.orphan_caches: CacheRow {
+        title: CacheState.orphan_title(entry.kind, entry.package_name);
+        description: CacheState.orphan_description(entry.kind, entry.package_name);
+        size_text: entry.size_text;
+        detail_text: @tr("{} entries", entry.entry_count);
+        clear_clicked => {
+            CacheState.clear_orphan_cache(entry.kind, entry.package_name);
+        }
+    }
+}

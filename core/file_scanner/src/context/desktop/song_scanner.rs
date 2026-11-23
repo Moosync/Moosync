@@ -3,6 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use cache::{CacheCategory, CacheManager};
 use lofty::{
     file::TaggedFile,
     prelude::{Accessor, AudioFile, ItemKey, TaggedFileExt},
@@ -85,10 +86,16 @@ pub(crate) async fn process_thumbnail(
     }
     let picture_data = data.to_vec();
     let target_path = path.to_path_buf();
+    let cache_dir = target_path
+        .parent()
+        .map(|p| p.to_path_buf())
+        .unwrap_or_default();
     tokio::task::spawn_blocking(move || {
-        ImageProcessor::new(&picture_data)
-            .resize(size)
-            .save(&target_path)
+        CacheManager::new(cache_dir)
+            .write_with(CacheCategory::Thumbnails, "app", &target_path, |target| {
+                ImageProcessor::new(&picture_data).resize(size).save(target)
+            })
+            .map_err(|err| ScannerError::Io(std::io::Error::other(err.to_string())))
     })
     .await
     .map_err(ScannerError::Join)?

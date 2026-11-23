@@ -41,6 +41,7 @@ rust_library(
     visibility = ["//visibility:public"],
     deps =
         [
+            "//core/cache",
             "//core/types/protos:extensions_rs",
             "//core/types/protos:preferences_rs",
             "//core/types/protos:songs_rs",

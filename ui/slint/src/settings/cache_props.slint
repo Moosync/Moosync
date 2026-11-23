@@ -1,0 +1,116 @@
+export enum CacheCategory {
+    ImageCache,
+    BlurredCover,
+    Thumbnails,
+    Wasmtime,
+}
+
+export enum OrphanCacheKind {
+    UntrackedDiskFile,
+    StaleDbRecord,
+    UninstalledExtensionDisk,
+    UninstalledExtensionDb,
+    ExpiredExtensionDb,
+    OrphanLyrics,
+}
+
+export struct CacheItem {
+    category: CacheCategory,
+    size_text: string,
+    entry_count: int,
+}
+
+export struct ExtensionCacheItem {
+    package_name: string,
+    display_name: string,
+    size_text: string,
+    disk_size_text: string,
+    db_size_text: string,
+    db_entries: int,
+}
+
+export struct OrphanCacheItem {
+    kind: OrphanCacheKind,
+    package_name: string,
+    size_text: string,
+    entry_count: int,
+}
+
+export global CacheState {
+    in-out property <string> total_size_text: "0 B";
+    in-out property <bool> is_loading: false;
+    in-out property <[CacheItem]> category_caches: [];
+    in-out property <[ExtensionCacheItem]> extension_caches: [];
+    in-out property <[OrphanCacheItem]> orphan_caches: [];
+
+    callback refresh_cache();
+    callback clear_cache_category(CacheCategory);
+    callback clear_extension_cache(string);
+    callback clear_orphan_cache(OrphanCacheKind, string);
+    callback clear_all_orphans();
+    callback clear_all_cache();
+
+    public pure function category_title(category: CacheCategory) -> string {
+        if (category == CacheCategory.ImageCache) {
+            return @tr("Image Cache");
+        }
+        if (category == CacheCategory.BlurredCover) {
+            return @tr("Blurred Queue Covers");
+        }
+        if (category == CacheCategory.Thumbnails) {
+            return @tr("Embedded Thumbnails");
+        }
+        return @tr("WASM Compilation Cache");
+    }
+
+    public pure function category_description(category: CacheCategory) -> string {
+        if (category == CacheCategory.ImageCache) {
+            return @tr("Downloaded remote album, artist, and playlist cover art");
+        }
+        if (category == CacheCategory.BlurredCover) {
+            return @tr("Blurred background cover images generated for the queue view");
+        }
+        if (category == CacheCategory.Thumbnails) {
+            return @tr("Extracted cover art thumbnails from local audio files");
+        }
+        return @tr("Compiled WebAssembly machine code cache for extensions");
+    }
+
+    public pure function orphan_title(kind: OrphanCacheKind, package_name: string) -> string {
+        if (kind == OrphanCacheKind.UntrackedDiskFile) {
+            return @tr("Untracked Cache Files");
+        }
+        if (kind == OrphanCacheKind.StaleDbRecord) {
+            return @tr("Stale Cache DB Records");
+        }
+        if (kind == OrphanCacheKind.UninstalledExtensionDisk) {
+            return @tr("Uninstalled Extension Disk ({})", package_name);
+        }
+        if (kind == OrphanCacheKind.UninstalledExtensionDb) {
+            return @tr("Uninstalled Extension DB ({})", package_name);
+        }
+        if (kind == OrphanCacheKind.ExpiredExtensionDb) {
+            return @tr("Expired Extension Cache Entries");
+        }
+        return @tr("Orphan Song Lyrics");
+    }
+
+    public pure function orphan_description(kind: OrphanCacheKind, package_name: string) -> string {
+        if (kind == OrphanCacheKind.UntrackedDiskFile) {
+            return @tr("Files on disk in image_cache or thumbnails not recorded in the cache database");
+        }
+        if (kind == OrphanCacheKind.StaleDbRecord) {
+            return @tr("Database entries referencing cache files that no longer exist on disk");
+        }
+        if (kind == OrphanCacheKind.UninstalledExtensionDisk) {
+            return @tr("Disk cache directory left behind by uninstalled extension {}", package_name);
+        }
+        if (kind == OrphanCacheKind.UninstalledExtensionDb) {
+            return @tr("Database cache entries left behind by uninstalled extension {}", package_name);
+        }
+        if (kind == OrphanCacheKind.ExpiredExtensionDb) {
+            return @tr("Extension database cache entries whose TTL has expired");
+        }
+        return @tr("Cached lyrics for songs no longer present in the library database");
+    }
+}

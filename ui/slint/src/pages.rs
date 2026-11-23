@@ -501,6 +501,13 @@ impl PageLifecycleManager {
                     state_manager,
                 )),
             ),
+            (
+                SettingsPages::Cache,
+                Box::new(settings::cache::CachePageHandler::new(
+                    main_window,
+                    state_manager,
+                )),
+            ),
         ]
     }
 

@@ -4,6 +4,7 @@ use std::{
     sync::LazyLock,
 };
 
+use cache::{CacheCategory, CacheManager};
 use extensions_proto::moosync::types::ExtensionDetail;
 use image::{DynamicImage, ImageFormat, load_from_memory, open};
 use slint::{Image, Rgba8Pixel, SharedPixelBuffer};
@@ -112,8 +113,15 @@ async fn save_images_to_disk(
     let high_save = high_path.clone();
 
     let save_result = spawn_blocking(move || {
-        let low_res = low_image.save_with_format(&low_save, ImageFormat::WebP);
-        let high_res = high_image.save_with_format(&high_save, ImageFormat::WebP);
+        let cache_manager = CacheManager::new(img_cache_dir);
+        let low_res =
+            cache_manager.write_with(CacheCategory::ImageCache, "app", &low_save, |target| {
+                low_image.save_with_format(target, ImageFormat::WebP)
+            });
+        let high_res =
+            cache_manager.write_with(CacheCategory::ImageCache, "app", &high_save, |target| {
+                high_image.save_with_format(target, ImageFormat::WebP)
+            });
         (low_res, high_res)
     })
     .await;
@@ -308,9 +316,17 @@ pub fn generate_blurred_cover_disk_cache(
     let path = Path::new(cover_path_high);
     if path.exists() {
         if let Ok(img) = open(path) {
-            if img
-                .fast_blur(5.0)
-                .save_with_format(&blurred_path, ImageFormat::WebP)
+            let cache_manager = CacheManager::new(cache_dir.to_path_buf());
+            if cache_manager
+                .write_with(
+                    CacheCategory::BlurredCover,
+                    "app",
+                    &blurred_path,
+                    |target| {
+                        img.fast_blur(5.0)
+                            .save_with_format(target, ImageFormat::WebP)
+                    },
+                )
                 .is_ok()
             {
                 return Some(blurred_path);

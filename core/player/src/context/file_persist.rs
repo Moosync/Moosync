@@ -32,6 +32,7 @@ impl PersistContext for FilePersist {
         let mut buf = Vec::with_capacity(player_data.encoded_len());
         player_data.encode(&mut buf).unwrap();
 
+        // instrument: ignore
         fs::write(&self.persist_path, &buf)?;
 
         Ok(())

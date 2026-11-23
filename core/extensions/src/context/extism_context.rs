@@ -10,6 +10,7 @@ use std::{
     thread,
 };
 
+use cache::{CacheCategory, CacheManager};
 use extensions_proto::moosync::types::{
     Error as MainCommandError, ExtensionCommand, ExtensionCommandResponse, MainCommand,
     MainCommandResponse, ManifestPermissions, main_command_response,
@@ -236,20 +237,23 @@ impl ExtismContext {
                 if !config_path.exists() {
                     let _ = fs::create_dir_all(config_path.parent().unwrap());
                 }
-                let _ = fs::write(
-                    &config_path,
-                    format!(
-                        r#"[cache]
+                let config_contents = format!(
+                    r#"[cache]
 directory = "{}"
 cleanup-interval = "30m"
 files-total-size-soft-limit = "1Gi"
 "#,
-                        config_path
-                            .parent()
-                            .unwrap()
-                            .join("cache")
-                            .to_string_lossy()
-                    ),
+                    config_path
+                        .parent()
+                        .unwrap()
+                        .join("cache")
+                        .to_string_lossy()
+                );
+                let _ = CacheManager::new(cache_path.to_path_buf()).write(
+                    CacheCategory::Wasmtime,
+                    "app",
+                    &config_path,
+                    config_contents.as_bytes(),
                 );
                 paths.insert(config_path.clone());
             }

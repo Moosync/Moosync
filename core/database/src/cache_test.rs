@@ -1,3 +1,5 @@
+use cache::{CacheBackend, DiskCacheFilter, DiskCacheRecord};
+use songs_proto::moosync::types::{LyricLine, Lyrics};
 use tempdir::TempDir;
 
 use crate::Database;
@@ -114,4 +116,83 @@ async fn test_cache_remove_extension() {
         db.get_extension_cache("ext.keep", "k1").await.unwrap(),
         Some(b"keep_v1".to_vec())
     );
+}
+
+#[tokio::test]
+async fn test_disk_cache_crud_and_filters() {
+    let (db, _tmp) = create_test_db().await;
+    let record_a = DiskCacheRecord {
+        path: "/tmp/a.webp".to_string(),
+        category: "image_cache".to_string(),
+        owner: "app".to_string(),
+        size: 100,
+        created_at: 10,
+        last_accessed: 10,
+    };
+    let record_b = DiskCacheRecord {
+        path: "/tmp/b.bin".to_string(),
+        category: "extension_disk".to_string(),
+        owner: "ext.a".to_string(),
+        size: 250,
+        created_at: 20,
+        last_accessed: 20,
+    };
+
+    db.upsert_disk_cache(record_a.clone()).await.unwrap();
+    db.upsert_disk_cache(record_b.clone()).await.unwrap();
+    let entries = db.get_disk_cache_entries().await.unwrap();
+    assert_eq!(entries.len(), 2);
+
+    db.remove_disk_cache(DiskCacheFilter::Owner("ext.a".to_string()))
+        .await
+        .unwrap();
+    let remaining = db.get_disk_cache_entries().await.unwrap();
+    assert_eq!(remaining.len(), 1);
+    assert_eq!(remaining[0].path, "/tmp/a.webp");
+}
+
+#[tokio::test]
+async fn test_extension_cache_stats_and_expired_cleanup() {
+    let (db, _tmp) = create_test_db().await;
+    db.set_extension_cache("ext.one", "fresh", b"1234", 3600)
+        .await
+        .unwrap();
+    db.set_extension_cache("ext.one", "stale", b"56789", 0)
+        .await
+        .unwrap();
+
+    let stats = db.get_extension_cache_stats().await.unwrap();
+    assert_eq!(stats.len(), 1);
+    assert_eq!(stats[0].package_name, "ext.one");
+    assert_eq!(stats[0].entry_count, 2);
+    assert_eq!(stats[0].expired_count, 1);
+
+    let cleared = db.clear_expired_extension_cache().await.unwrap();
+    assert_eq!(cleared, 1);
+    let after = db.get_extension_cache_stats().await.unwrap();
+    assert_eq!(after[0].entry_count, 1);
+    assert_eq!(after[0].expired_count, 0);
+}
+
+#[tokio::test]
+async fn test_orphan_lyrics_stats_and_clear() {
+    let (db, _tmp) = create_test_db().await;
+    let lyrics = Lyrics {
+        lines: vec![LyricLine {
+            text: "la la la".to_string(),
+            ..Default::default()
+        }],
+        ..Default::default()
+    };
+    db.update_lyrics("missing_song_id", &lyrics).await.unwrap();
+
+    let (count, bytes) = db.get_orphan_lyrics_stats().await.unwrap();
+    assert_eq!(count, 1);
+    assert!(bytes > 0);
+
+    let cleared = db.clear_orphan_lyrics().await.unwrap();
+    assert_eq!(cleared, 1);
+    let (after_count, after_bytes) = db.get_orphan_lyrics_stats().await.unwrap();
+    assert_eq!(after_count, 0);
+    assert_eq!(after_bytes, 0);
 }

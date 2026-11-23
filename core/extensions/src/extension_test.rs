@@ -987,3 +987,36 @@ async fn test_extension_get_lyrics_api() {
 
     assert!(fail_result.is_err());
 }
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_extension_player_data_timer_advances_and_pauses() {
+    let data = crate::extension::ExtensionPlayerData::new("test.player");
+
+    data.set_playing();
+    std::thread::sleep(std::time::Duration::from_millis(30));
+    let pos_while_playing = data.current_position();
+    data.set_paused(extensions_proto::moosync::types::PlayerState::Paused);
+    let pos_on_pause = data.current_position();
+    std::thread::sleep(std::time::Duration::from_millis(30));
+    let pos_after_pause = data.current_position();
+
+    assert!(pos_while_playing >= std::time::Duration::from_millis(20));
+    assert!(pos_on_pause >= pos_while_playing);
+    assert_eq!(pos_on_pause, pos_after_pause);
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_extension_player_data_set_position_updates_base() {
+    let data = crate::extension::ExtensionPlayerData::new("test.player");
+    data.set_playing();
+
+    data.set_position(std::time::Duration::from_secs(42));
+    let pos = data.current_position();
+
+    assert!(pos >= std::time::Duration::from_secs(42));
+    assert!(pos < std::time::Duration::from_secs(43));
+}

@@ -21,12 +21,15 @@ use crate::{
     utils::autostart::update_auto_startup,
 };
 
+pub mod cache;
 pub mod extensions;
 pub mod paths;
 pub mod system;
 pub mod themes;
 pub mod utils;
 
+#[cfg(test)]
+mod cache_test;
 #[cfg(test)]
 mod extensions_test;
 #[cfg(test)]

@@ -94,6 +94,14 @@ import { AppProps } from "app_props.slint";
 import { QueuePageProps } from "main_content/queue_props.slint";
 import { TopBarProps } from "topbar/top_bar_props.slint";
 import { SettingsState } from "settings/settings_props.slint";
+import {
+    CacheCategory,
+    CacheItem,
+    CacheState,
+    ExtensionCacheItem,
+    OrphanCacheItem,
+    OrphanCacheKind,
+} from "settings/cache_props.slint";
 import { SavePlaylistState } from "common/save_playlist_modal_props.slint";
 import { SaveThemeState } from "common/save_theme_modal_props.slint";
 import { OAuthState, MarkdownPart } from "common/oauth_modal_props.slint";
@@ -118,6 +126,12 @@ export {
     AppProps,
     TopBarProps,
     SettingsState,
+    CacheState,
+    CacheCategory,
+    OrphanCacheKind,
+    CacheItem,
+    ExtensionCacheItem,
+    OrphanCacheItem,
     ThemesPageProps,
     ExtensionsPageProps,
     ExtensionsPreferenceProps,

@@ -671,3 +671,43 @@ async fn test_url_resolution_rule_4_fallback_player_provider() {
 
     assert_ok!(result);
 }
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_mux_player_forwards_non_ended_events() {
+    let mux = MuxPlayer::new_with_contexts(
+        SubscriberList::new(),
+        vec![Arc::new(DummyAudioPlayerContext::new())],
+    );
+    let received = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let received_clone = Arc::clone(&received);
+    mux.on_player_event.listen(move |event| {
+        if let Some(ev) = event.event {
+            received_clone.lock().unwrap().push(ev);
+        }
+    });
+    let tx = mux.create_new_events_tx();
+
+    tx.send(extensions_proto::moosync::types::player_event::Event::Pause(true))
+        .unwrap();
+    tx.send(
+        extensions_proto::moosync::types::player_event::Event::TimeUpdate(
+            types::prelude::core_to_proto_duration(Duration::from_secs(12)),
+        ),
+    )
+    .unwrap();
+    tokio::time::sleep(Duration::from_millis(20)).await;
+
+    let events = received.lock().unwrap();
+    assert_eq!(events.len(), 2);
+    assert!(matches!(
+        events[0],
+        extensions_proto::moosync::types::player_event::Event::Pause(true)
+    ));
+    assert!(matches!(
+        events[1],
+        extensions_proto::moosync::types::player_event::Event::TimeUpdate(_)
+    ));
+}

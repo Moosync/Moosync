@@ -93,18 +93,24 @@ impl PlayerHandler {
         if player_data.current_idx as usize >= player_data.song_queue.len() {
             player_data.current_idx = 0;
         }
-        let on_ended_list = SubscriberList::new();
-        on_ended_list.listen(move |()| {
-            let _ = ended_tx.send(());
+        let player = MuxPlayer::new_with_contexts(SubscriberList::new(), contexts);
+        let on_player_event = SubscriberList::new();
+        let on_player_event_clone = on_player_event.clone();
+        player.on_player_event.listen(move |event| {
+            if let Some(Event::Ended(_)) = event.event {
+                let _ = ended_tx.send(());
+                return;
+            }
+            on_player_event_clone.emit(event);
         });
         PlayerHandler {
             player_data: Arc::new(RwLock::new(player_data)),
-            player: MuxPlayer::new_with_contexts(on_ended_list, contexts),
+            player,
             persist_context: Arc::new(persist_context),
             on_song_changed: SubscriberList::new(),
             on_queue_updated: SubscriberList::new(),
             on_repeat_changed: SubscriberList::new(),
-            on_player_event: SubscriberList::new(),
+            on_player_event,
             on_volume_changed: SubscriberList::new(),
             on_seeked: SubscriberList::new(),
         }

@@ -1,5 +1,7 @@
 use std::{fmt::Debug, fs, path::PathBuf, sync::Arc};
 
+use async_trait::async_trait;
+use cache::{CacheBackend, CacheError, DiskCacheFilter, DiskCacheRecord, ExtensionCacheStats};
 use songs_proto::moosync::types::{
     Album, AllAnalytics, Artist, Genre, GetSongOptions, InnerSong, Lyrics, Playlist, SearchResult,
     Song,
@@ -376,6 +378,81 @@ impl Database {
     #[tracing::instrument(level = "debug", skip_all)]
     pub async fn remove_extension_cache(&self, package_name: &str) -> Result<(), DatabaseError> {
         self.cache.remove_extension_cache(package_name).await
+    }
+}
+
+#[async_trait]
+impl CacheBackend for Database {
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn upsert_disk_cache(&self, entry: DiskCacheRecord) -> Result<(), CacheError> {
+        self.cache
+            .upsert_disk_cache(entry)
+            .await
+            .map_err(|err| CacheError::Database(err.to_string()))
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn remove_disk_cache(&self, filter: DiskCacheFilter) -> Result<(), CacheError> {
+        self.cache
+            .remove_disk_cache(filter)
+            .await
+            .map_err(|err| CacheError::Database(err.to_string()))
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn get_disk_cache_entries(&self) -> Result<Vec<DiskCacheRecord>, CacheError> {
+        self.cache
+            .get_disk_cache_entries()
+            .await
+            .map_err(|err| CacheError::Database(err.to_string()))
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn get_extension_cache_stats(&self) -> Result<Vec<ExtensionCacheStats>, CacheError> {
+        self.cache
+            .get_extension_cache_stats()
+            .await
+            .map_err(|err| CacheError::Database(err.to_string()))
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn remove_extension_cache(&self, package_name: &str) -> Result<(), CacheError> {
+        self.cache
+            .remove_extension_cache(package_name)
+            .await
+            .map_err(|err| CacheError::Database(err.to_string()))
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn clear_expired_extension_cache(&self) -> Result<u64, CacheError> {
+        self.cache
+            .clear_expired_extension_cache()
+            .await
+            .map_err(|err| CacheError::Database(err.to_string()))
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn clear_all_extension_cache(&self) -> Result<(), CacheError> {
+        self.cache
+            .clear_all_extension_cache()
+            .await
+            .map_err(|err| CacheError::Database(err.to_string()))
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn get_orphan_lyrics_stats(&self) -> Result<(u64, u64), CacheError> {
+        self.cache
+            .get_orphan_lyrics_stats()
+            .await
+            .map_err(|err| CacheError::Database(err.to_string()))
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn clear_orphan_lyrics(&self) -> Result<u64, CacheError> {
+        self.cache
+            .clear_orphan_lyrics()
+            .await
+            .map_err(|err| CacheError::Database(err.to_string()))
     }
 }
 

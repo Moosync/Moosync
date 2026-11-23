@@ -7,6 +7,7 @@ import { PathsPageMobile } from "paths_mobile.slint";
 import { SystemPageMobile } from "system_mobile.slint";
 import { ExtensionsPageMobile } from "extensions_mobile.slint";
 import { ThemesPageMobile } from "themes_mobile.slint";
+import { CachePageMobile } from "cache_mobile.slint";
 import { AppCallbacks } from "../callbacks.slint";
 import { SaveThemeModalMobile } from "../common/save_theme_modal_mobile.slint";
 import { SaveThemeState } from "../common/save_theme_modal_props.slint";
@@ -91,7 +92,8 @@ export component SettingsMobile inherits Rectangle {
                     text: root.active_page == SettingsPages.Paths ? @tr("Paths") :
                         root.active_page == SettingsPages.System ? @tr("System") :
                         root.active_page == SettingsPages.Extensions ? @tr("Extensions") :
-                        @tr("Themes");
+                        root.active_page == SettingsPages.Themes ? @tr("Themes") :
+                        @tr("Cache");
                     font-size: Theme.modelTitle;
                     font-weight: 700;
                     color: Theme.textPrimary;
@@ -132,6 +134,13 @@ export component SettingsMobile inherits Rectangle {
                 page-type: SettingsPages.Themes;
 
                 ThemesPageMobile { }
+            }
+
+            SettingsPageWrapperMobile {
+                active-page <=> root.active_page;
+                page-type: SettingsPages.Cache;
+
+                CachePageMobile { }
             }
         }
 
@@ -190,6 +199,16 @@ export component SettingsMobile inherits Rectangle {
                     active: root.active_page == SettingsPages.Themes;
                     clicked => {
                         root.active_page = SettingsPages.Themes;
+                    }
+                }
+
+                SidebarButtonMobile {
+                    text: @tr("Cache");
+                    icon: @image-url("../icons/info.svg");
+                    accessible-label: @tr("Cache Settings");
+                    active: root.active_page == SettingsPages.Cache;
+                    clicked => {
+                        root.active_page = SettingsPages.Cache;
                     }
                 }
             }

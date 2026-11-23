@@ -50,6 +50,7 @@ rust_library(
     ],
     crate_root = "src/lib.rs",
     proc_macro_deps = [
+        "@crates//:async-trait",
         "//core/plugin_macro",
     ],
     rustc_env = select({
@@ -59,6 +60,7 @@ rust_library(
     visibility = ["//visibility:public"],
     deps = [
         ":build_script",
+        "//core/cache",
         "//core/types",
         "//core/types/protos:songs_rs",
         "@crates//:prost",

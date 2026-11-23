@@ -37,6 +37,7 @@ use moosync_edk::{
         SongRemovedRequest, SystemTimeRequest, UnregisterUserPreferenceRequest,
         VolumeChangedRequest, requested_cover_art_request,
     },
+    websocket::WebSocketClient,
 };
 
 static LOGGED_IN: AtomicBool = AtomicBool::new(false);
@@ -389,6 +390,19 @@ impl Provider for SampleExtension {
             if let Ok(client) = SocketClient::connect("/tmp/test.sock") {
                 let _ = client.write(&[1, 2, 3]);
                 let _ = client.read(3);
+            }
+        }
+
+        if request_id == "ws_test" {
+            if let Ok(client) = WebSocketClient::connect("wss://api.example.com/ws") {
+                client.on_message(|msg| {
+                    info!("ws_test message: {:?}", msg);
+                });
+                client.on_close(|ev| {
+                    info!("ws_test closed: {:?}", ev);
+                });
+                let _ = client.send_text("hello");
+                let _ = client.close(None, None);
             }
         }
 

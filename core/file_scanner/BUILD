@@ -27,6 +27,7 @@ rust_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "//core/cache",
         "//core/types",
         "//core/types/protos:android_scanner_rs",
         "//core/types/protos:songs_rs",

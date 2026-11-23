@@ -19,7 +19,7 @@ async fn test_run_migrations_creates_schema_and_is_idempotent() {
         .fetch_one(&pool)
         .await
         .unwrap();
-    assert_eq!(migration_count, 1);
+    assert_eq!(migration_count, 2);
 
     let tables: Vec<String> =
         sqlx::query_scalar("SELECT name FROM sqlite_master WHERE type='table'")
@@ -31,6 +31,7 @@ async fn test_run_migrations_creates_schema_and_is_idempotent() {
         "allsongs",
         "song_lyrics",
         "albums",
+        "disk_cache",
         "artists",
         "genres",
         "playlists",
@@ -52,5 +53,5 @@ async fn test_run_migrations_creates_schema_and_is_idempotent() {
             .fetch_one(&pool)
             .await
             .unwrap();
-    assert_eq!(migration_count_second_run, 1);
+    assert_eq!(migration_count_second_run, 2);
 }

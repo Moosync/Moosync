@@ -7,11 +7,11 @@ use std::{
 };
 
 use extensions_proto::moosync::types::{
-    PlayerState,
+    PlayerEvent as ProtoPlayerEvent, PlayerState,
     player_event::Event::{self as PlayerEvent, Ended},
 };
 use songs_proto::moosync::types::Song;
-use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 use tracing::Instrument;
 use types::subscription::SubscriberList;
 
@@ -26,10 +26,30 @@ pub struct MuxPlayer {
     active_idx: AtomicUsize,
     events_tx: RwLock<UnboundedSender<PlayerEvent>>,
     pub on_ended_callback: SubscriberList<()>,
+    pub on_player_event: SubscriberList<ProtoPlayerEvent>,
     source_resolver: Arc<SourceResolverHolder>,
 }
 
 impl MuxPlayer {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn spawn_events_listener(
+        mut events_rx: UnboundedReceiver<PlayerEvent>,
+        on_ended_callback: SubscriberList<()>,
+        on_player_event: SubscriberList<ProtoPlayerEvent>,
+    ) {
+        tokio::spawn(
+            async move {
+                while let Some(event) = events_rx.recv().await {
+                    if let Ended(_) = event {
+                        on_ended_callback.emit(());
+                    }
+                    on_player_event.emit(ProtoPlayerEvent { event: Some(event) });
+                }
+            }
+            .in_current_span(),
+        );
+    }
+
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn new_with_contexts(
         on_ended_callback: SubscriberList<()>,
@@ -39,17 +59,12 @@ impl MuxPlayer {
             !players.is_empty(),
             "MuxPlayer requires at least one player"
         );
-        let (events_tx, mut events_rx) = unbounded_channel();
-        let callback_clone = on_ended_callback.clone();
-        tokio::spawn(
-            async move {
-                while let Some(event) = events_rx.recv().await {
-                    if let Ended(_) = event {
-                        callback_clone.emit(());
-                    }
-                }
-            }
-            .in_current_span(),
+        let (events_tx, events_rx) = unbounded_channel();
+        let on_player_event = SubscriberList::new();
+        Self::spawn_events_listener(
+            events_rx,
+            on_ended_callback.clone(),
+            on_player_event.clone(),
         );
 
         Self {
@@ -57,6 +72,7 @@ impl MuxPlayer {
             active_idx: AtomicUsize::new(0),
             events_tx: RwLock::new(events_tx),
             on_ended_callback,
+            on_player_event,
             source_resolver: Arc::new(SourceResolverHolder::new()),
         }
     }
@@ -130,17 +146,11 @@ impl MuxPlayer {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub(crate) fn create_new_events_tx(&self) -> UnboundedSender<PlayerEvent> {
-        let (events_tx, mut events_rx) = unbounded_channel();
-        let callback_clone = self.on_ended_callback.clone();
-        tokio::spawn(
-            async move {
-                while let Some(event) = events_rx.recv().await {
-                    if let Ended(_) = event {
-                        callback_clone.emit(());
-                    }
-                }
-            }
-            .in_current_span(),
+        let (events_tx, events_rx) = unbounded_channel();
+        Self::spawn_events_listener(
+            events_rx,
+            self.on_ended_callback.clone(),
+            self.on_player_event.clone(),
         );
         *self.events_tx.write().unwrap() = events_tx.clone();
         events_tx

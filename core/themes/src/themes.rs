@@ -56,6 +56,7 @@ impl ThemeHolder {
             fs::create_dir_all(&theme_path).map_err(ThemesError::Io)?;
         }
         let theme_config = theme_path.join("config.pb");
+        // instrument: ignore
         fs::write(theme_config, theme.encode_to_vec()).map_err(ThemesError::Io)?;
 
         self.on_theme_changed.emit(theme);
@@ -160,6 +161,7 @@ impl ThemeHolder {
         }
 
         let config_path = theme_dir.clone().join("config.pb");
+        // instrument: ignore
         fs::write(config_path.clone(), theme.encode_to_vec()).map_err(ThemesError::Io)?;
 
         zip_create_from_directory(&export_path, &theme_dir)
@@ -191,7 +193,11 @@ impl ThemeHolder {
 
         tracing::info!("Wrote file");
 
-        self.import_theme(file_path.to_string_lossy().to_string())?;
+        let res = self.import_theme(file_path.to_string_lossy().to_string());
+        if file_path.exists() {
+            let _ = fs::remove_file(&file_path);
+        }
+        res?;
 
         Ok(())
     }

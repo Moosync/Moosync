@@ -75,6 +75,10 @@ async fn test_ws_connect_send_and_pushed_receive() {
         let message = server_ws.next().await.unwrap().unwrap();
         assert_eq!(message.to_text().unwrap(), "ping");
         server_ws.send(Message::Text("pong".into())).await.unwrap();
+        server_ws
+            .send(Message::Binary(vec![1, 2, 3].into()))
+            .await
+            .unwrap();
         server_ws.flush().await.unwrap();
         let _ = server_ws.next().await;
     });
@@ -95,7 +99,11 @@ async fn test_ws_connect_send_and_pushed_receive() {
         })
         .await
         .unwrap();
-    let pushed = timeout(Duration::from_secs(2), rx.recv())
+    let pushed_text = timeout(Duration::from_secs(2), rx.recv())
+        .await
+        .unwrap()
+        .unwrap();
+    let pushed_binary = timeout(Duration::from_secs(2), rx.recv())
         .await
         .unwrap()
         .unwrap();
@@ -111,11 +119,21 @@ async fn test_ws_connect_send_and_pushed_receive() {
 
     assert!(send_res.success);
     assert!(close_res.success);
-    match pushed.event {
+    match pushed_text.event {
         Some(extension_command::Event::WsEvent(req)) => {
             assert_eq!(req.connection_id, connect_res.connection_id);
             match req.event {
                 Some(ws_event_request::Event::Text(text)) => assert_eq!(text, "pong"),
+                other => panic!("Unexpected ws_event: {:?}", other),
+            }
+        }
+        other => panic!("Unexpected command: {:?}", other),
+    }
+    match pushed_binary.event {
+        Some(extension_command::Event::WsEvent(req)) => {
+            assert_eq!(req.connection_id, connect_res.connection_id);
+            match req.event {
+                Some(ws_event_request::Event::Binary(bin)) => assert_eq!(bin, vec![1, 2, 3]),
                 other => panic!("Unexpected ws_event: {:?}", other),
             }
         }
@@ -216,6 +234,61 @@ async fn test_ws_server_close_pushes_closed_event() {
                 other => panic!("Unexpected ws_event: {:?}", other),
             }
         }
+        other => panic!("Unexpected command: {:?}", other),
+    }
+}
+
+#[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_ws_ping_pong_handled_transparently() {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let server_handle = tokio::spawn(async move {
+        let (stream, _) = listener.accept().await.unwrap();
+        let mut server_ws = accept_async(stream).await.unwrap();
+        server_ws
+            .send(Message::Ping(vec![9, 8, 7].into()))
+            .await
+            .unwrap();
+        server_ws.flush().await.unwrap();
+        let pong = server_ws.next().await.unwrap().unwrap();
+        assert_eq!(pong, Message::Pong(vec![9, 8, 7].into()));
+        server_ws
+            .send(Message::Text("after-pong".into()))
+            .await
+            .unwrap();
+        server_ws.flush().await.unwrap();
+        let _ = server_ws.next().await;
+    });
+    let (manager, mut rx) = create_test_manager();
+
+    let connect_res = manager
+        .ws_connect(WsConnectRequest {
+            url: format!("ws://127.0.0.1:{}/ping", port),
+            protocols: vec![],
+            headers: HashMap::new(),
+        })
+        .await
+        .unwrap();
+    let pushed = timeout(Duration::from_secs(2), rx.recv())
+        .await
+        .unwrap()
+        .unwrap();
+    let _ = manager
+        .ws_close(WsCloseRequest {
+            connection_id: connect_res.connection_id,
+            code: Some(1000),
+            reason: None,
+        })
+        .await
+        .unwrap();
+    server_handle.await.unwrap();
+
+    match pushed.event {
+        Some(extension_command::Event::WsEvent(req)) => match req.event {
+            Some(ws_event_request::Event::Text(text)) => assert_eq!(text, "after-pong"),
+            other => panic!("Unexpected ws_event: {:?}", other),
+        },
         other => panic!("Unexpected command: {:?}", other),
     }
 }

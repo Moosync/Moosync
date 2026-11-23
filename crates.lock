@@ -3,7 +3,7 @@
     "protoc-gen-prost 0.5.0",
     "slint-lsp 1.19.0"
   ],
-  "checksum": "42cdf65192f8c3a642b185d215d558d5b947c4248ecbc68b8f154bfab813946a",
+  "checksum": "9460c165fcf84c1f596b5d01311d494a22bce7754b625c0d2e59fc519274ad33",
   "conditions": {
     "aarch64-apple-darwin": [
       "aarch64-apple-darwin"
@@ -17051,6 +17051,41 @@
       ],
       "version": "1.0.3"
     },
+    "humansize 2.1.3": {
+      "common_attrs": {
+        "deps": [
+          {
+            "id": "libm 0.2.16",
+            "target": "libm"
+          }
+        ],
+        "edition": "2021"
+      },
+      "library_target_name": "humansize",
+      "license": "MIT/Apache-2.0",
+      "license_file": "LICENSE-APACHE",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "name": "humansize",
+      "package_url": "https://github.com/LeopoldArkham/humansize",
+      "repository": {
+        "Http": {
+          "sha256": "6cb51c9a029ddc91b07a787f1d86b53ccfa49b0e86688c946ebe8d3555685dd7",
+          "url": "https://static.crates.io/crates/humansize/2.1.3/download"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "humansize",
+            "crate_root": "src/lib.rs"
+          }
+        }
+      ],
+      "version": "2.1.3"
+    },
     "hybrid-array 0.4.15": {
       "common_attrs": {
         "deps": [
@@ -25659,6 +25694,10 @@
           {
             "id": "hex 0.4.3",
             "target": "hex"
+          },
+          {
+            "id": "humansize 2.1.3",
+            "target": "humansize"
           },
           {
             "id": "i-slint-backend-testing 1.19.0",
@@ -58055,6 +58094,7 @@
     "futures-util 0.3.34",
     "glob 0.3.4",
     "hex 0.4.3",
+    "humansize 2.1.3",
     "i-slint-backend-testing 1.19.0",
     "i-slint-compiler 1.19.0",
     "image 0.25.10",

@@ -121,6 +121,9 @@ async fn test_ui_get_all_pages_and_setup(
         .invoke_settings_active_page_changed(SettingsPages::Themes);
     main_window
         .global::<AppCallbacks>()
+        .invoke_settings_active_page_changed(SettingsPages::Cache);
+    main_window
+        .global::<AppCallbacks>()
         .invoke_settings_toggled(false);
 
     main_window
@@ -185,7 +188,7 @@ async fn test_ui_get_all_pages_and_setup(
         );
 
     assert_eq!(main_pages.len(), 11);
-    assert_eq!(settings_pages.len(), 4);
+    assert_eq!(settings_pages.len(), 5);
 }
 
 #[rstest]

@@ -52,6 +52,7 @@ rust_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "//core/cache",
         "//core/types",
         "//core/database",
         "//core/extensions",

@@ -6,7 +6,7 @@ use std::{
         Arc, Mutex, OnceLock, RwLock,
         atomic::{AtomicU8, Ordering},
     },
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use async_trait::async_trait;
@@ -41,7 +41,7 @@ use preferences_proto::moosync::types::PreferenceItem;
 use prost::Message;
 use tokio::sync::{mpsc::UnboundedSender, watch};
 use types::{
-    player::{AudioPlayerContext, PlayerError, PlayerEventExt, ValidSrc},
+    player::{AudioPlayerContext, PlayerError, ValidSrc},
     prelude::{ScopeListExt, core_to_proto_duration},
 };
 
@@ -100,6 +100,7 @@ pub(crate) struct ExtensionPlayerData {
     pub(crate) player_id: String,
     pub(crate) state: Arc<RwLock<PlayerState>>,
     pub(crate) current_pos: Arc<RwLock<Duration>>,
+    pub(crate) pos_updated_at: Arc<RwLock<Option<Instant>>>,
     pub(crate) volume: Arc<AtomicU8>,
     pub(crate) events_tx: Arc<RwLock<Option<UnboundedSender<PlayerEvent>>>>,
 }
@@ -111,9 +112,52 @@ impl ExtensionPlayerData {
             player_id: format!("extension:{package_name}"),
             state: Arc::new(RwLock::new(PlayerState::Stopped)),
             current_pos: Arc::new(RwLock::new(Duration::default())),
+            pos_updated_at: Arc::new(RwLock::new(None)),
             volume: Arc::new(AtomicU8::new(100)),
             events_tx: Arc::new(RwLock::new(None)),
         }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub(crate) fn current_position(&self) -> Duration {
+        let base = *self.current_pos.read().unwrap();
+        let elapsed = self
+            .pos_updated_at
+            .read()
+            .unwrap()
+            .map(|since| since.elapsed())
+            .unwrap_or_default();
+        base + elapsed
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub(crate) fn set_playing(&self) {
+        *self.state.write().unwrap() = PlayerState::Playing;
+        let mut updated_at = self.pos_updated_at.write().unwrap();
+        if updated_at.is_none() {
+            *updated_at = Some(Instant::now());
+        }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub(crate) fn set_paused(&self, next_state: PlayerState) {
+        let elapsed = self
+            .pos_updated_at
+            .write()
+            .unwrap()
+            .take()
+            .map(|since| since.elapsed());
+        if let Some(delta) = elapsed {
+            *self.current_pos.write().unwrap() += delta;
+        }
+        *self.state.write().unwrap() = next_state;
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub(crate) fn set_position(&self, pos: Duration) {
+        *self.current_pos.write().unwrap() = pos;
+        let is_playing = *self.state.read().unwrap() == PlayerState::Playing;
+        *self.pos_updated_at.write().unwrap() = is_playing.then(Instant::now);
     }
 }
 
@@ -518,12 +562,19 @@ impl Extension {
     ) -> Result<NotifyPlayerEventResponse, ExtensionError> {
         if let Some(player_event) = req.event {
             if let Some(event) = &player_event.event {
-                if let Some(state) = event.to_player_state() {
-                    *self.player_data.state.write().unwrap() = state;
-                }
-                if let PlayerEvent::TimeUpdate(pos) = event {
-                    *self.player_data.current_pos.write().unwrap() =
-                        Duration::new(pos.seconds.max(0) as u64, pos.nanos.max(0) as u32);
+                match event {
+                    PlayerEvent::Play(_) => self.player_data.set_playing(),
+                    PlayerEvent::Pause(_) => self.player_data.set_paused(PlayerState::Paused),
+                    PlayerEvent::Ended(_) | PlayerEvent::Error(_) => {
+                        self.player_data.set_paused(PlayerState::Stopped);
+                    }
+                    PlayerEvent::TimeUpdate(pos) => {
+                        let dur = Duration::new(pos.seconds.max(0) as u64, pos.nanos.max(0) as u32);
+                        self.player_data.set_position(dur);
+                    }
+                    PlayerEvent::Loading(_) => {
+                        self.player_data.set_paused(PlayerState::Loading);
+                    }
                 }
             }
             if let (Some(tx), Some(event)) = (
@@ -614,7 +665,7 @@ impl AudioPlayerContext for Extension {
         self.player_play(PlayerPlayRequest {})
             .await
             .map_err(|e| PlayerError::Custom(e.to_string()))?;
-        *self.player_data.state.write().unwrap() = PlayerState::Playing;
+        self.player_data.set_playing();
         Ok(())
     }
 
@@ -623,7 +674,7 @@ impl AudioPlayerContext for Extension {
         self.player_pause(PlayerPauseRequest {})
             .await
             .map_err(|e| PlayerError::Custom(e.to_string()))?;
-        *self.player_data.state.write().unwrap() = PlayerState::Paused;
+        self.player_data.set_paused(PlayerState::Paused);
         Ok(())
     }
 
@@ -632,7 +683,8 @@ impl AudioPlayerContext for Extension {
         self.player_stop(PlayerStopRequest {})
             .await
             .map_err(|e| PlayerError::Custom(e.to_string()))?;
-        *self.player_data.state.write().unwrap() = PlayerState::Stopped;
+        self.player_data.set_paused(PlayerState::Stopped);
+        self.player_data.set_position(Duration::ZERO);
         Ok(())
     }
 
@@ -659,13 +711,13 @@ impl AudioPlayerContext for Extension {
         })
         .await
         .map_err(|e| PlayerError::Custom(e.to_string()))?;
-        *self.player_data.current_pos.write().unwrap() = pos;
+        self.player_data.set_position(pos);
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_current_pos(&self) -> Result<Duration, PlayerError> {
-        Ok(*self.player_data.current_pos.read().unwrap())
+        Ok(self.player_data.current_position())
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -704,7 +756,8 @@ impl AudioPlayerContext for Extension {
         events_tx: UnboundedSender<PlayerEvent>,
     ) -> Result<(), PlayerError> {
         *self.player_data.events_tx.write().unwrap() = Some(events_tx);
-        *self.player_data.current_pos.write().unwrap() = Duration::ZERO;
+        self.player_data.set_paused(PlayerState::Paused);
+        self.player_data.set_position(Duration::ZERO);
 
         self.player_load_track(PlayerLoadTrackRequest {
             src: src.inner().to_string(),
@@ -713,7 +766,6 @@ impl AudioPlayerContext for Extension {
         .await
         .map_err(|e| PlayerError::Custom(e.to_string()))?;
 
-        *self.player_data.state.write().unwrap() = PlayerState::Playing;
         Ok(())
     }
 }

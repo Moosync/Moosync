@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use database::Database;
 use tokio::runtime::Handle;
 #[cfg(target_os = "android")]
 use types::android::AndroidJNIContext;
@@ -110,6 +111,7 @@ impl StateManager {
     pub fn new_with_context(context: PluginContext) -> Result<Self, StateManagerError> {
         let mut plugins = PluginRegistry::new();
         init_all_plugins(&mut plugins, &context);
+        cache::set_backend(plugins.get::<Database>());
 
         let interceptors = Interceptors::default();
         let runtime = Handle::current();

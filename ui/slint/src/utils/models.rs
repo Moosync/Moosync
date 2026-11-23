@@ -1,10 +1,15 @@
 use std::{path::Path, time::Duration};
 
+use cache::{
+    AppCacheEntry, CacheCategory as CoreCacheCategory, ExtensionCacheEntry, OrphanCacheEntry,
+    OrphanCacheKind as CoreOrphanKind,
+};
 use extensions::resolve_env_vars;
 use extensions_proto::moosync::types::{
     BinaryPermission, ExtensionAccountDetail, ExtensionDetail, ExtensionManifest,
     ExtensionProviderScope, HostPermission, ManifestPermissions, PathPermission, ScopePermission,
 };
+use humansize::{BINARY, format_size};
 use slint::{Color, Image, Model, ModelRc, SharedString, VecModel};
 use songs_proto::moosync::types::{
     Album, Artist, Genre, InnerSong, Playlist, SearchResult as ProtoSearchResult, Song,
@@ -13,8 +18,9 @@ use types::prelude::{SongsExt, core_to_proto_duration};
 
 use super::{lazy_model::LazySongVecModel, load_image, parse_color, resolve_extension_icon};
 use crate::{
-    AccountItem, AlbumModel, ArtistModel, ExtensionBinaryPermission, ExtensionHostPermission,
-    ExtensionItem, ExtensionPathPermission, ExtensionScopePermission, GenreModel, PlaylistModel,
+    AccountItem, AlbumModel, ArtistModel, CacheCategory, CacheItem, ExtensionBinaryPermission,
+    ExtensionCacheItem, ExtensionHostPermission, ExtensionItem, ExtensionPathPermission,
+    ExtensionScopePermission, GenreModel, OrphanCacheItem, OrphanCacheKind, PlaylistModel,
     ProviderScope, SearchResult, SongModel, Theme,
 };
 
@@ -696,6 +702,104 @@ impl From<ExtensionAccountDetail> for AccountItem {
             icon,
             logged_in: detail.logged_in,
             username: detail.username.unwrap_or_default().into(),
+        }
+    }
+}
+
+impl From<CoreCacheCategory> for CacheCategory {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn from(category: CoreCacheCategory) -> Self {
+        match category {
+            CoreCacheCategory::ImageCache => Self::ImageCache,
+            CoreCacheCategory::BlurredCover => Self::BlurredCover,
+            CoreCacheCategory::Thumbnails => Self::Thumbnails,
+            CoreCacheCategory::Wasmtime | CoreCacheCategory::ExtensionDisk => Self::Wasmtime,
+        }
+    }
+}
+
+impl From<CacheCategory> for CoreCacheCategory {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn from(category: CacheCategory) -> Self {
+        match category {
+            CacheCategory::ImageCache => Self::ImageCache,
+            CacheCategory::BlurredCover => Self::BlurredCover,
+            CacheCategory::Thumbnails => Self::Thumbnails,
+            CacheCategory::Wasmtime => Self::Wasmtime,
+        }
+    }
+}
+
+pub(crate) struct OrphanCacheTarget(pub OrphanCacheKind, pub String);
+
+impl From<&CoreOrphanKind> for OrphanCacheKind {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn from(kind: &CoreOrphanKind) -> Self {
+        match kind {
+            CoreOrphanKind::UntrackedDiskFile => Self::UntrackedDiskFile,
+            CoreOrphanKind::StaleDbRecord => Self::StaleDbRecord,
+            CoreOrphanKind::UninstalledExtensionDisk(_) => Self::UninstalledExtensionDisk,
+            CoreOrphanKind::UninstalledExtensionDb(_) => Self::UninstalledExtensionDb,
+            CoreOrphanKind::ExpiredExtensionDb => Self::ExpiredExtensionDb,
+            CoreOrphanKind::OrphanLyrics => Self::OrphanLyrics,
+        }
+    }
+}
+
+impl From<OrphanCacheTarget> for CoreOrphanKind {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn from(OrphanCacheTarget(kind, package_name): OrphanCacheTarget) -> Self {
+        match kind {
+            OrphanCacheKind::UntrackedDiskFile => Self::UntrackedDiskFile,
+            OrphanCacheKind::StaleDbRecord => Self::StaleDbRecord,
+            OrphanCacheKind::UninstalledExtensionDisk => {
+                Self::UninstalledExtensionDisk(package_name)
+            }
+            OrphanCacheKind::UninstalledExtensionDb => Self::UninstalledExtensionDb(package_name),
+            OrphanCacheKind::ExpiredExtensionDb => Self::ExpiredExtensionDb,
+            OrphanCacheKind::OrphanLyrics => Self::OrphanLyrics,
+        }
+    }
+}
+
+impl From<&AppCacheEntry> for CacheItem {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn from(entry: &AppCacheEntry) -> Self {
+        Self {
+            category: entry.category.into(),
+            size_text: format_size(entry.size_bytes, BINARY).into(),
+            entry_count: entry.entry_count as i32,
+        }
+    }
+}
+
+impl From<&ExtensionCacheEntry> for ExtensionCacheItem {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn from(entry: &ExtensionCacheEntry) -> Self {
+        Self {
+            package_name: entry.package_name.clone().into(),
+            display_name: entry.display_name.clone().into(),
+            size_text: format_size(entry.disk_bytes + entry.db_bytes, BINARY).into(),
+            disk_size_text: format_size(entry.disk_bytes, BINARY).into(),
+            db_size_text: format_size(entry.db_bytes, BINARY).into(),
+            db_entries: entry.db_entries as i32,
+        }
+    }
+}
+
+impl From<&OrphanCacheEntry> for OrphanCacheItem {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn from(entry: &OrphanCacheEntry) -> Self {
+        let package_name = match &entry.kind {
+            CoreOrphanKind::UninstalledExtensionDisk(pkg)
+            | CoreOrphanKind::UninstalledExtensionDb(pkg) => pkg.clone(),
+            _ => String::new(),
+        };
+        Self {
+            kind: (&entry.kind).into(),
+            package_name: package_name.into(),
+            size_text: format_size(entry.size_bytes, BINARY).into(),
+            entry_count: entry.entry_count as i32,
         }
     }
 }

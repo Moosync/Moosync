@@ -9,6 +9,7 @@ import { PathsPage } from "paths.slint";
 import { SystemPage } from "system.slint";
 import { ExtensionsPage } from "extensions.slint";
 import { ThemesPage } from "themes.slint";
+import { CachePage } from "cache.slint";
 import { AppCallbacks } from "../callbacks.slint";
 import { SaveThemeModal } from "../common/save_theme_modal.slint";
 import { SaveThemeState } from "../common/save_theme_modal_props.slint";
@@ -82,6 +83,12 @@ export component Settings inherits Modal {
             page: SettingsPages.Themes,
             accessible_label: @tr("Settings Themes")
         },
+        {
+            text: @tr("Cache"),
+            icon: @image-url("../icons/info.svg"),
+            page: SettingsPages.Cache,
+            accessible_label: @tr("Settings Cache")
+        },
     ];
 
     HorizontalLayout {
@@ -132,6 +139,13 @@ export component Settings inherits Modal {
                 page-type: SettingsPages.Themes;
 
                 ThemesPage { }
+            }
+
+            SettingsPageWrapper {
+                active-page <=> root.active_page;
+                page-type: SettingsPages.Cache;
+
+                CachePage { }
             }
 
             // Close button at top right

@@ -38,6 +38,8 @@ SRC_LIST = [
     "src/settings/extensions.rs",
     "src/settings/extensions_test.rs",
     "src/settings/mod.rs",
+    "src/settings/cache.rs",
+    "src/settings/cache_test.rs",
     "src/settings/paths.rs",
     "src/settings/paths_test.rs",
     "src/settings/system.rs",
@@ -473,6 +475,9 @@ SLINT_SOURCES = [
     "src/main_content/search_props.slint",
     "src/settings/button_group.slint",
     "src/settings/button_group_mobile.slint",
+    "src/settings/cache.slint",
+    "src/settings/cache_mobile.slint",
+    "src/settings/cache_props.slint",
     "src/settings/dropdown.slint",
     "src/settings/dropdown_mobile.slint",
     "src/settings/extensions.slint",
@@ -557,6 +562,7 @@ cargo_build_script(
 )
 
 COMMON_DEPS = [
+    "//core/cache",
     "//core/database",
     "//core/extensions",
     "//core/preferences",
@@ -570,6 +576,7 @@ COMMON_DEPS = [
     "//core/types/protos:themes_rs",
     "@crates//:csscolorparser",
     "@crates//:futures",
+    "@crates//:humansize",
     "@crates//:i-slint-backend-testing",
     "@crates//:image",
     "@crates//:open",

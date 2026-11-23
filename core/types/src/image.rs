@@ -4,6 +4,7 @@ use std::{
     sync::LazyLock,
 };
 
+use cache::{CacheCategory, CacheManager};
 use image::{DynamicImage, ImageFormat, guess_format, load_from_memory, open};
 use tracing::{debug, error};
 
@@ -69,7 +70,12 @@ pub fn save_local_image_as_webp(source_path: &Path, target_dir: &Path) -> Option
     let safe_name = get_safe_name(&source_path.to_string_lossy());
     let resized = resize_image(decoded, HIGH_RES_THUMBNAIL_SIZE);
     let out_path = target_dir.join(format!("{safe_name}.webp"));
-    if let Err(e) = resized.save_with_format(&out_path, ImageFormat::WebP) {
+    let cache_manager = CacheManager::new(target_dir.to_path_buf());
+    if let Err(e) =
+        cache_manager.write_with(CacheCategory::ImageCache, "app", &out_path, |target| {
+            resized.save_with_format(target, ImageFormat::WebP)
+        })
+    {
         error!("Failed to save local image as WebP to {out_path:?}: {e:?}");
         return None;
     }
@@ -165,13 +171,22 @@ pub async fn download_single_image(url: &str, img_cache_dir: &Path) -> Option<(P
 
     let high_path = img_cache_dir.join(format!("{safe_name}.webp"));
     let low_path = img_cache_dir.join(format!("{safe_name}-low.webp"));
+    let cache_manager = CacheManager::new(img_cache_dir.to_path_buf());
 
-    if let Err(e) = high_image.save_with_format(&high_path, ImageFormat::WebP) {
+    if let Err(e) =
+        cache_manager.write_with(CacheCategory::ImageCache, "app", &high_path, |target| {
+            high_image.save_with_format(target, ImageFormat::WebP)
+        })
+    {
         error!("Failed to save high resolution image to {high_path:?}: {e:?}");
         return None;
     }
 
-    if let Err(e) = low_image.save_with_format(&low_path, ImageFormat::WebP) {
+    if let Err(e) =
+        cache_manager.write_with(CacheCategory::ImageCache, "app", &low_path, |target| {
+            low_image.save_with_format(target, ImageFormat::WebP)
+        })
+    {
         error!("Failed to save low resolution image to {low_path:?}: {e:?}");
         return None;
     }

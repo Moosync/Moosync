@@ -9,6 +9,8 @@ FN_RE = re.compile(r'^\s*(?:pub(?:\([^)]*\))?\s+)?(?:async\s+)?(?:const\s+)?fn\s
 
 # Regex to match async blocks / async closures (not async fn)
 ASYNC_BLOCK_RE = re.compile(r'\basync\b(?:\s+move)?(?:\s*\|[^|]*\|)?\s*\{')
+FS_WRITE_RE = re.compile(r'\bfs::write\s*\(')
+ALLOW_FS_WRITE_RE = re.compile(r'//\s*instrument:\s*ignore\b')
 
 try:
     from tools.instrument_common import is_valid_rs_file, get_all_rs_files, IGNORE_DIRECTIVE_RE
@@ -198,7 +200,28 @@ def check_function_instrumentation(lines, idx, line):
         return (idx + 1, f"Function '{fn_name}'", striped, "Function is missing #[tracing::instrument]")
     return None
 
-def check_file(filepath):
+def check_fs_write(rel_path, lines):
+    normalized = rel_path.replace(os.sep, "/")
+    if normalized.startswith("core/cache/"):
+        return []
+    errors = []
+    scope_state = {"in_test": False, "in_trait": False, "braces": 0}
+    for idx, line in enumerate(lines):
+        if should_skip_scope(line, scope_state):
+            continue
+        if FS_WRITE_RE.search(line):
+            prev_line = lines[idx - 1] if idx > 0 else ""
+            if ALLOW_FS_WRITE_RE.search(line) or ALLOW_FS_WRITE_RE.search(prev_line):
+                continue
+            errors.append((
+                idx + 1,
+                "fs::write",
+                line.strip(),
+                "Direct fs::write is disallowed outside core/cache (use CacheManager::write or add // instrument: ignore)",
+            ))
+    return errors
+
+def check_file(filepath, rel_path=""):
     if not os.path.exists(filepath):
         return []
 
@@ -217,6 +240,7 @@ def check_file(filepath):
             missing.append(err)
 
     missing.extend(check_async_blocks(content, lines))
+    missing.extend(check_fs_write(rel_path, lines))
     missing.sort(key=lambda x: x[0])
     return missing
 
@@ -229,7 +253,7 @@ def main():
     
     for rel_path in target_files:
         full_path = os.path.join(project_root, rel_path)
-        missing = check_file(full_path)
+        missing = check_file(full_path, rel_path)
         if missing:
             has_errors = True
             for line_num, item_name, decl, reason in missing:

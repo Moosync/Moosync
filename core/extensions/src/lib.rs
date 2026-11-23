@@ -253,7 +253,7 @@ impl ExtensionHandler {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub async fn install_extension(&self, info: ExtensionInfo) -> Result<(), ExtensionError> {
-        let (ext_path, registry_name) = match info {
+        let (ext_path, registry_name, should_cleanup_ext_path) = match info {
             ExtensionInfo::Local(_) => {
                 return Ok(());
             }
@@ -262,9 +262,9 @@ impl ExtensionHandler {
                     .registry
                     .clone()
                     .unwrap_or_else(|| "remote".to_string());
-                (self.remote.download_extension(manifest).await?, reg)
+                (self.remote.download_extension(manifest).await?, reg, true)
             }
-            ExtensionInfo::LocalPath(path) => (path, "local".to_string()),
+            ExtensionInfo::LocalPath(path) => (path, "local".to_string(), false),
         };
 
         tracing::debug!("ext path {:?}", ext_path);
@@ -273,12 +273,17 @@ impl ExtensionHandler {
             .tmp_dir
             .join(format!("moosync_ext_{}", uuid::Uuid::new_v4()));
         let extensions_dir = self.extensions_dir.clone();
+        let stage_path = ext_path.clone();
 
         let staged = tokio::task::spawn_blocking(move || {
-            stage_extension_package(&ext_path, tmp_dir, &extensions_dir)
+            stage_extension_package(&stage_path, tmp_dir, &extensions_dir)
         })
         .await
         .map_err(|e| ExtensionError::Io(std::io::Error::other(e)))??;
+
+        if should_cleanup_ext_path && ext_path.exists() {
+            let _ = tokio::fs::remove_file(&ext_path).await;
+        }
 
         if staged.should_remove_old {
             let _ = self.send_remove_extension(PackageName {
@@ -522,6 +527,7 @@ fn finalize_extension_install(
     let lock_data = ExtensionLockData {
         registry: registry_name,
     };
+    // instrument: ignore
     let _ = fs::write(
         staged.ext_extract_path.join(EXTENSION_LOCK_FILE),
         lock_data.encode_to_vec(),

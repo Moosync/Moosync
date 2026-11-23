@@ -91,6 +91,14 @@ import {
     ExtensionPreferenceGroup,
 } from "settings/extensions_props.slint";
 import { ThemesPageProps } from "settings/themes_props.slint";
+import {
+    CacheCategory,
+    CacheItem,
+    CacheState,
+    ExtensionCacheItem,
+    OrphanCacheItem,
+    OrphanCacheKind,
+} from "settings/cache_props.slint";
 import { Utils, DefaultIconType } from "utils.slint";
 import { OAuthModal } from "common/oauth_modal.slint";
 import { OAuthState, MarkdownPart } from "common/oauth_modal_props.slint";
@@ -107,6 +115,12 @@ export {
     AppProps,
     TopBarProps,
     SettingsState,
+    CacheState,
+    CacheCategory,
+    OrphanCacheKind,
+    CacheItem,
+    ExtensionCacheItem,
+    OrphanCacheItem,
     ThemesPageProps,
     ExtensionsPageProps,
     ExtensionsPreferenceProps,

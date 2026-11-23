@@ -1,6 +1,7 @@
 import { Theme } from "../constants.slint";
 import { BottomBarCallbacks } from "../callbacks.slint";
 import { Button } from "../common/button.slint";
+import { Spinner } from "../common/spinner.slint";
 import { PlayerProps } from "playback_props.slint";
 
 export component PlaybackButton inherits Button {
@@ -60,6 +61,7 @@ export component PlayButton inherits Button {
 export component PlaybackControls inherits VerticalLayout {
     property <int> repeat_mode: PlayerProps.repeat_mode;
     property <bool> playing: PlayerProps.playing;
+    property <bool> loading: PlayerProps.loading;
     property <string> current_pos_str: PlayerProps.current_pos_str;
     property <string> duration_str: PlayerProps.current_song.duration-str;
 
@@ -97,7 +99,17 @@ export component PlaybackControls inherits VerticalLayout {
             }
         }
 
-        PlayButton {
+        if root.loading: Rectangle {
+            width: Theme.playbackControlsIconSize * 2;
+            height: Theme.playbackControlsIconSize * 2;
+
+            Spinner {
+                width: Theme.playbackControlsIconSize * 2;
+                height: Theme.playbackControlsIconSize * 2;
+            }
+        }
+
+        if !root.loading: PlayButton {
             playing: root.playing;
             clicked => {
                 BottomBarCallbacks.play-pause-clicked();

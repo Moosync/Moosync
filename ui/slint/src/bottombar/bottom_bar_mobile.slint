@@ -25,7 +25,7 @@ export component BottomBarMobile inherits Rectangle {
         y: 0px;
         x: 0px;
         height: Theme.mobileMiniPlayerProgressHeight;
-        width: parent.width * Math.min(1.0, Math.max(0.0, PlayerProps.current_duration / Math.max(PlayerProps.current_song.duration-s, 1)));
+        width: parent.width * Math.min(1.0, Math.max(0.0, PlayerProps.current_duration_ms / Math.max(PlayerProps.current_song.duration-ms, 1)));
         background: Theme.accent;
     }
 

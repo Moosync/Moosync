@@ -42,6 +42,27 @@ export component LyricsView inherits HorizontalLayout {
         ? AppCallbacks.get_active_lyric_index(root.lyrics_lines, PlayerProps.current_duration_ms + QueuePageProps.lyrics_offset_ms)
         : -1;
 
+    function scroll_to_active_lyric() {
+        if (root.active_index >= 0 && root.is_synced && !root.lyrics_loading && root.has_lyrics && lyrics_scroll.height > 0px) {
+            let max_scroll = Math.max(0px, lyrics_scroll.content-height - lyrics_scroll.height);
+            let line_y = Theme.size3Xl + root.active_index * (Theme.size3Xl + Theme.spacingXs);
+            let target_y = -line_y + (lyrics_scroll.height / 2) - (Theme.size3Xl / 2);
+            lyrics_scroll.content-y = Math.max(-max_scroll, Math.min(0px, target_y));
+        }
+    }
+
+    changed active_index => {
+        root.scroll_to_active_lyric();
+    }
+
+    changed has_lyrics => {
+        root.scroll_to_active_lyric();
+    }
+
+    changed lyrics_loading => {
+        root.scroll_to_active_lyric();
+    }
+
     VerticalLayout {
         width: 100%;
         height: 100%;
@@ -158,13 +179,19 @@ export component LyricsView inherits HorizontalLayout {
                 }
             }
 
-            if (!root.lyrics_loading && root.has_lyrics && root.is_synced): ScrollView {
+            lyrics_scroll := ScrollView {
+                visible: !root.lyrics_loading && root.has_lyrics && root.is_synced;
                 width: 100%;
                 height: 100%;
                 horizontal-scrollbar-policy: always-off;
-                content-y: (root.active_index >= 0)
-                    ? Math.min(0px, -root.active_index * Theme.size3Xl + (self.height / 2) - Theme.sizeLg)
-                    : 0px;
+
+                changed height => {
+                    root.scroll_to_active_lyric();
+                }
+
+                changed content-height => {
+                    root.scroll_to_active_lyric();
+                }
 
                 animate content-y {
                     duration: Theme.durationMedium;

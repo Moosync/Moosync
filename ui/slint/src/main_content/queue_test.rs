@@ -7,7 +7,8 @@ use songs_proto::moosync::types::{InnerSong, LyricLine, Lyrics, Playlist, Song};
 use tracing_test::traced_test;
 
 use crate::{
-    AppCallbacks, ContextMenuCallbacks, LyricLineModel, MainWindow, QueuePageProps, SongModel,
+    AppCallbacks, ContextMenuCallbacks, LyricLineModel, MainWindow, PlayerProps, QueuePageProps,
+    SongModel,
     main_content::queue::QueuePageHandler,
     pages::PageHandler,
     test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
@@ -441,4 +442,68 @@ async fn test_queue_duplicate_song_active_index(
     let ph = sm.get_player_handler();
     assert_eq!(ph.get_current_idx(), 2);
     assert_eq!(main_window.global::<QueuePageProps>().get_active_idx(), 2);
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_synced_lyrics_scroll_with_timestamp(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    main_window
+        .window()
+        .set_size(slint::LogicalSize::new(1200.0, 800.0));
+    let handler = QueuePageHandler::new(&main_window, &sm);
+    handler.initialize();
+
+    let lines: Vec<LyricLine> = (0..50)
+        .map(|i| LyricLine {
+            text: format!("Lyric line {i}"),
+            time_ms: i * 1000,
+        })
+        .collect();
+    let lyrics = Lyrics {
+        is_synced: true,
+        lines,
+        ..Default::default()
+    };
+
+    let props = main_window.global::<QueuePageProps>();
+    props.set_show_queue(true);
+    props.set_show_lyrics(true);
+    QueuePageHandler::update_ui_lyrics(&main_window, Some(lyrics));
+    main_window
+        .global::<PlayerProps>()
+        .set_current_duration_ms(0);
+
+    let line0_initial: Vec<i_slint_backend_testing::ElementHandle> =
+        i_slint_backend_testing::ElementHandle::find_by_accessible_label(
+            &main_window,
+            "Lyric line 0",
+        )
+        .collect();
+    assert!(!line0_initial.is_empty());
+    let initial_y = line0_initial[0].absolute_position().y;
+
+    main_window
+        .global::<PlayerProps>()
+        .set_current_duration_ms(30_000);
+    i_slint_backend_testing::mock_elapsed_time(Duration::from_millis(500));
+
+    let line0_after: Vec<i_slint_backend_testing::ElementHandle> =
+        i_slint_backend_testing::ElementHandle::find_by_accessible_label(
+            &main_window,
+            "Lyric line 0",
+        )
+        .collect();
+    assert!(!line0_after.is_empty());
+    let after_y = line0_after[0].absolute_position().y;
+
+    assert!(
+        after_y < initial_y - 50.0,
+        "synced lyrics should scroll upward when timestamp advances (initial_y={initial_y}, after_y={after_y})"
+    );
 }

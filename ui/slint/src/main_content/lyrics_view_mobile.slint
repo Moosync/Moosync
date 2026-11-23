@@ -17,6 +17,27 @@ export component LyricsViewMobile inherits Rectangle {
         ? AppCallbacks.get_active_lyric_index(root.lyrics_lines, PlayerProps.current_duration_ms + QueuePageProps.lyrics_offset_ms)
         : -1;
 
+    function scroll_to_active_lyric() {
+        if (root.active_index >= 0 && root.is_synced && !root.lyrics_loading && root.has_lyrics && lyrics_list.height > 0px) {
+            let item_height = Theme.mobileLyricsActiveFontSize + Theme.spacingSm * 2;
+            let max_scroll = Math.max(0px, lyrics_list.content-height - lyrics_list.height);
+            let target_y = -root.active_index * item_height + (lyrics_list.height / 2) - (item_height / 2);
+            lyrics_list.content-y = Math.max(-max_scroll, Math.min(0px, target_y));
+        }
+    }
+
+    changed active_index => {
+        root.scroll_to_active_lyric();
+    }
+
+    changed has_lyrics => {
+        root.scroll_to_active_lyric();
+    }
+
+    changed lyrics_loading => {
+        root.scroll_to_active_lyric();
+    }
+
     pure function get_line_opacity(idx: int, active_idx: int) -> float {
         if (active_idx == -1) { return 0.75; }
         let d = Math.abs(idx - active_idx);
@@ -92,6 +113,19 @@ export component LyricsViewMobile inherits Rectangle {
             vertical-stretch: 1;
             horizontal-scrollbar-policy: always-off;
             vertical-scrollbar-policy: scroll_activity.active ? as-needed : always-off;
+
+            changed height => {
+                root.scroll_to_active_lyric();
+            }
+
+            changed content-height => {
+                root.scroll_to_active_lyric();
+            }
+
+            animate content-y {
+                duration: Theme.durationMedium;
+                easing: ease-out;
+            }
 
             for line[idx] in root.lyrics_lines: VerticalLayout {
                 padding-top: Theme.spacingSm;

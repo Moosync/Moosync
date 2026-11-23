@@ -4,7 +4,7 @@ use extensions::ExtensionInfo;
 use extensions_proto::moosync::types::ExtensionManifest;
 use preferences::keys::{EXTENSION_REGISTRIES, PreferenceItemExt};
 use preferences_proto::moosync::types::PreferenceItem as ProtoPreferenceItem;
-use slint::{ComponentHandle, ModelRc, VecModel, invoke_from_event_loop};
+use slint::{ComponentHandle, Model, ModelRc, VecModel, invoke_from_event_loop};
 use state_manager::StateManager;
 use tracing::Instrument;
 
@@ -19,21 +19,46 @@ use crate::{
 pub static PREFERENCES: &[&LazyLock<ProtoPreferenceItem>] = &[&EXTENSION_REGISTRIES];
 
 pub struct ExtensionsPageHandler {
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 }
 
 impl ExtensionsPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(main_window: &'static MainWindow, state_manager: &'static StateManager) -> Self {
+    pub fn new(main_window: &MainWindow, state_manager: &StateManager) -> Self {
         Self {
-            main_window,
-            state_manager,
+            main_window: main_window.clone_strong(),
+            state_manager: state_manager.clone(),
         }
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_preferences() -> Vec<ProtoPreferenceItem> { clone_lazy_preferences(PREFERENCES) }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn set_extension_loading(
+        main_window_weak: &slint::Weak<MainWindow>,
+        package_name: &str,
+        loading: bool,
+    ) {
+        let weak = main_window_weak.clone();
+        let pkg = package_name.to_string();
+        let _ = invoke_from_event_loop(move || {
+            let Some(main_window) = weak.upgrade() else {
+                return;
+            };
+            let model = main_window.global::<ExtensionsPageProps>().get_extensions();
+            for idx in 0..model.row_count() {
+                if let Some(mut item) = model.row_data(idx) {
+                    if item.package_name == pkg {
+                        item.loading = loading;
+                        model.set_row_data(idx, item);
+                        break;
+                    }
+                }
+            }
+        });
+    }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub(crate) fn render_extensions(
@@ -45,9 +70,7 @@ impl ExtensionsPageHandler {
             .into_iter()
             .map(|ext| match ext {
                 ExtensionInfo::Local(detail) => extension_item_from_detail(detail, &cache_dir),
-                ExtensionInfo::Remote(manifest) => {
-                    extension_item_from_manifest(manifest, &cache_dir)
-                }
+                ExtensionInfo::Remote(manifest) => extension_item_from_manifest(manifest, &cache_dir),
                 ExtensionInfo::LocalPath(_) => unreachable!(),
             })
             .collect();
@@ -79,15 +102,17 @@ impl ExtensionsPageHandler {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn setup_callbacks(&self) {
-        let state_manager = self.state_manager;
+        let state_manager = self.state_manager.clone();
         let main_window_weak = self.main_window.as_weak();
 
+        let state_manager_refresh = state_manager.clone();
         self.main_window
             .global::<AppCallbacks>()
             .on_refresh_extension_registries(move || {
+                let state_manager = state_manager_refresh.clone();
                 tokio::spawn(
                     async move {
-                        Self::refresh_extension_registries(state_manager).await;
+                        Self::refresh_extension_registries(&state_manager).await;
                     }
                     .instrument(tracing::debug_span!(
                         "slint_cb_on_refresh_extension_registries"
@@ -99,9 +124,11 @@ impl ExtensionsPageHandler {
             .global::<AppCallbacks>()
             .on_toggle_extension({
                 let main_window_weak = main_window_weak.clone();
+                let state_manager = state_manager.clone();
                 move |package_name| {
                     let package_name = package_name.to_string();
                     let main_window_weak = main_window_weak.clone();
+                    let state_manager = state_manager.clone();
                     tokio::spawn(
                         async move {
                             Self::handle_toggle_extension(
@@ -120,9 +147,11 @@ impl ExtensionsPageHandler {
             .global::<AppCallbacks>()
             .on_install_extension({
                 let main_window_weak = main_window_weak.clone();
+                let state_manager = state_manager.clone();
                 move |file_path| {
                     let file_path = file_path.to_string();
                     let main_window_weak = main_window_weak.clone();
+                    let state_manager = state_manager.clone();
                     tokio::spawn(
                         async move {
                             Self::install_local_extension(
@@ -141,6 +170,7 @@ impl ExtensionsPageHandler {
             .global::<ExtensionDetailsState>()
             .on_approve({
                 let main_window_weak = main_window_weak.clone();
+                let state_manager = state_manager.clone();
                 move || {
                     if let Some(main_window) = main_window_weak.upgrade() {
                         let details_state = main_window.global::<ExtensionDetailsState>();
@@ -150,6 +180,8 @@ impl ExtensionsPageHandler {
                         details_state.set_show_install_prompt(false);
                         details_state.set_local_package_path("".into());
 
+                        let state_manager = state_manager.clone();
+                        let main_window_weak = main_window_weak.clone();
                         tokio::spawn(
                             async move {
                                 let handler = state_manager.get_extension_handler();
@@ -163,10 +195,20 @@ impl ExtensionsPageHandler {
                                         .find(|ext| ext.package_name() == package_name)
                                 };
                                 if let Some(info) = info {
+                                    Self::set_extension_loading(
+                                        &main_window_weak,
+                                        &package_name,
+                                        true,
+                                    );
                                     if let Err(e) = handler.install_extension(info).await {
                                         tracing::error!(
                                             "approve_extension_install: Failed: {:?}",
                                             e
+                                        );
+                                        Self::set_extension_loading(
+                                            &main_window_weak,
+                                            &package_name,
+                                            false,
                                         );
                                     }
                                 }
@@ -195,6 +237,7 @@ impl ExtensionsPageHandler {
             .global::<AppCallbacks>()
             .on_update_all_extensions({
                 let main_window_weak = self.main_window.as_weak();
+                let state_manager = state_manager.clone();
                 move || {
                     let main_window_weak = main_window_weak.clone();
                     if let Some(main_window) = main_window_weak.upgrade() {
@@ -202,6 +245,7 @@ impl ExtensionsPageHandler {
                             .global::<ExtensionsPageProps>()
                             .set_has_updates(false);
                     }
+                    let state_manager = state_manager.clone();
                     tokio::spawn(
                         async move {
                             tracing::info!("on_update_all_extensions");
@@ -226,7 +270,7 @@ impl ExtensionsPageHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub(crate) async fn refresh_extension_registries(state_manager: &'static StateManager) {
+    pub(crate) async fn refresh_extension_registries(state_manager: &StateManager) {
         let preferences = state_manager.get_preference_config();
         let registries = preferences
             .load(&EXTENSION_REGISTRIES)
@@ -247,7 +291,7 @@ impl ExtensionsPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     async fn handle_toggle_extension(
         package_name: String,
-        state_manager: &'static StateManager,
+        state_manager: StateManager,
         main_window_weak: slint::Weak<MainWindow>,
     ) {
         tracing::info!("handle_toggle_extension: {}", package_name);
@@ -306,7 +350,7 @@ impl ExtensionsPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     async fn install_local_extension(
         file_path: String,
-        state_manager: &'static StateManager,
+        state_manager: StateManager,
         main_window_weak: slint::Weak<MainWindow>,
     ) {
         tracing::info!("install_local_extension: {}", file_path);
@@ -333,7 +377,7 @@ impl ExtensionsPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     pub async fn refresh_preferences(
         main_window_weak: slint::Weak<MainWindow>,
-        state_manager: &'static StateManager,
+        state_manager: StateManager,
     ) {
         let config = state_manager.get_preference_config();
         let handler = state_manager.get_extension_handler();
@@ -395,15 +439,17 @@ impl PageHandler for ExtensionsPageHandler {
         tracing::info!("ExtensionsPageHandler: Initializing");
         self.setup_callbacks();
 
-        let state_manager = self.state_manager;
+        let state_manager = self.state_manager.clone();
         let main_window_weak = self.main_window.as_weak();
         tokio::spawn(
             async move {
                 let handler = state_manager.get_extension_handler();
                 let _cancel_ext = handler.on_extensions_updated.listen({
                     let main_window_weak = main_window_weak.clone();
+                    let state_manager = state_manager.clone();
                     move |_| {
                         let main_window_weak = main_window_weak.clone();
+                        let state_manager = state_manager.clone();
                         tokio::spawn(
                             async move {
                                 let handler = state_manager.get_extension_handler();
@@ -416,11 +462,7 @@ impl PageHandler for ExtensionsPageHandler {
                                         main_window
                                             .global::<ExtensionsPageProps>()
                                             .set_has_updates(has_updates);
-                                        Self::render_extensions(
-                                            &main_window,
-                                            extensions,
-                                            cache_dir,
-                                        );
+                                        Self::render_extensions(&main_window, extensions, cache_dir);
                                     }
                                 }) {
                                     tracing::error!(
@@ -437,8 +479,10 @@ impl PageHandler for ExtensionsPageHandler {
 
                 let _cancel_pref = handler.on_preferences_updated.listen({
                     let main_window_weak = main_window_weak.clone();
+                    let state_manager = state_manager.clone();
                     move |_| {
                         let main_window_weak = main_window_weak.clone();
+                        let state_manager = state_manager.clone();
                         tokio::spawn(
                             async move {
                                 Self::refresh_preferences(main_window_weak, state_manager).await;
@@ -455,7 +499,7 @@ impl PageHandler for ExtensionsPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) {
         tracing::info!("ExtensionsPageHandler: on_show");
-        let state_manager = self.state_manager;
+        let state_manager = self.state_manager.clone();
         let main_window_weak = self.main_window.as_weak();
         tokio::spawn(
             async move {

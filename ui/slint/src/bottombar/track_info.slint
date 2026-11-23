@@ -4,7 +4,9 @@ import { PlayerProps } from "playback_props.slint";
 import { SongItemExtensionIcon } from "../common/song_item_components.slint";
 
 export component TrackInfo inherits Rectangle {
-    width: Theme.trackInfoWidth;
+    min-width: 0px;
+    max-width: Theme.trackInfoWidth;
+    horizontal-stretch: 1;
     height: Theme.topbarHeight;
 
     property <SongModel> current_song: PlayerProps.current_song;
@@ -34,11 +36,13 @@ export component TrackInfo inherits Rectangle {
         // Song Details
         VerticalLayout {
             alignment: center;
+            horizontal-stretch: 1;
+            min-width: 0px;
             spacing: Theme.spacingTiny;
 
             HorizontalLayout {
                 spacing: Theme.spacingXs;
-                alignment: start;
+                min-width: 0px;
 
                 Text {
                     accessible-role: text;
@@ -48,6 +52,8 @@ export component TrackInfo inherits Rectangle {
                     font-size: Theme.body;
                     font-weight: 600;
                     overflow: elide;
+                    horizontal-stretch: 1;
+                    min-width: 0px;
                 }
 
                 if root.current_song.extension != "": SongItemExtensionIcon {
@@ -62,6 +68,7 @@ export component TrackInfo inherits Rectangle {
                 color: Theme.textSecondary;
                 font-size: Theme.caption;
                 overflow: elide;
+                width: 100%;
             }
 
             Text {
@@ -70,6 +77,8 @@ export component TrackInfo inherits Rectangle {
                 text: root.current_song.album_name;
                 color: Theme.textSecondary; // Text Secondary
                 font-size: Theme.extraSmall;
+                overflow: elide;
+                width: 100%;
             }
         }
     }

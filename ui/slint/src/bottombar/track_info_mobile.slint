@@ -33,11 +33,12 @@ export component TrackInfoMobile inherits Rectangle {
         VerticalLayout {
             alignment: center;
             horizontal-stretch: 1;
+            min-width: 0px;
             spacing: Theme.spacingTiny;
 
             HorizontalLayout {
                 spacing: Theme.spacingXs;
-                alignment: start;
+                min-width: 0px;
 
                 Text {
                     text: root.current_song.title != "" ? root.current_song.title : @tr("No song playing");
@@ -46,6 +47,8 @@ export component TrackInfoMobile inherits Rectangle {
                     font-weight: 600;
                     overflow: elide;
                     vertical-alignment: center;
+                    horizontal-stretch: 1;
+                    min-width: 0px;
                 }
 
                 if root.current_song.extension != "": SongItemExtensionIcon {
@@ -58,6 +61,7 @@ export component TrackInfoMobile inherits Rectangle {
                 font-size: Theme.caption;
                 color: Theme.textSecondary;
                 overflow: elide;
+                width: 100%;
             }
         }
     }

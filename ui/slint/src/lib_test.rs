@@ -10,7 +10,7 @@ use tracing_test::traced_test;
 use crate::{
     AllSongsPageProps, AppCallbacks, AppProps, BottomBarCallbacks, CoverHelper,
     ExtensionProviderItem, MainWindow, Pages, PlayerProps, QueuePageProps, SettingsPages,
-    SongDetailAction, SongModel, SongSortCriterion, TopBarProps, UtilCallbacks,
+    SongDetailAction, SongModel, SongSortCriterion, Theme, TopBarProps, UtilCallbacks,
     apply_updated_song_to_ui,
     pages::PageLifecycleManager,
     setup_ui,
@@ -333,4 +333,64 @@ async fn test_apply_updated_song_to_ui(
     assert_eq!(all_songs.row_data(0).unwrap().title.as_str(), "New Title");
     let queue_songs = main_window.global::<QueuePageProps>().get_queue();
     assert_eq!(queue_songs.row_data(0).unwrap().title.as_str(), "New Title");
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_now_playing_track_info_truncates_within_width(main_window: MainWindow) {
+    let long_title = "A".repeat(120);
+    let long_artists = "B".repeat(120);
+    let long_album = "C".repeat(120);
+
+    main_window
+        .window()
+        .set_size(slint::LogicalSize::new(1000.0, 700.0));
+    main_window
+        .global::<PlayerProps>()
+        .set_current_song(SongModel {
+            id: "long-song-1".into(),
+            title: long_title.clone().into(),
+            artists_str: long_artists.clone().into(),
+            album_name: long_album.clone().into(),
+            extension: "ext.test".into(),
+            ..Default::default()
+        });
+
+    let track_info_width = main_window.global::<Theme>().get_trackInfoWidth();
+
+    let title_handles: Vec<i_slint_backend_testing::ElementHandle> =
+        i_slint_backend_testing::ElementHandle::find_by_accessible_label(&main_window, &long_title)
+            .collect();
+    let artists_handles: Vec<i_slint_backend_testing::ElementHandle> =
+        i_slint_backend_testing::ElementHandle::find_by_accessible_label(
+            &main_window,
+            &long_artists,
+        )
+        .collect();
+    let album_handles: Vec<i_slint_backend_testing::ElementHandle> =
+        i_slint_backend_testing::ElementHandle::find_by_accessible_label(&main_window, &long_album)
+            .collect();
+
+    assert!(!title_handles.is_empty());
+    assert!(!artists_handles.is_empty());
+    assert!(!album_handles.is_empty());
+    assert!(
+        title_handles[0].size().width < track_info_width,
+        "title width {} should be < trackInfoWidth {}",
+        title_handles[0].size().width,
+        track_info_width
+    );
+    assert!(
+        artists_handles[0].size().width < track_info_width,
+        "artists width {} should be < trackInfoWidth {}",
+        artists_handles[0].size().width,
+        track_info_width
+    );
+    assert!(
+        album_handles[0].size().width < track_info_width,
+        "album width {} should be < trackInfoWidth {}",
+        album_handles[0].size().width,
+        track_info_width
+    );
 }

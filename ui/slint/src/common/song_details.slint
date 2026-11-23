@@ -31,6 +31,7 @@ export component SongDetails inherits HorizontalLayout {
         width: 100%;
 
         VerticalLayout {
+            width: parent.visible-width;
             alignment: start;
 
             Rectangle {
@@ -49,11 +50,13 @@ export component SongDetails inherits HorizontalLayout {
             }
 
             VerticalLayout {
+                width: 100%;
+                min-width: 0px;
                 spacing: Theme.spacingXxs;
 
                 HorizontalLayout {
                     spacing: Theme.spacingXs;
-                    alignment: start;
+                    min-width: 0px;
 
                     Text {
                         text: song.title;
@@ -61,6 +64,8 @@ export component SongDetails inherits HorizontalLayout {
                         font-size: Theme.modelTitle;
                         font-weight: 600;
                         overflow: elide;
+                        horizontal-stretch: 1;
+                        min-width: 0px;
                     }
 
                     if song.extension != "": SongItemExtensionIcon {
@@ -74,6 +79,7 @@ export component SongDetails inherits HorizontalLayout {
                     color: Theme.textSecondary;
                     font-size: Theme.subtitle;
                     overflow: elide;
+                    width: 100%;
                 }
 
                 Text {
@@ -82,6 +88,7 @@ export component SongDetails inherits HorizontalLayout {
                     color: Theme.textSecondary;
                     font-size: Theme.subtitle;
                     overflow: elide;
+                    width: 100%;
                 }
 
                 @children

@@ -6,6 +6,7 @@ import {
 import { ExtensionProviderItem } from "../types/extension_view.slint";
 import { ExtensionProviderMenu } from "extension_provider_menu.slint";
 import { SongListItem } from "song_list_item.slint";
+import { GhostSongListItem } from "ghost_items.slint";
 import { Theme, Constants } from "../constants.slint";
 import {
     AppCallbacks,
@@ -25,6 +26,7 @@ export component SongListView inherits Rectangle {
     in-out property <[int]> selected-indices: [];
     property <int> anchor-idx: 0;
     in property <bool> show-controls: true;
+    in property <bool> is_loading: false;
     out property <bool> is_scrollable: list_view.content-height > list_view.height;
 
     changed display-songs => {
@@ -151,19 +153,19 @@ export component SongListView inherits Rectangle {
                     }
                 }
 
-                for song[index] in root.display-songs: VerticalLayout {
-                    HorizontalLayout {
+                for index in (root.display-songs.length + (root.is_loading ? 6 : 0)): VerticalLayout {
+                    if (index < root.display-songs.length): HorizontalLayout {
                         padding-bottom: Theme.paddingSm;
                         padding-right: Theme.spacingXl;
 
                         Rectangle {
                             SongListItem {
-                                song: song;
+                                song: root.display-songs[index];
                                 border-width: (UtilCallbacks.is_index_selected(root.selected-indices, index) || root.active-idx == index || self.has-hover) ? Theme.borderWidth * 2 : 0px;
                                 border-color: (UtilCallbacks.is_index_selected(root.selected-indices, index) || root.active-idx == index) ? Theme.accent : Theme.accent.darker(0.2);
 
                                 get_selected_songs => {
-                                    return root.selected-songs.length > 0 ? root.selected-songs : [song];
+                                    return root.selected-songs.length > 0 ? root.selected-songs : [root.display-songs[index]];
                                 }
 
                                 item_pressed(event) => {
@@ -194,6 +196,15 @@ export component SongListView inherits Rectangle {
                                     }
                                 }
                             }
+                        }
+                    }
+
+                    if (index >= root.display-songs.length): HorizontalLayout {
+                        padding-bottom: Theme.paddingSm;
+                        padding-right: Theme.spacingXl;
+
+                        GhostSongListItem {
+                            item_index: index - root.display-songs.length;
                         }
                     }
                 }

@@ -184,3 +184,32 @@ async fn test_playlists_page_handler_delete_action(
         .unwrap();
     assert!(local.iter().all(|p| p.playlist_id.as_deref() != Some(&id)));
 }
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_playlist_list_provider_set_loading(main_window: MainWindow) {
+    PlaylistListProvider::set_loading(&main_window, true);
+    assert!(main_window.global::<PlaylistsPageProps>().get_is_loading());
+
+    PlaylistListProvider::clear_models(&main_window);
+    assert!(!main_window.global::<PlaylistsPageProps>().get_is_loading());
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_playlists_page_handler_on_show_and_hide_loading(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let handler = PlaylistsPageHandler::new(&main_window, &sm);
+
+    handler.on_show();
+    assert!(main_window.global::<PlaylistsPageProps>().get_is_loading());
+
+    handler.on_hide();
+    assert!(!main_window.global::<PlaylistsPageProps>().get_is_loading());
+}

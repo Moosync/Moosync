@@ -14,7 +14,6 @@ import { Button } from "../common/button_mobile.slint";
 import { Utils, DefaultIconType } from "../utils.slint";
 import { AccountsProps } from "../common/accounts_props.slint";
 import { StatusTooltip } from "../common/status_tooltip.slint";
-import { Spinner } from "../common/spinner.slint";
 import { AlbumsPageProps } from "albums_props.slint";
 import { ArtistsPageProps } from "artists_props.slint";
 import { PlaylistsPageProps } from "playlists_props.slint";
@@ -154,17 +153,14 @@ export component SearchPageMobile inherits Rectangle {
                 res_container.current_res.playlists.length == 0 &&
                 res_container.current_res.genres.length == 0;
 
-            if (res_container.current_res.loading): Spinner {
-                width: Theme.sizeXxl;
-                height: Theme.sizeXxl;
-            }
-
-            if (!res_container.current_res.loading && root.active_tab == 0): SongListViewMobile {
+            if (root.active_tab == 0): SongListViewMobile {
                 songs: res_container.current_res.songs;
+                is_loading: res_container.current_res.loading;
             }
 
-            if (!res_container.current_res.loading && root.active_tab == 1): GridListViewMobile {
+            if (root.active_tab == 1): GridListViewMobile {
                 total_items: res_container.current_res.albums.length;
+                is_loading: res_container.current_res.loading;
                 enable_context_menu: true;
                 item_title(idx) => { res_container.current_res.albums[idx].title }
                 item_cover(idx) => { res_container.current_res.albums[idx].coverPath }
@@ -182,8 +178,9 @@ export component SearchPageMobile inherits Rectangle {
                 }
             }
 
-            if (!res_container.current_res.loading && root.active_tab == 2): GridListViewMobile {
+            if (root.active_tab == 2): GridListViewMobile {
                 total_items: res_container.current_res.artists.length;
+                is_loading: res_container.current_res.loading;
                 enable_context_menu: true;
                 item_title(idx) => { res_container.current_res.artists[idx].title }
                 item_cover(idx) => { res_container.current_res.artists[idx].coverPath }
@@ -201,8 +198,9 @@ export component SearchPageMobile inherits Rectangle {
                 }
             }
 
-            if (!res_container.current_res.loading && root.active_tab == 3): GridListViewMobile {
+            if (root.active_tab == 3): GridListViewMobile {
                 total_items: res_container.current_res.playlists.length;
+                is_loading: res_container.current_res.loading;
                 enable_context_menu: true;
                 item_title(idx) => { res_container.current_res.playlists[idx].title }
                 item_cover(idx) => { res_container.current_res.playlists[idx].coverPath }
@@ -220,8 +218,9 @@ export component SearchPageMobile inherits Rectangle {
                 }
             }
 
-            if (!res_container.current_res.loading && root.active_tab == 4): GridListViewMobile {
+            if (root.active_tab == 4): GridListViewMobile {
                 total_items: res_container.current_res.genres.length;
+                is_loading: res_container.current_res.loading;
                 enable_context_menu: true;
                 item_title(idx) => { res_container.current_res.genres[idx].title }
                 item_cover(idx) => { res_container.current_res.genres[idx].coverPath }

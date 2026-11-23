@@ -392,6 +392,8 @@ SLINT_SOURCES = [
     "src/common/extension_details_modal_props.slint",
     "src/common/extension_provider_menu.slint",
     "src/common/extension_provider_menu_mobile.slint",
+    "src/common/ghost_items.slint",
+    "src/common/ghost_items_mobile.slint",
     "src/common/grid_list_view.slint",
     "src/common/grid_list_view_mobile.slint",
     "src/common/grid_page_layout.slint",

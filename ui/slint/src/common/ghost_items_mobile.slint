@@ -1,0 +1,91 @@
+import { Theme } from "../constants_mobile.slint";
+
+export component GhostBlockMobile inherits Rectangle {
+    in property <float> phase_offset: 0.0;
+    property <float> pulse: 0.5 + 0.5 * Math.sin(((animation-tick() / 1.5s) + root.phase_offset) * Theme.angle360);
+
+    background: Theme.textPrimary.with-alpha(0.06 + 0.08 * root.pulse);
+    border-radius: Theme.sizeXxs;
+}
+
+export component GhostSongListItemMobile inherits Rectangle {
+    in property <int> item_index: 0;
+    property <float> phase_offset: Math.mod(root.item_index, 6) * 0.08;
+    property <length> title_width: root.item_index == 0 || Math.mod(root.item_index, 3) == 0 ? 150px : (Math.mod(root.item_index, 3) == 1 ? 185px : 125px);
+    property <length> subtitle_width: root.item_index == 0 || Math.mod(root.item_index, 3) == 0 ? 100px : (Math.mod(root.item_index, 3) == 1 ? 130px : 85px);
+
+    accessible-role: none;
+    background: Theme.secondary;
+    border-radius: Theme.borderRadiusMd;
+    height: Theme.mobileSongListItemHeight;
+
+    HorizontalLayout {
+        padding: Theme.paddingXs;
+        padding-right: Theme.paddingLg;
+
+        GhostBlockMobile {
+            width: Theme.mobileThumbnailSize;
+            height: Theme.mobileThumbnailSize;
+            border-radius: Theme.borderRadiusMd;
+            phase_offset: root.phase_offset;
+        }
+
+        HorizontalLayout {
+            horizontal-stretch: 1;
+            alignment: start;
+            padding-left: Theme.paddingLg;
+
+            VerticalLayout {
+                alignment: center;
+                spacing: Theme.spacingXs;
+
+                GhostBlockMobile {
+                    width: root.title_width;
+                    height: Theme.body;
+                    phase_offset: root.phase_offset;
+                }
+
+                GhostBlockMobile {
+                    width: root.subtitle_width;
+                    height: Theme.caption;
+                    phase_offset: root.phase_offset;
+                }
+            }
+        }
+
+        VerticalLayout {
+            alignment: center;
+
+            GhostBlockMobile {
+                width: Theme.sizeXxl;
+                height: Theme.caption;
+                phase_offset: root.phase_offset;
+            }
+        }
+    }
+}
+
+export component GhostCardViewMobile inherits VerticalLayout {
+    in property <int> item_index: 0;
+    property <float> phase_offset: Math.mod(root.item_index, 4) * 0.1;
+
+    accessible-role: none;
+    padding: Theme.paddingXs;
+    spacing: Theme.spacingXs;
+
+    GhostBlockMobile {
+        border-radius: Theme.borderRadiusMd;
+        height: self.width;
+        phase_offset: root.phase_offset;
+    }
+
+    VerticalLayout {
+        padding-top: Theme.spacingXxs;
+
+        GhostBlockMobile {
+            width: 75%;
+            height: Theme.body;
+            phase_offset: root.phase_offset;
+        }
+    }
+}

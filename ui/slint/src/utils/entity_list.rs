@@ -18,7 +18,11 @@ pub trait EntityListProvider: Send + Sync + 'static {
     fn name() -> &'static str;
     fn to_model(entity: Self::Entity) -> Self::EntityModel { entity.into() }
     fn set_models(main_window: &MainWindow, model: ModelRc<Self::EntityModel>);
-    fn clear_models(main_window: &MainWindow) { Self::set_models(main_window, ModelRc::default()); }
+    fn set_loading(_main_window: &MainWindow, _loading: bool) {}
+    fn clear_models(main_window: &MainWindow) {
+        Self::set_models(main_window, ModelRc::default());
+        Self::set_loading(main_window, false);
+    }
 
     async fn fetch_entities(state_manager: &StateManager) -> Result<Vec<Self::Entity>, UiError>;
 }
@@ -53,6 +57,9 @@ impl<P: EntityListProvider> EntityListCoordinator<P> {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn on_show(&self) {
         tracing::debug!("EntityListCoordinator[{}]: on_show triggered", P::name());
+        if let Some(main_window) = self.weak.upgrade() {
+            P::set_loading(&main_window, true);
+        }
         let state_manager = self.state_manager.clone();
         let weak = self.weak.clone();
 
@@ -70,6 +77,7 @@ impl<P: EntityListProvider> EntityListCoordinator<P> {
                                 entities.into_iter().map(P::to_model).collect();
                             let model = make_lazy_card_model(&main_window, &state_manager, models);
                             P::set_models(&main_window, model);
+                            P::set_loading(&main_window, false);
                         });
                     }
                     Err(error) => {
@@ -78,6 +86,9 @@ impl<P: EntityListProvider> EntityListCoordinator<P> {
                             P::name(),
                             error
                         );
+                        let _ = weak.upgrade_in_event_loop(move |main_window| {
+                            P::set_loading(&main_window, false);
+                        });
                     }
                 }
             }

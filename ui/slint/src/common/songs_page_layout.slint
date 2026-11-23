@@ -22,6 +22,7 @@ export component SongsPageLayout inherits Rectangle {
     in property <[SongModel]> songs: Constants.testSongs;
     in property <SongModel> default-song: Constants.defaultSong;
     in-out property <[ExtensionProviderItem]> extension_providers: [];
+    in property <bool> is_loading: false;
     callback provider_toggled(string, bool);
     callback load_more();
 
@@ -72,6 +73,7 @@ export component SongsPageLayout inherits Rectangle {
 
             song-list := SongListView {
                 songs: root.songs;
+                is_loading: root.is_loading;
                 active-idx <=> root.active-idx;
                 extension_providers <=> root.extension_providers;
                 provider_toggled(id, enabled) => {

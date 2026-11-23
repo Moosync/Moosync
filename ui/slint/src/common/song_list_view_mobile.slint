@@ -5,6 +5,7 @@ import {
 } from "../types/song_view.slint";
 import { ExtensionProviderItem } from "../types/extension_view.slint";
 import { SongListItemMobile } from "song_list_item_mobile.slint";
+import { GhostSongListItemMobile } from "ghost_items_mobile.slint";
 import { Theme, Constants } from "../constants_mobile.slint";
 import {
     AppCallbacks,
@@ -25,6 +26,7 @@ export component SongListViewMobile inherits Rectangle {
     in-out property <bool> selection_mode <=> SongSelectionState.selection_mode;
     in property <bool> show-controls: true;
     in property <bool> show_play_all: false;
+    in property <bool> is_loading: false;
     out property <bool> is_scrollable: list_view.content-height > list_view.height;
 
     property <bool> select_all_trigger: SongSelectionState.select_all_trigger;
@@ -111,13 +113,13 @@ export component SongListViewMobile inherits Rectangle {
         height: 100%;
         horizontal-scrollbar-policy: always-off;
         vertical-scrollbar-policy: scroll_activity.active ? as-needed : always-off;
-        for song[idx] in root.display-songs: VerticalLayout {
+        for idx in (root.display-songs.length + (root.is_loading ? 6 : 0)): VerticalLayout {
             padding-bottom: Theme.spacingXs;
             padding-left: Theme.paddingSm;
             padding-right: Theme.paddingSm;
 
-            SongListItemMobile {
-                song: song;
+            if (idx < root.display-songs.length): SongListItemMobile {
+                song: root.display-songs[idx];
                 is_selected: UtilCallbacks.is_index_selected(root.selected-indices, idx);
                 selection_mode: root.selection_mode;
                 long_pressed => {
@@ -136,7 +138,7 @@ export component SongListViewMobile inherits Rectangle {
                         SongSelectionState.selected_count = root.selected-indices.length;
                         SongSelectionState.selected_songs = root.selected-songs;
                     } else {
-                        AppCallbacks.play-song(song);
+                        AppCallbacks.play-song(root.display-songs[idx]);
                     }
                 }
                 item_pressed(event) => {
@@ -144,6 +146,10 @@ export component SongListViewMobile inherits Rectangle {
                         root.toggle_selection_mode(idx);
                     }
                 }
+            }
+
+            if (idx >= root.display-songs.length): GhostSongListItemMobile {
+                item_index: idx - root.display-songs.length;
             }
         }
     }

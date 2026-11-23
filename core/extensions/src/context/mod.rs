@@ -15,8 +15,7 @@ use extensions_proto::moosync::types::{
     SpawnProcessResponse, SystemTimeRequest, SystemTimeResponse, UnregisterUserPreferenceResponse,
     UpdateSongResponse, WriteProcessStdinRequest, WriteProcessStdinResponse, WriteSockRequest,
     WriteSockResponse, WsCloseRequest, WsCloseResponse, WsConnectRequest, WsConnectResponse,
-    WsReceiveRequest, WsReceiveResponse, WsSendRequest, WsSendResponse, main_command,
-    main_command_response,
+    WsSendRequest, WsSendResponse, main_command, main_command_response,
 };
 pub use extism_context::ExtismContext;
 use preferences_proto::moosync::types::PreferenceItem;
@@ -202,13 +201,6 @@ pub trait ReplyHandler: Send + Sync + 'static {
         _package_name: &str,
         _req: WsSendRequest,
     ) -> Result<WsSendResponse, ExtensionError> {
-        Err(ExtensionError::NoContext)
-    }
-    fn ws_receive(
-        &self,
-        _package_name: &str,
-        _req: WsReceiveRequest,
-    ) -> Result<WsReceiveResponse, ExtensionError> {
         Err(ExtensionError::NoContext)
     }
     fn ws_close(
@@ -543,9 +535,6 @@ impl DispatchCommand for main_command::Command {
             main_command::Command::WsSend(req) => reply_handler
                 .ws_send(package_name, req)
                 .map(main_command_response::Response::WsSend),
-            main_command::Command::WsReceive(req) => reply_handler
-                .ws_receive(package_name, req)
-                .map(main_command_response::Response::WsReceive),
             main_command::Command::WsClose(req) => reply_handler
                 .ws_close(package_name, req)
                 .map(main_command_response::Response::WsClose),

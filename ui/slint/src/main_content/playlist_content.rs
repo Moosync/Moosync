@@ -64,6 +64,13 @@ impl EntitySongProvider for PlaylistSongProvider {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
+    fn set_loading(main_window: &MainWindow, loading: bool) {
+        main_window
+            .global::<PlaylistContentPageProps>()
+            .set_is_loading(loading);
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
     async fn fetch_local_songs(
         state_manager: &StateManager,
         playlist: Playlist,

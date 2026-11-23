@@ -5,4 +5,5 @@ import { Constants } from "../constants.slint";
 export global PlaylistContentPageProps {
     in-out property <[SongModel]> songs: Constants.testSongs;
     in-out property <[ExtensionProviderItem]> extension_providers: [];
+    in-out property <bool> is_loading: false;
 }

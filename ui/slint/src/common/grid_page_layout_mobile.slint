@@ -6,6 +6,7 @@ export component GridPageLayoutMobile inherits Rectangle {
     in property <string> title;
     in property <int> total_items: 0;
     in property <bool> enable_context_menu: false;
+    in property <bool> is_loading: false;
 
     pure callback item_title(int) -> string;
     pure callback item_cover(int) -> image;
@@ -24,6 +25,7 @@ export component GridPageLayoutMobile inherits Rectangle {
             vertical-stretch: 1;
             total-items: root.total_items;
             enable-context-menu: root.enable_context_menu;
+            is_loading: root.is_loading;
             item-title(idx) => { root.item_title(idx) }
             item-cover(idx) => { root.item_cover(idx) }
             item_extension(idx) => { root.item_extension(idx) }

@@ -9,10 +9,10 @@ use state_manager::StateManager;
 use tracing::Instrument;
 
 use crate::{
-    ExplorePageProps, MainWindow, ProviderRecommendations, SongModel,
+    AppProps, ExplorePageProps, MainWindow, Pages, ProviderRecommendations, SongModel,
     error::UiError,
     pages::PageHandler,
-    utils::{load_image, make_lazy_song_model, resolve_image},
+    utils::{IntoVec, load_image, make_lazy_song_model, resolve_image},
 };
 
 type RecommendationItem = (ExtensionDetail, Option<String>, Vec<Song>);
@@ -40,82 +40,39 @@ impl ExplorePageHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub(crate) async fn fetch_all_recommendations(
+    fn build_provider_recommendation(
+        main_window: &MainWindow,
         state_manager: &StateManager,
-    ) -> Result<Vec<RecommendationItem>, UiError> {
-        tracing::debug!("Fetching recommendations across all active providers");
-        let mut results = Vec::new();
-        let ext_handler = state_manager.get_extension_handler();
-        let rec_extensions = ext_handler
-            .get_extensions_with_scope(ExtensionProviderScope::Recommendations)
-            .await;
-
-        let cache_dir = state_manager.get_cache_dir();
-
-        let mut stream = rec_extensions.with(|ext| {
-            async move {
-                (
-                    ext.clone(),
-                    Self::fetch_extension_recommendations(&ext).await,
-                )
-            }
-            .in_current_span()
-        });
-
-        while let Some((ext, res)) = stream.next().await {
-            let detail = ext.get_extension_detail();
-            match res {
-                Ok(songs) => {
-                    tracing::debug!(
-                        "Fetched {} recommendations from extension '{}'",
-                        songs.len(),
-                        detail.package_name
-                    );
-                    if !songs.is_empty() {
-                        let cached_path = match &detail.extension_icon {
-                            Some(p) if !p.is_empty() => resolve_image(p, &cache_dir)
-                                .await
-                                .map(|p| p.to_string_lossy().to_string()),
-                            _ => None,
-                        };
-                        results.push((detail, cached_path, songs));
-                    }
-                }
-                Err(e) => {
-                    tracing::error!(
-                        "Failed to fetch recommendations from extension '{}': {:?}",
-                        detail.package_name,
-                        e
-                    );
-                }
-            }
+        item: RecommendationItem,
+    ) -> ProviderRecommendations {
+        let (detail, cached_path, songs) = item;
+        let icon = load_image(cached_path.as_deref().unwrap_or(""));
+        let song_models = songs
+            .into_iter()
+            .map(|s| (s, Some(&detail)).into())
+            .collect::<Vec<SongModel>>();
+        let mapped_songs = make_lazy_song_model(main_window, state_manager, song_models);
+        ProviderRecommendations {
+            provider_name: detail.name.into(),
+            provider_icon: icon,
+            songs: mapped_songs,
         }
-        Ok(results)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub(crate) fn render_recommendations(
+    pub(crate) fn append_recommendation(
         main_window: &MainWindow,
         state_manager: &StateManager,
-        recommendations: Vec<RecommendationItem>,
+        item: RecommendationItem,
     ) {
-        let mut list = Vec::new();
-        for (detail, cached_path, songs) in recommendations {
-            let icon = load_image(cached_path.as_deref().unwrap_or(""));
-            let song_models = songs
-                .into_iter()
-                .map(|s| (s, Some(&detail)).into())
-                .collect::<Vec<SongModel>>();
-            let mapped_songs = make_lazy_song_model(main_window, state_manager, song_models);
-            list.push(ProviderRecommendations {
-                provider_name: detail.name.into(),
-                provider_icon: icon,
-                songs: mapped_songs,
-            });
-        }
-        main_window
-            .global::<ExplorePageProps>()
-            .set_provider_recommendations(ModelRc::new(VecModel::from(list)));
+        let props = main_window.global::<ExplorePageProps>();
+        let mut list = props.get_provider_recommendations().into_vec();
+        list.push(Self::build_provider_recommendation(
+            main_window,
+            state_manager,
+            item,
+        ));
+        props.set_provider_recommendations(ModelRc::new(VecModel::from(list)));
     }
 }
 
@@ -123,26 +80,72 @@ impl PageHandler for ExplorePageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) {
         tracing::debug!("ExplorePage: on_show triggered");
+        let props = self.main_window.global::<ExplorePageProps>();
+        props.set_provider_recommendations(ModelRc::default());
+        props.set_is_loading(true);
+
         tokio::spawn({
             let state_manager = self.state_manager.clone();
             let main_window_weak = self.main_window.as_weak();
             async move {
-                match Self::fetch_all_recommendations(&state_manager).await {
-                    Ok(recommendations) => {
-                        let _ = slint::invoke_from_event_loop(move || {
-                            if let Some(main_window) = main_window_weak.upgrade() {
-                                Self::render_recommendations(
-                                    &main_window,
-                                    &state_manager,
-                                    recommendations,
-                                );
-                            }
-                        });
+                let ext_handler = state_manager.get_extension_handler();
+                let rec_extensions = ext_handler
+                    .get_extensions_with_scope(ExtensionProviderScope::Recommendations)
+                    .await;
+                let cache_dir = state_manager.get_cache_dir();
+
+                let mut stream = rec_extensions.with(|ext| {
+                    async move {
+                        (
+                            ext.clone(),
+                            Self::fetch_extension_recommendations(&ext).await,
+                        )
                     }
-                    Err(e) => {
-                        tracing::error!("Failed to fetch recommendations: {:?}", e);
+                    .in_current_span()
+                });
+
+                while let Some((ext, res)) = stream.next().await {
+                    let detail = ext.get_extension_detail();
+                    match res {
+                        Ok(songs) => {
+                            if !songs.is_empty() {
+                                let cached_path = match &detail.extension_icon {
+                                    Some(p) if !p.is_empty() => resolve_image(p, &cache_dir)
+                                        .await
+                                        .map(|p| p.to_string_lossy().to_string()),
+                                    _ => None,
+                                };
+                                let state_manager_ui = state_manager.clone();
+                                let _ =
+                                    main_window_weak.upgrade_in_event_loop(move |main_window| {
+                                        if main_window.global::<AppProps>().get_active_page()
+                                            != Pages::Explore
+                                        {
+                                            return;
+                                        }
+                                        Self::append_recommendation(
+                                            &main_window,
+                                            &state_manager_ui,
+                                            (detail, cached_path, songs),
+                                        );
+                                    });
+                            }
+                        }
+                        Err(e) => {
+                            tracing::error!(
+                                "Failed to fetch recommendations from extension '{}': {:?}",
+                                detail.package_name,
+                                e
+                            );
+                        }
                     }
                 }
+
+                let _ = main_window_weak.upgrade_in_event_loop(move |main_window| {
+                    main_window
+                        .global::<ExplorePageProps>()
+                        .set_is_loading(false);
+                });
             }
             .in_current_span()
         });
@@ -151,8 +154,8 @@ impl PageHandler for ExplorePageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     fn on_hide(&self) {
         tracing::debug!("ExplorePage: on_hide clearing recommendations");
-        self.main_window
-            .global::<ExplorePageProps>()
-            .set_provider_recommendations(ModelRc::default());
+        let props = self.main_window.global::<ExplorePageProps>();
+        props.set_provider_recommendations(ModelRc::default());
+        props.set_is_loading(false);
     }
 }

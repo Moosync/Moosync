@@ -6,6 +6,7 @@ export component GridPageLayout inherits Rectangle {
     in property <string> title;
     in property <int> total_items: 0;
     in property <bool> enable_context_menu: false;
+    in property <bool> is_loading: false;
 
     pure callback item_title(int) -> string;
     pure callback item_cover(int) -> image;
@@ -37,6 +38,7 @@ export component GridPageLayout inherits Rectangle {
             item-width: Theme.cardWidth;
             total-items: root.total_items;
             enable-context-menu: root.enable_context_menu;
+            is_loading: root.is_loading;
             item-title(idx) => {
                 root.item_title(idx)
             }

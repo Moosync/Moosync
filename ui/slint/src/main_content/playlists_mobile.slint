@@ -8,6 +8,7 @@ import { PlaylistsPageProps } from "playlists_props.slint";
 export component PlaylistsPageMobile inherits Rectangle {
     GridPageLayoutMobile {
         total_items: PlaylistsPageProps.playlists.length;
+        is_loading: PlaylistsPageProps.is_loading;
         enable_context_menu: true;
         item_title(idx) => { PlaylistsPageProps.playlists[idx].title }
         item_cover(idx) => { PlaylistsPageProps.playlists[idx].coverPath }

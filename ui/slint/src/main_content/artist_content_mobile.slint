@@ -11,6 +11,7 @@ export component ArtistContentMobile inherits Rectangle {
     SongsPageLayoutMobile {
         songs <=> ArtistContentPageProps.songs;
         extension_providers <=> ArtistContentPageProps.extension_providers;
+        is_loading: ArtistContentPageProps.is_loading;
         provider_toggled(id, enabled) => {
             AppCallbacks.toggle_artist_content_extension(id, enabled);
         }

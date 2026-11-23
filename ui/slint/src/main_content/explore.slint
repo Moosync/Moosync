@@ -23,7 +23,7 @@ export component ExplorePage inherits Rectangle {
             font-weight: 700;
         }
 
-        if (ExplorePageProps.provider-recommendations.length == 0): Rectangle {
+        if (!ExplorePageProps.is_loading && ExplorePageProps.provider-recommendations.length == 0): Rectangle {
             vertical-stretch: 1;
 
             Text {
@@ -31,6 +31,16 @@ export component ExplorePage inherits Rectangle {
                 color: Theme.textSecondary;
                 horizontal-alignment: center;
                 vertical-alignment: center;
+            }
+        }
+
+        if (ExplorePageProps.is_loading && ExplorePageProps.provider-recommendations.length == 0): Rectangle {
+            vertical-stretch: 1;
+
+            SongListView {
+                songs: [];
+                show-controls: false;
+                is_loading: true;
             }
         }
 
@@ -53,6 +63,7 @@ export component ExplorePage inherits Rectangle {
 
                 SongListView {
                     songs: ExplorePageProps.provider-recommendations[root.selected-provider].songs;
+                    is_loading: ExplorePageProps.is_loading;
                 }
             }
         }

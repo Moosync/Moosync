@@ -47,6 +47,7 @@ message ExtensionCommand {
     PlayerSeekRequest player_seek = 37;
     PlayerSetVolumeRequest player_set_volume = 38;
     PlayerLoadTrackRequest player_load_track = 39;
+    WsEventRequest ws_event = 40;
   }
 }
 
@@ -88,6 +89,7 @@ message ExtensionCommandResponse {
     PlayerSeekResponse player_seek = 36;
     PlayerSetVolumeResponse player_set_volume = 37;
     PlayerLoadTrackResponse player_load_track = 38;
+    WsEventResponse ws_event = 39;
   }
 }
 
@@ -354,7 +356,6 @@ message MainCommand {
     NotifyPlayerEventRequest notify_player_event = 31;
     WsConnectRequest ws_connect = 32;
     WsSendRequest ws_send = 33;
-    WsReceiveRequest ws_receive = 34;
     WsCloseRequest ws_close = 35;
     SystemTimeRequest system_time = 36;
     OpenClientFdRequest open_client_fd = 37;
@@ -404,7 +405,6 @@ message MainCommandResponse {
     NotifyPlayerEventResponse notify_player_event = 32;
     WsConnectResponse ws_connect = 33;
     WsSendResponse ws_send = 34;
-    WsReceiveResponse ws_receive = 35;
     WsCloseResponse ws_close = 36;
     SystemTimeResponse system_time = 37;
     OpenClientFdResponse open_client_fd = 38;
@@ -931,17 +931,21 @@ message WsSendResponse {
   bool success = 1;
 }
 
-message WsReceiveRequest {
+message WsClosed {
+  optional uint32 code = 1;
+  optional string reason = 2;
+  optional string error = 3;
+}
+
+message WsEventRequest {
   uint64 connection_id = 1;
-  optional uint64 timeout_ms = 2;
-}
-message WsReceiveResponse {
-  oneof payload {
-    string text = 1;
-    bytes binary = 2;
+  oneof event {
+    string text = 2;
+    bytes binary = 3;
+    WsClosed closed = 4;
   }
-  bool is_closed = 3;
 }
+message WsEventResponse {}
 
 message WsCloseRequest {
   uint64 connection_id = 1;

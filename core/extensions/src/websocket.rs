@@ -1,18 +1,25 @@
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::HashMap,
     sync::{
-        Arc, Mutex,
+        Arc, Mutex, Weak,
         atomic::{AtomicUsize, Ordering},
     },
-    time::Duration,
 };
 
 use extensions_proto::moosync::types::{
-    WsCloseRequest, WsCloseResponse, WsConnectRequest, WsConnectResponse, WsReceiveRequest,
-    WsReceiveResponse, WsSendRequest, WsSendResponse, ws_receive_response, ws_send_request,
+    ExtensionCommand, WsCloseRequest, WsCloseResponse, WsClosed, WsConnectRequest,
+    WsConnectResponse, WsEventRequest, WsSendRequest, WsSendResponse, extension_command,
+    ws_event_request, ws_send_request,
 };
-use futures_util::{SinkExt, StreamExt};
-use tokio::{net::TcpStream, runtime::Handle, sync::Mutex as AsyncMutex, time::timeout};
+use futures_util::{
+    SinkExt, StreamExt,
+    stream::{SplitSink, SplitStream},
+};
+use tokio::{
+    net::TcpStream,
+    runtime::Handle,
+    sync::{Mutex as AsyncMutex, mpsc, oneshot},
+};
 use tokio_tungstenite::{
     WebSocketStream, client_async,
     tungstenite::{
@@ -26,27 +33,80 @@ use tokio_tungstenite::{
 use tracing::Instrument;
 use url::Url;
 
-use crate::{errors::ExtensionError, http::is_host_allowed};
+use crate::{errors::ExtensionError, extension::AsyncContext, http::is_host_allowed};
+
+#[async_trait::async_trait]
+pub trait WsEventSink: Send + Sync {
+    async fn dispatch(&self, command: ExtensionCommand) -> Result<(), ExtensionError>;
+}
+
+struct ContextWsEventSink {
+    context: Weak<AsyncContext>,
+}
+
+#[async_trait::async_trait]
+impl WsEventSink for ContextWsEventSink {
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn dispatch(&self, command: ExtensionCommand) -> Result<(), ExtensionError> {
+        let Some(context) = self.context.upgrade() else {
+            return Err(ExtensionError::NoContext);
+        };
+        let extension_context = context.wait().await?;
+        let _ = extension_context.execute_command(command).await?;
+        Ok(())
+    }
+}
+
+enum WsIncomingEvent {
+    Text(String),
+    Binary(Vec<u8>),
+    Closed {
+        code: Option<u32>,
+        reason: Option<String>,
+        error: Option<String>,
+    },
+}
 
 struct ConnectionState {
-    socket: WebSocketStream<TcpStream>,
-    incoming: VecDeque<Message>,
+    write_half: SplitSink<WebSocketStream<TcpStream>, Message>,
     is_closed: bool,
+    shutdown_tx: Option<oneshot::Sender<()>>,
 }
 
 pub struct WsManager {
     connections: Arc<Mutex<HashMap<usize, Arc<AsyncMutex<ConnectionState>>>>>,
     next_id: AtomicUsize,
     allowed_hosts: Option<Vec<String>>,
+    package_name: String,
+    sink: Arc<dyn WsEventSink>,
 }
 
 impl WsManager {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(allowed_hosts: Option<Vec<String>>) -> Self {
+    pub(crate) fn new(
+        allowed_hosts: Option<Vec<String>>,
+        package_name: impl Into<String>,
+        context: Weak<AsyncContext>,
+    ) -> Self {
+        Self::with_sink(
+            allowed_hosts,
+            package_name,
+            Arc::new(ContextWsEventSink { context }),
+        )
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn with_sink(
+        allowed_hosts: Option<Vec<String>>,
+        package_name: impl Into<String>,
+        sink: Arc<dyn WsEventSink>,
+    ) -> Self {
         Self {
             connections: Arc::new(Mutex::new(HashMap::new())),
             next_id: AtomicUsize::new(1),
             allowed_hosts,
+            package_name: package_name.into(),
+            sink,
         }
     }
 
@@ -100,15 +160,33 @@ impl WsManager {
         }
 
         let (socket, _response) = client_async(client_req, stream).await?;
-        let connection_id = self.next_id.fetch_add(1, Ordering::SeqCst);
-        let state = ConnectionState {
-            socket,
-            incoming: VecDeque::new(),
-            is_closed: false,
-        };
+        let (write_half, read_half) = socket.split();
+        let (shutdown_tx, shutdown_rx) = oneshot::channel();
+        let (event_tx, event_rx) = mpsc::unbounded_channel();
 
-        let mut connections = self.connections.lock().unwrap();
-        connections.insert(connection_id, Arc::new(AsyncMutex::new(state)));
+        let connection_id = self.next_id.fetch_add(1, Ordering::SeqCst);
+        let state = Arc::new(AsyncMutex::new(ConnectionState {
+            write_half,
+            is_closed: false,
+            shutdown_tx: Some(shutdown_tx),
+        }));
+
+        {
+            let mut connections = self.connections.lock().unwrap();
+            connections.insert(connection_id, state.clone());
+        }
+
+        tokio::spawn(run_reader_loop(read_half, state, shutdown_rx, event_tx).in_current_span());
+        tokio::spawn(
+            run_dispatcher_loop(
+                connection_id,
+                self.package_name.clone(),
+                self.connections.clone(),
+                self.sink.clone(),
+                event_rx,
+            )
+            .in_current_span(),
+        );
 
         Ok(WsConnectResponse {
             connection_id: connection_id as u64,
@@ -136,96 +214,8 @@ impl WsManager {
         if state.is_closed {
             return Err(ExtensionError::WsConnectionClosed(connection_id));
         }
-        state.socket.send(message).await?;
+        state.write_half.send(message).await?;
         Ok(WsSendResponse { success: true })
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub async fn ws_receive(
-        &self,
-        request: WsReceiveRequest,
-    ) -> Result<WsReceiveResponse, ExtensionError> {
-        let connection_id = request.connection_id as usize;
-        let connection = {
-            let connections = self.connections.lock().unwrap();
-            connections
-                .get(&connection_id)
-                .cloned()
-                .ok_or(ExtensionError::WsConnectionNotFound(connection_id))?
-        };
-
-        let wait_duration = Duration::from_millis(request.timeout_ms.unwrap_or(50).max(10));
-        let mut state = connection.lock().await;
-        if let Some(message) = state.incoming.pop_front() {
-            let payload = match message {
-                Message::Text(text) => Some(ws_receive_response::Payload::Text(text.to_string())),
-                Message::Binary(bin) => Some(ws_receive_response::Payload::Binary(bin.to_vec())),
-                _ => None,
-            };
-            return Ok(WsReceiveResponse {
-                payload,
-                is_closed: state.is_closed,
-            });
-        }
-
-        if state.is_closed {
-            return Ok(WsReceiveResponse {
-                payload: None,
-                is_closed: true,
-            });
-        }
-
-        let deadline = tokio::time::Instant::now() + wait_duration;
-        loop {
-            let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
-            if remaining.is_zero() {
-                return Ok(WsReceiveResponse {
-                    payload: None,
-                    is_closed: state.is_closed,
-                });
-            }
-
-            match timeout(remaining, state.socket.next()).await {
-                Ok(Some(Ok(message))) => match message {
-                    Message::Text(text) => {
-                        return Ok(WsReceiveResponse {
-                            payload: Some(ws_receive_response::Payload::Text(text.to_string())),
-                            is_closed: state.is_closed,
-                        });
-                    }
-                    Message::Binary(bin) => {
-                        return Ok(WsReceiveResponse {
-                            payload: Some(ws_receive_response::Payload::Binary(bin.to_vec())),
-                            is_closed: state.is_closed,
-                        });
-                    }
-                    Message::Close(_) => {
-                        state.is_closed = true;
-                        return Ok(WsReceiveResponse {
-                            payload: None,
-                            is_closed: true,
-                        });
-                    }
-                    Message::Ping(data) => {
-                        let _ = state.socket.send(Message::Pong(data)).await;
-                    }
-                    Message::Pong(_) | Message::Frame(_) => {}
-                },
-                Ok(Some(Err(_))) | Ok(None) => {
-                    state.is_closed = true;
-                    return Ok(WsReceiveResponse {
-                        payload: None,
-                        is_closed: true,
-                    });
-                }
-                Err(_) => {
-                    return Ok(WsReceiveResponse {
-                        payload: None,
-                        is_closed: state.is_closed,
-                    });
-                }
-            }
-        }
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -242,14 +232,25 @@ impl WsManager {
         if let Some(conn) = connection {
             let code = request.code.unwrap_or(1000) as u16;
             let mut state = conn.lock().await;
+            if let Some(shutdown_tx) = state.shutdown_tx.take() {
+                let _ = shutdown_tx.send(());
+            }
             if !state.is_closed {
                 state.is_closed = true;
                 let close_frame = CloseFrame {
                     code: CloseCode::from(code),
                     reason: request.reason.map(|r| r.into()).unwrap_or_default(),
                 };
-                let _ = state.socket.close(Some(close_frame)).await;
-                let _ = state.socket.flush().await;
+                if let Err(err) = state
+                    .write_half
+                    .send(Message::Close(Some(close_frame)))
+                    .await
+                {
+                    tracing::error!("Failed to send WebSocket close frame: {:?}", err);
+                }
+                if let Err(err) = state.write_half.flush().await {
+                    tracing::error!("Failed to flush WebSocket close frame: {:?}", err);
+                }
             }
         }
 
@@ -272,15 +273,146 @@ impl WsManager {
                 async move {
                     for conn in drained {
                         let mut state = conn.lock().await;
+                        if let Some(shutdown_tx) = state.shutdown_tx.take() {
+                            let _ = shutdown_tx.send(());
+                        }
                         if !state.is_closed {
                             state.is_closed = true;
-                            let _ = state.socket.close(None).await;
-                            let _ = state.socket.flush().await;
+                            let _ = state.write_half.send(Message::Close(None)).await;
+                            let _ = state.write_half.flush().await;
                         }
                     }
                 }
                 .in_current_span(),
             );
+        }
+    }
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn run_reader_loop(
+    mut read_half: SplitStream<WebSocketStream<TcpStream>>,
+    state: Arc<AsyncMutex<ConnectionState>>,
+    mut shutdown_rx: oneshot::Receiver<()>,
+    event_tx: mpsc::UnboundedSender<WsIncomingEvent>,
+) {
+    loop {
+        tokio::select! {
+            _ = &mut shutdown_rx => {
+                break;
+            }
+            next_item = read_half.next() => {
+                match next_item {
+                    Some(Ok(message)) => {
+                        if !handle_incoming_message(message, &state, &event_tx).await {
+                            break;
+                        }
+                    }
+                    Some(Err(err)) => {
+                        let _ = event_tx.send(WsIncomingEvent::Closed {
+                            code: None,
+                            reason: None,
+                            error: Some(err.to_string()),
+                        });
+                        break;
+                    }
+                    None => {
+                        let _ = event_tx.send(WsIncomingEvent::Closed {
+                            code: None,
+                            reason: None,
+                            error: None,
+                        });
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn handle_incoming_message(
+    message: Message,
+    state: &Arc<AsyncMutex<ConnectionState>>,
+    event_tx: &mpsc::UnboundedSender<WsIncomingEvent>,
+) -> bool {
+    match message {
+        Message::Text(text) => event_tx
+            .send(WsIncomingEvent::Text(text.to_string()))
+            .is_ok(),
+        Message::Binary(bin) => event_tx.send(WsIncomingEvent::Binary(bin.to_vec())).is_ok(),
+        Message::Ping(data) => {
+            let mut guard = state.lock().await;
+            if !guard.is_closed
+                && let Err(err) = guard.write_half.send(Message::Pong(data)).await
+            {
+                tracing::error!("Failed to send WebSocket pong frame: {:?}", err);
+            }
+            true
+        }
+        Message::Close(frame) => {
+            let (code, reason) = match frame {
+                Some(close_frame) => (
+                    Some(u16::from(close_frame.code) as u32),
+                    Some(close_frame.reason.to_string()),
+                ),
+                None => (None, None),
+            };
+            let _ = event_tx.send(WsIncomingEvent::Closed {
+                code,
+                reason,
+                error: None,
+            });
+            false
+        }
+        Message::Pong(_) | Message::Frame(_) => true,
+    }
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn run_dispatcher_loop(
+    connection_id: usize,
+    package_name: String,
+    connections: Arc<Mutex<HashMap<usize, Arc<AsyncMutex<ConnectionState>>>>>,
+    sink: Arc<dyn WsEventSink>,
+    mut event_rx: mpsc::UnboundedReceiver<WsIncomingEvent>,
+) {
+    while let Some(incoming) = event_rx.recv().await {
+        let is_closed = matches!(incoming, WsIncomingEvent::Closed { .. });
+        if is_closed {
+            let mut connections_guard = connections.lock().unwrap();
+            connections_guard.remove(&connection_id);
+        }
+
+        let event = match incoming {
+            WsIncomingEvent::Text(text) => ws_event_request::Event::Text(text),
+            WsIncomingEvent::Binary(binary) => ws_event_request::Event::Binary(binary),
+            WsIncomingEvent::Closed {
+                code,
+                reason,
+                error,
+            } => ws_event_request::Event::Closed(WsClosed {
+                code,
+                reason,
+                error,
+            }),
+        };
+
+        let command = ExtensionCommand {
+            package_name: package_name.clone(),
+            event: Some(extension_command::Event::WsEvent(WsEventRequest {
+                connection_id: connection_id as u64,
+                event: Some(event),
+            })),
+        };
+
+        if let Err(err) = sink.dispatch(command).await {
+            tracing::error!(
+                "Failed to dispatch WebSocket event for {}: {:?}",
+                package_name,
+                err
+            );
+            break;
         }
     }
 }

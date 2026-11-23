@@ -359,6 +359,26 @@ fn test_entity_content_map_songs_to_models() {
     assert_eq!(models[0].title.as_str(), "Mapped Song");
 }
 
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_pagination_manager_is_any_loading() {
+    let mut manager = ExtensionPaginationManager::default();
+    assert!(!manager.is_any_loading());
+
+    manager.register_extension("ext_a");
+    assert!(manager.is_any_loading());
+
+    manager.update_after_fetch("ext_a", Some("next".to_string()));
+    assert!(!manager.is_any_loading());
+
+    let _ = manager.load_more();
+    assert!(manager.is_any_loading());
+
+    manager.mark_error("ext_a");
+    assert!(!manager.is_any_loading());
+}
+
 #[rstest]
 #[tokio::test]
 #[traced_test]

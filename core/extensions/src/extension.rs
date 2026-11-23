@@ -199,12 +199,17 @@ impl Extension {
             .permissions
             .as_ref()
             .map(|p| p.hosts.iter().map(|h| h.host.clone()).collect::<Vec<_>>());
-        let http_manager = Arc::new(HttpManager::new(allowed_hosts.clone()));
-        let ws_manager = Arc::new(WsManager::new(allowed_hosts));
-
+        let context = Arc::new(AsyncContext::new());
         let package_name = manifest.name.clone();
+        let http_manager = Arc::new(HttpManager::new(allowed_hosts.clone()));
+        let ws_manager = Arc::new(WsManager::new(
+            allowed_hosts,
+            package_name.clone(),
+            Arc::downgrade(&context),
+        ));
+
         let ext = Self {
-            context: Arc::new(AsyncContext::new()),
+            context,
             preferences: Default::default(),
             accounts: Default::default(),
             has_started,

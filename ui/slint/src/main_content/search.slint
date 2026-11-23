@@ -14,7 +14,6 @@ import { Button } from "../common/button.slint";
 import { Utils, DefaultIconType } from "../utils.slint";
 import { AccountsProps } from "../common/accounts_props.slint";
 import { StatusTooltip } from "../common/status_tooltip.slint";
-import { Spinner } from "../common/spinner.slint";
 import { AlbumsPageProps } from "albums_props.slint";
 import { ArtistsPageProps } from "artists_props.slint";
 import { PlaylistsPageProps } from "playlists_props.slint";
@@ -152,15 +151,11 @@ export component SearchPage inherits Rectangle {
                 res_container.current_res.playlists.length == 0 &&
                 res_container.current_res.genres.length == 0;
 
-            if (res_container.current_res.loading): Spinner {
-                width: Theme.sizeXxl;
-                height: Theme.sizeXxl;
-            }
-
             SongListView {
                 songs: res_container.current_res.songs;
-                opacity: (!res_container.current_res.loading && root.active_tab == 0) ? 1.0 : 0.0;
-                visible: !res_container.current_res.loading && self.opacity > 0.01;
+                is_loading: res_container.current_res.loading;
+                opacity: (root.active_tab == 0) ? 1.0 : 0.0;
+                visible: self.opacity > 0.01;
                 animate opacity {
                     duration: Theme.durationNormal;
                     easing: ease-in-out;
@@ -170,6 +165,7 @@ export component SearchPage inherits Rectangle {
             GridListView {
                 item_width: Theme.cardWidth;
                 total_items: res_container.current_res.albums.length;
+                is_loading: res_container.current_res.loading;
                 enable_context_menu: true;
                 item_title(idx) => { res_container.current_res.albums[idx].title }
                 item_cover(idx) => { res_container.current_res.albums[idx].coverPath }
@@ -185,8 +181,8 @@ export component SearchPage inherits Rectangle {
                 context_menu_action(idx, action_id) => {
                     ContextMenuCallbacks.album_action([res_container.current_res.albums[idx]], action_id)
                 }
-                opacity: (!res_container.current_res.loading && root.active_tab == 1) ? 1.0 : 0.0;
-                visible: !res_container.current_res.loading && self.opacity > 0.01;
+                opacity: (root.active_tab == 1) ? 1.0 : 0.0;
+                visible: self.opacity > 0.01;
                 animate opacity {
                     duration: Theme.durationNormal;
                     easing: ease-in-out;
@@ -196,6 +192,7 @@ export component SearchPage inherits Rectangle {
             GridListView {
                 item_width: Theme.cardWidth;
                 total_items: res_container.current_res.artists.length;
+                is_loading: res_container.current_res.loading;
                 enable_context_menu: true;
                 item_title(idx) => { res_container.current_res.artists[idx].title }
                 item_cover(idx) => { res_container.current_res.artists[idx].coverPath }
@@ -211,8 +208,8 @@ export component SearchPage inherits Rectangle {
                 context_menu_action(idx, action_id) => {
                     ContextMenuCallbacks.artist_action([res_container.current_res.artists[idx]], action_id)
                 }
-                opacity: (!res_container.current_res.loading && root.active_tab == 2) ? 1.0 : 0.0;
-                visible: !res_container.current_res.loading && self.opacity > 0.01;
+                opacity: (root.active_tab == 2) ? 1.0 : 0.0;
+                visible: self.opacity > 0.01;
                 animate opacity {
                     duration: Theme.durationNormal;
                     easing: ease-in-out;
@@ -222,6 +219,7 @@ export component SearchPage inherits Rectangle {
             GridListView {
                 item_width: Theme.cardWidth;
                 total_items: res_container.current_res.playlists.length;
+                is_loading: res_container.current_res.loading;
                 enable_context_menu: true;
                 item_title(idx) => { res_container.current_res.playlists[idx].title }
                 item_cover(idx) => { res_container.current_res.playlists[idx].coverPath }
@@ -237,8 +235,8 @@ export component SearchPage inherits Rectangle {
                 context_menu_action(idx, action_id) => {
                     ContextMenuCallbacks.playlist_action([res_container.current_res.playlists[idx]], action_id)
                 }
-                opacity: (!res_container.current_res.loading && root.active_tab == 3) ? 1.0 : 0.0;
-                visible: !res_container.current_res.loading && self.opacity > 0.01;
+                opacity: (root.active_tab == 3) ? 1.0 : 0.0;
+                visible: self.opacity > 0.01;
                 animate opacity {
                     duration: Theme.durationNormal;
                     easing: ease-in-out;
@@ -248,6 +246,7 @@ export component SearchPage inherits Rectangle {
             GridListView {
                 item_width: Theme.cardWidth;
                 total_items: res_container.current_res.genres.length;
+                is_loading: res_container.current_res.loading;
                 enable_context_menu: true;
                 item_title(idx) => { res_container.current_res.genres[idx].title }
                 item_cover(idx) => { res_container.current_res.genres[idx].coverPath }
@@ -257,8 +256,8 @@ export component SearchPage inherits Rectangle {
                 context_menu_action(idx, action_id) => {
                     ContextMenuCallbacks.genre_action([res_container.current_res.genres[idx]], action_id)
                 }
-                opacity: (!res_container.current_res.loading && root.active_tab == 4) ? 1.0 : 0.0;
-                visible: !res_container.current_res.loading && self.opacity > 0.01;
+                opacity: (root.active_tab == 4) ? 1.0 : 0.0;
+                visible: self.opacity > 0.01;
                 animate opacity {
                     duration: Theme.durationNormal;
                     easing: ease-in-out;

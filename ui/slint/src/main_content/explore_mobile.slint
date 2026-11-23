@@ -14,7 +14,7 @@ export component ExplorePageMobile inherits Rectangle {
         spacing: Theme.spacingMd;
         padding-top: Theme.spacingSm;
 
-        if (ExplorePageProps.provider-recommendations.length == 0): Rectangle {
+        if (!ExplorePageProps.is_loading && ExplorePageProps.provider-recommendations.length == 0): Rectangle {
             vertical-stretch: 1;
 
             Text {
@@ -23,6 +23,16 @@ export component ExplorePageMobile inherits Rectangle {
                 font-size: Theme.body;
                 horizontal-alignment: center;
                 vertical-alignment: center;
+            }
+        }
+
+        if (ExplorePageProps.is_loading && ExplorePageProps.provider-recommendations.length == 0): Rectangle {
+            vertical-stretch: 1;
+
+            SongListViewMobile {
+                songs: [];
+                show-controls: false;
+                is_loading: true;
             }
         }
 
@@ -48,6 +58,7 @@ export component ExplorePageMobile inherits Rectangle {
 
                 SongListViewMobile {
                     songs: ExplorePageProps.provider-recommendations[root.selected-provider].songs;
+                    is_loading: ExplorePageProps.is_loading;
                 }
             }
         }

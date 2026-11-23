@@ -29,6 +29,7 @@ export component PlaylistsPage inherits Rectangle {
     GridPageLayout {
         title: @tr("Playlists");
         total_items: PlaylistsPageProps.playlists.length;
+        is_loading: PlaylistsPageProps.is_loading;
         enable_context_menu: true;
         item_title(idx) => {
             PlaylistsPageProps.playlists[idx].title

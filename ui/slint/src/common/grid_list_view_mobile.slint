@@ -1,5 +1,6 @@
 import { ListView } from "std-widgets.slint";
 import { CardViewMobile } from "card_view_mobile.slint";
+import { GhostCardViewMobile } from "ghost_items_mobile.slint";
 import { Theme } from "../constants_mobile.slint";
 import { ContextMenuMobile } from "context_menu_mobile.slint";
 import { ContextMenuItem } from "../types/context_menu.slint";
@@ -11,13 +12,16 @@ export component GridListViewMobile inherits Rectangle {
     height: 100%;
     in property <int> total-items: 0;
     in property <bool> enable-context-menu: false;
+    in property <bool> is_loading: false;
 
     property <int> columns: 2;
     property <length> spacing-val: Theme.spacingSm;
     property <length> item-width: (root.width - Theme.paddingSm * 2 - root.spacing-val) / 2;
     property <length> item-height: root.item-width + Theme.size4Xl;
 
-    property <int> total-rows: root.total-items == 0 ? 0 : (root.total-items + root.columns - 1) / root.columns;
+    property <int> real_rows: root.total-items == 0 ? 0 : (root.total-items + root.columns - 1) / root.columns;
+    property <int> ghost_rows: root.is_loading ? 2 : 0;
+    property <int> total-rows: root.real_rows + root.ghost_rows;
 
     pure callback item-title(int) -> string;
     pure callback item-cover(int) -> image;
@@ -50,7 +54,7 @@ export component GridListViewMobile inherits Rectangle {
                     width: root.item-width;
                     height: root.item-height;
 
-                    if (self.item-idx < root.total-items): cell := Rectangle {
+                    if (row-index < root.real_rows && self.item-idx < root.total-items): cell := Rectangle {
                         width: 100%;
                         height: 100%;
                         background: Theme.secondary;
@@ -80,6 +84,18 @@ export component GridListViewMobile inherits Rectangle {
                             selected(action_id) => {
                                 root.context-menu-action(col.item-idx, action_id);
                             }
+                        }
+                    }
+
+                    if (row-index >= root.real_rows): Rectangle {
+                        width: 100%;
+                        height: 100%;
+                        background: Theme.secondary;
+                        border-radius: Theme.borderRadiusMd;
+                        clip: true;
+
+                        GhostCardViewMobile {
+                            item_index: (row-index - root.real_rows) * 2 + col-index;
                         }
                     }
                 }

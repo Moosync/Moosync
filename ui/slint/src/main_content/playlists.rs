@@ -11,7 +11,7 @@ use crate::{
     error::UiError,
     pages::PageHandler,
     utils::{
-        EntityListCoordinator, EntityListProvider, IntoVec, build_playlist_context_menu_items,
+        EntityListProvider, IntoVec, build_playlist_context_menu_items,
         handle_extension_context_action, make_lazy_card_model,
     },
 };
@@ -91,6 +91,14 @@ impl EntityListProvider for PlaylistListProvider {
             .set_playlists(model);
     }
 
+    /// Updates the loading state on the `PlaylistsPageProps` global.
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn set_loading(main_window: &MainWindow, loading: bool) {
+        main_window
+            .global::<PlaylistsPageProps>()
+            .set_is_loading(loading);
+    }
+
     /// Fetches both local and extension-provided playlists.
     #[tracing::instrument(level = "debug", skip_all)]
     async fn fetch_entities(state_manager: &StateManager) -> Result<Vec<Playlist>, UiError> {
@@ -110,7 +118,6 @@ impl EntityListProvider for PlaylistListProvider {
 pub struct PlaylistsPageHandler {
     main_window: MainWindow,
     state_manager: StateManager,
-    coordinator: EntityListCoordinator<PlaylistListProvider>,
 }
 
 impl PlaylistsPageHandler {
@@ -121,8 +128,85 @@ impl PlaylistsPageHandler {
         Self {
             main_window: main_window.clone_strong(),
             state_manager: state_manager.clone(),
-            coordinator: EntityListCoordinator::new(main_window, state_manager),
         }
+    }
+
+    /// Streams local playlists first, then appends extension playlists as each
+    /// extension responds.
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn load_playlists_incrementally(weak: Weak<MainWindow>, state_manager: StateManager) {
+        match PlaylistListProvider::get_local_playlists(&state_manager).await {
+            Ok(local) => {
+                let state_manager_ui = state_manager.clone();
+                let _ = weak.upgrade_in_event_loop(move |main_window| {
+                    if main_window.global::<AppProps>().get_active_page() != Pages::Playlists {
+                        return;
+                    }
+                    let models: Vec<PlaylistModel> = local
+                        .into_iter()
+                        .map(PlaylistListProvider::to_model)
+                        .collect();
+                    let model = make_lazy_card_model(&main_window, &state_manager_ui, models);
+                    PlaylistListProvider::set_models(&main_window, model);
+                });
+            }
+            Err(e) => tracing::error!("Failed to fetch local playlists: {:?}", e),
+        }
+
+        let ext_handler = state_manager.get_extension_handler();
+        let playlist_extensions = ext_handler
+            .get_extensions_with_scope(ExtensionProviderScope::Playlists)
+            .await;
+
+        let mut stream = playlist_extensions.with(|ext| {
+            async move {
+                (
+                    ext.clone(),
+                    PlaylistListProvider::fetch_extension_playlists(&ext).await,
+                )
+            }
+            .in_current_span()
+        });
+
+        while let Some((ext, res)) = stream.next().await {
+            match res {
+                Ok(ext_playlists) => {
+                    if !ext_playlists.is_empty() {
+                        let state_manager_ui = state_manager.clone();
+                        let _ = weak.upgrade_in_event_loop(move |main_window| {
+                            if main_window.global::<AppProps>().get_active_page()
+                                != Pages::Playlists
+                            {
+                                return;
+                            }
+                            let mut current = main_window
+                                .global::<PlaylistsPageProps>()
+                                .get_playlists()
+                                .into_vec();
+                            current.extend(
+                                ext_playlists
+                                    .into_iter()
+                                    .map(PlaylistListProvider::to_model),
+                            );
+                            let model =
+                                make_lazy_card_model(&main_window, &state_manager_ui, current);
+                            PlaylistListProvider::set_models(&main_window, model);
+                        });
+                    }
+                }
+                Err(e) => {
+                    tracing::error!(
+                        "Failed to fetch playlists from extension {}: {:?}",
+                        ext.get_package_name(),
+                        e
+                    );
+                }
+            }
+        }
+
+        let _ = weak.upgrade_in_event_loop(move |main_window| {
+            PlaylistListProvider::set_loading(&main_window, false);
+        });
     }
 
     /// Handles a selected playlist context menu action.
@@ -225,9 +309,20 @@ impl PageHandler for PlaylistsPageHandler {
 
     /// Loads playlists when the page becomes visible.
     #[tracing::instrument(level = "debug", skip_all)]
-    fn on_show(&self) { self.coordinator.on_show(); }
+    fn on_show(&self) {
+        PlaylistListProvider::clear_models(&self.main_window);
+        PlaylistListProvider::set_loading(&self.main_window, true);
+        let weak = self.main_window.as_weak();
+        let state_manager = self.state_manager.clone();
+        tokio::spawn(
+            async move {
+                Self::load_playlists_incrementally(weak, state_manager).await;
+            }
+            .in_current_span(),
+        );
+    }
 
     /// Cleans up subscriptions when the page is hidden.
     #[tracing::instrument(level = "debug", skip_all)]
-    fn on_hide(&self) { self.coordinator.on_hide(); }
+    fn on_hide(&self) { PlaylistListProvider::clear_models(&self.main_window); }
 }

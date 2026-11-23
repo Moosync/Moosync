@@ -85,6 +85,9 @@ impl ExtensionPaginationManager {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn remove_extension(&mut self, package_name: &str) { self.extensions.remove(package_name); }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn is_any_loading(&self) -> bool { self.extensions.values().any(|state| state.is_loading) }
 }
 
 #[async_trait::async_trait]
@@ -99,6 +102,7 @@ pub trait EntitySongProvider: Clone + Send + Sync + 'static {
         ModelRc::default()
     }
     fn set_extensions(_main_window: &MainWindow, _extensions: ModelRc<ExtensionProviderItem>) {}
+    fn set_loading(_main_window: &MainWindow, _loading: bool) {}
     fn update_extensions_enabled(main_window: &MainWindow, package_name: &str, enabled: bool) {
         let extensions = Self::get_extensions(main_window).into_vec();
         let updated = update_provider_list_enabled(&extensions, package_name, enabled);
@@ -107,6 +111,7 @@ pub trait EntitySongProvider: Clone + Send + Sync + 'static {
     fn clear_ui(main_window: &MainWindow) {
         Self::set_songs(main_window, ModelRc::default());
         Self::set_extensions(main_window, ModelRc::default());
+        Self::set_loading(main_window, false);
     }
 
     async fn fetch_local_songs(
@@ -161,13 +166,15 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn on_toggle_extension(&self, package_name: String, enabled: bool) {
         if !enabled {
-            self.pagination
-                .lock()
-                .unwrap()
-                .remove_extension(&package_name);
+            let is_loading = {
+                let mut pagination = self.pagination.lock().unwrap();
+                pagination.remove_extension(&package_name);
+                pagination.is_any_loading()
+            };
             let state_manager = self.state_manager.clone();
             let _ = self.weak.upgrade_in_event_loop(move |main_window| {
                 Self::disable_extension_in_ui(&main_window, state_manager, &package_name);
+                P::set_loading(&main_window, is_loading);
             });
             return;
         }
@@ -187,6 +194,13 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
         let coordinator = self.clone();
         tokio::spawn(
             async move {
+                if enabled_packages.is_empty() {
+                    let _ = coordinator.weak.upgrade_in_event_loop(move |main_window| {
+                        P::set_loading(&main_window, false);
+                    });
+                    return;
+                }
+
                 coordinator
                     .fetch_enabled_extension_songs(entity, enabled_packages)
                     .await;
@@ -226,6 +240,10 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
         };
 
         if to_fetch.is_empty() {
+            let is_loading = self.pagination.lock().unwrap().is_any_loading();
+            let _ = self.weak.upgrade_in_event_loop(move |window| {
+                P::set_loading(&window, is_loading);
+            });
             return;
         }
 
@@ -235,6 +253,10 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
                 pagination.register_extension(ext.get_package_name());
             }
         }
+
+        let _ = self.weak.upgrade_in_event_loop(move |window| {
+            P::set_loading(&window, true);
+        });
 
         let mut stream = to_fetch.with(|ext| {
             let entity = entity.clone();
@@ -262,10 +284,12 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
                         let model = make_lazy_song_model(&window, &state_manager_ui, current);
                         P::set_songs(&window, model);
 
-                        pagination
-                            .lock()
-                            .unwrap()
-                            .update_after_fetch(&package_name, next_token);
+                        let is_loading = {
+                            let mut guard = pagination.lock().unwrap();
+                            guard.update_after_fetch(&package_name, next_token);
+                            guard.is_any_loading()
+                        };
+                        P::set_loading(&window, is_loading);
                     });
                 }
                 Err(error) => {
@@ -274,13 +298,15 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
                         detail.package_name,
                         error
                     );
-                    pagination
-                        .lock()
-                        .unwrap()
-                        .remove_extension(&detail.package_name);
+                    let is_loading = {
+                        let mut guard = pagination.lock().unwrap();
+                        guard.remove_extension(&detail.package_name);
+                        guard.is_any_loading()
+                    };
                     let package_name = detail.package_name;
                     let _ = weak.upgrade_in_event_loop(move |window| {
                         P::update_extensions_enabled(&window, &package_name, false);
+                        P::set_loading(&window, is_loading);
                     });
                 }
             }
@@ -306,6 +332,7 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
         let Some(main_window) = self.weak.upgrade() else {
             return;
         };
+        P::set_loading(&main_window, true);
         let (entity, _) = P::get_entity(&main_window);
 
         let state_manager = self.state_manager.clone();
@@ -324,6 +351,16 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
                     .collect();
 
                 if to_fetch.is_empty() {
+                    let is_loading = {
+                        let mut guard = pagination.lock().unwrap();
+                        for pkg in extensions_to_fetch.keys() {
+                            guard.mark_error(pkg);
+                        }
+                        guard.is_any_loading()
+                    };
+                    let _ = weak.upgrade_in_event_loop(move |window| {
+                        P::set_loading(&window, is_loading);
+                    });
                     return;
                 }
 
@@ -354,10 +391,12 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
                                     make_lazy_song_model(&window, &state_manager_ui, current);
                                 P::set_songs(&window, model);
 
-                                pagination
-                                    .lock()
-                                    .unwrap()
-                                    .update_after_fetch(&package_name, next_token);
+                                let is_loading = {
+                                    let mut guard = pagination.lock().unwrap();
+                                    guard.update_after_fetch(&package_name, next_token);
+                                    guard.is_any_loading()
+                                };
+                                P::set_loading(&window, is_loading);
                             });
                         }
                         Err(error) => {
@@ -366,7 +405,14 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
                                 detail.package_name,
                                 error
                             );
-                            pagination.lock().unwrap().mark_error(&detail.package_name);
+                            let is_loading = {
+                                let mut guard = pagination.lock().unwrap();
+                                guard.mark_error(&detail.package_name);
+                                guard.is_any_loading()
+                            };
+                            let _ = weak.upgrade_in_event_loop(move |window| {
+                                P::set_loading(&window, is_loading);
+                            });
                         }
                     }
                 }
@@ -383,6 +429,7 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
             return;
         };
         let (entity, extension) = P::get_entity(&main_window);
+        P::set_loading(&main_window, !extension.is_empty());
 
         let state_manager = self.state_manager.clone();
         let weak = self.weak.clone();
@@ -412,6 +459,13 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
                     .filter(|p| p.enabled)
                     .map(|p| p.id.to_string())
                     .collect();
+
+                if enabled_packages.is_empty() {
+                    let _ = coordinator.weak.upgrade_in_event_loop(move |main_window| {
+                        P::set_loading(&main_window, false);
+                    });
+                    return;
+                }
 
                 coordinator
                     .fetch_enabled_extension_songs(entity, enabled_packages)

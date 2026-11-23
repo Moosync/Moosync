@@ -92,9 +92,7 @@ async fn test_explore_page_handler_render_recommendations(
         }),
         ..Default::default()
     };
-    let recommendations = vec![(detail, None, vec![song])];
-
-    ExplorePageHandler::render_recommendations(&main_window, &sm, recommendations);
+    ExplorePageHandler::append_recommendation(&main_window, &sm, (detail, None, vec![song]));
 
     let props = main_window.global::<ExplorePageProps>();
     let recs = props.get_provider_recommendations();
@@ -110,13 +108,23 @@ async fn test_explore_page_handler_render_recommendations(
 #[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_explore_page_handler_fetch_all_recommendations_empty(
+async fn test_explore_page_handler_on_show_sets_loading_and_clears_on_hide(
+    main_window: MainWindow,
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let handler = ExplorePageHandler::new(&main_window, &sm);
 
-    let res = ExplorePageHandler::fetch_all_recommendations(&sm).await;
+    handler.on_show();
+    assert!(main_window.global::<ExplorePageProps>().get_is_loading());
 
-    assert!(res.is_ok());
-    assert!(res.unwrap().is_empty());
+    handler.on_hide();
+    assert!(!main_window.global::<ExplorePageProps>().get_is_loading());
+    assert_eq!(
+        main_window
+            .global::<ExplorePageProps>()
+            .get_provider_recommendations()
+            .row_count(),
+        0
+    );
 }

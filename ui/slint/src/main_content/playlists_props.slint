@@ -4,4 +4,5 @@ import { Constants } from "../constants.slint";
 export global PlaylistsPageProps {
     in-out property <[PlaylistModel]> playlists: Constants.testPlaylists;
     in-out property <PlaylistModel> selected-playlist;
+    in-out property <bool> is_loading: false;
 }

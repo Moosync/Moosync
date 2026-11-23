@@ -9,8 +9,8 @@ use extensions_proto::{
         ReadProcessStdoutRequest, ReadProcessStdoutResponse, ReadSockRequest, ReadSockResponse,
         SpawnProcessRequest, SpawnProcessResponse, SystemTimeRequest, SystemTimeResponse,
         WriteProcessStdinRequest, WriteProcessStdinResponse, WriteSockRequest, WriteSockResponse,
-        WsCloseRequest, WsCloseResponse, WsConnectRequest, WsConnectResponse, WsReceiveRequest,
-        WsReceiveResponse, WsSendRequest, WsSendResponse,
+        WsCloseRequest, WsCloseResponse, WsConnectRequest, WsConnectResponse, WsSendRequest,
+        WsSendResponse,
     },
     struct_proto::google::protobuf::{Value as StructValue, value::Kind as StructValueKind},
 };
@@ -510,17 +510,6 @@ impl ReplyHandler for StateReplyHandler {
         let extensions = self.state_manager.get_extension_handler();
         let extension = extensions.get_extension(package_name)?;
         self.runtime.block_on(extension.ws_manager.ws_send(req))
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn ws_receive(
-        &self,
-        package_name: &str,
-        req: WsReceiveRequest,
-    ) -> Result<WsReceiveResponse, ExtensionError> {
-        let extensions = self.state_manager.get_extension_handler();
-        let extension = extensions.get_extension(package_name)?;
-        self.runtime.block_on(extension.ws_manager.ws_receive(req))
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

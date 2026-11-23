@@ -14,4 +14,5 @@ message PlayerData {
   repeated Song song_queue = 1;
   uint64 current_idx = 2;
   RepeatMode repeat_mode = 3;
+  bool is_playing = 4;
 }

@@ -17,8 +17,8 @@ use state_manager::StateManager;
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_preference_paths_list(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
     pref_id: &'static str,
     pref_key: &'static LazyLock<PreferenceItem>,
     sample_path: &'static str,
@@ -63,8 +63,8 @@ async fn do_preference_paths_list(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_preference_scan_number(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
     pref_id: &'static str,
     pref_key: &'static LazyLock<PreferenceItem>,
     number_val: u32,
@@ -111,8 +111,8 @@ async fn do_preference_scan_number(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_preference_path_string(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
     pref_id: &'static str,
     pref_key: &'static LazyLock<PreferenceItem>,
     path_val: &'static str,
@@ -159,8 +159,8 @@ async fn do_preference_path_string(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_preference_system_bool(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
     pref_id: &'static str,
     pref_key: &'static LazyLock<PreferenceItem>,
     bool_val: bool,
@@ -177,7 +177,7 @@ async fn do_preference_system_bool(
 
     let system_loaded = wait_until(|| {
         let items = main_window.global::<AppPreferences>().get_system_items();
-        items.row_count() == 6
+        items.row_count() == 7
     })
     .await;
     assert!(system_loaded);
@@ -205,8 +205,8 @@ async fn do_preference_system_bool(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_preference_system_string(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
     pref_id: &'static str,
     pref_key: &'static LazyLock<PreferenceItem>,
     str_val: &'static str,
@@ -252,10 +252,7 @@ async fn do_preference_system_string(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_preference_extension_registries(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+async fn do_preference_extension_registries(main_window: MainWindow, state_manager: StateManager) {
     main_window
         .global::<SettingsState>()
         .set_show_settings(true);
@@ -409,8 +406,8 @@ parameterized_test!(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_preference_language_translation_switch(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 ) {
     main_window
         .global::<SettingsState>()
@@ -423,7 +420,7 @@ async fn do_preference_language_translation_switch(
         .invoke_settings_active_page_changed(SettingsPages::System);
 
     let initial_rendered = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Settings System").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Settings System").count() > 0
     })
     .await;
     assert!(initial_rendered);
@@ -449,7 +446,7 @@ async fn do_preference_language_translation_switch(
     assert!(saved);
 
     let translated = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Paramètres système").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Paramètres système").count() > 0
     })
     .await;
     assert!(translated);
@@ -462,10 +459,7 @@ integration_test!(
 );
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_language_dropdown_ui_selection(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+async fn do_language_dropdown_ui_selection(main_window: MainWindow, state_manager: StateManager) {
     main_window
         .global::<SettingsState>()
         .set_show_settings(true);
@@ -481,13 +475,16 @@ async fn do_language_dropdown_ui_selection(
 
     let system_loaded = wait_until(|| {
         let items = main_window.global::<AppPreferences>().get_system_items();
-        items.row_count() == 6
+        items.row_count() == 7
+            && ElementHandle::find_by_accessible_label(&main_window, "Language")
+                .next()
+                .is_some()
     })
     .await;
     assert!(system_loaded);
 
     let language_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Language").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Language").collect();
     assert!(!language_handles.is_empty());
 
     let dropdown_trigger = language_handles
@@ -527,7 +524,7 @@ async fn do_language_dropdown_ui_selection(
     assert!(items_updated);
 
     let translated = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Paramètres système").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Paramètres système").count() > 0
     })
     .await;
     assert!(translated);
@@ -542,10 +539,10 @@ async fn do_language_dropdown_ui_selection(
     });
     config.save(german_item).unwrap();
 
-    slint_app::settings::apply_saved_language(state_manager);
+    slint_app::settings::apply_saved_language(&state_manager);
 
     let german_translated = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Einstellungssystem").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Einstellungssystem").count() > 0
     })
     .await;
     assert!(german_translated);

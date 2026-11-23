@@ -26,13 +26,13 @@ async fn test_system_page_handler_initialize(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let main_window = Box::leak(Box::new(main_window));
-    let state_manager = Box::leak(Box::new(sm));
-    let handler = SystemPageHandler::new(main_window, state_manager);
+    let main_window = main_window;
+    let state_manager = sm;
+    let handler = SystemPageHandler::new(&main_window, &state_manager);
 
     handler.initialize();
 
-    assert_eq!(SystemPageHandler::get_preferences().len(), 6);
+    assert_eq!(SystemPageHandler::get_preferences().len(), 7);
 }
 
 #[rstest]
@@ -44,13 +44,13 @@ async fn test_system_page_handler_on_show(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let main_window = Box::leak(Box::new(main_window));
-    let state_manager = Box::leak(Box::new(sm));
-    let handler = SystemPageHandler::new(main_window, state_manager);
+    let main_window = main_window;
+    let state_manager = sm;
+    let handler = SystemPageHandler::new(&main_window, &state_manager);
 
     handler.on_show();
 
-    assert_eq!(SystemPageHandler::get_preferences().len(), 6);
+    assert_eq!(SystemPageHandler::get_preferences().len(), 7);
 }
 
 #[rstest]
@@ -62,14 +62,14 @@ async fn test_system_page_handler_handle_change_auto_startup(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let state_manager = Box::leak(Box::new(sm.clone()));
+    let state_manager = sm.clone();
     handle_preference_change(
         "auto_startup".to_string(),
         "".to_string(),
         true,
         0.0,
         vec![],
-        state_manager,
+        state_manager.clone(),
         _main_window.as_weak(),
     )
     .await;
@@ -88,12 +88,12 @@ async fn test_system_page_handler_refresh_preferences(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let state_manager = Box::leak(Box::new(sm));
+    let state_manager = sm;
 
-    SystemPageHandler::refresh_preferences(main_window.as_weak(), state_manager).await;
+    SystemPageHandler::refresh_preferences(main_window.as_weak(), state_manager.clone()).await;
 
     let items = main_window.global::<AppPreferences>().get_system_items();
-    assert_eq!(items.row_count(), 6);
+    assert_eq!(items.row_count(), 7);
 }
 
 #[rstest]
@@ -102,16 +102,16 @@ async fn test_system_page_handler_refresh_preferences(
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_settings_static_prefs_and_find(state_manager_fixture: TestSlintSmContext) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let state_manager = Box::leak(Box::new(sm));
+    let state_manager = sm;
 
     let all_static = get_all_static_preferences();
     assert!(!all_static.is_empty());
 
-    let found_auto = find_preference_item("auto_startup", state_manager);
+    let found_auto = find_preference_item("auto_startup", &state_manager);
     assert!(found_auto.is_some());
     assert_eq!(found_auto.unwrap().id, "auto_startup");
 
-    let found_none = find_preference_item("nonexistent_pref_key", state_manager);
+    let found_none = find_preference_item("nonexistent_pref_key", &state_manager);
     assert!(found_none.is_none());
 }
 
@@ -171,10 +171,10 @@ async fn test_settings_setup_and_change_callback(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let main_window = Box::leak(Box::new(main_window));
-    let state_manager = Box::leak(Box::new(sm));
+    let main_window = main_window;
+    let state_manager = sm;
 
-    setup_settings(main_window, state_manager);
+    setup_settings(&main_window, &state_manager);
 
     let change = PreferenceChange {
         id: "auto_startup".into(),

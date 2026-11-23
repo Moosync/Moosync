@@ -282,6 +282,11 @@ define_preferences! {
         title: "Clear Queue on Exit",
         subtitle: "Automatically clear the playback queue when closing the application",
     };
+    PERSIST_PLAYBACK_STATE = "persist_playback_state" => {
+        type: ToggleGroup,
+        title: "Persist Playback State",
+        subtitle: "Resume playing on startup if music was playing when the app closed",
+    };
     VOLUME_PERSIST_MODE = "volume_persist_mode" => {
         type: RadioGroup,
         title: "Volume Persistence",

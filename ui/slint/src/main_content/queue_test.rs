@@ -8,7 +8,7 @@ use tracing_test::traced_test;
 
 use crate::{
     AppCallbacks, ContextMenuCallbacks, LyricLineModel, MainWindow, PlayerProps, QueuePageProps,
-    SongModel,
+    SongModel, WindowInfo,
     main_content::queue::QueuePageHandler,
     pages::PageHandler,
     test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
@@ -456,6 +456,10 @@ async fn test_synced_lyrics_scroll_with_timestamp(
     main_window
         .window()
         .set_size(slint::LogicalSize::new(1200.0, 800.0));
+    let window_info = main_window.global::<WindowInfo>();
+    window_info.set_window_width(1200.0);
+    window_info.set_window_height(800.0);
+    window_info.set_window_size(2);
     let handler = QueuePageHandler::new(&main_window, &sm);
     handler.initialize();
 
@@ -479,31 +483,97 @@ async fn test_synced_lyrics_scroll_with_timestamp(
         .global::<PlayerProps>()
         .set_current_duration_ms(0);
 
-    let line0_initial: Vec<i_slint_backend_testing::ElementHandle> =
+    let line30_initial: Vec<i_slint_backend_testing::ElementHandle> =
         i_slint_backend_testing::ElementHandle::find_by_accessible_label(
             &main_window,
-            "Lyric line 0",
+            "Lyric line 30",
         )
         .collect();
-    assert!(!line0_initial.is_empty());
-    let initial_y = line0_initial[0].absolute_position().y;
+    let initial_line30_y = line30_initial.first().map(|h| h.absolute_position().y);
 
     main_window
         .global::<PlayerProps>()
         .set_current_duration_ms(30_000);
+    i_slint_backend_testing::mock_elapsed_time(Duration::from_millis(50));
     i_slint_backend_testing::mock_elapsed_time(Duration::from_millis(500));
 
-    let line0_after: Vec<i_slint_backend_testing::ElementHandle> =
+    let line30_after: Vec<i_slint_backend_testing::ElementHandle> =
         i_slint_backend_testing::ElementHandle::find_by_accessible_label(
             &main_window,
-            "Lyric line 0",
+            "Lyric line 30",
         )
         .collect();
-    assert!(!line0_after.is_empty());
-    let after_y = line0_after[0].absolute_position().y;
-
     assert!(
-        after_y < initial_y - 50.0,
-        "synced lyrics should scroll upward when timestamp advances (initial_y={initial_y}, after_y={after_y})"
+        !line30_after.is_empty(),
+        "Lyric line 30 should be visible in viewport after scrolling"
+    );
+    let after_y = line30_after[0].absolute_position().y;
+    assert!(
+        (0.0..800.0).contains(&after_y),
+        "Lyric line 30 should be within window viewport after scrolling (after_y={after_y})"
+    );
+    if let Some(init_y) = initial_line30_y {
+        assert!(
+            after_y < init_y - 50.0,
+            "synced lyrics should scroll upward when timestamp advances (init_y={init_y}, after_y={after_y})"
+        );
+    }
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_lyrics_view_width_does_not_overlap_queue(main_window: MainWindow) {
+    main_window
+        .window()
+        .set_size(slint::LogicalSize::new(1200.0, 800.0));
+    let window_info = main_window.global::<WindowInfo>();
+    window_info.set_window_width(1200.0);
+    window_info.set_window_height(800.0);
+    window_info.set_window_size(2);
+
+    let lyrics = Lyrics {
+        is_synced: true,
+        lines: vec![LyricLine {
+            text: "Sample lyric line".to_string(),
+            time_ms: 1000,
+        }],
+        ..Default::default()
+    };
+
+    let props = main_window.global::<QueuePageProps>();
+    props.set_show_queue(true);
+    props.set_show_lyrics(true);
+    QueuePageHandler::update_ui_lyrics(&main_window, Some(lyrics));
+
+    let lyrics_heading: Vec<i_slint_backend_testing::ElementHandle> =
+        i_slint_backend_testing::ElementHandle::find_by_accessible_label(&main_window, "Lyrics")
+            .collect();
+    let offset_btn: Vec<i_slint_backend_testing::ElementHandle> =
+        i_slint_backend_testing::ElementHandle::find_by_accessible_label(&main_window, "+100ms")
+            .collect();
+    let save_queue_btn: Vec<i_slint_backend_testing::ElementHandle> =
+        i_slint_backend_testing::ElementHandle::find_by_accessible_label(
+            &main_window,
+            "Save as playlist",
+        )
+        .collect();
+
+    assert!(!lyrics_heading.is_empty());
+    assert!(!offset_btn.is_empty());
+    assert!(!save_queue_btn.is_empty());
+
+    let heading_bottom = lyrics_heading[0].absolute_position().y + lyrics_heading[0].size().height;
+    let offset_top = offset_btn[0].absolute_position().y;
+    assert!(
+        offset_top >= heading_bottom,
+        "offset buttons (y={offset_top}) should be below lyrics heading (bottom={heading_bottom})"
+    );
+
+    let offset_right = offset_btn[0].absolute_position().x + offset_btn[0].size().width;
+    let queue_left = save_queue_btn[0].absolute_position().x;
+    assert!(
+        offset_right < queue_left,
+        "lyrics offset buttons (right={offset_right}) should not overlap queue (left={queue_left})"
     );
 }

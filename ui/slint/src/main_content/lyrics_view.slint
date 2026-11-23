@@ -113,41 +113,41 @@ export component LyricsView inherits HorizontalLayout {
                 spacing: Theme.spacingSm;
                 alignment: end;
 
-                if (root.has_lyrics && root.is_synced): HorizontalLayout {
-                    spacing: Theme.spacingXs;
-                    alignment: center;
-
-                    TextButton {
-                        text: "-100ms";
-                        font_size: Theme.caption;
-                        clicked => {
-                            AppCallbacks.set_lyrics_offset(QueuePageProps.lyrics_offset_ms - 100);
-                        }
-                    }
-
-                    TextButton {
-                        text: (QueuePageProps.lyrics_offset_ms > 0 ? "+" : "") + QueuePageProps.lyrics_offset_ms + "ms";
-                        font_size: Theme.caption;
-                        clicked => {
-                            AppCallbacks.set_lyrics_offset(0);
-                        }
-                    }
-
-                    TextButton {
-                        text: "+100ms";
-                        font_size: Theme.caption;
-                        clicked => {
-                            AppCallbacks.set_lyrics_offset(QueuePageProps.lyrics_offset_ms + 100);
-                        }
-                    }
-                }
-
                 TextButton {
                     text: @tr("Show Details");
                     font_size: Theme.subtitle;
                     clicked => {
                         QueuePageProps.show_lyrics = false;
                     }
+                }
+            }
+        }
+
+        if (root.has_lyrics && root.is_synced): HorizontalLayout {
+            spacing: Theme.spacingXs;
+            alignment: start;
+
+            TextButton {
+                text: "-100ms";
+                font_size: Theme.caption;
+                clicked => {
+                    AppCallbacks.set_lyrics_offset(QueuePageProps.lyrics_offset_ms - 100);
+                }
+            }
+
+            TextButton {
+                text: (QueuePageProps.lyrics_offset_ms > 0 ? "+" : "") + QueuePageProps.lyrics_offset_ms + "ms";
+                font_size: Theme.caption;
+                clicked => {
+                    AppCallbacks.set_lyrics_offset(0);
+                }
+            }
+
+            TextButton {
+                text: "+100ms";
+                font_size: Theme.caption;
+                clicked => {
+                    AppCallbacks.set_lyrics_offset(QueuePageProps.lyrics_offset_ms + 100);
                 }
             }
         }

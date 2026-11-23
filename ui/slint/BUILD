@@ -475,6 +475,8 @@ SLINT_SOURCES = [
     "src/main_content/search.slint",
     "src/main_content/search_mobile.slint",
     "src/main_content/search_props.slint",
+    "src/settings/action_group.slint",
+    "src/settings/action_group_mobile.slint",
     "src/settings/button_group.slint",
     "src/settings/button_group_mobile.slint",
     "src/settings/cache.slint",

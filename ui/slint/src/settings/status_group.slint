@@ -38,6 +38,7 @@ export component StatusDot inherits HorizontalLayout {
     if (root.item.title != ""): Text {
         text: root.item.title;
         font-size: Theme.body;
+        wrap: word-wrap;
         color: Theme.textPrimary;
         vertical-alignment: center;
     }
@@ -45,6 +46,7 @@ export component StatusDot inherits HorizontalLayout {
     if (root.item.subtitle != ""): Text {
         text: root.item.subtitle;
         font-size: Theme.body;
+        wrap: word-wrap;
         color: Theme.textSecondary;
         vertical-alignment: center;
     }
@@ -65,6 +67,7 @@ export component StatusGroup inherits VerticalLayout {
             text: root.title;
             font-size: Theme.modelTitle;
             font-weight: 600;
+            wrap: word-wrap;
             color: Theme.textPrimary;
         }
 

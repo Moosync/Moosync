@@ -77,6 +77,7 @@ export component ButtonGroup inherits VerticalLayout {
             text: root.title;
             font-size: Theme.modelTitle;
             font-weight: 600;
+            wrap: word-wrap;
             color: Theme.textPrimary;
         }
 
@@ -88,7 +89,10 @@ export component ButtonGroup inherits VerticalLayout {
         }
     }
 
-    HorizontalLayout {
+    FlexboxLayout {
+        width: 100%;
+        flex-direction: row;
+        flex-wrap: wrap;
         spacing: Theme.spacingMd;
         alignment: start;
 
@@ -118,7 +122,10 @@ export component ButtonGroup inherits VerticalLayout {
             }
         }
 
-        if (buttons.length == 0): HorizontalLayout {
+        if (buttons.length == 0): FlexboxLayout {
+            width: 100%;
+            flex-direction: row;
+            flex-wrap: wrap;
             spacing: Theme.spacingMd;
             alignment: start;
 

@@ -214,6 +214,30 @@ fn test_extension_preferences(ext_context: TestExtContext) {
     ext.unregister_ui_preferences(vec!["volume".to_string()]);
     let details_after = ext.get_extension_detail();
     assert_is_empty!(&details_after.preferences);
+
+    let ordered_keys = ["zeta", "alpha", "mu", "beta", "omega"];
+    let ordered_prefs: Vec<PreferenceItem> = ordered_keys
+        .iter()
+        .map(|k| PreferenceItem {
+            id: (*k).to_string(),
+            title: (*k).to_string(),
+            ..Default::default()
+        })
+        .collect();
+    ext.register_ui_preferences(ordered_prefs);
+    ext.register_ui_preferences(vec![PreferenceItem {
+        id: "alpha".to_string(),
+        title: "Alpha Updated".to_string(),
+        ..Default::default()
+    }]);
+    let ordered_details = ext.get_extension_detail();
+    let actual_ids: Vec<&str> = ordered_details
+        .preferences
+        .iter()
+        .map(|p| p.id.as_str())
+        .collect();
+    assert_eq!(actual_ids, ordered_keys);
+    assert_eq!(ordered_details.preferences[1].title, "Alpha Updated");
 }
 
 #[rstest]

@@ -1,0 +1,76 @@
+import { Theme } from "../constants_mobile.slint";
+import { AppCallbacks } from "../callbacks.slint";
+import { PreferenceItem } from "preferences.slint";
+import { GroupActionButtonMobile } from "button_group_mobile.slint";
+
+export component ActionGroupMobile inherits Rectangle {
+    in property <PreferenceItem> preference;
+    in property <bool> is_destructive: false;
+    callback action_clicked(string);
+
+    background: Theme.secondary;
+    border-radius: Theme.borderRadiusMd;
+
+    VerticalLayout {
+        padding: Theme.paddingMd;
+        spacing: Theme.spacingSm;
+
+        HorizontalLayout {
+            spacing: Theme.spacingSm;
+            alignment: space-between;
+
+            Text {
+                horizontal-stretch: 1;
+                text: root.preference.title;
+                font-size: Theme.body;
+                font-weight: 600;
+                color: Theme.textPrimary;
+                wrap: word-wrap;
+            }
+
+            if root.preference.value_string != "": Text {
+                text: root.preference.value_string;
+                font-size: Theme.body;
+                font-weight: 700;
+                color: Theme.accent;
+            }
+        }
+
+        if root.preference.subtitle != "": Text {
+            text: root.preference.subtitle;
+            font-size: Theme.caption;
+            color: Theme.textSecondary;
+            wrap: word-wrap;
+        }
+
+        if root.preference.placeholder != "": Text {
+            text: root.preference.placeholder;
+            font-size: Theme.extraSmall;
+            color: Theme.textSecondary;
+            wrap: word-wrap;
+        }
+
+        HorizontalLayout {
+            spacing: Theme.spacingSm;
+            alignment: end;
+
+            for option in root.preference.options: GroupActionButtonMobile {
+                width: max(Theme.buttonMinWidth, self.preferred-width + Theme.spacingXl);
+                text: option.label;
+                is_destructive: root.is_destructive;
+                clicked => {
+                    if (root.preference.id != "") {
+                        AppCallbacks.preference_changed({
+                            id: root.preference.id,
+                            value_string: option.id,
+                            value_bool: false,
+                            value_number: 0.0,
+                            value_list: []
+                        });
+                    }
+                    root.action_clicked(option.id);
+                }
+            }
+        }
+    }
+}

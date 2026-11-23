@@ -20,12 +20,14 @@ export component NumberInputGroup inherits HorizontalLayout {
 
     VerticalLayout {
         horizontal-stretch: 1;
+        min-width: 0px;
         alignment: center;
 
         Text {
             text: root.title;
             font-size: Theme.modelTitle;
             font-weight: 600;
+            wrap: word-wrap;
             color: Theme.textPrimary;
         }
 

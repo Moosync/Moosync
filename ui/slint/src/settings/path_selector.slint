@@ -19,11 +19,13 @@ export component PathSelector {
             VerticalLayout {
                 alignment: start;
                 horizontal-stretch: 1;
+                min-width: 0px;
 
                 Text {
                     text: root.title;
                     font-size: Theme.modelTitle;
                     font-weight: 600;
+                    wrap: word-wrap;
                     color: Theme.textPrimary;
                 }
 
@@ -59,6 +61,7 @@ export component PathSelector {
             height: Theme.numberInputWidth;
 
             VerticalLayout {
+                width: parent.visible-width;
                 spacing: Theme.spacingXxs;
                 padding-right: Theme.paddingLg;
 
@@ -66,8 +69,9 @@ export component PathSelector {
                     border-radius: Theme.borderRadiusLg;
                     border-width: Theme.borderWidth;
                     border-color: Theme.textSecondary;
+                    height: item_layout.preferred-height;
 
-                    HorizontalLayout {
+                    item_layout := HorizontalLayout {
                         padding-top: Theme.extensionItemPaddingY;
                         padding-bottom: Theme.extensionItemPaddingY;
                         padding-left: Theme.paddingSm;
@@ -84,6 +88,7 @@ export component PathSelector {
                             text: item;
                             horizontal-stretch: 1;
                             vertical-alignment: center;
+                            wrap: word-wrap;
                             color: Theme.textPrimary;
                         }
 

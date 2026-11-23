@@ -20,6 +20,7 @@ export component SingleFileInput inherits VerticalLayout {
             text: root.title;
             font-size: Theme.modelTitle;
             font-weight: 600;
+            wrap: word-wrap;
             color: Theme.textPrimary;
         }
 
@@ -38,16 +39,21 @@ export component SingleFileInput inherits VerticalLayout {
             border-radius: Theme.borderRadiusXl;
             border-color: Theme.textSecondary;
             border-width: Theme.borderWidth;
-            height: Theme.fileInputHeight;
+            min-width: 0px;
+            height: max(Theme.fileInputHeight, file_layout.preferred-height);
             horizontal-stretch: 1;
 
-            HorizontalLayout {
+            file_layout := HorizontalLayout {
                 padding-left: Theme.paddingMd;
                 padding-right: Theme.paddingMd;
+                padding-top: Theme.paddingXs;
+                padding-bottom: Theme.paddingXs;
 
                 Text {
                     text: root.value;
+                    horizontal-stretch: 1;
                     vertical-alignment: center;
+                    wrap: word-wrap;
                     color: Theme.textPrimary;
                     font-size: Theme.body;
                 }

@@ -169,6 +169,10 @@ fn test_preference_type_all_variants_roundtrip() {
             ProtoPreferenceType::ButtonGroup,
             PreferenceType::ButtonGroup,
         ),
+        (
+            ProtoPreferenceType::ActionGroup,
+            PreferenceType::ActionGroup,
+        ),
     ];
 
     for (proto_type, slint_type) in variants {
@@ -263,4 +267,45 @@ fn test_preference_item_status_group_roundtrip() {
     assert_eq!(converted_back.id, proto_item.id);
     assert_eq!(converted_back.pref_type, proto_item.pref_type);
     assert_eq!(converted_back.value, proto_item.value);
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_default_value_used_as_placeholder_when_empty() {
+    let item_no_placeholder = ProtoPreferenceItem {
+        id: "default_ph".to_string(),
+        pref_type: ProtoPreferenceType::TextInputGroup as i32,
+        title: "Host".to_string(),
+        subtitle: "".to_string(),
+        placeholder: None,
+        validation: "".to_string(),
+        options: vec![],
+        value: None,
+        default: Some(PreferenceValue {
+            value: Some(preference_value::Value::StringValue(
+                "http://localhost:8080".to_string(),
+            )),
+        }),
+    };
+    let ui_no_ph: PreferenceItem = item_no_placeholder.into();
+    assert_eq!(ui_no_ph.placeholder.as_str(), "http://localhost:8080");
+
+    let item_explicit_placeholder = ProtoPreferenceItem {
+        id: "explicit_ph".to_string(),
+        pref_type: ProtoPreferenceType::TextInputGroup as i32,
+        title: "Host".to_string(),
+        subtitle: "".to_string(),
+        placeholder: Some("Enter host URL".to_string()),
+        validation: "".to_string(),
+        options: vec![],
+        value: None,
+        default: Some(PreferenceValue {
+            value: Some(preference_value::Value::StringValue(
+                "http://localhost:8080".to_string(),
+            )),
+        }),
+    };
+    let ui_explicit_ph: PreferenceItem = item_explicit_placeholder.into();
+    assert_eq!(ui_explicit_ph.placeholder.as_str(), "Enter host URL");
 }

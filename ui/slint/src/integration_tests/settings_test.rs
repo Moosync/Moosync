@@ -456,7 +456,95 @@ integration_test!(
     test_preference_extension_registries => do_preference_extension_registries,
     test_preference_language_translation_switch => do_preference_language_translation_switch,
     test_language_dropdown_ui_selection => do_language_dropdown_ui_selection,
+    test_preference_components_wrap_within_width => do_preference_components_wrap_within_width,
 );
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_preference_components_wrap_within_width(
+    main_window: MainWindow,
+    _state_manager: StateManager,
+) {
+    main_window
+        .global::<SettingsState>()
+        .set_show_settings(true);
+    main_window
+        .global::<SettingsState>()
+        .set_active_page(SettingsPages::System);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_toggled(true);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_active_page_changed(SettingsPages::System);
+
+    let system_loaded = wait_until(|| {
+        ElementHandle::find_by_accessible_label(&main_window, "Language")
+            .any(|h| h.accessible_role() == Some(i_slint_backend_testing::AccessibleRole::Combobox))
+    })
+    .await;
+    assert!(system_loaded);
+
+    let baseline_width = ElementHandle::find_by_accessible_label(&main_window, "Language")
+        .find(|h| h.accessible_role() == Some(i_slint_backend_testing::AccessibleRole::Combobox))
+        .expect("Language combobox not found")
+        .size()
+        .width;
+    assert!(baseline_width > 0.0);
+
+    let long_title = "WrapTestDropdown ".repeat(10);
+    let long_subtitle = "LongPreferenceSubtitle ".repeat(20);
+    let dropdown_label = "WrapTestDropdownLabel";
+    let items: Vec<slint_app::PreferenceItem> = vec![
+        slint_app::PreferenceItem {
+            id: "test_wrap_toggle".into(),
+            pref_type: slint_app::PreferenceType::ToggleGroup,
+            title: long_title.clone().into(),
+            subtitle: long_subtitle.clone().into(),
+            ..Default::default()
+        },
+        slint_app::PreferenceItem {
+            id: "test_wrap_text".into(),
+            pref_type: slint_app::PreferenceType::TextInputGroup,
+            title: long_title.clone().into(),
+            subtitle: long_subtitle.clone().into(),
+            ..Default::default()
+        },
+        slint_app::PreferenceItem {
+            id: "test_wrap_dropdown".into(),
+            pref_type: slint_app::PreferenceType::DropdownGroup,
+            title: dropdown_label.into(),
+            subtitle: long_subtitle.clone().into(),
+            options: ModelRc::new(slint::VecModel::from(vec![slint_app::PreferenceOption {
+                id: "opt1".into(),
+                label: long_title.clone().into(),
+            }])),
+            value_string: "opt1".into(),
+            ..Default::default()
+        },
+    ];
+    main_window
+        .global::<AppPreferences>()
+        .set_system_items(ModelRc::new(slint::VecModel::from(items)));
+
+    let wrapped_loaded = wait_until(|| {
+        ElementHandle::find_by_accessible_label(&main_window, dropdown_label)
+            .any(|h| h.accessible_role() == Some(i_slint_backend_testing::AccessibleRole::Combobox))
+    })
+    .await;
+    assert!(wrapped_loaded);
+
+    let dropdown_width = ElementHandle::find_by_accessible_label(&main_window, dropdown_label)
+        .find(|h| h.accessible_role() == Some(i_slint_backend_testing::AccessibleRole::Combobox))
+        .expect("Wrapped dropdown not found")
+        .size()
+        .width;
+    assert!(
+        (dropdown_width - baseline_width).abs() < 2.0,
+        "Dropdown extended beyond set width: baseline={}, actual={}",
+        baseline_width,
+        dropdown_width
+    );
+}
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_language_dropdown_ui_selection(main_window: MainWindow, state_manager: StateManager) {
@@ -494,6 +582,44 @@ async fn do_language_dropdown_ui_selection(main_window: MainWindow, state_manage
 
     dropdown_trigger.invoke_accessible_default_action();
 
+    let spanish_item_found = wait_until(|| {
+        ElementHandle::find_by_accessible_label(&main_window, "Español")
+            .any(|h| h.accessible_role() == Some(i_slint_backend_testing::AccessibleRole::ListItem))
+    })
+    .await;
+    assert!(spanish_item_found, "Dropdown popup list item not found");
+
+    let spanish_item = ElementHandle::find_by_accessible_label(&main_window, "Español")
+        .find(|h| h.accessible_role() == Some(i_slint_backend_testing::AccessibleRole::ListItem))
+        .expect("Español list item not found");
+    let english_item = ElementHandle::find_by_accessible_label(&main_window, "English")
+        .find(|h| h.accessible_role() == Some(i_slint_backend_testing::AccessibleRole::ListItem))
+        .expect("English list item not found");
+    assert!(
+        (spanish_item.size().height - 25.0).abs() < 1.0,
+        "Unexpected dropdown item height: {}",
+        spanish_item.size().height
+    );
+    let item_width = english_item.size().width;
+    assert!(item_width > 0.0);
+
+    spanish_item
+        .single_click(slint::platform::PointerEventButton::Left)
+        .await;
+
+    let config = state_manager.get_preference_config();
+    let clicked_saved = wait_until(|| {
+        config
+            .load(&I18N_LANGUAGE)
+            .value::<String>()
+            .is_some_and(|val| val == "es_ES")
+    })
+    .await;
+    assert!(
+        clicked_saved,
+        "Clicking dropdown item did not update preference"
+    );
+
     main_window
         .global::<AppCallbacks>()
         .invoke_preference_changed(PreferenceChange {
@@ -504,7 +630,6 @@ async fn do_language_dropdown_ui_selection(main_window: MainWindow, state_manage
             value_list: ModelRc::default(),
         });
 
-    let config = state_manager.get_preference_config();
     let saved = wait_until(|| {
         config
             .load(&I18N_LANGUAGE)

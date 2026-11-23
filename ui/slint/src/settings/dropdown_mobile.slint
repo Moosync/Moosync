@@ -136,7 +136,6 @@ export component DropdownGroupMobile inherits Rectangle {
                         accessible-role: list-item;
                         accessible-label: option.label != "" ? option.label : option.id;
                         clicked => {
-                            popup.close();
                             root.selected_id = option.id != "" ? option.id : option.label;
                             if (root.preference.id != "") {
                                 AppCallbacks.preference_changed({
@@ -148,6 +147,7 @@ export component DropdownGroupMobile inherits Rectangle {
                                 });
                             }
                             root.changed(root.selected_id);
+                            popup.close();
                         }
 
                         Rectangle {

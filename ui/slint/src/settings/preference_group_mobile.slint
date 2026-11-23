@@ -3,9 +3,12 @@ import { Theme } from "../constants_mobile.slint";
 export component PreferenceGroupMobile inherits Rectangle {
     border-radius: Theme.borderRadiusLg;
     background: Theme.secondary;
+    width: 100%;
+    min-width: 0px;
     height: main_layout.preferred-height;
 
     main_layout := VerticalLayout {
+        min-width: 0px;
         padding: Theme.paddingMd;
         spacing: Theme.spacingMd;
         alignment: start;

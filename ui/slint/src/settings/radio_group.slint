@@ -17,6 +17,8 @@ export component RadioOption inherits Rectangle {
     accessible-checked: root.checked;
     accessible-value: root.checked ? "true" : "false";
 
+    height: option_layout.preferred-height;
+
     touch := TouchArea {
         enabled: root.enabled;
         mouse-cursor: pointer;
@@ -25,7 +27,7 @@ export component RadioOption inherits Rectangle {
         }
     }
 
-    HorizontalLayout {
+    option_layout := HorizontalLayout {
         spacing: Theme.spacingMd;
         alignment: start;
 
@@ -55,6 +57,8 @@ export component RadioOption inherits Rectangle {
         }
 
         if (root.text != "" || root.subtitle != ""): VerticalLayout {
+            horizontal-stretch: 1;
+            min-width: 0px;
             alignment: center;
             spacing: Theme.spacingXxs;
 
@@ -62,6 +66,7 @@ export component RadioOption inherits Rectangle {
                 vertical-alignment: center;
                 text: root.text;
                 font-size: Theme.body;
+                wrap: word-wrap;
                 color: Theme.textPrimary;
             }
 
@@ -88,6 +93,7 @@ export component RadioGroup inherits VerticalLayout {
             text: root.preference.title;
             font-size: Theme.modelTitle;
             font-weight: 600;
+            wrap: word-wrap;
             color: Theme.textPrimary;
         }
 

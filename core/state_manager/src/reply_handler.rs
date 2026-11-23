@@ -198,6 +198,17 @@ impl ReplyHandler for StateReplyHandler {
             return Ok(preference_value_to_struct(raw_val));
         }
 
+        if let Ok(extension) = self
+            .state_manager
+            .get_extension_handler()
+            .get_extension(package_name)
+            && let Some(reg_pref) = extension.get_ui_preference(raw_key)
+            && let Some(default_val) = reg_pref.default.or(reg_pref.value)
+            && let Some(raw_val) = default_val.value
+        {
+            return Ok(preference_value_to_struct(raw_val));
+        }
+
         Ok(None)
     }
 

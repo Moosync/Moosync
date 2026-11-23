@@ -69,6 +69,7 @@ impl From<ProtoPreferenceType> for PreferenceType {
             ProtoPreferenceType::TextArrayInput => PreferenceType::TextArrayInput,
             ProtoPreferenceType::StatusGroup => PreferenceType::StatusGroup,
             ProtoPreferenceType::ButtonGroup => PreferenceType::ButtonGroup,
+            ProtoPreferenceType::ActionGroup => PreferenceType::ActionGroup,
             ProtoPreferenceType::Unspecified => PreferenceType::TextInputGroup,
         }
     }
@@ -87,6 +88,7 @@ impl From<PreferenceType> for ProtoPreferenceType {
             PreferenceType::TextArrayInput => ProtoPreferenceType::TextArrayInput,
             PreferenceType::StatusGroup => ProtoPreferenceType::StatusGroup,
             PreferenceType::ButtonGroup => ProtoPreferenceType::ButtonGroup,
+            PreferenceType::ActionGroup => ProtoPreferenceType::ActionGroup,
         }
     }
 }
@@ -171,12 +173,26 @@ impl From<ProtoPreferenceItem> for PreferenceItem {
             .map(PreferenceOption::from)
             .collect();
 
+        let default_placeholder = data.default.as_ref().and_then(|d| match &d.value {
+            Some(preference_value::Value::StringValue(s)) if !s.is_empty() => Some(s.clone()),
+            Some(preference_value::Value::NumberValue(n)) => Some(n.to_string()),
+            Some(preference_value::Value::ListValue(l)) if !l.values.is_empty() => {
+                Some(l.values.join(", "))
+            }
+            _ => None,
+        });
+        let placeholder = data
+            .placeholder
+            .filter(|p| !p.is_empty())
+            .or(default_placeholder)
+            .unwrap_or_default();
+
         let mut item = Self {
             id: data.id.into(),
             pref_type,
             title: data.title.into(),
             subtitle: data.subtitle.into(),
-            placeholder: data.placeholder.unwrap_or_default().into(),
+            placeholder: placeholder.into(),
             validation: data.validation.into(),
             value_string: Default::default(),
             value_bool: false,
@@ -230,7 +246,8 @@ impl From<PreferenceItem> for ProtoPreferenceItem {
             | PreferenceType::SingleFileInput
             | PreferenceType::RadioGroup
             | PreferenceType::DropdownGroup
-            | PreferenceType::ButtonGroup => Some(preference_value::Value::StringValue(
+            | PreferenceType::ButtonGroup
+            | PreferenceType::ActionGroup => Some(preference_value::Value::StringValue(
                 item.value_string.to_string(),
             )),
             PreferenceType::PathSelector | PreferenceType::TextArrayInput => {

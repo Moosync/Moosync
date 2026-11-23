@@ -20,6 +20,7 @@ export component SettingsPageLayoutMobile inherits VerticalLayout {
         vertical-scrollbar-policy: scroll_activity.active ? as-needed : always-off;
 
         VerticalLayout {
+            width: parent.visible-width;
             spacing: Theme.spacingLg;
             padding-left: Theme.paddingMd;
             padding-right: Theme.paddingMd;

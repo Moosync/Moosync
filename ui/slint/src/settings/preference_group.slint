@@ -2,12 +2,17 @@ import { Theme } from "../constants.slint";
 export component PreferenceGroup inherits Rectangle {
     border-radius: Theme.borderRadiusXl;
     background: Theme.secondary;
+    width: 100%;
+    min-width: 0px;
     height: main_layout.preferred-height;
 
     main_layout := HorizontalLayout {
         padding: Theme.paddingMd;
+        min-width: 0px;
 
         VerticalLayout {
+            horizontal-stretch: 1;
+            min-width: 0px;
             spacing: Theme.spacingMd;
             alignment: start;
 

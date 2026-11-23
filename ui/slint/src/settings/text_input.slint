@@ -31,12 +31,14 @@ export component TextInputGroup inherits Rectangle {
                 text: root.title;
                 font-size: Theme.modelTitle;
                 font-weight: 600;
+                wrap: word-wrap;
                 color: Theme.textPrimary;
             }
 
             if (root.subtitle != ""): Text {
                 text: root.subtitle;
                 font-size: Theme.caption;
+                wrap: word-wrap;
                 color: Theme.textSecondary;
             }
         }

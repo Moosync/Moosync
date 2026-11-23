@@ -27,12 +27,14 @@ export component TextArrayInput inherits VerticalLayout {
 
         VerticalLayout {
             horizontal-stretch: 1;
+            min-width: 0px;
             spacing: Theme.spacingXs;
 
             Text {
                 text: root.title;
                 font-size: Theme.modelTitle;
                 font-weight: 600;
+                wrap: word-wrap;
                 color: Theme.textPrimary;
             }
 
@@ -134,6 +136,7 @@ export component TextArrayInput inherits VerticalLayout {
         height: Theme.size7Xl;
 
         VerticalLayout {
+            width: parent.visible-width;
             spacing: Theme.spacingXxs;
             padding-right: Theme.paddingLg;
 
@@ -141,8 +144,9 @@ export component TextArrayInput inherits VerticalLayout {
                 border-radius: Theme.borderRadiusLg;
                 border-width: Theme.borderWidth;
                 border-color: Theme.textSecondary;
+                height: item_layout.preferred-height;
 
-                HorizontalLayout {
+                item_layout := HorizontalLayout {
                     padding-top: Theme.paddingSm;
                     padding-bottom: Theme.paddingSm;
                     padding-left: Theme.extensionItemPaddingY;
@@ -155,7 +159,7 @@ export component TextArrayInput inherits VerticalLayout {
                         vertical-alignment: center;
                         color: Theme.textPrimary;
                         font-size: Theme.body;
-                        overflow: elide;
+                        wrap: word-wrap;
                     }
 
                     IconButton {

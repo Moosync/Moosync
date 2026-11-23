@@ -164,7 +164,7 @@ impl ExtensionPlayerData {
 pub struct Extension {
     pub(crate) context: Arc<AsyncContext>,
     pub manifest: ExtensionManifest,
-    preferences: RwLock<HashMap<String, PreferenceItem>>,
+    preferences: RwLock<Vec<PreferenceItem>>,
     accounts: RwLock<HashMap<String, ExtensionAccountDetail>>,
     pub(crate) has_started: Arc<std::sync::atomic::AtomicBool>,
     pub(crate) cache_path: PathBuf,
@@ -341,18 +341,30 @@ impl Extension {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn register_ui_preferences(&self, preferences: Vec<PreferenceItem>) {
-        let mut preferences_map = self.preferences.write().unwrap();
+        let mut preferences_list = self.preferences.write().unwrap();
         for preference in preferences {
-            preferences_map.insert(preference.id.clone(), preference);
+            if let Some(existing) = preferences_list.iter_mut().find(|p| p.id == preference.id) {
+                *existing = preference;
+            } else {
+                preferences_list.push(preference);
+            }
         }
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn unregister_ui_preferences(&self, keys: Vec<String>) {
-        let mut preferences_map = self.preferences.write().unwrap();
-        for key in keys {
-            preferences_map.remove(&key);
-        }
+        let mut preferences_list = self.preferences.write().unwrap();
+        preferences_list.retain(|p| !keys.contains(&p.id));
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn get_ui_preference(&self, key: &str) -> Option<PreferenceItem> {
+        self.preferences
+            .read()
+            .unwrap()
+            .iter()
+            .find(|p| p.id == key)
+            .cloned()
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -621,13 +633,7 @@ impl From<&Extension> for ExtensionDetail {
             author: val.manifest.author.clone(),
             version: val.manifest.version.clone(),
             has_started: val.has_started.load(std::sync::atomic::Ordering::SeqCst),
-            preferences: val
-                .preferences
-                .read()
-                .unwrap()
-                .clone()
-                .into_values()
-                .collect(),
+            preferences: val.preferences.read().unwrap().clone(),
             extension_icon: Some(val.manifest.icon.clone()),
             registry: Some(lock_data.registry),
             permissions: val.manifest.permissions.clone(),

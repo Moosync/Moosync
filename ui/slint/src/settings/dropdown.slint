@@ -1,7 +1,7 @@
 import { Theme } from "../constants.slint";
 import { PreferenceItem, PreferenceOption } from "preferences.slint";
 import { AppCallbacks } from "../callbacks.slint";
-import { ListView } from "std-widgets.slint";
+import { ScrollView } from "std-widgets.slint";
 
 export component DropdownGroup inherits Rectangle {
     in property <PreferenceItem> preference;
@@ -24,6 +24,7 @@ export component DropdownGroup inherits Rectangle {
                 text: root.title;
                 font-size: Theme.modelTitle;
                 font-weight: 600;
+                wrap: word-wrap;
                 color: Theme.textPrimary;
             }
 
@@ -61,11 +62,14 @@ export component DropdownGroup inherits Rectangle {
 
                     for option in root.options: HorizontalLayout {
                         visible: option.id == root.selected_id;
+                        horizontal-stretch: option.id == root.selected_id ? 1 : 0;
+                        min-width: 0px;
                         if option.id == root.selected_id: Text {
                             accessible-role: none;
                             text: option.label != "" ? option.label : option.id;
                             vertical-alignment: center;
                             horizontal-stretch: 1;
+                            overflow: elide;
                             color: Theme.textPrimary;
                         }
                     }
@@ -89,7 +93,7 @@ export component DropdownGroup inherits Rectangle {
         x: trigger.x;
         y: trigger.y + trigger.height + Theme.sizeXxs;
         width: trigger.width;
-        height: Math.min(240px, root.options.length * (Theme.dropdownOptionHeight + Theme.spacingSm) + Theme.paddingMd * 2);
+        height: Math.min(240px, root.options.length * Theme.dropdownOptionHeight + Theme.borderWidth * 2);
         close-policy: PopupClosePolicy.close-on-click-outside;
 
         Rectangle {
@@ -99,70 +103,80 @@ export component DropdownGroup inherits Rectangle {
             background: Theme.secondary;
             clip: true;
 
-            ListView {
+            ScrollView {
                 width: 100%;
                 height: 100%;
+                horizontal-scrollbar-policy: always-off;
 
-                for option in root.options: option_touch := TouchArea {
-                    height: Theme.dropdownOptionHeight;
-                    mouse-cursor: pointer;
-                    accessible-role: list-item;
-                    accessible-label: option.label != "" ? option.label : option.id;
-                    clicked => {
-                        popup.close();
-                        root.selected_id = option.id != "" ? option.id : option.label;
-                        if (root.preference.id != "") {
-                            AppCallbacks.preference_changed({
-                                id: root.preference.id,
-                                value_string: root.selected_id,
-                                value_bool: false,
-                                value_number: 0.0,
-                                value_list: []
-                            });
-                        }
-                        root.changed(root.selected_id);
-                    }
-                    accessible-action-default => {
-                        popup.close();
-                        root.selected_id = option.id != "" ? option.id : option.label;
-                        if (root.preference.id != "") {
-                            AppCallbacks.preference_changed({
-                                id: root.preference.id,
-                                value_string: root.selected_id,
-                                value_bool: false,
-                                value_number: 0.0,
-                                value_list: []
-                            });
-                        }
-                        root.changed(root.selected_id);
-                    }
+                VerticalLayout {
+                    width: parent.visible-width;
 
-                    HorizontalLayout {
-                        padding-left: Theme.paddingMd;
-                        padding-right: Theme.paddingMd;
-                        spacing: Theme.spacingMd;
-                        alignment: start;
-
-                        VerticalLayout {
-                            alignment: center;
-
-                            Rectangle {
-                                width: Theme.borderWidthXxl;
-                                height: Theme.subtitle;
-                                border-radius: Theme.borderRadiusSm;
-                                background: (root.selected_id == option.id || root.selected_id == option.label) ? Theme.accent : transparent;
-
-                                animate background { duration: Theme.durationFast; }
+                    for option in root.options: option_touch := TouchArea {
+                        width: 100%;
+                        height: Theme.dropdownOptionHeight;
+                        mouse-cursor: pointer;
+                        accessible-role: list-item;
+                        accessible-label: option.label != "" ? option.label : option.id;
+                        clicked => {
+                            root.selected_id = option.id != "" ? option.id : option.label;
+                            if (root.preference.id != "") {
+                                AppCallbacks.preference_changed({
+                                    id: root.preference.id,
+                                    value_string: root.selected_id,
+                                    value_bool: false,
+                                    value_number: 0.0,
+                                    value_list: []
+                                });
                             }
+                            root.changed(root.selected_id);
+                            popup.close();
+                        }
+                        accessible-action-default => {
+                            root.selected_id = option.id != "" ? option.id : option.label;
+                            if (root.preference.id != "") {
+                                AppCallbacks.preference_changed({
+                                    id: root.preference.id,
+                                    value_string: root.selected_id,
+                                    value_bool: false,
+                                    value_number: 0.0,
+                                    value_list: []
+                                });
+                            }
+                            root.changed(root.selected_id);
+                            popup.close();
                         }
 
-                        Text {
-                            accessible-role: none;
-                            text: option.label != "" ? option.label : option.id;
-                            vertical-alignment: center;
-                            color: option_touch.has-hover ? Theme.accent : Theme.textPrimary;
+                        HorizontalLayout {
+                            width: 100%;
+                            height: 100%;
+                            padding-left: Theme.paddingMd;
+                            padding-right: Theme.paddingMd;
+                            spacing: Theme.spacingMd;
+                            alignment: start;
 
-                            animate color { duration: Theme.durationFast; }
+                            VerticalLayout {
+                                alignment: center;
+
+                                Rectangle {
+                                    width: Theme.borderWidthXxl;
+                                    height: Theme.subtitle;
+                                    border-radius: Theme.borderRadiusSm;
+                                    background: (root.selected_id == option.id || root.selected_id == option.label) ? Theme.accent : transparent;
+
+                                    animate background { duration: Theme.durationFast; }
+                                }
+                            }
+
+                            Text {
+                                accessible-role: none;
+                                text: option.label != "" ? option.label : option.id;
+                                vertical-alignment: center;
+                                horizontal-stretch: 1;
+                                overflow: elide;
+                                color: option_touch.has-hover ? Theme.accent : Theme.textPrimary;
+
+                                animate color { duration: Theme.durationFast; }
+                            }
                         }
                     }
                 }

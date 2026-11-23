@@ -208,6 +208,7 @@ test_suite(
         "//core/database:database_test",
         "//core/extensions:extensions_test",
         "//core/file_scanner:file_scanner_test",
+        "//core/logging:logging_test",
         "//core/mpris:mpris_test",
         "//core/oauth:oauth_test",
         "//core/player:player_test",

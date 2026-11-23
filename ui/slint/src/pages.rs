@@ -508,6 +508,13 @@ impl PageLifecycleManager {
                     state_manager,
                 )),
             ),
+            (
+                SettingsPages::Logs,
+                Box::new(settings::logs::LogsPageHandler::new(
+                    main_window,
+                    state_manager,
+                )),
+            ),
         ]
     }
 

@@ -1,0 +1,11 @@
+import { AppPreferences } from "preferences.slint";
+import { PreferenceList } from "preference_list.slint";
+import { SettingsPageLayout } from "settings_page_layout.slint";
+
+export component LogsPage inherits SettingsPageLayout {
+    title: @tr("Settings > Logs");
+
+    PreferenceList {
+        items: AppPreferences.logs_items;
+    }
+}

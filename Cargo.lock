@@ -9762,8 +9762,7 @@ dependencies = [
 [[package]]
 name = "tracing-tracy"
 version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b326790213b869d948a5d1ea56472ed5b20c7cefde07684ee35d6b7a980fef1"
+source = "git+https://github.com/nagisa/rust_tracy_client?rev=991ac0cc8f9f63f3c3196d930dac088f47309f75#991ac0cc8f9f63f3c3196d930dac088f47309f75"
 dependencies = [
  "tracing-core",
  "tracing-subscriber",
@@ -9772,9 +9771,8 @@ dependencies = [
 
 [[package]]
 name = "tracy-client"
-version = "0.19.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d93fd676d8946eaeaff4881d26d2240a8d106fcaccbd47cb9f1389e3561ba490"
+version = "0.19.1"
+source = "git+https://github.com/nagisa/rust_tracy_client?rev=991ac0cc8f9f63f3c3196d930dac088f47309f75#991ac0cc8f9f63f3c3196d930dac088f47309f75"
 dependencies = [
  "loom",
  "once_cell",
@@ -9783,12 +9781,11 @@ dependencies = [
 
 [[package]]
 name = "tracy-client-sys"
-version = "0.30.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08f4b6d2481c5e266e9def4c10e1680dbdfdd69523ed555a83d6675953a2785e"
+version = "0.31.0"
+source = "git+https://github.com/nagisa/rust_tracy_client?rev=991ac0cc8f9f63f3c3196d930dac088f47309f75#991ac0cc8f9f63f3c3196d930dac088f47309f75"
 dependencies = [
  "cc",
- "windows-targets 0.53.5",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]

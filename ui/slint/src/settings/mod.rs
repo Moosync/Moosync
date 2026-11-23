@@ -1,5 +1,8 @@
 use extensions_proto::moosync::types::{PreferenceArgs, PreferenceChangedRequest};
-use preferences::keys::{AUTO_STARTUP, I18N_LANGUAGE, PreferenceItemExt, THEME_REGISTRIES};
+use preferences::keys::{
+    AUTO_STARTUP, I18N_LANGUAGE, LOG_CUSTOM_FILTER, LOG_LEVEL, PreferenceItemExt, THEME_REGISTRIES,
+    TRACY_PROFILING,
+};
 use preferences_proto::moosync::types::{
     PreferenceItem as ProtoPreferenceItem, PreferenceType, PreferenceValue,
 };
@@ -15,14 +18,15 @@ use crate::{
     AppCallbacks, MainWindow,
     pages::PageHandler,
     settings::{
-        extensions::ExtensionsPageHandler, paths::PathsPageHandler, system::SystemPageHandler,
-        themes::ThemesPageHandler,
+        extensions::ExtensionsPageHandler, logs::LogsPageHandler, paths::PathsPageHandler,
+        system::SystemPageHandler, themes::ThemesPageHandler,
     },
     utils::autostart::update_auto_startup,
 };
 
 pub mod cache;
 pub mod extensions;
+pub mod logs;
 pub mod paths;
 pub mod system;
 pub mod themes;
@@ -32,6 +36,8 @@ pub mod utils;
 mod cache_test;
 #[cfg(test)]
 mod extensions_test;
+#[cfg(test)]
+mod logs_test;
 #[cfg(test)]
 mod paths_test;
 #[cfg(test)]
@@ -159,6 +165,7 @@ pub fn get_all_static_preferences() -> Vec<ProtoPreferenceItem> {
     prefs.extend(SystemPageHandler::get_preferences());
     prefs.extend(ExtensionsPageHandler::get_preferences());
     prefs.extend(ThemesPageHandler::get_preferences());
+    prefs.extend(LogsPageHandler::get_preferences());
     prefs
 }
 
@@ -262,6 +269,8 @@ async fn refresh_relevant_page(
         ExtensionsPageHandler::refresh_preferences(main_window_weak, state_manager).await;
     } else if key == THEME_REGISTRIES.id {
         ThemesPageHandler::refresh_preferences(main_window_weak, &state_manager);
+    } else if logs::PREFERENCES.iter().any(|p| p.id == key) {
+        LogsPageHandler::refresh_preferences(main_window_weak, state_manager).await;
     }
 }
 
@@ -341,6 +350,17 @@ pub async fn handle_preference_change(
         tracing::debug!("Successfully applied preference change: key = {}", key);
     }
 
+    if key == LOG_LEVEL.id || key == LOG_CUSTOM_FILTER.id || key.starts_with("log_component_") {
+        logs::apply_saved_logging(&state_manager);
+    } else if key == TRACY_PROFILING.id {
+        if let Err(err) = state_manager
+            .get_log_controller()
+            .set_tracy_profiling(value_bool)
+        {
+            tracing::error!("Failed to toggle Tracy profiling: {}", err);
+        }
+    }
+
     if pref_type != PreferenceType::TextInputGroup && pref_type != PreferenceType::NumberInputGroup
     {
         refresh_relevant_page(&key, main_window_weak, state_manager.clone()).await;
@@ -363,6 +383,7 @@ pub fn apply_saved_language(state_manager: &StateManager) {
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn setup_settings(main_window: &MainWindow, state_manager: &StateManager) {
     apply_saved_language(state_manager);
+    logs::apply_saved_logging(state_manager);
 
     let auto_startup_enabled = state_manager
         .get_preference_config()

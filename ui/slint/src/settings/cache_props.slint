@@ -3,6 +3,7 @@ export enum CacheCategory {
     BlurredCover,
     Thumbnails,
     Wasmtime,
+    Logs,
 }
 
 export enum OrphanCacheKind {
@@ -60,7 +61,10 @@ export global CacheState {
         if (category == CacheCategory.Thumbnails) {
             return @tr("Embedded Thumbnails");
         }
-        return @tr("WASM Compilation Cache");
+        if (category == CacheCategory.Wasmtime) {
+            return @tr("WASM Compilation Cache");
+        }
+        return @tr("Logs");
     }
 
     public pure function category_description(category: CacheCategory) -> string {
@@ -73,7 +77,10 @@ export global CacheState {
         if (category == CacheCategory.Thumbnails) {
             return @tr("Extracted cover art thumbnails from local audio files");
         }
-        return @tr("Compiled WebAssembly machine code cache for extensions");
+        if (category == CacheCategory.Wasmtime) {
+            return @tr("Compiled WebAssembly machine code cache for extensions");
+        }
+        return @tr("Application and profiling log files");
     }
 
     public pure function orphan_title(kind: OrphanCacheKind, package_name: string) -> string {

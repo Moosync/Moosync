@@ -7,6 +7,7 @@ pub enum CacheCategory {
     Thumbnails,
     Wasmtime,
     ExtensionDisk,
+    Logs,
 }
 
 impl CacheCategory {
@@ -18,6 +19,7 @@ impl CacheCategory {
             Self::Thumbnails => "thumbnails",
             Self::Wasmtime => "wasmtime",
             Self::ExtensionDisk => "extension_disk",
+            Self::Logs => "logs",
         }
     }
 
@@ -29,6 +31,7 @@ impl CacheCategory {
             "thumbnails" => Some(Self::Thumbnails),
             "wasmtime" => Some(Self::Wasmtime),
             "extension_disk" => Some(Self::ExtensionDisk),
+            "logs" => Some(Self::Logs),
             _ => None,
         }
     }

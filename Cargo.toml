@@ -81,7 +81,6 @@ tokio = { version = "1.54.1", features = ["rt-multi-thread", "rt", "macros", "sy
 tracing = { version = "0.1.44", default-features = false }
 tracing-appender = "0.2.5"
 tracing-subscriber = { version = "0.3.23", default-features = false, features = ["ansi", "env-filter"] }
-tracing-tracy = "0.12.0"
 tracing-test = "0.2.6"
 url = "2.5.8"
 uuid = { version = "1.29.0", features = ["v4", "js"] }
@@ -95,3 +94,4 @@ zip-extensions = "0.14.1"
 # Git dependencies
 rodio = { git = "https://github.com/RustAudio/rodio", rev = "685e05765c2aff8fbb51e32cda5b18428d09ffbe", default-features = false, features = ["playback"] }
 rsmpeg = { git = "https://github.com/aegroto/rsmpeg", rev = "a1f06d4c2c87e938bb6f84d66bb9c5afe4a006ed", default-features = false, features = ["ffmpeg8"] }
+tracing-tracy = { git = "https://github.com/nagisa/rust_tracy_client", rev = "991ac0cc8f9f63f3c3196d930dac088f47309f75", default-features = false, features = ["enable"] }

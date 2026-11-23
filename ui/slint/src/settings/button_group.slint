@@ -1,6 +1,8 @@
 import { Theme } from "../constants.slint";
 import { Button } from "../common/button.slint";
 import { PillButton } from "../common/pill_button.slint";
+import { PreferenceItem } from "preferences.slint";
+import { AppCallbacks } from "../callbacks.slint";
 
 export struct ButtonItem {
     id: string,
@@ -55,6 +57,9 @@ export component ModalActionButton inherits Button {
 }
 
 export component ButtonGroup inherits VerticalLayout {
+    in property <PreferenceItem> preference;
+    in property <string> title: root.preference.title;
+    in property <string> subtitle: root.preference.subtitle;
     in property <[ButtonItem]> buttons;
 
     callback clicked(string);
@@ -64,6 +69,24 @@ export component ButtonGroup inherits VerticalLayout {
 
     spacing: Theme.spacingMd;
     alignment: start;
+
+    if (root.title != ""): VerticalLayout {
+        spacing: Theme.spacingXs;
+
+        Text {
+            text: root.title;
+            font-size: Theme.modelTitle;
+            font-weight: 600;
+            color: Theme.textPrimary;
+        }
+
+        if (root.subtitle != ""): Text {
+            text: root.subtitle;
+            font-size: Theme.caption;
+            wrap: word-wrap;
+            color: Theme.textSecondary;
+        }
+    }
 
     HorizontalLayout {
         spacing: Theme.spacingMd;
@@ -81,7 +104,38 @@ export component ButtonGroup inherits VerticalLayout {
                     root.pending_action_text = btn.text;
                     modal_popup.show();
                 } else {
+                    if (root.preference.id != "") {
+                        AppCallbacks.preference_changed({
+                            id: root.preference.id,
+                            value_string: btn.id,
+                            value_bool: false,
+                            value_number: 0,
+                            value_list: [],
+                        });
+                    }
                     root.clicked(btn.id);
+                }
+            }
+        }
+
+        if (buttons.length == 0): HorizontalLayout {
+            spacing: Theme.spacingMd;
+            alignment: start;
+
+            for opt in root.preference.options: GroupActionButton {
+                width: max(Theme.buttonMinWidth, self.preferred-width + Theme.spacingXxl);
+                text: opt.label != "" ? opt.label : opt.id;
+                is_neutral: root.preference.value_string != opt.id;
+
+                clicked => {
+                    AppCallbacks.preference_changed({
+                        id: root.preference.id,
+                        value_string: opt.id,
+                        value_bool: false,
+                        value_number: 0,
+                        value_list: [],
+                    });
+                    root.clicked(opt.id);
                 }
             }
         }

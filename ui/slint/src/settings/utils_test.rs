@@ -165,6 +165,10 @@ fn test_preference_type_all_variants_roundtrip() {
             ProtoPreferenceType::StatusGroup,
             PreferenceType::StatusGroup,
         ),
+        (
+            ProtoPreferenceType::ButtonGroup,
+            PreferenceType::ButtonGroup,
+        ),
     ];
 
     for (proto_type, slint_type) in variants {

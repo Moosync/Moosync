@@ -19,9 +19,6 @@ use tokio::runtime::Builder;
 #[cfg(target_os = "android")]
 use tokio::runtime::Runtime;
 use tracing::{Instrument, debug, trace};
-use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt};
-#[cfg(not(target_os = "android"))]
-use tracing_tracy::TracyLayer;
 use types::{debounce::DebounceHandle, prelude::format_duration};
 
 #[cfg(target_os = "android")]
@@ -1059,39 +1056,4 @@ fn setup_ui(main_window: &MainWindow, state_manager: &StateManager) {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn setup_tracing() {
-    let env_filter = EnvFilter::try_from_env("MOOSYNC_LOG").unwrap_or(EnvFilter::new("info"));
-
-    let layer = fmt::layer().pretty().with_target(true).with_ansi(true);
-
-    #[cfg(not(target_os = "android"))]
-    let subscriber = {
-        use std::fs;
-
-        use tracing_appender::rolling::{RollingFileAppender, Rotation};
-
-        let log_path = platform_dirs::AppDirs::new(Some("moosync"), false)
-            .unwrap()
-            .data_dir
-            .join("logs");
-        if !log_path.exists() {
-            fs::create_dir_all(log_path.clone()).unwrap();
-        }
-        let file_appender = RollingFileAppender::new(Rotation::DAILY, &log_path, "moosync");
-        let log_layer = fmt::layer()
-            .pretty()
-            .with_ansi(false)
-            .with_target(true)
-            .with_writer(file_appender);
-        tracing_subscriber::registry()
-            .with(env_filter)
-            .with(layer)
-            .with(log_layer)
-            .with(TracyLayer::default())
-    };
-
-    #[cfg(target_os = "android")]
-    let subscriber = tracing_subscriber::registry().with(env_filter).with(layer);
-
-    let _ = tracing::subscriber::set_global_default(subscriber);
-}
+fn setup_tracing() { logging::LogController::init_default_tracing(); }

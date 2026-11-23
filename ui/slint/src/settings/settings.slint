@@ -10,6 +10,7 @@ import { SystemPage } from "system.slint";
 import { ExtensionsPage } from "extensions.slint";
 import { ThemesPage } from "themes.slint";
 import { CachePage } from "cache.slint";
+import { LogsPage } from "logs.slint";
 import { AppCallbacks } from "../callbacks.slint";
 import { SaveThemeModal } from "../common/save_theme_modal.slint";
 import { SaveThemeState } from "../common/save_theme_modal_props.slint";
@@ -89,6 +90,12 @@ export component Settings inherits Modal {
             page: SettingsPages.Cache,
             accessible_label: @tr("Settings Cache")
         },
+        {
+            text: @tr("Logs"),
+            icon: @image-url("../icons/info.svg"),
+            page: SettingsPages.Logs,
+            accessible_label: @tr("Settings Logs")
+        },
     ];
 
     HorizontalLayout {
@@ -148,6 +155,12 @@ export component Settings inherits Modal {
                 CachePage { }
             }
 
+            SettingsPageWrapper {
+                active-page <=> root.active_page;
+                page-type: SettingsPages.Logs;
+
+                LogsPage { }
+            }
             // Close button at top right
             IconButton {
                 x: parent.width - self.width - Theme.paddingMd;

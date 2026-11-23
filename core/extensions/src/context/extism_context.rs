@@ -10,7 +10,6 @@ use std::{
     thread,
 };
 
-use cache::{CacheCategory, CacheManager};
 use extensions_proto::moosync::types::{
     Error as MainCommandError, ExtensionCommand, ExtensionCommandResponse, MainCommand,
     MainCommandResponse, ManifestPermissions, main_command_response,
@@ -150,6 +149,11 @@ impl TryFrom<&Extension> for Arc<ExtismContext> {
                 Ok(plugin) => plugin,
                 Err(error) => {
                     let err_msg = format!("Failed to build plugin: {}", error);
+                    tracing::error!(
+                        "Failed to build extension plugin {}: {}",
+                        package_name,
+                        err_msg
+                    );
                     let _ = extension.error.set(err_msg.clone());
                     extension.context.set(Err(err_msg));
                     return Err(error);
@@ -223,41 +227,48 @@ impl ExtismContext {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
+    fn ensure_wasmtime_config(cache_path: &Path) -> PathBuf {
+        let config_path = cache_path.join("wasmtime").join("config.toml");
+        static WRITTEN_PATHS: OnceLock<Mutex<HashSet<PathBuf>>> = OnceLock::new();
+        let mutex = WRITTEN_PATHS.get_or_init(|| Mutex::new(HashSet::new()));
+        let mut paths = mutex.lock().unwrap();
+        if !paths.contains(&config_path) || !config_path.exists() {
+            let wasmtime_dir = config_path.parent().unwrap();
+            if let Err(err) = fs::create_dir_all(wasmtime_dir.join("cache")) {
+                tracing::error!(
+                    "Failed to create wasmtime cache directory {:?}: {:?}",
+                    wasmtime_dir.join("cache"),
+                    err
+                );
+            }
+            let config_contents = format!(
+                r#"[cache]
+directory = "{}"
+cleanup-interval = "30m"
+files-total-size-soft-limit = "1Gi"
+"#,
+                wasmtime_dir.join("cache").to_string_lossy()
+            );
+            // instrument: ignore
+            if let Err(err) = fs::write(&config_path, config_contents) {
+                tracing::error!(
+                    "Failed to write wasmtime config {:?}: {:?}",
+                    config_path,
+                    err
+                );
+            }
+            paths.insert(config_path.clone());
+        }
+        config_path
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
     fn build_plugin(
         cache_path: &Path,
         plugin_manifest: Manifest,
         user_data: UserData<MainCommandUserData>,
     ) -> Result<Arc<Mutex<Plugin>>, ExtensionError> {
-        let config_path = cache_path.join("wasmtime").join("config.toml");
-        static WRITTEN_PATHS: OnceLock<Mutex<HashSet<PathBuf>>> = OnceLock::new();
-        let mutex = WRITTEN_PATHS.get_or_init(|| Mutex::new(HashSet::new()));
-        {
-            let mut paths = mutex.lock().unwrap();
-            if !paths.contains(&config_path) {
-                if !config_path.exists() {
-                    let _ = fs::create_dir_all(config_path.parent().unwrap());
-                }
-                let config_contents = format!(
-                    r#"[cache]
-directory = "{}"
-cleanup-interval = "30m"
-files-total-size-soft-limit = "1Gi"
-"#,
-                    config_path
-                        .parent()
-                        .unwrap()
-                        .join("cache")
-                        .to_string_lossy()
-                );
-                let _ = CacheManager::new(cache_path.to_path_buf()).write(
-                    CacheCategory::Wasmtime,
-                    "app",
-                    &config_path,
-                    config_contents.as_bytes(),
-                );
-                paths.insert(config_path.clone());
-            }
-        }
+        let config_path = Self::ensure_wasmtime_config(cache_path);
 
         let mut count = COMPILE_LIMIT.lock().unwrap();
         while *count >= MAX_CONCURRENT_COMPILATIONS {

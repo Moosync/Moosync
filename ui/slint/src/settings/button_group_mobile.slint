@@ -1,6 +1,8 @@
 import { Theme } from "../constants_mobile.slint";
 import { PillButton } from "../common/pill_button_mobile.slint";
 import { ButtonItem } from "button_group.slint";
+import { PreferenceItem } from "preferences.slint";
+import { AppCallbacks } from "../callbacks.slint";
 
 export { ButtonItem }
 export component GroupActionButtonMobile inherits PillButton {
@@ -30,6 +32,9 @@ export component GroupActionButtonMobile inherits PillButton {
 }
 
 export component ButtonGroupMobile inherits VerticalLayout {
+    in property <PreferenceItem> preference;
+    in property <string> title: root.preference.title;
+    in property <string> subtitle: root.preference.subtitle;
     in property <[ButtonItem]> buttons;
 
     callback clicked(string);
@@ -39,6 +44,24 @@ export component ButtonGroupMobile inherits VerticalLayout {
 
     spacing: Theme.spacingSm;
     alignment: start;
+
+    if (root.title != ""): VerticalLayout {
+        spacing: Theme.spacingXs;
+
+        Text {
+            text: root.title;
+            font-size: Theme.modelTitle;
+            font-weight: 600;
+            color: Theme.textPrimary;
+        }
+
+        if (root.subtitle != ""): Text {
+            text: root.subtitle;
+            font-size: Theme.caption;
+            wrap: word-wrap;
+            color: Theme.textSecondary;
+        }
+    }
 
     HorizontalLayout {
         spacing: Theme.spacingMd;
@@ -55,7 +78,37 @@ export component ButtonGroupMobile inherits VerticalLayout {
                     root.pending_action_text = btn.text;
                     modal_popup.show();
                 } else {
+                    if (root.preference.id != "") {
+                        AppCallbacks.preference_changed({
+                            id: root.preference.id,
+                            value_string: btn.id,
+                            value_bool: false,
+                            value_number: 0,
+                            value_list: [],
+                        });
+                    }
                     root.clicked(btn.id);
+                }
+            }
+        }
+
+        if (buttons.length == 0): HorizontalLayout {
+            spacing: Theme.spacingMd;
+            alignment: start;
+
+            for opt in root.preference.options: GroupActionButtonMobile {
+                text: opt.label != "" ? opt.label : opt.id;
+                is_neutral: root.preference.value_string != opt.id;
+
+                clicked => {
+                    AppCallbacks.preference_changed({
+                        id: root.preference.id,
+                        value_string: opt.id,
+                        value_bool: false,
+                        value_number: 0,
+                        value_list: [],
+                    });
+                    root.clicked(opt.id);
                 }
             }
         }

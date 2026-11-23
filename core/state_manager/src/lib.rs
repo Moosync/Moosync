@@ -32,7 +32,8 @@ plugin_macro::generate_plugin_system!(
     player::PlayerHandler,
     themes::themes::ThemeHolder,
     mpris::MprisHolder,
-    oauth::OauthManager
+    oauth::OauthManager,
+    logging::LogController
 );
 
 #[derive(Clone)]

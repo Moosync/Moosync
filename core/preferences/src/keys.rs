@@ -356,4 +356,226 @@ define_preferences! {
         placeholder: "https://example.com/manifest.pb",
         validation: "^https?://.+",
     };
+    LOG_LEVEL = "log_level" => {
+        type: DropdownGroup,
+        title: "Global Log Level",
+        subtitle: "Default tracing log level applied across the application",
+        default_string: "info",
+        options: [
+            ("error", "Error"),
+            ("warn", "Warn"),
+            ("info", "Info"),
+            ("debug", "Debug"),
+            ("trace", "Trace"),
+        ],
+    };
+    LOG_CUSTOM_FILTER = "log_custom_filter" => {
+        type: TextInputGroup,
+        title: "Custom Log Filter",
+        subtitle: "Optional extra EnvFilter directives appended to global and component levels",
+        placeholder: "e.g. hyper=warn,sqlx=info",
+        default_string: "",
+    };
+    TRACY_PROFILING = "tracy_profiling" => {
+        type: ToggleGroup,
+        title: "Tracy Profiling",
+        subtitle: "Emit Tracy profiling logs for external Tracy profiler connections",
+        default_bool: false,
+    };
+    LOG_COMPONENT_SLINT_APP = "log_component_slint_app" => {
+        type: DropdownGroup,
+        title: "UI (Slint) Log Level",
+        subtitle: "Override log level for the slint_app UI crate",
+        default_string: "inherit",
+        options: [
+            ("inherit", "Inherit Global"),
+            ("error", "Error"),
+            ("warn", "Warn"),
+            ("info", "Info"),
+            ("debug", "Debug"),
+            ("trace", "Trace"),
+        ],
+    };
+    LOG_COMPONENT_STATE_MANAGER = "log_component_state_manager" => {
+        type: DropdownGroup,
+        title: "State Manager Log Level",
+        subtitle: "Override log level for the state_manager crate",
+        default_string: "inherit",
+        options: [
+            ("inherit", "Inherit Global"),
+            ("error", "Error"),
+            ("warn", "Warn"),
+            ("info", "Info"),
+            ("debug", "Debug"),
+            ("trace", "Trace"),
+        ],
+    };
+    LOG_COMPONENT_PLAYER = "log_component_player" => {
+        type: DropdownGroup,
+        title: "Audio Player Log Level",
+        subtitle: "Override log level for the player crate",
+        default_string: "inherit",
+        options: [
+            ("inherit", "Inherit Global"),
+            ("error", "Error"),
+            ("warn", "Warn"),
+            ("info", "Info"),
+            ("debug", "Debug"),
+            ("trace", "Trace"),
+        ],
+    };
+    LOG_COMPONENT_DATABASE = "log_component_database" => {
+        type: DropdownGroup,
+        title: "Database Log Level",
+        subtitle: "Override log level for the database crate",
+        default_string: "inherit",
+        options: [
+            ("inherit", "Inherit Global"),
+            ("error", "Error"),
+            ("warn", "Warn"),
+            ("info", "Info"),
+            ("debug", "Debug"),
+            ("trace", "Trace"),
+        ],
+    };
+    LOG_COMPONENT_EXTENSIONS = "log_component_extensions" => {
+        type: DropdownGroup,
+        title: "Extensions Log Level",
+        subtitle: "Override log level for the extensions crate",
+        default_string: "inherit",
+        options: [
+            ("inherit", "Inherit Global"),
+            ("error", "Error"),
+            ("warn", "Warn"),
+            ("info", "Info"),
+            ("debug", "Debug"),
+            ("trace", "Trace"),
+        ],
+    };
+    LOG_COMPONENT_FILE_SCANNER = "log_component_file_scanner" => {
+        type: DropdownGroup,
+        title: "File Scanner Log Level",
+        subtitle: "Override log level for the file_scanner crate",
+        default_string: "inherit",
+        options: [
+            ("inherit", "Inherit Global"),
+            ("error", "Error"),
+            ("warn", "Warn"),
+            ("info", "Info"),
+            ("debug", "Debug"),
+            ("trace", "Trace"),
+        ],
+    };
+    LOG_COMPONENT_CACHE = "log_component_cache" => {
+        type: DropdownGroup,
+        title: "Cache Log Level",
+        subtitle: "Override log level for the cache crate",
+        default_string: "inherit",
+        options: [
+            ("inherit", "Inherit Global"),
+            ("error", "Error"),
+            ("warn", "Warn"),
+            ("info", "Info"),
+            ("debug", "Debug"),
+            ("trace", "Trace"),
+        ],
+    };
+    LOG_COMPONENT_MPRIS = "log_component_mpris" => {
+        type: DropdownGroup,
+        title: "MPRIS Log Level",
+        subtitle: "Override log level for the mpris crate",
+        default_string: "inherit",
+        options: [
+            ("inherit", "Inherit Global"),
+            ("error", "Error"),
+            ("warn", "Warn"),
+            ("info", "Info"),
+            ("debug", "Debug"),
+            ("trace", "Trace"),
+        ],
+    };
+    LOG_COMPONENT_THEMES = "log_component_themes" => {
+        type: DropdownGroup,
+        title: "Themes Log Level",
+        subtitle: "Override log level for the themes crate",
+        default_string: "inherit",
+        options: [
+            ("inherit", "Inherit Global"),
+            ("error", "Error"),
+            ("warn", "Warn"),
+            ("info", "Info"),
+            ("debug", "Debug"),
+            ("trace", "Trace"),
+        ],
+    };
+    LOG_COMPONENT_PREFERENCES = "log_component_preferences" => {
+        type: DropdownGroup,
+        title: "Preferences Log Level",
+        subtitle: "Override log level for the preferences crate",
+        default_string: "inherit",
+        options: [
+            ("inherit", "Inherit Global"),
+            ("error", "Error"),
+            ("warn", "Warn"),
+            ("info", "Info"),
+            ("debug", "Debug"),
+            ("trace", "Trace"),
+        ],
+    };
+    LOG_COMPONENT_SPOTIFY_PLAYER = "log_component_spotify_player" => {
+        type: DropdownGroup,
+        title: "Spotify Player Log Level",
+        subtitle: "Override log level for the spotify_player crate",
+        default_string: "inherit",
+        options: [
+            ("inherit", "Inherit Global"),
+            ("error", "Error"),
+            ("warn", "Warn"),
+            ("info", "Info"),
+            ("debug", "Debug"),
+            ("trace", "Trace"),
+        ],
+    };
+    LOG_COMPONENT_OAUTH = "log_component_oauth" => {
+        type: DropdownGroup,
+        title: "OAuth Log Level",
+        subtitle: "Override log level for the oauth crate",
+        default_string: "inherit",
+        options: [
+            ("inherit", "Inherit Global"),
+            ("error", "Error"),
+            ("warn", "Warn"),
+            ("info", "Info"),
+            ("debug", "Debug"),
+            ("trace", "Trace"),
+        ],
+    };
+    LOG_COMPONENT_TYPES = "log_component_types" => {
+        type: DropdownGroup,
+        title: "Core Types Log Level",
+        subtitle: "Override log level for the types crate",
+        default_string: "inherit",
+        options: [
+            ("inherit", "Inherit Global"),
+            ("error", "Error"),
+            ("warn", "Warn"),
+            ("info", "Info"),
+            ("debug", "Debug"),
+            ("trace", "Trace"),
+        ],
+    };
+    LOG_COMPONENT_LOGGING = "log_component_logging" => {
+        type: DropdownGroup,
+        title: "Logging Log Level",
+        subtitle: "Override log level for the logging crate",
+        default_string: "inherit",
+        options: [
+            ("inherit", "Inherit Global"),
+            ("error", "Error"),
+            ("warn", "Warn"),
+            ("info", "Info"),
+            ("debug", "Debug"),
+            ("trace", "Trace"),
+        ],
+    };
 }

@@ -714,6 +714,7 @@ impl From<CoreCacheCategory> for CacheCategory {
             CoreCacheCategory::BlurredCover => Self::BlurredCover,
             CoreCacheCategory::Thumbnails => Self::Thumbnails,
             CoreCacheCategory::Wasmtime | CoreCacheCategory::ExtensionDisk => Self::Wasmtime,
+            CoreCacheCategory::Logs => Self::Logs,
         }
     }
 }
@@ -726,6 +727,7 @@ impl From<CacheCategory> for CoreCacheCategory {
             CacheCategory::BlurredCover => Self::BlurredCover,
             CacheCategory::Thumbnails => Self::Thumbnails,
             CacheCategory::Wasmtime => Self::Wasmtime,
+            CacheCategory::Logs => Self::Logs,
         }
     }
 }

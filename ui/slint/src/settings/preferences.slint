@@ -8,6 +8,7 @@ export enum PreferenceType {
     DropdownGroup,
     TextArrayInput,
     StatusGroup,
+    ButtonGroup,
 }
 
 export enum StatusDotColor {
@@ -54,6 +55,7 @@ export struct Preferences {
 export global AppPreferences {
     in-out property <[PreferenceItem]> paths_items: [];
     in-out property <[PreferenceItem]> system_items: [];
+    in-out property <[PreferenceItem]> logs_items: [];
 
     // Keep a dummy property for compile compatibility
     in-out property <Preferences> preferences: { dummy: false };

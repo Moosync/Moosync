@@ -3,7 +3,7 @@
     "protoc-gen-prost 0.5.0",
     "slint-lsp 1.19.0"
   ],
-  "checksum": "9460c165fcf84c1f596b5d01311d494a22bce7754b625c0d2e59fc519274ad33",
+  "checksum": "5abdc5c4df3e81c8215c2de912a995b94df0b33c28f5763feaa6a54c45787e6c",
   "conditions": {
     "aarch64-apple-darwin": [
       "aarch64-apple-darwin"
@@ -45886,16 +45886,7 @@
     "tracing-tracy 0.12.0": {
       "common_attrs": {
         "crate_features": [
-          "broadcast",
-          "callstack-inlines",
-          "code-transfer",
-          "context-switch-tracing",
-          "crash-handler",
-          "default",
-          "enable",
-          "sampling",
-          "system-tracing",
-          "wait-stacks"
+          "enable"
         ],
         "deps": [
           {
@@ -45908,7 +45899,7 @@
           },
           {
             "alias": "client",
-            "id": "tracy-client 0.19.0",
+            "id": "tracy-client 0.19.1",
             "target": "tracy_client"
           }
         ],
@@ -45924,9 +45915,12 @@
       "name": "tracing-tracy",
       "package_url": "https://github.com/nagisa/rust_tracy_client",
       "repository": {
-        "Http": {
-          "sha256": "0b326790213b869d948a5d1ea56472ed5b20c7cefde07684ee35d6b7a980fef1",
-          "url": "https://static.crates.io/crates/tracing-tracy/0.12.0/download"
+        "Git": {
+          "commitish": {
+            "Rev": "991ac0cc8f9f63f3c3196d930dac088f47309f75"
+          },
+          "remote": "https://github.com/nagisa/rust_tracy_client",
+          "strip_prefix": "tracing-tracy"
         }
       },
       "targets": [
@@ -45939,18 +45933,10 @@
       ],
       "version": "0.12.0"
     },
-    "tracy-client 0.19.0": {
+    "tracy-client 0.19.1": {
       "common_attrs": {
         "crate_features": [
-          "broadcast",
-          "callstack-inlines",
-          "code-transfer",
-          "context-switch-tracing",
-          "crash-handler",
-          "enable",
-          "sampling",
-          "system-tracing",
-          "wait-stacks"
+          "enable"
         ],
         "deps": {
           "common": [
@@ -45960,7 +45946,7 @@
             },
             {
               "alias": "sys",
-              "id": "tracy-client-sys 0.30.1",
+              "id": "tracy-client-sys 0.31.0",
               "target": "tracy_client_sys"
             }
           ],
@@ -45985,9 +45971,12 @@
       "name": "tracy-client",
       "package_url": "https://github.com/nagisa/rust_tracy_client",
       "repository": {
-        "Http": {
-          "sha256": "d93fd676d8946eaeaff4881d26d2240a8d106fcaccbd47cb9f1389e3561ba490",
-          "url": "https://static.crates.io/crates/tracy-client/0.19.0/download"
+        "Git": {
+          "commitish": {
+            "Rev": "991ac0cc8f9f63f3c3196d930dac088f47309f75"
+          },
+          "remote": "https://github.com/nagisa/rust_tracy_client",
+          "strip_prefix": "tracy-client"
         }
       },
       "targets": [
@@ -45998,9 +45987,9 @@
           }
         }
       ],
-      "version": "0.19.0"
+      "version": "0.19.1"
     },
-    "tracy-client-sys 0.30.1": {
+    "tracy-client-sys 0.31.0": {
       "build_script_attrs": {
         "deps": [
           {
@@ -46011,22 +46000,14 @@
       },
       "common_attrs": {
         "crate_features": [
-          "broadcast",
-          "callstack-inlines",
-          "code-transfer",
-          "context-switch-tracing",
-          "crash-handler",
-          "enable",
-          "sampling",
-          "system-tracing",
-          "wait-stacks"
+          "enable"
         ],
         "deps": {
           "common": [],
           "selects": {
             "cfg(windows)": [
               {
-                "id": "windows-targets 0.53.5",
+                "id": "windows-targets 0.48.5",
                 "target": "windows_targets"
               }
             ]
@@ -46048,9 +46029,12 @@
       "name": "tracy-client-sys",
       "package_url": "https://github.com/nagisa/rust_tracy_client",
       "repository": {
-        "Http": {
-          "sha256": "08f4b6d2481c5e266e9def4c10e1680dbdfdd69523ed555a83d6675953a2785e",
-          "url": "https://static.crates.io/crates/tracy-client-sys/0.30.1/download"
+        "Git": {
+          "commitish": {
+            "Rev": "991ac0cc8f9f63f3c3196d930dac088f47309f75"
+          },
+          "remote": "https://github.com/nagisa/rust_tracy_client",
+          "strip_prefix": "tracy-client-sys"
         }
       },
       "targets": [
@@ -46067,7 +46051,7 @@
           }
         }
       ],
-      "version": "0.30.1"
+      "version": "0.31.0"
     },
     "try-lock 0.2.5": {
       "common_attrs": {

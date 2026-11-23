@@ -37,6 +37,8 @@ SRC_LIST = [
     "src/pages_test.rs",
     "src/settings/extensions.rs",
     "src/settings/extensions_test.rs",
+    "src/settings/logs.rs",
+    "src/settings/logs_test.rs",
     "src/settings/mod.rs",
     "src/settings/cache.rs",
     "src/settings/cache_test.rs",
@@ -514,6 +516,8 @@ SLINT_SOURCES = [
     "src/settings/themes.slint",
     "src/settings/themes_mobile.slint",
     "src/settings/themes_props.slint",
+    "src/settings/logs.slint",
+    "src/settings/logs_mobile.slint",
     "src/settings/toggle.slint",
     "src/settings/toggle_mobile.slint",
     "src/sidebar/sidebar.slint",
@@ -563,6 +567,7 @@ cargo_build_script(
 
 COMMON_DEPS = [
     "//core/cache",
+    "//core/logging",
     "//core/database",
     "//core/extensions",
     "//core/preferences",

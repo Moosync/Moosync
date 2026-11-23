@@ -1,0 +1,11 @@
+import { AppPreferences } from "preferences.slint";
+import { PreferenceListMobile } from "preference_list_mobile.slint";
+import { SettingsPageLayoutMobile } from "settings_page_layout_mobile.slint";
+
+export component LogsPageMobile inherits SettingsPageLayoutMobile {
+    title: @tr("Logs");
+
+    PreferenceListMobile {
+        items: AppPreferences.logs_items;
+    }
+}

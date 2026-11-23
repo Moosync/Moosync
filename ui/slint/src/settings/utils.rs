@@ -68,6 +68,7 @@ impl From<ProtoPreferenceType> for PreferenceType {
             ProtoPreferenceType::DropdownGroup => PreferenceType::DropdownGroup,
             ProtoPreferenceType::TextArrayInput => PreferenceType::TextArrayInput,
             ProtoPreferenceType::StatusGroup => PreferenceType::StatusGroup,
+            ProtoPreferenceType::ButtonGroup => PreferenceType::ButtonGroup,
             ProtoPreferenceType::Unspecified => PreferenceType::TextInputGroup,
         }
     }
@@ -85,6 +86,7 @@ impl From<PreferenceType> for ProtoPreferenceType {
             PreferenceType::DropdownGroup => ProtoPreferenceType::DropdownGroup,
             PreferenceType::TextArrayInput => ProtoPreferenceType::TextArrayInput,
             PreferenceType::StatusGroup => ProtoPreferenceType::StatusGroup,
+            PreferenceType::ButtonGroup => ProtoPreferenceType::ButtonGroup,
         }
     }
 }
@@ -227,7 +229,8 @@ impl From<PreferenceItem> for ProtoPreferenceItem {
             PreferenceType::TextInputGroup
             | PreferenceType::SingleFileInput
             | PreferenceType::RadioGroup
-            | PreferenceType::DropdownGroup => Some(preference_value::Value::StringValue(
+            | PreferenceType::DropdownGroup
+            | PreferenceType::ButtonGroup => Some(preference_value::Value::StringValue(
                 item.value_string.to_string(),
             )),
             PreferenceType::PathSelector | PreferenceType::TextArrayInput => {

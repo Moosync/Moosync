@@ -8,6 +8,7 @@ import { SystemPageMobile } from "system_mobile.slint";
 import { ExtensionsPageMobile } from "extensions_mobile.slint";
 import { ThemesPageMobile } from "themes_mobile.slint";
 import { CachePageMobile } from "cache_mobile.slint";
+import { LogsPageMobile } from "logs_mobile.slint";
 import { AppCallbacks } from "../callbacks.slint";
 import { SaveThemeModalMobile } from "../common/save_theme_modal_mobile.slint";
 import { SaveThemeState } from "../common/save_theme_modal_props.slint";
@@ -93,7 +94,8 @@ export component SettingsMobile inherits Rectangle {
                         root.active_page == SettingsPages.System ? @tr("System") :
                         root.active_page == SettingsPages.Extensions ? @tr("Extensions") :
                         root.active_page == SettingsPages.Themes ? @tr("Themes") :
-                        @tr("Cache");
+                        root.active_page == SettingsPages.Cache ? @tr("Cache") :
+                        @tr("Logs");
                     font-size: Theme.modelTitle;
                     font-weight: 700;
                     color: Theme.textPrimary;
@@ -141,6 +143,13 @@ export component SettingsMobile inherits Rectangle {
                 page-type: SettingsPages.Cache;
 
                 CachePageMobile { }
+            }
+
+            SettingsPageWrapperMobile {
+                active-page <=> root.active_page;
+                page-type: SettingsPages.Logs;
+
+                LogsPageMobile { }
             }
         }
 
@@ -209,6 +218,16 @@ export component SettingsMobile inherits Rectangle {
                     active: root.active_page == SettingsPages.Cache;
                     clicked => {
                         root.active_page = SettingsPages.Cache;
+                    }
+                }
+
+                SidebarButtonMobile {
+                    text: @tr("Logs");
+                    icon: @image-url("../icons/info.svg");
+                    accessible-label: @tr("Logs Settings");
+                    active: root.active_page == SettingsPages.Logs;
+                    clicked => {
+                        root.active_page = SettingsPages.Logs;
                     }
                 }
             }

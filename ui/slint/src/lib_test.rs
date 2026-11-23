@@ -188,7 +188,7 @@ async fn test_ui_get_all_pages_and_setup(
         );
 
     assert_eq!(main_pages.len(), 11);
-    assert_eq!(settings_pages.len(), 5);
+    assert_eq!(settings_pages.len(), 6);
 }
 
 #[rstest]

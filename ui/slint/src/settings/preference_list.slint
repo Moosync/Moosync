@@ -8,6 +8,7 @@ import { RadioGroup } from "radio_group.slint";
 import { DropdownGroup } from "dropdown.slint";
 import { TextArrayInput } from "text_array_input.slint";
 import { StatusGroup } from "status_group.slint";
+import { ButtonGroup } from "button_group.slint";
 import { PreferenceGroup } from "preference_group.slint";
 import { PreferenceItem, PreferenceType } from "preferences.slint";
 
@@ -41,6 +42,9 @@ export component PreferenceList inherits VerticalLayout {
             preference: item;
         }
         if item.pref_type == PreferenceType.StatusGroup: StatusGroup {
+            preference: item;
+        }
+        if item.pref_type == PreferenceType.ButtonGroup: ButtonGroup {
             preference: item;
         }
     }

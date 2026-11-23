@@ -1,7 +1,7 @@
 use std::{
     collections::{HashMap, HashSet},
     fmt::Display,
-    fs,
+    fs::{self, File, OpenOptions},
     path::{Path, PathBuf},
     sync::Arc,
     time::{SystemTime, UNIX_EPOCH},
@@ -131,6 +131,42 @@ impl CacheManager {
         contents: &[u8],
     ) -> Result<(), CacheError> {
         self.write_with(category, owner, path, |target| fs::write(target, contents))
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn ensure_dir(&self, dir: &Path) -> Result<(), CacheError> {
+        if !dir.exists() {
+            fs::create_dir_all(dir)?;
+        }
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn open_append(
+        &self,
+        category: CacheCategory,
+        owner: &str,
+        path: &Path,
+    ) -> Result<File, CacheError> {
+        if let Some(parent) = path.parent() {
+            self.ensure_dir(parent)?;
+        }
+        let file = OpenOptions::new().create(true).append(true).open(path)?;
+        let size = file.metadata().map(|m| m.len()).unwrap_or(0);
+        let record = make_record(category, owner, path, size);
+        if let Some(backend) = self.backend.clone()
+            && let Ok(handle) = Handle::try_current()
+        {
+            handle.spawn(
+                async move {
+                    if let Err(err) = backend.upsert_disk_cache(record).await {
+                        tracing::error!("Failed to record disk cache entry: {:?}", err);
+                    }
+                }
+                .in_current_span(),
+            );
+        }
+        Ok(file)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

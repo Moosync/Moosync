@@ -268,10 +268,12 @@ export component ExtensionDetailsModal inherits Modal {
                 }
             }
 
-            ScrollView {
+            details_scroll := ScrollView {
                 vertical-stretch: 1;
+                horizontal-scrollbar-policy: always-off;
 
                 VerticalLayout {
+                    width: details_scroll.width - Theme.paddingMd;
                     spacing: Theme.spacingMd;
                     padding-right: Theme.paddingSm;
                     padding-top: Theme.paddingMd;
@@ -304,27 +306,23 @@ export component ExtensionDetailsModal inherits Modal {
                             for host_item in root.item.network_permissions: Rectangle {
                                 height: host_layout.preferred-height;
 
-                                host_layout := HorizontalLayout {
-                                    spacing: Theme.spacingSm;
-                                    alignment: start;
+                                host_layout := VerticalLayout {
+                                    spacing: Theme.spacingTiny;
 
                                     Text {
-                                        horizontal-stretch: 0;
-                                        vertical-alignment: center;
                                         accessible-role: text;
                                         accessible-label: @tr("Network Host: ") + host_item.host;
                                         text: "• " + host_item.host;
                                         font-size: Theme.caption;
                                         font-weight: 600;
                                         color: Theme.textPrimary;
+                                        wrap: word-wrap;
                                     }
 
                                     Text {
-                                        horizontal-stretch: 1;
-                                        vertical-alignment: center;
                                         accessible-role: text;
                                         accessible-label: @tr("Network Justification: ") + root.display_justification(host_item.justification);
-                                        text: "— " + root.display_justification(host_item.justification);
+                                        text: "  — " + root.display_justification(host_item.justification);
                                         font-size: Theme.caption;
                                         color: Theme.textSecondary;
                                         wrap: word-wrap;
@@ -357,27 +355,23 @@ export component ExtensionDetailsModal inherits Modal {
                             for path_item in root.item.filesystem_permissions: Rectangle {
                                 height: path_layout.preferred-height;
 
-                                path_layout := HorizontalLayout {
-                                    spacing: Theme.spacingSm;
-                                    alignment: start;
+                                path_layout := VerticalLayout {
+                                    spacing: Theme.spacingTiny;
 
                                     Text {
-                                        horizontal-stretch: 0;
-                                        vertical-alignment: center;
                                         accessible-role: text;
                                         accessible-label: @tr("Filesystem Path: ") + path_item.source + " -> " + path_item.target;
                                         text: "• " + path_item.source + " -> " + path_item.target;
                                         font-size: Theme.caption;
                                         font-weight: 600;
                                         color: Theme.textPrimary;
+                                        wrap: word-wrap;
                                     }
 
                                     Text {
-                                        horizontal-stretch: 1;
-                                        vertical-alignment: center;
                                         accessible-role: text;
                                         accessible-label: @tr("Filesystem Justification: ") + root.display_justification(path_item.justification);
-                                        text: "— " + root.display_justification(path_item.justification);
+                                        text: "  — " + root.display_justification(path_item.justification);
                                         font-size: Theme.caption;
                                         color: Theme.textSecondary;
                                         wrap: word-wrap;

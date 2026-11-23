@@ -125,62 +125,78 @@ component ExtensionsManifest inherits VerticalLayout {
 
                         HorizontalLayout {
                             spacing: Theme.spacingMd;
-                            alignment: center;
+                            alignment: end;
 
-                            if item.error != "": Rectangle {
-                                width: Theme.iconSizeSm;
-                                height: Theme.iconSizeSm;
-
-                                Image {
-                                    width: 100%;
-                                    height: 100%;
-                                    source: @image-url("../icons/warning.svg");
-                                    image-fit: contain;
-                                    colorize: Theme.danger;
-                                }
-                            }
-
-                            IconButton {
-                                icon_source: @image-url("../icons/info.svg");
-                                icon_size: Theme.iconSizeSm;
-                                accessible-label: @tr("Extension Details");
-                                clicked => {
-                                    ExtensionDetailsState.item = item;
-                                    ExtensionDetailsState.show_install_prompt = false;
-                                    ExtensionDetailsState.show_modal = true;
-                                }
-                            }
-
-                            if item.loading: Spinner { }
-
-                            toggle_touch := TouchArea {
-                                width: Theme.toggleWidth;
-                                height: Theme.toggleHeight;
-                                enabled: !item.loading;
-                                mouse-cursor: pointer;
-
-                                clicked => {
-                                    AppCallbacks.toggle_extension(item.package_name);
-                                }
+                            if item.error != "": VerticalLayout {
+                                alignment: center;
 
                                 Rectangle {
-                                    border-radius: self.height / 2;
-                                    background: item.is_installed ? (toggle_touch.has-hover ? Theme.accent.brighter(0.1) : Theme.accent) : (toggle_touch.has-hover ? Theme.textSecondary.brighter(0.1) : Theme.textSecondary);
+                                    width: Theme.iconSizeSm;
+                                    height: Theme.iconSizeSm;
 
-                                    animate background { duration: Theme.durationFast; }
+                                    Image {
+                                        width: 100%;
+                                        height: 100%;
+                                        source: @image-url("../icons/warning.svg");
+                                        image-fit: contain;
+                                        colorize: Theme.danger;
+                                    }
+                                }
+                            }
 
-                                    thumb := Rectangle {
-                                        width: Theme.toggleThumbSize;
-                                        height: Theme.toggleThumbSize;
-                                        border-radius: self.width / 2;
-                                        background: Theme.textPrimary;
-                                        y: (parent.height - self.height) / 2;
+                            VerticalLayout {
+                                alignment: center;
 
-                                        x: item.is_installed ? (Theme.toggleWidth - self.width - Theme.spacingTiny) : Theme.spacingTiny;
+                                IconButton {
+                                    icon_source: @image-url("../icons/info.svg");
+                                    icon_size: Theme.iconSizeSm;
+                                    accessible-label: @tr("Extension Details");
+                                    clicked => {
+                                        ExtensionDetailsState.item = item;
+                                        ExtensionDetailsState.show_install_prompt = false;
+                                        ExtensionDetailsState.show_modal = true;
+                                    }
+                                }
+                            }
 
-                                        animate x {
-                                            duration: Theme.durationFast;
-                                            easing: cubic-bezier(0.25, 0.8, 0.25, 1);
+                            if item.loading: VerticalLayout {
+                                alignment: center;
+
+                                Spinner { }
+                            }
+
+                            VerticalLayout {
+                                alignment: center;
+
+                                toggle_touch := TouchArea {
+                                    width: Theme.toggleWidth;
+                                    height: Theme.toggleHeight;
+                                    enabled: !item.loading;
+                                    mouse-cursor: pointer;
+
+                                    clicked => {
+                                        AppCallbacks.toggle_extension(item.package_name);
+                                    }
+
+                                    Rectangle {
+                                        border-radius: self.height / 2;
+                                        background: item.is_installed ? (toggle_touch.has-hover ? Theme.accent.brighter(0.1) : Theme.accent) : (toggle_touch.has-hover ? Theme.textSecondary.brighter(0.1) : Theme.textSecondary);
+
+                                        animate background { duration: Theme.durationFast; }
+
+                                        thumb := Rectangle {
+                                            width: Theme.toggleThumbSize;
+                                            height: Theme.toggleThumbSize;
+                                            border-radius: self.width / 2;
+                                            background: Theme.textPrimary;
+                                            y: (parent.height - self.height) / 2;
+
+                                            x: item.is_installed ? (Theme.toggleWidth - self.width - Theme.spacingTiny) : Theme.spacingTiny;
+
+                                            animate x {
+                                                duration: Theme.durationFast;
+                                                easing: cubic-bezier(0.25, 0.8, 0.25, 1);
+                                            }
                                         }
                                     }
                                 }
@@ -259,25 +275,24 @@ export component ExtensionsPage inherits SettingsPageLayout {
 
         HorizontalLayout {
             spacing: Theme.spacingMd;
-            alignment: center;
-
-            Rectangle {
-                height: Theme.borderWidth;
-                background: Theme.divider;
-                horizontal-stretch: 1;
-            }
+            alignment: start;
 
             Text {
                 text: group.display_name;
                 font-size: Theme.modelTitle;
                 font-weight: 700;
                 color: Theme.textPrimary;
+                vertical-alignment: center;
             }
 
-            Rectangle {
-                height: Theme.borderWidth;
-                background: Theme.divider;
+            VerticalLayout {
+                alignment: center;
                 horizontal-stretch: 1;
+
+                Rectangle {
+                    height: Theme.borderWidth;
+                    background: Theme.divider;
+                }
             }
         }
 

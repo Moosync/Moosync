@@ -32,6 +32,7 @@ export component BinaryPermissionWarning inherits Rectangle {
                 font-weight: 800;
                 color: Theme.danger;
                 vertical-alignment: center;
+                wrap: word-wrap;
             }
         }
 
@@ -57,6 +58,7 @@ export component BinaryPermissionWarning inherits Rectangle {
                 font-size: Theme.body;
                 font-weight: 700;
                 color: Theme.textPrimary;
+                wrap: word-wrap;
             }
 
             HorizontalLayout {
@@ -67,20 +69,6 @@ export component BinaryPermissionWarning inherits Rectangle {
                     accessible-label: @tr("Binary Justification: ") + (bin.justification != "" ? bin.justification : @tr("No justification provided"));
                     text: @tr("Justification: ") + (bin.justification != "" ? bin.justification : @tr("No justification provided"));
                     font-size: Theme.caption;
-                    color: Theme.textSecondary;
-                    wrap: word-wrap;
-                }
-            }
-
-            if bin.hashes != "": HorizontalLayout {
-                padding-left: Theme.paddingMd;
-
-                Text {
-                    accessible-role: text;
-                    accessible-label: @tr("Binary Hashes: ") + bin.hashes;
-                    text: bin.hashes;
-                    font-size: Theme.caption;
-                    font-family: "monospace";
                     color: Theme.textSecondary;
                     wrap: word-wrap;
                 }

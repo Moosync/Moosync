@@ -23,16 +23,16 @@ pub static PREFERENCES: &[&LazyLock<ProtoPreferenceItem>] = &[
 ];
 
 pub struct PathsPageHandler {
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 }
 
 impl PathsPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(main_window: &'static MainWindow, state_manager: &'static StateManager) -> Self {
+    pub fn new(main_window: &MainWindow, state_manager: &StateManager) -> Self {
         Self {
-            main_window,
-            state_manager,
+            main_window: main_window.clone_strong(),
+            state_manager: state_manager.clone(),
         }
     }
 
@@ -42,7 +42,7 @@ impl PathsPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     pub async fn refresh_preferences(
         main_window_weak: slint::Weak<MainWindow>,
-        state_manager: &'static StateManager,
+        state_manager: StateManager,
     ) {
         update_preferences_in_ui(
             main_window_weak,
@@ -66,7 +66,7 @@ impl PageHandler for PathsPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) {
         let main_window_weak = self.main_window.as_weak();
-        let state_manager = self.state_manager;
+        let state_manager = self.state_manager.clone();
 
         tokio::spawn(
             async move {

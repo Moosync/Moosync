@@ -7,17 +7,14 @@ use slint_app::{
 use state_manager::StateManager;
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_queue_toggle_overlay(
-    main_window: &'static MainWindow,
-    _state_manager: &'static StateManager,
-) {
+async fn do_queue_toggle_overlay(main_window: MainWindow, _state_manager: StateManager) {
     let found =
-        wait_until(|| ElementHandle::find_by_accessible_label(main_window, "Queue").count() > 0)
+        wait_until(|| ElementHandle::find_by_accessible_label(&main_window, "Queue").count() > 0)
             .await;
     assert!(found);
 
     let queue_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Queue").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Queue").collect();
     assert!(!queue_handles.is_empty());
     assert!(queue_handles[0].is_valid());
     click_element(&queue_handles[0]).await;
@@ -31,10 +28,7 @@ async fn do_queue_toggle_overlay(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_queue_display_items(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+async fn do_queue_display_items(main_window: MainWindow, state_manager: StateManager) {
     let s1 = create_test_song("q1", "Queue Track 1", "Album Q", "Artist Q");
     let s2 = create_test_song("q2", "Queue Track 2", "Album Q", "Artist Q");
 
@@ -65,33 +59,30 @@ async fn do_queue_display_items(
     assert!(loaded);
 
     let found1 = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Queue Track 1").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Queue Track 1").count() > 0
     })
     .await;
     assert!(found1);
 
     let handles1: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Queue Track 1").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Queue Track 1").collect();
     assert_eq!(handles1.len(), 1);
     assert!(handles1[0].is_valid());
 
     let found2 = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Queue Track 2").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Queue Track 2").count() > 0
     })
     .await;
     assert!(found2);
 
     let handles2: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Queue Track 2").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Queue Track 2").collect();
     assert_eq!(handles2.len(), 1);
     assert!(handles2[0].is_valid());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_queue_remove_item(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+async fn do_queue_remove_item(main_window: MainWindow, state_manager: StateManager) {
     let s1 = create_test_song("qr1", "Remove Track 1", "Album", "Artist");
     let s2 = create_test_song("qr2", "Remove Track 2", "Album", "Artist");
 
@@ -136,7 +127,7 @@ async fn do_queue_remove_item(
     assert!(removed);
 
     let not_found = wait_until(|| {
-        !ElementHandle::find_by_accessible_label(main_window, "Remove Track 1")
+        !ElementHandle::find_by_accessible_label(&main_window, "Remove Track 1")
             .any(|h| h.is_valid())
     })
     .await;
@@ -144,7 +135,7 @@ async fn do_queue_remove_item(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_queue_clear(main_window: &'static MainWindow, state_manager: &'static StateManager) {
+async fn do_queue_clear(main_window: MainWindow, state_manager: StateManager) {
     let s1 = create_test_song("qc1", "Clear Track 1", "Album", "Artist");
 
     {
@@ -170,12 +161,12 @@ async fn do_queue_clear(main_window: &'static MainWindow, state_manager: &'stati
     .await;
 
     let found_clear =
-        wait_until(|| ElementHandle::find_by_accessible_label(main_window, "Clear").count() > 0)
+        wait_until(|| ElementHandle::find_by_accessible_label(&main_window, "Clear").count() > 0)
             .await;
     assert!(found_clear);
 
     let clear_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Clear").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Clear").collect();
     assert_eq!(clear_handles.len(), 1);
     assert!(clear_handles[0].is_valid());
     click_element(&clear_handles[0]).await;
@@ -193,8 +184,8 @@ async fn do_queue_clear(main_window: &'static MainWindow, state_manager: &'stati
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_queue_save_as_playlist_modal_lifecycle(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 ) {
     let s = create_test_song("qs", "Queue Song", "Album", "Artist");
     let ph = state_manager.get_player_handler();
@@ -211,13 +202,13 @@ async fn do_queue_save_as_playlist_modal_lifecycle(
     let _ = wait_until(|| main_window.global::<QueuePageProps>().get_show_queue()).await;
 
     let found_save = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Save as playlist").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Save as playlist").count() > 0
     })
     .await;
     assert!(found_save);
 
     let save_btn_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Save as playlist").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Save as playlist").collect();
     assert_eq!(save_btn_handles.len(), 1);
     assert!(save_btn_handles[0].is_valid());
     click_element(&save_btn_handles[0]).await;
@@ -227,12 +218,12 @@ async fn do_queue_save_as_playlist_modal_lifecycle(
     assert!(modal_opened);
 
     let found_save_modal =
-        wait_until(|| ElementHandle::find_by_accessible_label(main_window, "Save").count() > 0)
+        wait_until(|| ElementHandle::find_by_accessible_label(&main_window, "Save").count() > 0)
             .await;
     assert!(found_save_modal);
 
     let save_modal_btn: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Save").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Save").collect();
     assert_eq!(save_modal_btn.len(), 1);
     assert!(save_modal_btn[0].is_valid());
 

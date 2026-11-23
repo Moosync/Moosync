@@ -73,13 +73,11 @@ pub fn run() {
     setup_tracing();
     debug!("Starting Moosync...");
 
-    let main_window = Box::leak(Box::new(MainWindow::new().unwrap()));
-    let state_manager = Box::leak(Box::new(
-        StateManager::new().expect("StateManager::new failed"),
-    ));
+    let main_window = MainWindow::new().unwrap();
+    let state_manager = StateManager::new().expect("StateManager::new failed");
 
-    setup_ui(main_window, state_manager);
-    setup_tray(main_window, state_manager);
+    setup_ui(&main_window, &state_manager);
+    let _tray = setup_tray(&main_window, &state_manager);
 
     runtime.block_on(
         async {
@@ -88,7 +86,7 @@ pub fn run() {
         .in_current_span(),
     );
 
-    settings::apply_saved_language(state_manager);
+    settings::apply_saved_language(&state_manager);
 
     main_window.show().unwrap();
 
@@ -99,7 +97,7 @@ pub fn run() {
         .in_current_span(),
     );
 
-    setup_signal_handlers(state_manager);
+    setup_signal_handlers();
 
     slint::run_event_loop().unwrap();
 
@@ -112,7 +110,7 @@ pub fn run() {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn setup_signal_handlers(state_manager: &'static StateManager) {
+fn setup_signal_handlers() {
     tokio::spawn(
         async move {
             #[cfg(unix)]
@@ -149,10 +147,8 @@ fn setup_signal_handlers(state_manager: &'static StateManager) {
             }
 
             tracing::info!("Received termination signal, shutting down...");
-            state_manager.shutdown().await;
             if let Err(e) = slint::quit_event_loop() {
                 tracing::error!("Failed to quit Slint event loop: {:?}", e);
-                std::process::exit(0);
             }
         }
         .in_current_span(),
@@ -194,9 +190,9 @@ pub fn run() {
     let state_manager = STATE_MANAGER
         .get_or_init(|| StateManager::new(android_context).expect("StateManager::new failed"));
 
-    let main_window = Box::leak(Box::new(MainWindow::new().unwrap()));
+    let main_window = MainWindow::new().unwrap();
 
-    setup_ui(main_window, state_manager);
+    setup_ui(&main_window, state_manager);
 
     if is_first_run {
         runtime.block_on(
@@ -241,12 +237,12 @@ fn setup_resize(main_window: &MainWindow) {
 
 #[cfg(not(target_os = "android"))]
 #[tracing::instrument(level = "debug", skip_all)]
-fn setup_tray(main_window: &'static MainWindow, state_manager: &'static StateManager) {
+fn setup_tray(main_window: &MainWindow, state_manager: &StateManager) -> Option<AppTray> {
     let tray = match AppTray::new() {
-        Ok(t) => Box::leak(Box::new(t)),
+        Ok(t) => t,
         Err(e) => {
             tracing::error!("Failed to initialize system tray: {:?}", e);
-            return;
+            return None;
         }
     };
 
@@ -262,6 +258,7 @@ fn setup_tray(main_window: &'static MainWindow, state_manager: &'static StateMan
     });
 
     let mw_weak = main_window.as_weak();
+    let state_manager = state_manager.clone();
     main_window.window().on_close_requested(move || {
         let minimize_to_tray = state_manager
             .get_preference_config()
@@ -279,6 +276,8 @@ fn setup_tray(main_window: &'static MainWindow, state_manager: &'static StateMan
             slint::CloseRequestResponse::HideWindow
         }
     });
+
+    Some(tray)
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -320,18 +319,18 @@ where
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn setup_cover_helper(main_window: &MainWindow, state_manager: &'static StateManager) {
+fn setup_cover_helper(main_window: &MainWindow, state_manager: &StateManager) {
     let mw_high = main_window.as_weak();
+    let cache_dir_high = state_manager.get_cache_dir();
     main_window
         .global::<CoverHelper>()
         .on_fetch_cover_high(move |song_model| {
             trace!("Fetching high-res cover for song {}", song_model.title);
-            let cache_dir = state_manager.get_cache_dir();
             let song_id = song_model.id.to_string();
             let cover_url = song_model.coverPathUrlHigh.to_string();
             handle_cover_fetch(
                 mw_high.clone(),
-                cache_dir,
+                cache_dir_high.clone(),
                 song_id,
                 cover_url,
                 |main_window, image| {
@@ -344,16 +343,16 @@ fn setup_cover_helper(main_window: &MainWindow, state_manager: &'static StateMan
         });
 
     let mw_low = main_window.as_weak();
+    let cache_dir_low = state_manager.get_cache_dir();
     main_window
         .global::<CoverHelper>()
         .on_fetch_cover_low(move |song_model| {
             trace!("Fetching low-res cover for song {}", song_model.title);
-            let cache_dir = state_manager.get_cache_dir();
             let song_id = song_model.id.to_string();
             let cover_url = song_model.coverPathUrlLow.to_string();
             handle_cover_fetch(
                 mw_low.clone(),
-                cache_dir,
+                cache_dir_low.clone(),
                 song_id,
                 cover_url,
                 |main_window, image| {
@@ -367,8 +366,9 @@ fn setup_cover_helper(main_window: &MainWindow, state_manager: &'static StateMan
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn setup_song_list_helper(main_window: &MainWindow, state_manager: &'static StateManager) {
+fn setup_song_list_helper(main_window: &MainWindow, state_manager: &StateManager) {
     let main_window_weak = main_window.as_weak();
+    let cache_dir = state_manager.get_cache_dir();
     main_window
         .global::<AppCallbacks>()
         .on_filter_and_sort_songs(move |songs, query, criterion, ascending| {
@@ -376,7 +376,6 @@ fn setup_song_list_helper(main_window: &MainWindow, state_manager: &'static Stat
                 return songs;
             };
             let theme = main_window.global::<Theme>();
-            let cache_dir = state_manager.get_cache_dir();
             utils::filter_and_sort_songs(
                 songs,
                 &query,
@@ -384,7 +383,7 @@ fn setup_song_list_helper(main_window: &MainWindow, state_manager: &'static Stat
                 ascending,
                 theme.get_songListItemHeight() as usize,
                 theme.get_songListItemWidth() as usize,
-                cache_dir,
+                cache_dir.clone(),
             )
         });
 
@@ -447,33 +446,38 @@ fn setup_song_list_helper(main_window: &MainWindow, state_manager: &'static Stat
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager) {
+fn setup_song_cbs(main_window: &MainWindow, state_manager: &StateManager) {
+    let sm = state_manager.clone();
     main_window
         .global::<AppCallbacks>()
         .on_play_song(move |song_model| {
             let song = Song::from(song_model);
+            let sm = sm.clone();
             tokio::spawn(
                 async move {
-                    let queue = state_manager.get_player_handler();
+                    let queue = sm.get_player_handler();
                     queue.play_now(vec![song]).await;
                 }
                 .instrument(tracing::debug_span!("slint_cb_on_play_song")),
             );
         });
 
+    let sm = state_manager.clone();
     main_window
         .global::<AppCallbacks>()
         .on_add_song_to_queue(move |song_model| {
             let song = Song::from(song_model);
+            let sm = sm.clone();
             tokio::spawn(
                 async move {
-                    let queue = state_manager.get_player_handler();
+                    let queue = sm.get_player_handler();
                     queue.add_to_queue(vec![song]).await;
                 }
                 .instrument(tracing::debug_span!("slint_cb_on_add_song_to_queue")),
             );
         });
 
+    let sm = state_manager.clone();
     main_window
         .global::<AppCallbacks>()
         .on_song_detail_action(move |action, song_models| {
@@ -481,9 +485,10 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
                 .filter_map(|i| song_models.row_data(i))
                 .map(Song::from)
                 .collect::<Vec<_>>();
+            let sm = sm.clone();
             tokio::spawn(
                 async move {
-                    let queue = state_manager.get_player_handler();
+                    let queue = sm.get_player_handler();
                     match action {
                         SongDetailAction::Play => {
                             queue.play_now(songs).await;
@@ -498,6 +503,7 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
         });
 
     let main_window_weak = main_window.as_weak();
+    let sm = state_manager.clone();
     main_window
         .global::<BottomBarCallbacks>()
         .on_play_pause_clicked(move || {
@@ -505,9 +511,10 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
                 return;
             };
             let currently_playing = main_window.global::<PlayerProps>().get_playing();
+            let sm = sm.clone();
             tokio::spawn(
                 async move {
-                    let player_handler = state_manager.get_player_handler();
+                    let player_handler = sm.get_player_handler();
                     if currently_playing {
                         let _ = player_handler.pause().await;
                     } else {
@@ -518,12 +525,14 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
             );
         });
 
+    let sm = state_manager.clone();
     main_window
         .global::<BottomBarCallbacks>()
         .on_toggle_repeat(move || {
+            let sm = sm.clone();
             tokio::spawn(
                 async move {
-                    let player_handler = state_manager.get_player_handler();
+                    let player_handler = sm.get_player_handler();
                     let next_mode = match player_handler.get_repeat_mode() {
                         RepeatMode::RepeatNone => RepeatMode::RepeatOnce,
                         RepeatMode::RepeatOnce => RepeatMode::RepeatInfinite,
@@ -539,7 +548,7 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
 #[tracing::instrument(level = "debug", skip_all)]
 fn resolve_current_song_covers(
     main_window: &MainWindow,
-    state_manager: &'static StateManager,
+    state_manager: &StateManager,
     song_model: SongModel,
 ) {
     let song_id = song_model.id.clone();
@@ -585,24 +594,48 @@ fn resolve_current_song_covers(
 #[tracing::instrument(level = "debug", skip_all)]
 pub(crate) fn update_player_event_props(player_props: &PlayerProps, event: &PlayerEvent) {
     match event {
+        PlayerEvent::Loading(_) => {
+            player_props.set_loading(true);
+        }
         PlayerEvent::Play(_) => {
             player_props.set_playing(true);
+            player_props.set_loading(false);
         }
         PlayerEvent::Pause(_) => {
             player_props.set_playing(false);
+            player_props.set_loading(false);
+        }
+        PlayerEvent::Ended(_) | PlayerEvent::Error(_) => {
+            player_props.set_loading(false);
         }
         PlayerEvent::TimeUpdate(pos) => {
-            player_props.set_current_duration(pos.seconds as i32);
+            let ms = (pos.seconds * 1000 + (pos.nanos / 1_000_000) as i64) as i32;
+            player_props.set_current_duration_ms(ms);
             player_props.set_current_pos_str(format_duration(pos.seconds).into());
         }
-        _ => {}
     }
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn song_to_model_with_ext(state_manager: &StateManager, song: Song) -> SongModel {
+    let ext_detail = song
+        .song
+        .as_ref()
+        .and_then(|s| s.extension.as_deref())
+        .and_then(|pkg| {
+            state_manager
+                .get_extension_handler()
+                .get_extension(pkg)
+                .ok()
+                .map(|ext| ext.get_extension_detail())
+        });
+    SongModel::from((song, ext_detail.as_ref()))
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
 fn apply_current_song(
     main_window_weak: slint::Weak<MainWindow>,
-    state_manager: &'static StateManager,
+    state_manager: StateManager,
     song: Option<Song>,
 ) {
     let active_idx = if song.is_some() {
@@ -615,7 +648,7 @@ fn apply_current_song(
             return;
         };
         let song_model = song
-            .map(SongModel::from)
+            .map(|s| song_to_model_with_ext(&state_manager, s))
             .unwrap_or_else(|| SongModel::from(Song::default()));
         main_window
             .global::<PlayerProps>()
@@ -623,7 +656,7 @@ fn apply_current_song(
         main_window
             .global::<QueuePageProps>()
             .set_active_idx(active_idx);
-        resolve_current_song_covers(&main_window, state_manager, song_model);
+        resolve_current_song_covers(&main_window, &state_manager, song_model);
     });
 }
 
@@ -641,8 +674,9 @@ fn apply_player_event(main_window_weak: slint::Weak<MainWindow>, event: PlayerEv
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn setup_player_listener(main_window: &'static MainWindow, state_manager: &'static StateManager) {
+fn setup_player_listener(main_window: &MainWindow, state_manager: &StateManager) {
     let main_window_weak = main_window.as_weak();
+    let state_manager = state_manager.clone();
     tokio::spawn(
         async move {
             let player_handler = state_manager.get_player_handler();
@@ -661,7 +695,7 @@ fn setup_player_listener(main_window: &'static MainWindow, state_manager: &'stat
                     let player_props = main_window.global::<PlayerProps>();
                     player_props.set_repeat_mode(repeat_mode as i32);
                     player_props.set_playing(is_playing);
-                    player_props.set_current_duration(current_pos.as_secs() as i32);
+                    player_props.set_current_duration_ms(current_pos.as_millis() as i32);
                     player_props
                         .set_current_pos_str(format_duration(current_pos.as_secs() as i64).into());
 
@@ -671,11 +705,16 @@ fn setup_player_listener(main_window: &'static MainWindow, state_manager: &'stat
                     queue_props.set_queue(ModelRc::new(VecModel::from(queue_models)));
                 }
             });
-            apply_current_song(main_window_weak.clone(), state_manager, current_song);
+            apply_current_song(
+                main_window_weak.clone(),
+                state_manager.clone(),
+                current_song,
+            );
 
             let mw_weak_song = main_window_weak.clone();
+            let sm_song = state_manager.clone();
             player_handler.on_song_changed.listen(move |song| {
-                apply_current_song(mw_weak_song.clone(), state_manager, song);
+                apply_current_song(mw_weak_song.clone(), sm_song.clone(), song);
             });
 
             let mw_weak_repeat = main_window_weak.clone();
@@ -700,52 +739,57 @@ fn setup_player_listener(main_window: &'static MainWindow, state_manager: &'stat
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn setup_player_bottom_bar_callbacks(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+fn setup_player_bottom_bar_callbacks(main_window: &MainWindow, state_manager: &StateManager) {
+    let sm = state_manager.clone();
     main_window
         .global::<BottomBarCallbacks>()
         .on_next_song(move || {
+            let sm = sm.clone();
             tokio::spawn(
                 async move {
-                    let player_handler = state_manager.get_player_handler();
+                    let player_handler = sm.get_player_handler();
                     player_handler.next().await;
                 }
                 .instrument(tracing::debug_span!("slint_cb_on_next_song")),
             );
         });
 
+    let sm = state_manager.clone();
     main_window
         .global::<BottomBarCallbacks>()
         .on_prev_song(move || {
+            let sm = sm.clone();
             tokio::spawn(
                 async move {
-                    let player_handler = state_manager.get_player_handler();
+                    let player_handler = sm.get_player_handler();
                     player_handler.prev().await;
                 }
                 .instrument(tracing::debug_span!("slint_cb_on_prev_song")),
             );
         });
 
+    let sm = state_manager.clone();
     main_window
         .global::<BottomBarCallbacks>()
         .on_set_volume(move |volume| {
+            let sm = sm.clone();
             tokio::spawn(
                 async move {
-                    let player_handler = state_manager.get_player_handler();
+                    let player_handler = sm.get_player_handler();
                     player_handler.set_volume(volume as u8).await;
                 }
                 .instrument(tracing::debug_span!("slint_cb_on_set_volume")),
             );
         });
 
+    let sm = state_manager.clone();
     main_window
         .global::<BottomBarCallbacks>()
         .on_shuffle(move || {
+            let sm = sm.clone();
             tokio::spawn(
                 async move {
-                    let player_handler = state_manager.get_player_handler();
+                    let player_handler = sm.get_player_handler();
                     player_handler.shuffle();
                 }
                 .instrument(tracing::debug_span!("slint_cb_on_shuffle")),
@@ -753,12 +797,13 @@ fn setup_player_bottom_bar_callbacks(
         });
 
     let seek_debounce = DebounceHandle::new();
+    let sm = state_manager.clone();
     main_window
         .global::<BottomBarCallbacks>()
-        .on_seek(move |pos| {
-            let safe_secs = pos.max(0) as u64;
-            let target_duration = Duration::from_secs(safe_secs);
-            let player_handler = state_manager.get_player_handler();
+        .on_seek(move |pos_ms| {
+            let safe_ms = pos_ms.max(0) as u64;
+            let target_duration = Duration::from_millis(safe_ms);
+            let player_handler = sm.get_player_handler();
 
             seek_debounce.debounce(
                 Duration::from_millis(150),
@@ -773,7 +818,7 @@ fn setup_player_bottom_bar_callbacks(
 #[tracing::instrument(level = "debug", skip_all)]
 pub(crate) fn apply_updated_song_to_ui(
     main_window: &MainWindow,
-    state_manager: &'static StateManager,
+    state_manager: &StateManager,
     song_model: SongModel,
 ) {
     update_lazy_model_item(
@@ -818,30 +863,31 @@ pub(crate) fn apply_updated_song_to_ui(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn setup_entity_update_listeners(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+fn setup_entity_update_listeners(main_window: &MainWindow, state_manager: &StateManager) {
     let database = state_manager.get_database();
 
     let mw_song = main_window.as_weak();
+    let sm_song = state_manager.clone();
     database.on_song_updated.listen(move |updated_song| {
-        state_manager
+        sm_song
             .get_player_handler()
             .update_song_in_queue(&updated_song);
         let mw_weak = mw_song.clone();
+        let sm_ui = sm_song.clone();
         let _ = slint::invoke_from_event_loop(move || {
             let Some(main_window) = mw_weak.upgrade() else {
                 return;
             };
-            let song_model = SongModel::from(updated_song);
-            apply_updated_song_to_ui(&main_window, state_manager, song_model);
+            let song_model = song_to_model_with_ext(&sm_ui, updated_song);
+            apply_updated_song_to_ui(&main_window, &sm_ui, song_model);
         });
     });
 
     let mw_album = main_window.as_weak();
+    let sm_album = state_manager.clone();
     database.on_album_updated.listen(move |updated_album| {
         let mw_weak = mw_album.clone();
+        let sm_ui = sm_album.clone();
         let _ = slint::invoke_from_event_loop(move || {
             let Some(main_window) = mw_weak.upgrade() else {
                 return;
@@ -867,7 +913,7 @@ fn setup_entity_update_listeners(
             {
                 album_model.coverPath = find_cached_or_local_image(
                     album_model.coverPathUrl.as_str(),
-                    &state_manager.get_cache_dir(),
+                    &sm_ui.get_cache_dir(),
                 )
                 .unwrap_or_default();
                 main_window
@@ -878,8 +924,10 @@ fn setup_entity_update_listeners(
     });
 
     let mw_artist = main_window.as_weak();
+    let sm_artist = state_manager.clone();
     database.on_artist_updated.listen(move |updated_artist| {
         let mw_weak = mw_artist.clone();
+        let sm_ui = sm_artist.clone();
         let _ = slint::invoke_from_event_loop(move || {
             let Some(main_window) = mw_weak.upgrade() else {
                 return;
@@ -905,7 +953,7 @@ fn setup_entity_update_listeners(
             {
                 artist_model.coverPath = find_cached_or_local_image(
                     artist_model.coverPathUrl.as_str(),
-                    &state_manager.get_cache_dir(),
+                    &sm_ui.get_cache_dir(),
                 )
                 .unwrap_or_default();
                 main_window
@@ -916,10 +964,12 @@ fn setup_entity_update_listeners(
     });
 
     let mw_playlist = main_window.as_weak();
+    let sm_playlist = state_manager.clone();
     database
         .on_playlist_updated
         .listen(move |updated_playlist| {
             let mw_weak = mw_playlist.clone();
+            let sm_ui = sm_playlist.clone();
             let _ = slint::invoke_from_event_loop(move || {
                 let Some(main_window) = mw_weak.upgrade() else {
                     return;
@@ -945,7 +995,7 @@ fn setup_entity_update_listeners(
                 {
                     playlist_model.coverPath = find_cached_or_local_image(
                         playlist_model.coverPathUrl.as_str(),
-                        &state_manager.get_cache_dir(),
+                        &sm_ui.get_cache_dir(),
                     )
                     .unwrap_or_default();
                     main_window
@@ -957,7 +1007,7 @@ fn setup_entity_update_listeners(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static StateManager) {
+fn setup_player_events(main_window: &MainWindow, state_manager: &StateManager) {
     // Clear default values on load
     main_window
         .global::<PlayerProps>()
@@ -972,7 +1022,7 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn setup_ui(main_window: &'static MainWindow, state_manager: &'static StateManager) {
+fn setup_ui(main_window: &MainWindow, state_manager: &StateManager) {
     setup_resize(main_window);
     setup_cover_helper(main_window, state_manager);
     setup_song_list_helper(main_window, state_manager);

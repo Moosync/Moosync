@@ -81,10 +81,19 @@ impl MprisHook {
     #[tracing::instrument(level = "debug", skip_all)]
     fn bind_mpris_controls(player_handler: &Arc<PlayerHandler>, mpris_holder: &Arc<MprisHolder>) {
         let player = player_handler.clone();
-        let event_rx = mpris_holder.event_rx.clone();
+        let mpris = mpris_holder.clone();
         tokio::task::spawn_blocking(move || {
-            while let Ok(event) = event_rx.lock().unwrap().recv() {
-                Self::handle_media_control_event(&player, event);
+            while !mpris.is_shutdown() {
+                let recv_res = mpris
+                    .event_rx
+                    .lock()
+                    .unwrap()
+                    .recv_timeout(std::time::Duration::from_millis(200));
+                match recv_res {
+                    Ok(event) => Self::handle_media_control_event(&player, event),
+                    Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
+                    Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
+                }
             }
         });
     }
@@ -171,6 +180,15 @@ impl Hook for MprisHook {
         let player_handler = state_manager.plugins.get::<PlayerHandler>();
         let mpris_holder = state_manager.plugins.get::<MprisHolder>();
         Self::bind_mpris(&player_handler, &mpris_holder);
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn on_exit(
+        &self,
+        state_manager: &StateManager,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        state_manager.plugins.get::<MprisHolder>().shutdown();
         Ok(())
     }
 }

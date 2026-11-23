@@ -108,8 +108,8 @@ impl EntityListProvider for PlaylistListProvider {
 }
 
 pub struct PlaylistsPageHandler {
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
     coordinator: EntityListCoordinator<PlaylistListProvider>,
 }
 
@@ -117,10 +117,10 @@ impl PlaylistsPageHandler {
     /// Creates a new `PlaylistsPageHandler` bound to the main window and state
     /// manager.
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(main_window: &'static MainWindow, state_manager: &'static StateManager) -> Self {
+    pub fn new(main_window: &MainWindow, state_manager: &StateManager) -> Self {
         Self {
-            main_window,
-            state_manager,
+            main_window: main_window.clone_strong(),
+            state_manager: state_manager.clone(),
             coordinator: EntityListCoordinator::new(main_window, state_manager),
         }
     }
@@ -129,11 +129,11 @@ impl PlaylistsPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     pub(crate) async fn handle_playlist_action(
         weak: Weak<MainWindow>,
-        state_manager: &'static StateManager,
+        state_manager: StateManager,
         playlist_ids: Vec<String>,
         action: String,
     ) {
-        if handle_extension_context_action(state_manager, &action).await
+        if handle_extension_context_action(&state_manager, &action).await
             || action != "delete_playlist"
         {
             return;
@@ -151,11 +151,8 @@ impl PlaylistsPageHandler {
 
     /// Re-fetches all playlists and updates the playlists page model.
     #[tracing::instrument(level = "debug", skip_all)]
-    pub(crate) async fn refresh_playlists(
-        weak: Weak<MainWindow>,
-        state_manager: &'static StateManager,
-    ) {
-        match PlaylistListProvider::fetch_entities(state_manager).await {
+    pub(crate) async fn refresh_playlists(weak: Weak<MainWindow>, state_manager: StateManager) {
+        match PlaylistListProvider::fetch_entities(&state_manager).await {
             Ok(playlists) => {
                 let _ = weak.upgrade_in_event_loop(move |main_window| {
                     if main_window.global::<AppProps>().get_active_page() != Pages::Playlists {
@@ -163,7 +160,7 @@ impl PlaylistsPageHandler {
                     }
                     let playlists: Vec<PlaylistModel> =
                         playlists.into_iter().map(PlaylistModel::from).collect();
-                    let model = make_lazy_card_model(&main_window, state_manager, playlists);
+                    let model = make_lazy_card_model(&main_window, &state_manager, playlists);
                     main_window
                         .global::<PlaylistsPageProps>()
                         .set_playlists(model);
@@ -180,7 +177,7 @@ impl PlaylistsPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     fn register_context_menu_callbacks(&self) {
         let main_window_weak = self.main_window.as_weak();
-        let state_manager = self.state_manager;
+        let state_manager = self.state_manager.clone();
 
         self.main_window
             .global::<ContextMenuCallbacks>()
@@ -189,10 +186,14 @@ impl PlaylistsPageHandler {
                     return ModelRc::default();
                 };
 
-                build_playlist_context_menu_items(&main_window, state_manager, &playlist_models)
+                build_playlist_context_menu_items(
+                    &main_window,
+                    state_manager.clone(),
+                    &playlist_models,
+                )
             });
 
-        let state_manager = self.state_manager;
+        let state_manager = self.state_manager.clone();
         let main_window_weak = self.main_window.as_weak();
         self.main_window
             .global::<ContextMenuCallbacks>()
@@ -204,6 +205,7 @@ impl PlaylistsPageHandler {
                     .collect();
                 let action = action_id.to_string();
                 let weak = main_window_weak.clone();
+                let state_manager = state_manager.clone();
 
                 tokio::spawn(
                     async move {

@@ -17,8 +17,8 @@ use state_manager::StateManager;
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_mobile_bottom_nav_target(
-    main_window: &'static MainWindow,
-    _state_manager: &'static StateManager,
+    main_window: MainWindow,
+    _state_manager: StateManager,
     label: &'static str,
     target_page: Pages,
 ) {
@@ -31,7 +31,7 @@ async fn do_mobile_bottom_nav_target(
     }
 
     let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, label).collect();
+        ElementHandle::find_by_accessible_label(&main_window, label).collect();
     assert_eq!(handles.len(), 1);
     assert!(handles[0].is_valid());
 
@@ -47,49 +47,43 @@ async fn do_mobile_bottom_nav_target(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_mobile_topbar_search_toggle(
-    main_window: &'static MainWindow,
-    _state_manager: &'static StateManager,
-) {
+async fn do_mobile_topbar_search_toggle(main_window: MainWindow, _state_manager: StateManager) {
     let search_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Search").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Search").collect();
     assert_eq!(search_handles.len(), 1);
     assert!(search_handles[0].is_valid());
 
     click_element(&search_handles[0]).await;
 
     let opened = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Close Search").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Close Search").count() > 0
     })
     .await;
     assert!(opened);
     tokio::time::sleep(std::time::Duration::from_millis(400)).await;
 
     let close_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Close Search").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Close Search").collect();
     assert_eq!(close_handles.len(), 1);
     assert!(close_handles[0].is_valid());
 
     click_element(&close_handles[0]).await;
 
     let closed = wait_until_timeout(Duration::from_secs(5), || {
-        ElementHandle::find_by_accessible_label(main_window, "Close Search").count() == 0
+        ElementHandle::find_by_accessible_label(&main_window, "Close Search").count() == 0
     })
     .await;
     assert!(closed);
     assert_eq!(
-        ElementHandle::find_by_accessible_label(main_window, "Search").count(),
+        ElementHandle::find_by_accessible_label(&main_window, "Search").count(),
         1
     );
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_mobile_topbar_accounts_toggle(
-    main_window: &'static MainWindow,
-    _state_manager: &'static StateManager,
-) {
+async fn do_mobile_topbar_accounts_toggle(main_window: MainWindow, _state_manager: StateManager) {
     let accounts_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Accounts").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Accounts").collect();
     assert_eq!(accounts_handles.len(), 1);
     assert!(accounts_handles[0].is_valid());
 
@@ -100,7 +94,7 @@ async fn do_mobile_topbar_accounts_toggle(
     tokio::time::sleep(std::time::Duration::from_millis(300)).await;
 
     let card_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Accounts Card").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Accounts Card").collect();
     assert_eq!(card_handles.len(), 1);
     let opacity_val: f32 = card_handles[0]
         .accessible_value()
@@ -113,7 +107,7 @@ async fn do_mobile_topbar_accounts_toggle(
     );
 
     let close_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Close").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Close").collect();
     assert_eq!(close_handles.len(), 1);
     assert!(close_handles[0].is_valid());
 
@@ -126,8 +120,8 @@ async fn do_mobile_topbar_accounts_toggle(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_mobile_accounts_popup_settings_click(
-    main_window: &'static MainWindow,
-    _state_manager: &'static StateManager,
+    main_window: MainWindow,
+    _state_manager: StateManager,
 ) {
     main_window
         .global::<AccountsProps>()
@@ -136,7 +130,7 @@ async fn do_mobile_accounts_popup_settings_click(
     assert!(opened);
 
     let settings_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Settings").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Settings").collect();
     assert_eq!(settings_handles.len(), 1);
     assert!(settings_handles[0].is_valid());
 
@@ -149,7 +143,7 @@ async fn do_mobile_accounts_popup_settings_click(
     let settings_opened = wait_until(|| {
         main_window.global::<SettingsState>().get_show_settings()
             && !main_window.global::<AccountsProps>().get_show_accounts()
-            && ElementHandle::find_by_accessible_label(main_window, "Paths Settings").count() > 0
+            && ElementHandle::find_by_accessible_label(&main_window, "Paths Settings").count() > 0
     })
     .await;
     assert!(settings_opened);
@@ -169,10 +163,7 @@ async fn do_mobile_accounts_popup_settings_click(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_mobile_bottombar_play_pause(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+async fn do_mobile_bottombar_play_pause(main_window: MainWindow, state_manager: StateManager) {
     let database = state_manager.get_database();
     let song = create_test_song(
         "mob_pp",
@@ -219,7 +210,7 @@ async fn do_mobile_bottombar_play_pause(
     assert!(playing);
 
     let pause_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Pause").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Pause").collect();
     assert_eq!(pause_handles.len(), 1);
     assert!(pause_handles[0].is_valid());
 
@@ -229,16 +220,13 @@ async fn do_mobile_bottombar_play_pause(
     assert!(paused);
 
     let play_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Play").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Play").collect();
     assert_eq!(play_handles.len(), 1);
     assert!(play_handles[0].is_valid());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_mobile_now_playing_controls(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+async fn do_mobile_now_playing_controls(main_window: MainWindow, state_manager: StateManager) {
     let s1 = create_test_song("mob_c1", "Track One", "Alb", "Art");
     let s2 = create_test_song("mob_c2", "Track Two", "Alb", "Art");
     let database = state_manager.get_database();
@@ -258,27 +246,27 @@ async fn do_mobile_now_playing_controls(
     tokio::time::sleep(std::time::Duration::from_millis(300)).await;
 
     let found_shuffle =
-        wait_until(|| ElementHandle::find_by_accessible_label(main_window, "Shuffle").count() > 0)
+        wait_until(|| ElementHandle::find_by_accessible_label(&main_window, "Shuffle").count() > 0)
             .await;
     assert!(found_shuffle);
 
     let shuffle_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Shuffle").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Shuffle").collect();
     assert_eq!(shuffle_handles.len(), 1);
     assert!(shuffle_handles[0].is_valid());
 
     let repeat_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Repeat").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Repeat").collect();
     assert_eq!(repeat_handles.len(), 1);
     assert!(repeat_handles[0].is_valid());
 
     let next_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Next").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Next").collect();
     assert_eq!(next_handles.len(), 1);
     assert!(next_handles[0].is_valid());
 
     let prev_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Previous").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Previous").collect();
     assert_eq!(prev_handles.len(), 1);
     assert!(prev_handles[0].is_valid());
 
@@ -289,10 +277,7 @@ async fn do_mobile_now_playing_controls(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_mobile_queue_sheet_toggle(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+async fn do_mobile_queue_sheet_toggle(main_window: MainWindow, state_manager: StateManager) {
     let s1 = create_test_song("mob_q1", "Queue Song 1", "Alb", "Art");
     let s2 = create_test_song("mob_q2", "Queue Song 2", "Alb", "Art");
     let ph = state_manager.get_player_handler();
@@ -311,13 +296,13 @@ async fn do_mobile_queue_sheet_toggle(
         .invoke_queue_toggled(true);
 
     let loaded = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Remove from queue").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Remove from queue").count() > 0
     })
     .await;
     assert!(loaded);
 
     let remove_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Remove from queue").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Remove from queue").collect();
     assert_eq!(remove_handles.len(), 2);
     assert!(remove_handles[0].is_valid());
 
@@ -333,8 +318,8 @@ async fn do_mobile_queue_sheet_toggle(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_mobile_settings_modal_navigation_and_close(
-    main_window: &'static MainWindow,
-    _state_manager: &'static StateManager,
+    main_window: MainWindow,
+    _state_manager: StateManager,
 ) {
     main_window
         .global::<SettingsState>()
@@ -344,28 +329,28 @@ async fn do_mobile_settings_modal_navigation_and_close(
         .invoke_settings_toggled(true);
 
     let opened = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Paths Settings").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Paths Settings").count() > 0
     })
     .await;
     assert!(opened);
 
     let paths_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Paths Settings").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Paths Settings").collect();
     assert_eq!(paths_handles.len(), 1);
     assert!(paths_handles[0].is_valid());
 
     let system_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "System Settings").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "System Settings").collect();
     assert_eq!(system_handles.len(), 1);
     assert!(system_handles[0].is_valid());
 
     let extensions_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Extensions Settings").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Extensions Settings").collect();
     assert_eq!(extensions_handles.len(), 1);
     assert!(extensions_handles[0].is_valid());
 
     let themes_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Themes Settings").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Themes Settings").collect();
     assert_eq!(themes_handles.len(), 1);
     assert!(themes_handles[0].is_valid());
 
@@ -384,7 +369,7 @@ async fn do_mobile_settings_modal_navigation_and_close(
     assert!(extensions_selected);
 
     let back_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Back").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Back").collect();
     assert_eq!(back_handles.len(), 1);
     assert!(back_handles[0].is_valid());
 
@@ -397,20 +382,20 @@ async fn do_mobile_settings_modal_navigation_and_close(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_mobile_save_playlist_modal_close(
-    main_window: &'static MainWindow,
-    _state_manager: &'static StateManager,
+    main_window: MainWindow,
+    _state_manager: StateManager,
 ) {
     main_window
         .global::<SavePlaylistState>()
         .set_show_modal(true);
 
     let opened =
-        wait_until(|| ElementHandle::find_by_accessible_label(main_window, "Back").count() > 0)
+        wait_until(|| ElementHandle::find_by_accessible_label(&main_window, "Back").count() > 0)
             .await;
     assert!(opened);
 
     let back_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Back").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Back").collect();
     assert_eq!(back_handles.len(), 1);
     assert!(back_handles[0].is_valid());
 
@@ -422,12 +407,9 @@ async fn do_mobile_save_playlist_modal_close(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_mobile_topbar_new_playlist(
-    main_window: &'static MainWindow,
-    _state_manager: &'static StateManager,
-) {
+async fn do_mobile_topbar_new_playlist(main_window: MainWindow, _state_manager: StateManager) {
     assert_eq!(
-        ElementHandle::find_by_accessible_label(main_window, "New Playlist").count(),
+        ElementHandle::find_by_accessible_label(&main_window, "New Playlist").count(),
         0
     );
 
@@ -435,13 +417,13 @@ async fn do_mobile_topbar_new_playlist(
         .global::<AppCallbacks>()
         .invoke_active_page_changed(Pages::Playlists);
     let shown = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "New Playlist").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "New Playlist").count() > 0
     })
     .await;
     assert!(shown);
 
     let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "New Playlist").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "New Playlist").collect();
     assert_eq!(handles.len(), 1);
     click_element(&handles[0]).await;
 
@@ -457,19 +439,16 @@ async fn do_mobile_topbar_new_playlist(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_mobile_save_theme_modal_close(
-    main_window: &'static MainWindow,
-    _state_manager: &'static StateManager,
-) {
+async fn do_mobile_save_theme_modal_close(main_window: MainWindow, _state_manager: StateManager) {
     main_window.global::<SaveThemeState>().set_show_modal(true);
 
     let opened =
-        wait_until(|| ElementHandle::find_by_accessible_label(main_window, "Back").count() > 0)
+        wait_until(|| ElementHandle::find_by_accessible_label(&main_window, "Back").count() > 0)
             .await;
     assert!(opened);
 
     let back_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Back").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Back").collect();
     assert_eq!(back_handles.len(), 1);
     assert!(back_handles[0].is_valid());
 
@@ -481,21 +460,18 @@ async fn do_mobile_save_theme_modal_close(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_mobile_oauth_modal_close(
-    main_window: &'static MainWindow,
-    _state_manager: &'static StateManager,
-) {
+async fn do_mobile_oauth_modal_close(main_window: MainWindow, _state_manager: StateManager) {
     main_window
         .global::<OAuthState>()
         .set_show_oauth_modal(true);
 
     let opened =
-        wait_until(|| ElementHandle::find_by_accessible_label(main_window, "Back").count() > 0)
+        wait_until(|| ElementHandle::find_by_accessible_label(&main_window, "Back").count() > 0)
             .await;
     assert!(opened);
 
     let back_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Back").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Back").collect();
     assert_eq!(back_handles.len(), 1);
     assert!(back_handles[0].is_valid());
 
@@ -508,20 +484,20 @@ async fn do_mobile_oauth_modal_close(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_mobile_extension_details_modal_close(
-    main_window: &'static MainWindow,
-    _state_manager: &'static StateManager,
+    main_window: MainWindow,
+    _state_manager: StateManager,
 ) {
     main_window
         .global::<ExtensionDetailsState>()
         .set_show_modal(true);
 
     let opened =
-        wait_until(|| ElementHandle::find_by_accessible_label(main_window, "Back").count() > 0)
+        wait_until(|| ElementHandle::find_by_accessible_label(&main_window, "Back").count() > 0)
             .await;
     assert!(opened);
 
     let back_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Back").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Back").collect();
     assert_eq!(back_handles.len(), 1);
     assert!(back_handles[0].is_valid());
 
@@ -542,10 +518,7 @@ async fn do_mobile_extension_details_modal_close(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_mobile_song_selection_toggle(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+async fn do_mobile_song_selection_toggle(main_window: MainWindow, state_manager: StateManager) {
     let song = create_test_song("mob_sel", "Selection Track", "Sel Album", "Sel Artist");
     let database = state_manager.get_database();
     database.insert_songs(vec![song]).await.unwrap();
@@ -574,7 +547,7 @@ async fn do_mobile_song_selection_toggle(
 
     // 1. Verify "Select songs" button no longer exists beside sort button
     assert_eq!(
-        ElementHandle::find_by_accessible_label(main_window, "Select songs").count(),
+        ElementHandle::find_by_accessible_label(&main_window, "Select songs").count(),
         0
     );
 
@@ -587,13 +560,13 @@ async fn do_mobile_song_selection_toggle(
 
     // 2. Long press / right-click on song item toggles selection mode
     let song_loaded = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Selection Track").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Selection Track").count() > 0
     })
     .await;
     assert!(song_loaded);
 
     let song_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Selection Track").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Selection Track").collect();
     assert_eq!(song_handles.len(), 1);
 
     song_handles[0]
@@ -616,13 +589,13 @@ async fn do_mobile_song_selection_toggle(
 
     // 4. Top bar replaced by selection count text and select all icon
     let count_text_loaded = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Selection Count").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Selection Count").count() > 0
     })
     .await;
     assert!(count_text_loaded);
 
     let select_all_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Select all").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Select all").collect();
     assert_eq!(select_all_handles.len(), 1);
 
     // Single click while in selection mode deselects song
@@ -653,7 +626,7 @@ async fn do_mobile_song_selection_toggle(
     assert!(selection_active_again);
 
     let select_all_btn: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Select all").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Select all").collect();
     assert_eq!(select_all_btn.len(), 1);
 
     // Clicking "Select all" when all songs are selected toggles / deselects all
@@ -690,10 +663,7 @@ async fn do_mobile_song_selection_toggle(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_mobile_close_all_modals(
-    main_window: &'static MainWindow,
-    _state_manager: &'static StateManager,
-) {
+async fn do_mobile_close_all_modals(main_window: MainWindow, _state_manager: StateManager) {
     main_window
         .global::<AccountsProps>()
         .set_show_accounts(true);
@@ -741,8 +711,8 @@ async fn do_mobile_close_all_modals(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_mobile_context_menu_drag_handle_click(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 ) {
     let song = create_test_song("mob_ctx", "Context Track", "Ctx Album", "Ctx Artist");
     let database = state_manager.get_database();
@@ -771,40 +741,41 @@ async fn do_mobile_context_menu_drag_handle_click(
     assert!(songs_loaded);
 
     let song_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Context Track").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Context Track").collect();
     assert_eq!(song_handles.len(), 1);
     song_handles[0]
         .single_click(slint::platform::PointerEventButton::Right)
         .await;
 
     let loaded = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "More options").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "More options").count() > 0
     })
     .await;
     assert!(loaded);
 
     let more_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "More options").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "More options").collect();
     assert!(!more_handles.is_empty());
 
     click_element(&more_handles[0]).await;
 
     let menu_opened = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Context Menu Drag Handle").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Context Menu Drag Handle").count()
+            > 0
     })
     .await;
     assert!(menu_opened);
     tokio::time::sleep(std::time::Duration::from_millis(400)).await;
 
     let handle: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Context Menu Drag Handle").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Context Menu Drag Handle").collect();
     assert_eq!(handle.len(), 1);
 
     click_element(&handle[0]).await;
     tokio::time::sleep(std::time::Duration::from_millis(300)).await;
 
     assert_eq!(
-        ElementHandle::find_by_accessible_label(main_window, "Context Menu Drag Handle").count(),
+        ElementHandle::find_by_accessible_label(&main_window, "Context Menu Drag Handle").count(),
         1
     );
     main_window
@@ -814,8 +785,8 @@ async fn do_mobile_context_menu_drag_handle_click(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_mobile_context_menu_drag_fills_bottom(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 ) {
     let song = create_test_song("mob_ctx2", "Context Track 2", "Ctx Album 2", "Ctx Artist 2");
     let database = state_manager.get_database();
@@ -844,33 +815,34 @@ async fn do_mobile_context_menu_drag_fills_bottom(
     assert!(songs_loaded);
 
     let song_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Context Track 2").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Context Track 2").collect();
     assert_eq!(song_handles.len(), 1);
     song_handles[0]
         .single_click(slint::platform::PointerEventButton::Right)
         .await;
 
     let more_loaded = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "More options").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "More options").count() > 0
     })
     .await;
     assert!(more_loaded);
 
     let more_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "More options").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "More options").collect();
     assert!(!more_handles.is_empty());
 
     click_element(&more_handles[0]).await;
 
     let menu_opened = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Context Menu Drag Handle").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Context Menu Drag Handle").count()
+            > 0
     })
     .await;
     assert!(menu_opened);
     tokio::time::sleep(std::time::Duration::from_millis(400)).await;
 
     let handle: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Context Menu Drag Handle").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Context Menu Drag Handle").collect();
     assert_eq!(handle.len(), 1);
 
     let initial_y = handle[0].absolute_position().y;
@@ -903,7 +875,7 @@ async fn do_mobile_context_menu_drag_fills_bottom(
 
     let expanded = wait_until(|| {
         let h: Vec<ElementHandle> =
-            ElementHandle::find_by_accessible_label(main_window, "Context Menu Drag Handle")
+            ElementHandle::find_by_accessible_label(&main_window, "Context Menu Drag Handle")
                 .collect();
         if h.is_empty() {
             return false;
@@ -916,7 +888,7 @@ async fn do_mobile_context_menu_drag_fills_bottom(
     tokio::time::sleep(std::time::Duration::from_millis(300)).await;
 
     let expanded_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Context Menu Drag Handle").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Context Menu Drag Handle").collect();
     assert_eq!(expanded_handles.len(), 1);
 
     let exp_pos = expanded_handles[0].absolute_position();
@@ -956,8 +928,8 @@ async fn do_mobile_context_menu_drag_fills_bottom(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_mobile_context_menu_submenu_navigation(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 ) {
     let song = create_test_song("mob_ctx_sub", "Submenu Track", "Sub Album", "Sub Artist");
     let database = state_manager.get_database();
@@ -986,48 +958,48 @@ async fn do_mobile_context_menu_submenu_navigation(
     assert!(songs_loaded);
 
     let song_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Submenu Track").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Submenu Track").collect();
     assert_eq!(song_handles.len(), 1);
     song_handles[0]
         .single_click(slint::platform::PointerEventButton::Right)
         .await;
 
     let more_loaded = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "More options").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "More options").count() > 0
     })
     .await;
     assert!(more_loaded);
 
     let more_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "More options").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "More options").collect();
     assert!(!more_handles.is_empty());
 
     click_element(&more_handles[0]).await;
 
     let submenu_item_ready = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Go to artists").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Go to artists").count() > 0
     })
     .await;
     assert!(submenu_item_ready);
     tokio::time::sleep(std::time::Duration::from_millis(400)).await;
 
     let goto_artists_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Go to artists").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Go to artists").collect();
     click_element(&goto_artists_handles[0]).await;
 
     let back_button_ready =
-        wait_until(|| ElementHandle::find_by_accessible_label(main_window, "Back").count() > 0)
+        wait_until(|| ElementHandle::find_by_accessible_label(&main_window, "Back").count() > 0)
             .await;
     assert!(back_button_ready);
     tokio::time::sleep(std::time::Duration::from_millis(250)).await;
-    assert!(ElementHandle::find_by_accessible_label(main_window, "Sub Artist").count() > 0);
+    assert!(ElementHandle::find_by_accessible_label(&main_window, "Sub Artist").count() > 0);
 
     let back_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Back").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Back").collect();
     click_element(&back_handles[0]).await;
 
     let returned_to_main = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Add to Queue").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Add to Queue").count() > 0
     })
     .await;
     assert!(returned_to_main);
@@ -1037,10 +1009,7 @@ async fn do_mobile_context_menu_submenu_navigation(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_mobile_progress_bar_tap_bounds(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+async fn do_mobile_progress_bar_tap_bounds(main_window: MainWindow, state_manager: StateManager) {
     let s1 = create_test_song("mob_seek1", "Seek Track", "Seek Album", "Seek Artist");
     let database = state_manager.get_database();
     database.insert_songs(vec![s1.clone()]).await.unwrap();
@@ -1060,13 +1029,13 @@ async fn do_mobile_progress_bar_tap_bounds(
     tokio::time::sleep(std::time::Duration::from_millis(500)).await;
 
     let found_slider = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Playback Progress").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Playback Progress").count() > 0
     })
     .await;
     assert!(found_slider);
 
     let slider_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Playback Progress").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Playback Progress").collect();
     assert_eq!(slider_handles.len(), 1);
 
     slider_handles[0]
@@ -1084,8 +1053,8 @@ async fn do_mobile_progress_bar_tap_bounds(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_mobile_multi_song_selection_and_context_menu(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 ) {
     let s1 = create_test_song("mob_msel1", "Multi Track 1", "Sel Alb", "Sel Art");
     let s2 = create_test_song("mob_msel2", "Multi Track 2", "Sel Alb", "Sel Art");
@@ -1115,11 +1084,11 @@ async fn do_mobile_multi_song_selection_and_context_menu(
     assert!(songs_loaded);
 
     let s1_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Multi Track 1").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Multi Track 1").collect();
     assert_eq!(s1_handles.len(), 1);
 
     let s2_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Multi Track 2").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Multi Track 2").collect();
     assert_eq!(s2_handles.len(), 1);
 
     s1_handles[0]
@@ -1154,7 +1123,7 @@ async fn do_mobile_multi_song_selection_and_context_menu(
     assert!(two_selected);
 
     let more_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "More options").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "More options").collect();
     assert_eq!(more_handles.len(), 1);
 
     s2_handles[0]
@@ -1176,7 +1145,7 @@ async fn do_mobile_multi_song_selection_and_context_menu(
     );
 
     let select_all_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Select all").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Select all").collect();
     assert_eq!(select_all_handles.len(), 1);
 
     click_element(&select_all_handles[0]).await;
@@ -1209,7 +1178,7 @@ async fn do_mobile_multi_song_selection_and_context_menu(
     );
 
     let select_all_again: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Select all").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Select all").collect();
     assert_eq!(select_all_again.len(), 1);
     click_element(&select_all_again[0]).await;
 
@@ -1223,7 +1192,7 @@ async fn do_mobile_multi_song_selection_and_context_menu(
     assert!(all_selected_again);
 
     let deselect_all_btn: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Select all").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Select all").collect();
     assert_eq!(deselect_all_btn.len(), 1);
     click_element(&deselect_all_btn[0]).await;
 
@@ -1238,8 +1207,8 @@ async fn do_mobile_multi_song_selection_and_context_menu(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_mobile_context_menu_close_animation_and_on_hide(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 ) {
     let song = create_test_song("mob_ctx_anim", "Anim Track", "Anim Album", "Anim Artist");
     let database = state_manager.get_database();
@@ -1268,33 +1237,34 @@ async fn do_mobile_context_menu_close_animation_and_on_hide(
     assert!(songs_loaded);
 
     let song_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Anim Track").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Anim Track").collect();
     assert_eq!(song_handles.len(), 1);
     song_handles[0]
         .single_click(slint::platform::PointerEventButton::Right)
         .await;
 
     let more_loaded = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "More options").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "More options").count() > 0
     })
     .await;
     assert!(more_loaded);
 
     let more_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "More options").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "More options").collect();
     assert!(!more_handles.is_empty());
 
     click_element(&more_handles[0]).await;
 
     let menu_opened = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Context Menu Drag Handle").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Context Menu Drag Handle").count()
+            > 0
     })
     .await;
     assert!(menu_opened);
     tokio::time::sleep(std::time::Duration::from_millis(300)).await;
 
     let add_queue_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Add to Queue").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Add to Queue").collect();
     assert!(!add_queue_handles.is_empty());
 
     let start_time = std::time::Instant::now();
@@ -1323,7 +1293,7 @@ async fn do_mobile_context_menu_close_animation_and_on_hide(
     );
 
     let handle_count =
-        ElementHandle::find_by_accessible_label(main_window, "Context Menu Drag Handle").count();
+        ElementHandle::find_by_accessible_label(&main_window, "Context Menu Drag Handle").count();
     assert_eq!(handle_count, 0);
 
     main_window
@@ -1333,10 +1303,10 @@ async fn do_mobile_context_menu_close_animation_and_on_hide(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_mobile_topbar_context_menu_extensions(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 ) {
-    let _ext = ExtensionFixture::new(state_manager).await;
+    let _ext = ExtensionFixture::new(&state_manager).await;
 
     let song = create_test_song(
         "pl_ext_song",
@@ -1388,25 +1358,25 @@ async fn do_mobile_topbar_context_menu_extensions(
     assert!(providers_loaded);
 
     let more_loaded = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "More options").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "More options").count() > 0
     })
     .await;
     assert!(more_loaded);
 
     let more_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "More options").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "More options").collect();
     assert_eq!(more_handles.len(), 1);
     click_element(&more_handles[0]).await;
 
     let dynamic_pl_item_loaded = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Sample Playlist Action").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Sample Playlist Action").count() > 0
     })
     .await;
     assert!(dynamic_pl_item_loaded);
     tokio::time::sleep(std::time::Duration::from_millis(400)).await;
 
     let pl_action_button =
-        ElementHandle::find_by_accessible_label(main_window, "Sample Playlist Action")
+        ElementHandle::find_by_accessible_label(&main_window, "Sample Playlist Action")
             .find(|h| h.accessible_role() == Some(i_slint_backend_testing::AccessibleRole::Button))
             .expect("Sample Playlist Action button found");
     click_element(&pl_action_button).await;
@@ -1430,32 +1400,32 @@ async fn do_mobile_topbar_context_menu_extensions(
     tokio::time::sleep(std::time::Duration::from_millis(300)).await;
 
     let more_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "More options").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "More options").collect();
     assert_eq!(more_handles.len(), 1);
     click_element(&more_handles[0]).await;
 
     let ext_item_loaded = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Extensions")
+        ElementHandle::find_by_accessible_label(&main_window, "Extensions")
             .any(|h| h.accessible_role() == Some(i_slint_backend_testing::AccessibleRole::Button))
     })
     .await;
     assert!(ext_item_loaded);
     tokio::time::sleep(std::time::Duration::from_millis(400)).await;
 
-    let ext_button = ElementHandle::find_by_accessible_label(main_window, "Extensions")
+    let ext_button = ElementHandle::find_by_accessible_label(&main_window, "Extensions")
         .find(|h| h.accessible_role() == Some(i_slint_backend_testing::AccessibleRole::Button))
         .expect("Extensions button found");
     click_element(&ext_button).await;
 
     let provider_item = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Sample Extension")
+        ElementHandle::find_by_accessible_label(&main_window, "Sample Extension")
             .any(|h| h.accessible_role() == Some(i_slint_backend_testing::AccessibleRole::Button))
     })
     .await;
     assert!(provider_item);
     tokio::time::sleep(std::time::Duration::from_millis(400)).await;
 
-    let provider_button = ElementHandle::find_by_accessible_label(main_window, "Sample Extension")
+    let provider_button = ElementHandle::find_by_accessible_label(&main_window, "Sample Extension")
         .find(|h| h.accessible_role() == Some(i_slint_backend_testing::AccessibleRole::Button))
         .expect("Sample Extension button found");
     click_element(&provider_button).await;

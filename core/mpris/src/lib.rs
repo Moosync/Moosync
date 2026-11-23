@@ -78,8 +78,9 @@ mod context;
 mod win32;
 
 pub struct MprisHolder {
-    context: Mutex<Box<dyn MprisContext>>,
+    context: Mutex<Option<Box<dyn MprisContext>>>,
     pub event_rx: Arc<Mutex<Receiver<crate::MediaControlEvent>>>,
+    shutdown: Arc<std::sync::atomic::AtomicBool>,
     last_duration: Mutex<u64>,
     last_state: Mutex<PlayerState>,
 }
@@ -136,16 +137,30 @@ impl MprisHolder {
         context.attach(event_tx)?;
 
         Ok(MprisHolder {
-            context: Mutex::new(context),
+            context: Mutex::new(Some(context)),
             event_rx: Arc::new(Mutex::new(event_rx)),
+            shutdown: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             last_duration: Mutex::new(0),
             last_state: Mutex::new(PlayerState::Stopped),
         })
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
+    pub fn shutdown(&self) {
+        self.shutdown
+            .store(true, std::sync::atomic::Ordering::SeqCst);
+        self.context.lock().unwrap().take();
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn is_shutdown(&self) -> bool { self.shutdown.load(std::sync::atomic::Ordering::SeqCst) }
+
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn set_metadata(&self, song: &Song) -> Result<(), MprisError> {
-        let mut context = self.context.lock().unwrap();
+        let mut guard = self.context.lock().unwrap();
+        let Some(context) = guard.as_mut() else {
+            return Ok(());
+        };
         context.set_metadata(song)
     }
 
@@ -155,7 +170,10 @@ impl MprisHolder {
         let duration = *last_duration;
         drop(last_duration);
 
-        let mut context = self.context.lock().unwrap();
+        let mut guard = self.context.lock().unwrap();
+        let Some(context) = guard.as_mut() else {
+            return Ok(());
+        };
         context.set_playback_state(state, duration)?;
 
         let mut last_state = self.last_state.lock().unwrap();

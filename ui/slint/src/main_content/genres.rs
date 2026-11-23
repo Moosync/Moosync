@@ -36,33 +36,39 @@ impl EntityListProvider for GenreListProvider {
 }
 
 pub struct GenresPageHandler {
-    _main_window: &'static MainWindow,
+    _main_window: MainWindow,
     coordinator: EntityListCoordinator<GenreListProvider>,
 }
 
 impl GenresPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(main_window: &'static MainWindow, state_manager: &'static StateManager) -> Self {
+    pub fn new(main_window: &MainWindow, state_manager: &StateManager) -> Self {
+        let main_window_weak = main_window.as_weak();
+        let state_manager_menu = state_manager.clone();
         main_window
             .global::<ContextMenuCallbacks>()
             .on_get_genre_menu_items(move |genre_models| {
-                build_genre_context_menu_items(main_window, state_manager, &genre_models)
+                let Some(main_window) = main_window_weak.upgrade() else {
+                    return slint::ModelRc::default();
+                };
+                build_genre_context_menu_items(&main_window, &state_manager_menu, &genre_models)
             });
 
         let main_window_weak = main_window.as_weak();
+        let state_manager_action = state_manager.clone();
         main_window
             .global::<ContextMenuCallbacks>()
             .on_genre_action(move |genre_models, action_id| {
                 dispatch_genre_context_action(
                     &main_window_weak,
-                    state_manager,
+                    &state_manager_action,
                     &genre_models,
                     &action_id,
                 );
             });
 
         Self {
-            _main_window: main_window,
+            _main_window: main_window.clone_strong(),
             coordinator: EntityListCoordinator::new(main_window, state_manager),
         }
     }

@@ -227,14 +227,14 @@ async fn test_entity_content_coordinator_on_hide(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let main_window = Box::leak(Box::new(main_window));
-    let state_manager = Box::leak(Box::new(sm));
+    let main_window = main_window;
+    let state_manager = sm;
     let dummy_songs = vec![SongModel::default(), SongModel::default()];
     main_window
         .global::<AlbumContentPageProps>()
         .set_songs(ModelRc::new(VecModel::from(dummy_songs)));
     let coordinator =
-        EntityContentCoordinator::<MockEntitySongProvider>::new(main_window, state_manager);
+        EntityContentCoordinator::<MockEntitySongProvider>::new(&main_window, &state_manager);
 
     coordinator.on_hide();
 
@@ -256,10 +256,10 @@ async fn test_entity_content_coordinator_clone(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let main_window = Box::leak(Box::new(main_window));
-    let state_manager = Box::leak(Box::new(sm));
+    let main_window = main_window;
+    let state_manager = sm;
     let coordinator =
-        EntityContentCoordinator::<MockEntitySongProvider>::new(main_window, state_manager);
+        EntityContentCoordinator::<MockEntitySongProvider>::new(&main_window, &state_manager);
 
     let cloned = coordinator.clone();
     cloned.on_hide();
@@ -282,8 +282,8 @@ async fn test_entity_content_coordinator_toggle_extension_disabled(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let main_window = Box::leak(Box::new(main_window));
-    let state_manager = Box::leak(Box::new(sm));
+    let main_window = main_window;
+    let state_manager = sm;
 
     let song1 = SongModel {
         id: "s1".into(),
@@ -300,8 +300,8 @@ async fn test_entity_content_coordinator_toggle_extension_disabled(
         .set_songs(ModelRc::new(VecModel::from(vec![song1, song2])));
 
     EntityContentCoordinator::<MockEntitySongProvider>::disable_extension_in_ui(
-        main_window,
-        state_manager,
+        &main_window,
+        state_manager.clone(),
         "ext_a",
     );
 
@@ -319,10 +319,10 @@ async fn test_entity_content_coordinator_load_more_empty(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let main_window = Box::leak(Box::new(main_window));
-    let state_manager = Box::leak(Box::new(sm));
+    let main_window = main_window;
+    let state_manager = sm;
     let coordinator =
-        EntityContentCoordinator::<MockEntitySongProvider>::new(main_window, state_manager);
+        EntityContentCoordinator::<MockEntitySongProvider>::new(&main_window, &state_manager);
 
     main_window
         .global::<AlbumContentPageProps>()

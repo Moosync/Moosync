@@ -28,7 +28,7 @@ pub fn to_preference_model(items: Vec<ProtoPreferenceItem>) -> ModelRc<Preferenc
 #[tracing::instrument(level = "debug", skip_all)]
 pub async fn update_preferences_in_ui<F>(
     main_window_weak: slint::Weak<MainWindow>,
-    state_manager: &'static StateManager,
+    state_manager: StateManager,
     preferences: &[&LazyLock<ProtoPreferenceItem>],
     context_name: &'static str,
     on_render: F,

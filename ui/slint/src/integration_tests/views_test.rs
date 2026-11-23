@@ -10,7 +10,7 @@ use songs_proto::moosync::types::Playlist;
 use state_manager::StateManager;
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_view_all_songs(main_window: &'static MainWindow, state_manager: &'static StateManager) {
+async fn do_view_all_songs(main_window: MainWindow, state_manager: StateManager) {
     let database = state_manager.get_database();
     let song = create_test_song("s1", "Song Alpha", "Album Alpha", "Artist Alpha");
     database.insert_songs(vec![song]).await.unwrap();
@@ -38,19 +38,19 @@ async fn do_view_all_songs(main_window: &'static MainWindow, state_manager: &'st
     assert!(updated);
 
     let found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Song Alpha").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Song Alpha").count() > 0
     })
     .await;
     assert!(found);
 
     let song_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Song Alpha").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Song Alpha").collect();
     assert_eq!(song_handles.len(), 1);
     assert!(song_handles[0].is_valid());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_view_playlists(main_window: &'static MainWindow, state_manager: &'static StateManager) {
+async fn do_view_playlists(main_window: MainWindow, state_manager: StateManager) {
     let database = state_manager.get_database();
     let playlist = Playlist {
         playlist_id: Some("pl1".into()),
@@ -74,22 +74,19 @@ async fn do_view_playlists(main_window: &'static MainWindow, state_manager: &'st
     assert!(updated);
 
     let found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Favorites Playlist").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Favorites Playlist").count() > 0
     })
     .await;
     assert!(found);
 
     let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Favorites Playlist").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Favorites Playlist").collect();
     assert_eq!(handles.len(), 1);
     assert!(handles[0].is_valid());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_view_playlist_content(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+async fn do_view_playlist_content(main_window: MainWindow, state_manager: StateManager) {
     let database = state_manager.get_database();
     let song = create_test_song("s1", "Content Song", "Content Album", "Content Artist");
     database.insert_songs(vec![song.clone()]).await.unwrap();
@@ -126,30 +123,30 @@ async fn do_view_playlist_content(
     assert!(updated);
 
     let found_song = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Content Song").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Content Song").count() > 0
     })
     .await;
     assert!(found_song);
 
     let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Content Song").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Content Song").collect();
     assert_eq!(handles.len(), 1);
     assert!(handles[0].is_valid());
 
     let found_header = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Greatest Hits").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Greatest Hits").count() > 0
     })
     .await;
     assert!(found_header);
 
     let header_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Greatest Hits").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Greatest Hits").collect();
     assert_eq!(header_handles.len(), 1);
     assert!(header_handles[0].is_valid());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_view_albums(main_window: &'static MainWindow, state_manager: &'static StateManager) {
+async fn do_view_albums(main_window: MainWindow, state_manager: StateManager) {
     let database = state_manager.get_database();
     let song = create_test_song("s2", "Rock Song", "Rock Album", "Rock Artist");
     database.insert_songs(vec![song]).await.unwrap();
@@ -166,22 +163,19 @@ async fn do_view_albums(main_window: &'static MainWindow, state_manager: &'stati
     assert!(updated);
 
     let found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Rock Album").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Rock Album").count() > 0
     })
     .await;
     assert!(found);
 
     let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Rock Album").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Rock Album").collect();
     assert_eq!(handles.len(), 1);
     assert!(handles[0].is_valid());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_view_album_content(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+async fn do_view_album_content(main_window: MainWindow, state_manager: StateManager) {
     let database = state_manager.get_database();
     let song = create_test_song("s2", "Album Song", "Rock Album", "Rock Artist");
     let inserted = database.insert_songs(vec![song]).await.unwrap();
@@ -216,30 +210,30 @@ async fn do_view_album_content(
     assert!(updated);
 
     let found_song = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Album Song").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Album Song").count() > 0
     })
     .await;
     assert!(found_song);
 
     let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Album Song").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Album Song").collect();
     assert_eq!(handles.len(), 1);
     assert!(handles[0].is_valid());
 
     let found_header = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Rock Album").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Rock Album").count() > 0
     })
     .await;
     assert!(found_header);
 
     let header_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Rock Album").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Rock Album").collect();
     assert_eq!(header_handles.len(), 1);
     assert!(header_handles[0].is_valid());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_view_artists(main_window: &'static MainWindow, state_manager: &'static StateManager) {
+async fn do_view_artists(main_window: MainWindow, state_manager: StateManager) {
     let database = state_manager.get_database();
     let song = create_test_song("s3", "Pop Song", "Pop Album", "Rock Star");
     database.insert_songs(vec![song]).await.unwrap();
@@ -256,22 +250,19 @@ async fn do_view_artists(main_window: &'static MainWindow, state_manager: &'stat
     assert!(updated);
 
     let found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Rock Star").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Rock Star").count() > 0
     })
     .await;
     assert!(found);
 
     let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Rock Star").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Rock Star").collect();
     assert_eq!(handles.len(), 1);
     assert!(handles[0].is_valid());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_view_artist_content(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+async fn do_view_artist_content(main_window: MainWindow, state_manager: StateManager) {
     let database = state_manager.get_database();
     let song = create_test_song("s3", "Artist Song", "Pop Album", "Rock Star");
     let inserted = database.insert_songs(vec![song]).await.unwrap();
@@ -300,33 +291,30 @@ async fn do_view_artist_content(
     assert!(updated);
 
     let found_song = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Artist Song").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Artist Song").count() > 0
     })
     .await;
     assert!(found_song);
 
     let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Artist Song").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Artist Song").collect();
     assert_eq!(handles.len(), 1);
     assert!(handles[0].is_valid());
 
     let found_header = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Rock Star").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Rock Star").count() > 0
     })
     .await;
     assert!(found_header);
 
     let header_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Rock Star").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Rock Star").collect();
     assert_eq!(header_handles.len(), 1);
     assert!(header_handles[0].is_valid());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_select_single_song(
-    main_window: &'static MainWindow,
-    _state_manager: &'static StateManager,
-) {
+async fn do_select_single_song(main_window: MainWindow, _state_manager: StateManager) {
     let current_selected = ModelRc::new(VecModel::default());
     let new_selected = main_window
         .global::<UtilCallbacks>()
@@ -342,10 +330,7 @@ async fn do_select_single_song(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_select_multiple_songs_ctrl(
-    main_window: &'static MainWindow,
-    _state_manager: &'static StateManager,
-) {
+async fn do_select_multiple_songs_ctrl(main_window: MainWindow, _state_manager: StateManager) {
     let current_selected = ModelRc::new(VecModel::from(vec![1, 3]));
     let new_selected = main_window
         .global::<UtilCallbacks>()
@@ -370,10 +355,7 @@ async fn do_select_multiple_songs_ctrl(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_select_range_songs_shift(
-    main_window: &'static MainWindow,
-    _state_manager: &'static StateManager,
-) {
+async fn do_select_range_songs_shift(main_window: MainWindow, _state_manager: StateManager) {
     let current_selected = ModelRc::new(VecModel::from(vec![1]));
     let new_selected = main_window
         .global::<UtilCallbacks>()
@@ -398,10 +380,7 @@ async fn do_select_range_songs_shift(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_get_selected_songs(
-    main_window: &'static MainWindow,
-    _state_manager: &'static StateManager,
-) {
+async fn do_get_selected_songs(main_window: MainWindow, _state_manager: StateManager) {
     let s0 = create_test_song("s0", "Song 0", "Album 0", "Artist 0");
     let s1 = create_test_song("s1", "Song 1", "Album 1", "Artist 1");
     let s2 = create_test_song("s2", "Song 2", "Album 2", "Artist 2");
@@ -423,10 +402,7 @@ async fn do_get_selected_songs(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_has_active_extension_providers(
-    main_window: &'static MainWindow,
-    _state_manager: &'static StateManager,
-) {
+async fn do_has_active_extension_providers(main_window: MainWindow, _state_manager: StateManager) {
     let empty_providers = ModelRc::new(VecModel::default());
     assert!(
         !main_window
@@ -448,8 +424,8 @@ async fn do_has_active_extension_providers(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_context_menu_add_to_playlist_new(
-    main_window: &'static MainWindow,
-    _state_manager: &'static StateManager,
+    main_window: MainWindow,
+    _state_manager: StateManager,
 ) {
     let song = create_test_song("s_new_pl", "Song New PL", "Album Alpha", "Artist Alpha");
     let song_model = SongModel::from(song);

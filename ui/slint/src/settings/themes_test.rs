@@ -20,9 +20,9 @@ async fn test_themes_page_handler_initialize(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let main_window = Box::leak(Box::new(main_window));
-    let state_manager = Box::leak(Box::new(sm));
-    let handler = ThemesPageHandler::new(main_window, state_manager);
+    let main_window = main_window;
+    let state_manager = sm;
+    let handler = ThemesPageHandler::new(&main_window, &state_manager);
 
     handler.initialize();
 
@@ -44,9 +44,9 @@ async fn test_themes_page_handler_map_and_apply_theme(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let main_window = Box::leak(Box::new(main_window));
-    let state_manager = Box::leak(Box::new(sm));
-    let _handler = ThemesPageHandler::new(main_window, state_manager);
+    let main_window = main_window;
+    let state_manager = sm;
+    let _handler = ThemesPageHandler::new(&main_window, &state_manager);
 
     let theme = ThemeDetails {
         id: "custom_test".to_string(),
@@ -61,7 +61,7 @@ async fn test_themes_page_handler_map_and_apply_theme(
     assert_eq!(config.name.as_str(), "Custom Test Theme");
     assert_eq!(config.author.as_str(), "Tester");
 
-    ThemesPageHandler::apply_theme(main_window, &theme);
+    ThemesPageHandler::apply_theme(&main_window, &theme);
     assert!(main_window.global::<crate::Theme>().get_borderRadiusLg() >= 0.0);
 }
 
@@ -86,9 +86,9 @@ async fn test_themes_page_handler_callbacks(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let main_window = Box::leak(Box::new(main_window));
-    let state_manager = Box::leak(Box::new(sm));
-    let handler = ThemesPageHandler::new(main_window, state_manager);
+    let main_window = main_window;
+    let state_manager = sm;
+    let handler = ThemesPageHandler::new(&main_window, &state_manager);
     handler.initialize();
 
     main_window
@@ -116,16 +116,16 @@ async fn test_themes_page_handler_registry_and_remote(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let main_window = Box::leak(Box::new(main_window));
-    let state_manager = Box::leak(Box::new(sm));
-    let handler = ThemesPageHandler::new(main_window, state_manager);
+    let main_window = main_window;
+    let state_manager = sm;
+    let handler = ThemesPageHandler::new(&main_window, &state_manager);
 
     let prefs = ThemesPageHandler::get_preferences();
     assert_eq!(prefs.len(), 1);
     assert_eq!(prefs[0].id, THEME_REGISTRIES.id);
 
     handler.initialize();
-    ThemesPageHandler::refresh_preferences(main_window.as_weak(), state_manager);
+    ThemesPageHandler::refresh_preferences(main_window.as_weak(), &state_manager);
     tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
     assert_eq!(

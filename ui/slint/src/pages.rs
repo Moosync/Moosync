@@ -244,7 +244,7 @@ impl NavigationManager {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn setup_page_navigation(
-        main_window: &'static MainWindow,
+        main_window: &MainWindow,
         lifecycle: Rc<RefCell<PageLifecycleManager>>,
         nav: Rc<RefCell<NavigationManager>>,
     ) {
@@ -254,9 +254,13 @@ impl NavigationManager {
         {
             let nav_b_global = nav.clone();
             let life_b_global = lifecycle.clone();
+            let mw_weak_global = main_window.as_weak();
             GLOBAL_BACK_HANDLER.with(|handler| {
                 *handler.borrow_mut() = Some(Box::new(move || {
-                    if nav_b_global.borrow_mut().go_back(main_window) {
+                    let Some(mw) = mw_weak_global.upgrade() else {
+                        return false;
+                    };
+                    if nav_b_global.borrow_mut().go_back(&mw) {
                         life_b_global
                             .borrow_mut()
                             .update_all_visibility(&nav_b_global.borrow());
@@ -267,10 +271,14 @@ impl NavigationManager {
                 }));
             });
         }
+        let mw_weak_back = main_window.as_weak();
         main_window
             .global::<AppCallbacks>()
             .on_navigate_back(move || {
-                if nav_back.borrow_mut().go_back(main_window) {
+                let Some(mw) = mw_weak_back.upgrade() else {
+                    return;
+                };
+                if nav_back.borrow_mut().go_back(&mw) {
                     lifecycle_back
                         .borrow_mut()
                         .update_all_visibility(&nav_back.borrow());
@@ -279,10 +287,14 @@ impl NavigationManager {
 
         let nav_fwd = nav.clone();
         let lifecycle_fwd = lifecycle.clone();
+        let mw_weak_fwd = main_window.as_weak();
         main_window
             .global::<AppCallbacks>()
             .on_navigate_forward(move || {
-                if nav_fwd.borrow_mut().go_forward(main_window) {
+                let Some(mw) = mw_weak_fwd.upgrade() else {
+                    return;
+                };
+                if nav_fwd.borrow_mut().go_forward(&mw) {
                     lifecycle_fwd
                         .borrow_mut()
                         .update_all_visibility(&nav_fwd.borrow());
@@ -291,12 +303,14 @@ impl NavigationManager {
 
         let nav_main = nav.clone();
         let lifecycle_main = lifecycle.clone();
+        let mw_weak_main = main_window.as_weak();
         main_window
             .global::<AppCallbacks>()
             .on_active_page_changed(move |new_page| {
-                nav_main
-                    .borrow_mut()
-                    .on_main_page_changed(new_page, main_window);
+                let Some(mw) = mw_weak_main.upgrade() else {
+                    return;
+                };
+                nav_main.borrow_mut().on_main_page_changed(new_page, &mw);
                 lifecycle_main
                     .borrow_mut()
                     .update_all_visibility(&nav_main.borrow());
@@ -367,8 +381,8 @@ impl PageLifecycleManager {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_main_pages(
-        main_window: &'static MainWindow,
-        state_manager: &'static StateManager,
+        main_window: &MainWindow,
+        state_manager: &StateManager,
     ) -> Vec<(Pages, Box<dyn PageHandler + 'static>)> {
         vec![
             (
@@ -455,8 +469,8 @@ impl PageLifecycleManager {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_settings_pages(
-        main_window: &'static MainWindow,
-        state_manager: &'static StateManager,
+        main_window: &MainWindow,
+        state_manager: &StateManager,
     ) -> Vec<(SettingsPages, Box<dyn PageHandler + 'static>)> {
         vec![
             (
@@ -492,8 +506,8 @@ impl PageLifecycleManager {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_queue_page(
-        main_window: &'static MainWindow,
-        state_manager: &'static StateManager,
+        main_window: &MainWindow,
+        state_manager: &StateManager,
     ) -> Box<dyn PageHandler + 'static> {
         Box::new(main_content::queue::QueuePageHandler::new(
             main_window,

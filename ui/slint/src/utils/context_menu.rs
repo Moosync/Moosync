@@ -155,7 +155,7 @@ async fn fetch_playlists(db: &Database) -> Vec<Playlist> {
 fn attach_playlist_submenu(
     vec_model: Rc<VecModel<ContextMenuItem>>,
     main_window_weak: Weak<MainWindow>,
-    state_manager: &'static StateManager,
+    state_manager: StateManager,
 ) {
     let _ = slint::spawn_local(
         async move {
@@ -230,7 +230,7 @@ async fn fetch_extension_menu(
 fn attach_extension_menu_items(
     vec_model: Rc<VecModel<ContextMenuItem>>,
     default_ext_icon: Image,
-    state_manager: &'static StateManager,
+    state_manager: StateManager,
     request: ExtensionMenuRequest,
 ) {
     let scope = match request {
@@ -290,7 +290,7 @@ fn attach_extension_menu_items(
 #[tracing::instrument(level = "debug", skip_all)]
 fn finalize_song_context_menu(
     main_window: &MainWindow,
-    state_manager: &'static StateManager,
+    state_manager: &StateManager,
     song_models: &ModelRc<SongModel>,
     mut items: Vec<ContextMenuItem>,
 ) -> ModelRc<ContextMenuItem> {
@@ -299,7 +299,11 @@ fn finalize_song_context_menu(
     let vec_model = Rc::new(VecModel::from(items));
     let model_rc = ModelRc::new(vec_model.clone());
 
-    attach_playlist_submenu(vec_model.clone(), main_window.as_weak(), state_manager);
+    attach_playlist_submenu(
+        vec_model.clone(),
+        main_window.as_weak(),
+        state_manager.clone(),
+    );
 
     let songs: Vec<Song> = song_models.into_vec().into_iter().map(Song::from).collect();
     if !songs.is_empty() {
@@ -309,7 +313,7 @@ fn finalize_song_context_menu(
         attach_extension_menu_items(
             vec_model,
             ext_icon,
-            state_manager,
+            state_manager.clone(),
             ExtensionMenuRequest::Songs(songs),
         );
     }
@@ -321,7 +325,7 @@ fn finalize_song_context_menu(
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn build_playlist_context_menu_items(
     main_window: &MainWindow,
-    state_manager: &'static StateManager,
+    state_manager: StateManager,
     playlist_models: &ModelRc<PlaylistModel>,
 ) -> ModelRc<ContextMenuItem> {
     let menu_items = main_window.global::<ContextMenuItems>();
@@ -347,7 +351,7 @@ pub fn build_playlist_context_menu_items(
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn build_song_context_menu_items(
     main_window: &MainWindow,
-    state_manager: &'static StateManager,
+    state_manager: StateManager,
     song_models: &ModelRc<SongModel>,
 ) -> ModelRc<ContextMenuItem> {
     let menu_items = main_window.global::<ContextMenuItems>();
@@ -363,14 +367,14 @@ pub fn build_song_context_menu_items(
         ));
     }
 
-    finalize_song_context_menu(main_window, state_manager, song_models, all_items)
+    finalize_song_context_menu(main_window, &state_manager, song_models, all_items)
 }
 
 /// Builds the context menu item model for songs in the playback queue.
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn build_queue_context_menu_items(
     main_window: &MainWindow,
-    state_manager: &'static StateManager,
+    state_manager: StateManager,
     song_models: &ModelRc<SongModel>,
     _idx: i32,
 ) -> ModelRc<ContextMenuItem> {
@@ -379,7 +383,7 @@ pub fn build_queue_context_menu_items(
         .invoke_get_queue_items()
         .into_vec();
 
-    finalize_song_context_menu(main_window, state_manager, song_models, all_items)
+    finalize_song_context_menu(main_window, &state_manager, song_models, all_items)
 }
 
 /// Executes a player queue action on the selected songs.
@@ -400,7 +404,7 @@ async fn handle_playback_action(state_manager: &StateManager, songs: Vec<Song>, 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn handle_remove_from_playlist(
     weak: Weak<MainWindow>,
-    state_manager: &'static StateManager,
+    state_manager: StateManager,
     songs: &[Song],
 ) {
     let Some(selected_pid) = weak
@@ -449,7 +453,7 @@ async fn handle_remove_from_playlist(
 
     let _ = weak.upgrade_in_event_loop(move |window| {
         let songs_view: Vec<SongModel> = updated_songs.into_iter().map(Into::into).collect();
-        let model = make_lazy_song_model(&window, state_manager, songs_view);
+        let model = make_lazy_song_model(&window, &state_manager, songs_view);
         window.global::<PlaylistContentPageProps>().set_songs(model);
     });
 }
@@ -570,11 +574,11 @@ pub async fn handle_extension_context_action(state_manager: &StateManager, actio
 #[tracing::instrument(level = "debug", skip_all)]
 pub async fn execute_song_context_action(
     weak: Weak<MainWindow>,
-    state_manager: &'static StateManager,
+    state_manager: StateManager,
     songs: Vec<Song>,
     action: &str,
 ) {
-    if handle_extension_context_action(state_manager, action).await {
+    if handle_extension_context_action(&state_manager, action).await {
         return;
     }
     if action == ACTION_ADD_TO_PLAYLIST_NEW {
@@ -587,21 +591,21 @@ pub async fn execute_song_context_action(
         return;
     }
     if let Some(playlist_id) = action.strip_prefix(PREFIX_ADD_TO_PLAYLIST) {
-        handle_add_to_playlist(state_manager, &songs, playlist_id).await;
+        handle_add_to_playlist(&state_manager, &songs, playlist_id).await;
         return;
     }
     if let Some(album_id) = action.strip_prefix(PREFIX_GOTO_ALBUM) {
-        handle_goto_entity_by_id(weak, state_manager, Pages::AlbumContent, album_id).await;
+        handle_goto_entity_by_id(weak, &state_manager, Pages::AlbumContent, album_id).await;
         return;
     }
     if let Some(artist_id) = action.strip_prefix(PREFIX_GOTO_ARTIST) {
-        handle_goto_entity_by_id(weak, state_manager, Pages::ArtistContent, artist_id).await;
+        handle_goto_entity_by_id(weak, &state_manager, Pages::ArtistContent, artist_id).await;
         return;
     }
 
     match action {
         ACTION_PLAY_NOW | ACTION_PLAY_NEXT | ACTION_CLEAR_QUEUE_AND_PLAY | ACTION_ADD_TO_QUEUE => {
-            handle_playback_action(state_manager, songs, action).await;
+            handle_playback_action(&state_manager, songs, action).await;
         }
         ACTION_REMOVE_FROM_PLAYLIST => {
             handle_remove_from_playlist(weak, state_manager, &songs).await;
@@ -614,13 +618,14 @@ pub async fn execute_song_context_action(
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn dispatch_song_context_action(
     main_window_weak: &Weak<MainWindow>,
-    state_manager: &'static StateManager,
+    state_manager: &StateManager,
     song_models: &ModelRc<SongModel>,
     action_id: &str,
 ) {
     let songs: Vec<Song> = song_models.into_vec().into_iter().map(Song::from).collect();
     let action = action_id.to_string();
     let weak = main_window_weak.clone();
+    let state_manager = state_manager.clone();
 
     tokio::spawn(
         async move {
@@ -728,14 +733,14 @@ async fn fetch_songs_for_genre(state_manager: &StateManager, genre: Genre) -> Ve
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn build_album_context_menu_items(
     main_window: &MainWindow,
-    state_manager: &'static StateManager,
+    state_manager: &StateManager,
     _album_models: &ModelRc<AlbumModel>,
 ) -> ModelRc<ContextMenuItem> {
     let menu_items = main_window.global::<ContextMenuItems>();
     let items = menu_items.invoke_get_all_songs_items().into_vec();
     let vec_model = Rc::new(VecModel::from(items));
     let model_rc = ModelRc::new(vec_model.clone());
-    attach_playlist_submenu(vec_model, main_window.as_weak(), state_manager);
+    attach_playlist_submenu(vec_model, main_window.as_weak(), state_manager.clone());
     model_rc
 }
 
@@ -743,7 +748,7 @@ pub fn build_album_context_menu_items(
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn dispatch_album_context_action(
     main_window_weak: &Weak<MainWindow>,
-    state_manager: &'static StateManager,
+    state_manager: &StateManager,
     album_models: &ModelRc<AlbumModel>,
     action_id: &str,
 ) {
@@ -754,12 +759,13 @@ pub fn dispatch_album_context_action(
         .collect();
     let action = action_id.to_string();
     let weak = main_window_weak.clone();
+    let state_manager = state_manager.clone();
 
     tokio::spawn(
         async move {
             let mut all_songs = Vec::new();
             for album in albums {
-                all_songs.extend(fetch_songs_for_album(state_manager, album).await);
+                all_songs.extend(fetch_songs_for_album(&state_manager, album).await);
             }
             execute_song_context_action(weak, state_manager, all_songs, &action).await;
         }
@@ -773,14 +779,14 @@ pub fn dispatch_album_context_action(
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn build_artist_context_menu_items(
     main_window: &MainWindow,
-    state_manager: &'static StateManager,
+    state_manager: &StateManager,
     _artist_models: &ModelRc<ArtistModel>,
 ) -> ModelRc<ContextMenuItem> {
     let menu_items = main_window.global::<ContextMenuItems>();
     let items = menu_items.invoke_get_all_songs_items().into_vec();
     let vec_model = Rc::new(VecModel::from(items));
     let model_rc = ModelRc::new(vec_model.clone());
-    attach_playlist_submenu(vec_model, main_window.as_weak(), state_manager);
+    attach_playlist_submenu(vec_model, main_window.as_weak(), state_manager.clone());
     model_rc
 }
 
@@ -788,7 +794,7 @@ pub fn build_artist_context_menu_items(
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn dispatch_artist_context_action(
     main_window_weak: &Weak<MainWindow>,
-    state_manager: &'static StateManager,
+    state_manager: &StateManager,
     artist_models: &ModelRc<ArtistModel>,
     action_id: &str,
 ) {
@@ -799,12 +805,13 @@ pub fn dispatch_artist_context_action(
         .collect();
     let action = action_id.to_string();
     let weak = main_window_weak.clone();
+    let state_manager = state_manager.clone();
 
     tokio::spawn(
         async move {
             let mut all_songs = Vec::new();
             for artist in artists {
-                all_songs.extend(fetch_songs_for_artist(state_manager, artist).await);
+                all_songs.extend(fetch_songs_for_artist(&state_manager, artist).await);
             }
             execute_song_context_action(weak, state_manager, all_songs, &action).await;
         }
@@ -818,14 +825,14 @@ pub fn dispatch_artist_context_action(
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn build_genre_context_menu_items(
     main_window: &MainWindow,
-    state_manager: &'static StateManager,
+    state_manager: &StateManager,
     _genre_models: &ModelRc<GenreModel>,
 ) -> ModelRc<ContextMenuItem> {
     let menu_items = main_window.global::<ContextMenuItems>();
     let items = menu_items.invoke_get_all_songs_items().into_vec();
     let vec_model = Rc::new(VecModel::from(items));
     let model_rc = ModelRc::new(vec_model.clone());
-    attach_playlist_submenu(vec_model, main_window.as_weak(), state_manager);
+    attach_playlist_submenu(vec_model, main_window.as_weak(), state_manager.clone());
     model_rc
 }
 
@@ -833,7 +840,7 @@ pub fn build_genre_context_menu_items(
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn dispatch_genre_context_action(
     main_window_weak: &Weak<MainWindow>,
-    state_manager: &'static StateManager,
+    state_manager: &StateManager,
     genre_models: &ModelRc<GenreModel>,
     action_id: &str,
 ) {
@@ -844,12 +851,13 @@ pub fn dispatch_genre_context_action(
         .collect();
     let action = action_id.to_string();
     let weak = main_window_weak.clone();
+    let state_manager = state_manager.clone();
 
     tokio::spawn(
         async move {
             let mut all_songs = Vec::new();
             for genre in genres {
-                all_songs.extend(fetch_songs_for_genre(state_manager, genre).await);
+                all_songs.extend(fetch_songs_for_genre(&state_manager, genre).await);
             }
             execute_song_context_action(weak, state_manager, all_songs, &action).await;
         }

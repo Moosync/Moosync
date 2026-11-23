@@ -162,7 +162,7 @@ pub fn get_all_static_preferences() -> Vec<ProtoPreferenceItem> {
 #[tracing::instrument(level = "debug", skip_all)]
 pub(crate) fn find_preference_item(
     key: &str,
-    state_manager: &'static StateManager,
+    state_manager: &StateManager,
 ) -> Option<ProtoPreferenceItem> {
     let config = state_manager.get_preference_config();
     if let Some(item) = config.get(key) {
@@ -249,7 +249,7 @@ pub(crate) fn compute_updated_preference_value(
 async fn refresh_relevant_page(
     key: &str,
     main_window_weak: slint::Weak<MainWindow>,
-    state_manager: &'static StateManager,
+    state_manager: StateManager,
 ) {
     if paths::PREFERENCES.iter().any(|p| p.id == key) {
         PathsPageHandler::refresh_preferences(main_window_weak, state_manager).await;
@@ -258,12 +258,12 @@ async fn refresh_relevant_page(
     } else if extensions::PREFERENCES.iter().any(|p| p.id == key) || key.starts_with("ext:") {
         ExtensionsPageHandler::refresh_preferences(main_window_weak, state_manager).await;
     } else if key == THEME_REGISTRIES.id {
-        ThemesPageHandler::refresh_preferences(main_window_weak, state_manager);
+        ThemesPageHandler::refresh_preferences(main_window_weak, &state_manager);
     }
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn notify_extension_preference_changed(key: &str, state_manager: &'static StateManager) {
+async fn notify_extension_preference_changed(key: &str, state_manager: &StateManager) {
     let Some(rest) = key.strip_prefix("ext:") else {
         return;
     };
@@ -299,7 +299,7 @@ pub async fn handle_preference_change(
     value_bool: bool,
     value_number: f32,
     value_list: Vec<String>,
-    state_manager: &'static StateManager,
+    state_manager: StateManager,
     main_window_weak: slint::Weak<MainWindow>,
 ) {
     tracing::debug!(
@@ -308,7 +308,7 @@ pub async fn handle_preference_change(
     );
     let config = state_manager.get_preference_config();
 
-    let Some(mut item) = find_preference_item(&key, state_manager) else {
+    let Some(mut item) = find_preference_item(&key, &state_manager) else {
         tracing::error!("Preference {} not found in store or static registry", key);
         return;
     };
@@ -340,13 +340,13 @@ pub async fn handle_preference_change(
 
     if pref_type != PreferenceType::TextInputGroup && pref_type != PreferenceType::NumberInputGroup
     {
-        refresh_relevant_page(&key, main_window_weak, state_manager).await;
+        refresh_relevant_page(&key, main_window_weak, state_manager.clone()).await;
     }
-    notify_extension_preference_changed(&key, state_manager).await;
+    notify_extension_preference_changed(&key, &state_manager).await;
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-pub fn apply_saved_language(state_manager: &'static StateManager) {
+pub fn apply_saved_language(state_manager: &StateManager) {
     let lang = state_manager
         .get_preference_config()
         .load(&I18N_LANGUAGE)
@@ -358,7 +358,7 @@ pub fn apply_saved_language(state_manager: &'static StateManager) {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-pub fn setup_settings(main_window: &'static MainWindow, state_manager: &'static StateManager) {
+pub fn setup_settings(main_window: &MainWindow, state_manager: &StateManager) {
     apply_saved_language(state_manager);
 
     let auto_startup_enabled = state_manager
@@ -377,6 +377,7 @@ pub fn setup_settings(main_window: &'static MainWindow, state_manager: &'static 
     extensions_handler.initialize();
 
     let main_window_weak = main_window.as_weak();
+    let sm = state_manager.clone();
     main_window
         .global::<AppCallbacks>()
         .on_preference_changed(move |change| {
@@ -386,6 +387,7 @@ pub fn setup_settings(main_window: &'static MainWindow, state_manager: &'static 
             let value_bool = change.value_bool;
             let value_number = change.value_number;
             let value_list: Vec<String> = change.value_list.iter().map(|s| s.to_string()).collect();
+            let state_manager = sm.clone();
 
             tokio::spawn(
                 async move {

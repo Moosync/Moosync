@@ -19,9 +19,9 @@ async fn test_paths_page_handler_initialize(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let main_window = Box::leak(Box::new(main_window));
-    let state_manager = Box::leak(Box::new(sm));
-    let handler = PathsPageHandler::new(main_window, state_manager);
+    let main_window = main_window;
+    let state_manager = sm;
+    let handler = PathsPageHandler::new(&main_window, &state_manager);
 
     handler.initialize();
 
@@ -37,9 +37,9 @@ async fn test_paths_page_handler_on_show(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let main_window = Box::leak(Box::new(main_window));
-    let state_manager = Box::leak(Box::new(sm));
-    let handler = PathsPageHandler::new(main_window, state_manager);
+    let main_window = main_window;
+    let state_manager = sm;
+    let handler = PathsPageHandler::new(&main_window, &state_manager);
 
     handler.on_show();
 
@@ -55,14 +55,14 @@ async fn test_paths_page_handler_handle_change_music_paths(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let state_manager = Box::leak(Box::new(sm.clone()));
+    let state_manager = sm.clone();
     handle_preference_change(
         "music_paths".to_string(),
         "".to_string(),
         false,
         0.0,
         vec!["/test/path".to_string()],
-        state_manager,
+        state_manager.clone(),
         _main_window.as_weak(),
     )
     .await;
@@ -81,9 +81,9 @@ async fn test_paths_page_handler_refresh_preferences(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let state_manager = Box::leak(Box::new(sm));
+    let state_manager = sm;
 
-    PathsPageHandler::refresh_preferences(main_window.as_weak(), state_manager).await;
+    PathsPageHandler::refresh_preferences(main_window.as_weak(), state_manager.clone()).await;
 
     let items = main_window.global::<AppPreferences>().get_paths_items();
     assert_eq!(items.row_count(), 7);

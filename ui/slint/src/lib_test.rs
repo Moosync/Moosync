@@ -5,7 +5,6 @@ use songs_proto::{
     duration_proto::google::protobuf::Duration as ProtoDuration,
     moosync::types::{InnerSong, Song},
 };
-use state_manager::StateManager;
 use tracing_test::traced_test;
 
 use crate::{
@@ -29,27 +28,27 @@ async fn test_ui_get_all_pages_and_setup(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let main_window: &'static MainWindow = Box::leak(Box::new(main_window));
-    let state_manager: &'static StateManager = Box::leak(Box::new(sm));
+    let main_window: MainWindow = main_window;
+    let state_manager = sm;
 
-    let main_pages = PageLifecycleManager::get_main_pages(main_window, state_manager);
+    let main_pages = PageLifecycleManager::get_main_pages(&main_window, &state_manager);
     for (_, page) in main_pages.iter() {
         page.initialize();
         page.on_show();
         page.on_hide();
     }
-    let settings_pages = PageLifecycleManager::get_settings_pages(main_window, state_manager);
+    let settings_pages = PageLifecycleManager::get_settings_pages(&main_window, &state_manager);
     for (_, page) in settings_pages.iter() {
         page.initialize();
         page.on_show();
         page.on_hide();
     }
-    let queue_page = PageLifecycleManager::get_queue_page(main_window, state_manager);
+    let queue_page = PageLifecycleManager::get_queue_page(&main_window, &state_manager);
     queue_page.initialize();
     queue_page.on_show();
     queue_page.on_hide();
 
-    setup_ui(main_window, state_manager);
+    setup_ui(&main_window, &state_manager);
 
     main_window
         .global::<AppCallbacks>()
@@ -208,7 +207,7 @@ fn test_update_player_event_props(main_window: MainWindow) {
             nanos: 0,
         }),
     );
-    assert_eq!(player_props.get_current_duration(), 125);
+    assert_eq!(player_props.get_current_duration_ms(), 125_000);
     assert_eq!(player_props.get_current_pos_str().as_str(), "02:05");
 }
 
@@ -221,9 +220,9 @@ async fn test_util_callbacks_selection_and_validation(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let main_window: &'static MainWindow = Box::leak(Box::new(main_window));
-    let state_manager: &'static StateManager = Box::leak(Box::new(sm));
-    setup_ui(main_window, state_manager);
+    let main_window: MainWindow = main_window;
+    let state_manager = sm;
+    setup_ui(&main_window, &state_manager);
 
     let util_callbacks = main_window.global::<UtilCallbacks>();
 
@@ -282,7 +281,7 @@ async fn test_apply_updated_song_to_ui(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let state_manager: &'static StateManager = Box::leak(Box::new(sm));
+    let state_manager = sm;
     let cache_dir = state_manager.get_cache_dir();
     let initial_song = SongModel {
         id: "song-1".into(),
@@ -322,7 +321,7 @@ async fn test_apply_updated_song_to_ui(
         ..Default::default()
     };
 
-    apply_updated_song_to_ui(&main_window, state_manager, SongModel::from(updated));
+    apply_updated_song_to_ui(&main_window, &state_manager, SongModel::from(updated));
 
     let current_song = main_window.global::<PlayerProps>().get_current_song();
     assert_eq!(current_song.title.as_str(), "New Title");

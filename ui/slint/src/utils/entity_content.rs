@@ -126,17 +126,17 @@ pub trait EntitySongProvider: Clone + Send + Sync + 'static {
 #[derive(Clone)]
 pub struct EntityContentCoordinator<P: EntitySongProvider> {
     weak: Weak<MainWindow>,
-    state_manager: &'static StateManager,
+    state_manager: StateManager,
     pagination: Arc<Mutex<ExtensionPaginationManager>>,
     _phantom: PhantomData<P>,
 }
 
 impl<P: EntitySongProvider> EntityContentCoordinator<P> {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(main_window: &MainWindow, state_manager: &'static StateManager) -> Self {
+    pub fn new(main_window: &MainWindow, state_manager: &StateManager) -> Self {
         Self {
             weak: main_window.as_weak(),
-            state_manager,
+            state_manager: state_manager.clone(),
             pagination: Arc::new(Mutex::new(ExtensionPaginationManager::default())),
             _phantom: PhantomData,
         }
@@ -145,7 +145,7 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
     #[tracing::instrument(level = "debug", skip_all)]
     pub(crate) fn disable_extension_in_ui(
         main_window: &MainWindow,
-        state_manager: &'static StateManager,
+        state_manager: StateManager,
         package_name: &str,
     ) {
         P::update_extensions_enabled(main_window, package_name, false);
@@ -154,7 +154,7 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
             .into_iter()
             .filter(|s| s.extension != package_name)
             .collect();
-        let model = make_lazy_song_model(main_window, state_manager, filtered);
+        let model = make_lazy_song_model(main_window, &state_manager, filtered);
         P::set_songs(main_window, model);
     }
 
@@ -165,7 +165,7 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
                 .lock()
                 .unwrap()
                 .remove_extension(&package_name);
-            let state_manager = self.state_manager;
+            let state_manager = self.state_manager.clone();
             let _ = self.weak.upgrade_in_event_loop(move |main_window| {
                 Self::disable_extension_in_ui(&main_window, state_manager, &package_name);
             });
@@ -246,7 +246,7 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
             .in_current_span()
         });
 
-        let state_manager = self.state_manager;
+        let state_manager = self.state_manager.clone();
         let weak = self.weak.clone();
         let pagination = self.pagination.clone();
 
@@ -255,10 +255,11 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
                 Ok((songs, next_token)) => {
                     let pagination = pagination.clone();
                     let package_name = detail.package_name.clone();
+                    let state_manager_ui = state_manager.clone();
                     let _ = weak.upgrade_in_event_loop(move |window| {
                         let mut current = P::get_songs(&window);
                         current.extend(map_songs_to_models(songs, Some(&detail)));
-                        let model = make_lazy_song_model(&window, state_manager, current);
+                        let model = make_lazy_song_model(&window, &state_manager_ui, current);
                         P::set_songs(&window, model);
 
                         pagination
@@ -307,7 +308,7 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
         };
         let (entity, _) = P::get_entity(&main_window);
 
-        let state_manager = self.state_manager;
+        let state_manager = self.state_manager.clone();
         let weak = self.weak.clone();
         let pagination = self.pagination.clone();
 
@@ -345,10 +346,12 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
                         Ok((songs, next_token)) => {
                             let pagination = pagination.clone();
                             let package_name = detail.package_name.clone();
+                            let state_manager_ui = state_manager.clone();
                             let _ = weak.upgrade_in_event_loop(move |window| {
                                 let mut current = P::get_songs(&window);
                                 current.extend(map_songs_to_models(songs, Some(&detail)));
-                                let model = make_lazy_song_model(&window, state_manager, current);
+                                let model =
+                                    make_lazy_song_model(&window, &state_manager_ui, current);
                                 P::set_songs(&window, model);
 
                                 pagination
@@ -381,7 +384,7 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
         };
         let (entity, extension) = P::get_entity(&main_window);
 
-        let state_manager = self.state_manager;
+        let state_manager = self.state_manager.clone();
         let weak = self.weak.clone();
         let coordinator = self.clone();
 
@@ -396,10 +399,10 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
                     P::set_extensions(&main_window, ModelRc::new(VecModel::from(providers_for_ui)));
                 });
 
-                if let Ok(songs) = P::fetch_local_songs(state_manager, entity.clone()).await {
+                if let Ok(songs) = P::fetch_local_songs(&state_manager, entity.clone()).await {
                     let _ = weak.upgrade_in_event_loop(move |main_window| {
                         let song_models = map_songs_to_models(songs, None);
-                        let model = make_lazy_song_model(&main_window, state_manager, song_models);
+                        let model = make_lazy_song_model(&main_window, &state_manager, song_models);
                         P::set_songs(&main_window, model);
                     });
                 }

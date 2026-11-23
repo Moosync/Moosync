@@ -23,9 +23,9 @@ async fn test_search_page_handler_search_whitespace_clears_results(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let main_window = Box::leak(Box::new(main_window));
-    let state_manager = Box::leak(Box::new(sm));
-    let handler = SearchPageHandler::new(main_window, state_manager);
+    let main_window = main_window;
+    let state_manager = sm;
+    let handler = SearchPageHandler::new(&main_window, &state_manager);
     handler.initialize();
 
     main_window
@@ -49,9 +49,9 @@ async fn test_search_page_handler_search_empty_clears_results(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let main_window = Box::leak(Box::new(main_window));
-    let state_manager = Box::leak(Box::new(sm));
-    let handler = SearchPageHandler::new(main_window, state_manager);
+    let main_window = main_window;
+    let state_manager = sm;
+    let handler = SearchPageHandler::new(&main_window, &state_manager);
     handler.initialize();
 
     main_window
@@ -75,8 +75,8 @@ async fn test_search_page_handler_append_search_result(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let main_window = Box::leak(Box::new(main_window));
-    let state_manager = Box::leak(Box::new(sm));
+    let main_window = main_window;
+    let state_manager = sm;
 
     let res = ProtoSearchResult {
         songs: vec![ProtoSong {
@@ -95,7 +95,7 @@ async fn test_search_page_handler_append_search_result(
         .set_provider_results(ModelRc::default());
 
     let cache_dir = state_manager.get_cache_dir();
-    SearchPageHandler::update_provider_result(main_window, &cache_dir, res, None, false, false);
+    SearchPageHandler::update_provider_result(&main_window, &cache_dir, res, None, false, false);
 
     tokio::time::sleep(std::time::Duration::from_millis(50)).await;
     assert_eq!(
@@ -116,9 +116,9 @@ async fn test_search_page_handler_perform_search_and_accounts(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let main_window = Box::leak(Box::new(main_window));
-    let state_manager = Box::leak(Box::new(sm));
-    let handler = SearchPageHandler::new(main_window, state_manager);
+    let main_window = main_window;
+    let state_manager = sm;
+    let handler = SearchPageHandler::new(&main_window, &state_manager);
     handler.initialize();
 
     main_window
@@ -148,10 +148,10 @@ async fn test_search_page_handler_initial_providers(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let main_window = Box::leak(Box::new(main_window));
-    let state_manager = Box::leak(Box::new(sm));
+    let main_window = main_window;
+    let state_manager = sm;
 
-    let handler = SearchPageHandler::new(main_window, state_manager);
+    let handler = SearchPageHandler::new(&main_window, &state_manager);
     handler.initialize();
 
     let initial_providers = main_window
@@ -172,10 +172,10 @@ async fn test_search_page_handler_update_provider_result(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let main_window = Box::leak(Box::new(main_window));
-    let state_manager = Box::leak(Box::new(sm));
+    let main_window = main_window;
+    let state_manager = sm;
 
-    let handler = SearchPageHandler::new(main_window, state_manager);
+    let handler = SearchPageHandler::new(&main_window, &state_manager);
     handler.initialize();
 
     let res = ProtoSearchResult {
@@ -191,7 +191,7 @@ async fn test_search_page_handler_update_provider_result(
     };
 
     let cache_dir = state_manager.get_cache_dir();
-    SearchPageHandler::update_provider_result(main_window, &cache_dir, res, None, false, true);
+    SearchPageHandler::update_provider_result(&main_window, &cache_dir, res, None, false, true);
 
     let results = main_window
         .global::<SearchPageProps>()
@@ -212,7 +212,7 @@ async fn test_search_page_handler_update_provider_result(
         ..Default::default()
     };
     SearchPageHandler::update_provider_result(
-        main_window,
+        &main_window,
         &cache_dir,
         ProtoSearchResult::default(),
         Some(detail),
@@ -243,8 +243,8 @@ async fn test_search_page_handler_auto_switches_tab(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let main_window = Box::leak(Box::new(main_window));
-    let state_manager = Box::leak(Box::new(sm));
+    let main_window = main_window;
+    let state_manager = sm;
 
     main_window
         .global::<SearchPageProps>()
@@ -261,7 +261,7 @@ async fn test_search_page_handler_auto_switches_tab(
     };
 
     let cache_dir = state_manager.get_cache_dir();
-    SearchPageHandler::update_provider_result(main_window, &cache_dir, res, None, false, false);
+    SearchPageHandler::update_provider_result(&main_window, &cache_dir, res, None, false, false);
 
     assert_eq!(main_window.global::<SearchPageProps>().get_active_tab(), 3);
 }

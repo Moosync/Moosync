@@ -97,15 +97,15 @@ impl EntitySongProvider for PlaylistSongProvider {
 }
 
 pub struct PlaylistContentPageHandler {
-    main_window: &'static MainWindow,
+    main_window: MainWindow,
     coordinator: EntityContentCoordinator<PlaylistSongProvider>,
 }
 
 impl PlaylistContentPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(main_window: &'static MainWindow, state_manager: &'static StateManager) -> Self {
+    pub fn new(main_window: &MainWindow, state_manager: &StateManager) -> Self {
         Self {
-            main_window,
+            main_window: main_window.clone_strong(),
             coordinator: EntityContentCoordinator::new(main_window, state_manager),
         }
     }

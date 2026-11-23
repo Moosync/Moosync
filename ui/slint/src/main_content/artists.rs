@@ -36,33 +36,39 @@ impl EntityListProvider for ArtistListProvider {
 }
 
 pub struct ArtistsPageHandler {
-    _main_window: &'static MainWindow,
+    _main_window: MainWindow,
     coordinator: EntityListCoordinator<ArtistListProvider>,
 }
 
 impl ArtistsPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(main_window: &'static MainWindow, state_manager: &'static StateManager) -> Self {
+    pub fn new(main_window: &MainWindow, state_manager: &StateManager) -> Self {
+        let main_window_weak = main_window.as_weak();
+        let state_manager_menu = state_manager.clone();
         main_window
             .global::<ContextMenuCallbacks>()
             .on_get_artist_menu_items(move |artist_models| {
-                build_artist_context_menu_items(main_window, state_manager, &artist_models)
+                let Some(main_window) = main_window_weak.upgrade() else {
+                    return slint::ModelRc::default();
+                };
+                build_artist_context_menu_items(&main_window, &state_manager_menu, &artist_models)
             });
 
         let main_window_weak = main_window.as_weak();
+        let state_manager_action = state_manager.clone();
         main_window
             .global::<ContextMenuCallbacks>()
             .on_artist_action(move |artist_models, action_id| {
                 dispatch_artist_context_action(
                     &main_window_weak,
-                    state_manager,
+                    &state_manager_action,
                     &artist_models,
                     &action_id,
                 );
             });
 
         Self {
-            _main_window: main_window,
+            _main_window: main_window.clone_strong(),
             coordinator: EntityListCoordinator::new(main_window, state_manager),
         }
     }

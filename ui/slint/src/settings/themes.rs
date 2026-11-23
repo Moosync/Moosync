@@ -58,16 +58,16 @@ fn build_theme_config(
 }
 
 pub struct ThemesPageHandler {
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 }
 
 impl ThemesPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(main_window: &'static MainWindow, state_manager: &'static StateManager) -> Self {
+    pub fn new(main_window: &MainWindow, state_manager: &StateManager) -> Self {
         Self {
-            main_window,
-            state_manager,
+            main_window: main_window.clone_strong(),
+            state_manager: state_manager.clone(),
         }
     }
 
@@ -77,7 +77,7 @@ impl ThemesPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn refresh_preferences(
         main_window_weak: slint::Weak<MainWindow>,
-        state_manager: &'static StateManager,
+        state_manager: &StateManager,
     ) {
         let config = state_manager.get_preference_config();
         let loaded = config.load(&THEME_REGISTRIES);
@@ -342,9 +342,10 @@ impl ThemesPageHandler {
 
 #[tracing::instrument(level = "debug", skip_all)]
 fn listen_active_theme_preference(
-    state_manager: &'static StateManager,
+    state_manager: &StateManager,
     main_window_weak: slint::Weak<MainWindow>,
 ) {
+    let state_manager = state_manager.clone();
     tokio::spawn(
         async move {
             let preference_config = state_manager.get_preference_config();
@@ -353,9 +354,11 @@ fn listen_active_theme_preference(
                 .listen_filtered_immediate(
                     {
                         let main_window_weak = main_window_weak.clone();
+                        let sm = state_manager.clone();
                         move |key| {
                             if key == ACTIVE_THEME_ID.id.as_str() {
                                 let main_window_weak = main_window_weak.clone();
+                                let state_manager = sm.clone();
                                 tokio::spawn(
                                     async move {
                                         let theme_holder = state_manager.get_theme_holder();
@@ -434,7 +437,7 @@ async fn ensure_theme_installed(
 async fn select_preset_theme(
     theme_id: String,
     main_window_weak: slint::Weak<MainWindow>,
-    state_manager: &'static StateManager,
+    state_manager: StateManager,
 ) {
     tracing::debug!("Selecting preset theme: {}", theme_id);
     let theme_holder = state_manager.get_theme_holder();
@@ -473,12 +476,14 @@ async fn select_preset_theme(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn setup_select_preset_theme(main_window: &MainWindow, state_manager: &'static StateManager) {
+fn setup_select_preset_theme(main_window: &MainWindow, state_manager: &StateManager) {
     main_window
         .global::<crate::AppCallbacks>()
         .on_select_preset_theme({
             let main_window_weak = main_window.as_weak();
+            let state_manager = state_manager.clone();
             move |theme_id| {
+                let state_manager = state_manager.clone();
                 tokio::spawn(
                     select_preset_theme(
                         theme_id.to_string(),
@@ -492,7 +497,7 @@ fn setup_select_preset_theme(main_window: &MainWindow, state_manager: &'static S
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn setup_theme_constant_changed(main_window: &MainWindow, state_manager: &'static StateManager) {
+fn setup_theme_constant_changed(main_window: &MainWindow, state_manager: &StateManager) {
     let debounce_state = Arc::new(Mutex::new((
         HashMap::<String, String>::new(),
         Option::<tokio::task::JoinHandle<()>>::None,
@@ -503,6 +508,7 @@ fn setup_theme_constant_changed(main_window: &MainWindow, state_manager: &'stati
         .on_theme_constant_changed({
             let main_window_weak = main_window.as_weak();
             let debounce_state = debounce_state.clone();
+            let state_manager = state_manager.clone();
             move |constant_name, value| {
                 let constant_name = constant_name.to_string();
                 let value = value.to_string();
@@ -525,6 +531,7 @@ fn setup_theme_constant_changed(main_window: &MainWindow, state_manager: &'stati
 
                 let main_window_weak = main_window_weak.clone();
                 let debounce_state_clone = debounce_state.clone();
+                let sm = state_manager.clone();
                 guard.1 = Some(tokio::spawn(
                     async move {
                         tokio::time::sleep(Duration::from_millis(150)).await;
@@ -534,11 +541,7 @@ fn setup_theme_constant_changed(main_window: &MainWindow, state_manager: &'stati
                             mem::take(&mut guard.0)
                         };
                         if !pending.is_empty() {
-                            ThemesPageHandler::flush_changes(
-                                state_manager,
-                                &main_window_weak,
-                                &mut pending,
-                            );
+                            ThemesPageHandler::flush_changes(&sm, &main_window_weak, &mut pending);
                         }
                     }
                     .in_current_span(),
@@ -549,7 +552,7 @@ fn setup_theme_constant_changed(main_window: &MainWindow, state_manager: &'stati
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn save_custom_theme(
-    state_manager: &'static StateManager,
+    state_manager: StateManager,
     main_window_weak: slint::Weak<MainWindow>,
     name: String,
     author: String,
@@ -611,12 +614,14 @@ async fn save_custom_theme(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn setup_save_custom_theme(main_window: &MainWindow, state_manager: &'static StateManager) {
+fn setup_save_custom_theme(main_window: &MainWindow, state_manager: &StateManager) {
     main_window
         .global::<crate::AppCallbacks>()
         .on_save_custom_theme({
             let main_window_weak = main_window.as_weak();
+            let state_manager = state_manager.clone();
             move |name, author, description| {
+                let state_manager = state_manager.clone();
                 tokio::spawn(
                     save_custom_theme(
                         state_manager,
@@ -632,10 +637,7 @@ fn setup_save_custom_theme(main_window: &MainWindow, state_manager: &'static Sta
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn update_available_themes(
-    main_window_weak: slint::Weak<MainWindow>,
-    state_manager: &'static StateManager,
-) {
+fn update_available_themes(main_window_weak: slint::Weak<MainWindow>, state_manager: StateManager) {
     let theme_holder = state_manager.get_theme_holder();
     let configs = ThemesPageHandler::get_all_theme_configs(&theme_holder.inner);
     let update_ui = move |main_window: &MainWindow| {
@@ -663,7 +665,7 @@ fn update_available_themes(
 fn handle_theme_changed(
     changed_theme: ThemeDetails,
     main_window_weak: slint::Weak<MainWindow>,
-    state_manager: &'static StateManager,
+    state_manager: StateManager,
 ) {
     let preference_config = state_manager.get_preference_config();
     let active_theme_id = preference_config
@@ -688,15 +690,17 @@ fn handle_theme_changed(
 #[tracing::instrument(level = "debug", skip_all)]
 fn setup_themes_updated_listener(
     main_window_weak: slint::Weak<MainWindow>,
-    state_manager: &'static StateManager,
+    state_manager: &StateManager,
 ) -> types::subscription::CancelHandle {
     let theme_holder = state_manager.get_theme_holder();
+    let sm = state_manager.clone();
     theme_holder.on_themes_updated.listen(move |_| {
         let main_window_weak = main_window_weak.clone();
+        let state_manager = sm.clone();
         tokio::spawn(
             async move {
-                update_available_themes(main_window_weak.clone(), state_manager);
-                ThemesPageHandler::refresh_preferences(main_window_weak, state_manager);
+                update_available_themes(main_window_weak.clone(), state_manager.clone());
+                ThemesPageHandler::refresh_preferences(main_window_weak, &state_manager);
             }
             .in_current_span(),
         );
@@ -705,27 +709,30 @@ fn setup_themes_updated_listener(
 
 #[tracing::instrument(level = "debug", skip_all)]
 fn listen_theme_holder_changed(
-    state_manager: &'static StateManager,
+    state_manager: &StateManager,
     main_window_weak: slint::Weak<MainWindow>,
 ) {
+    let state_manager = state_manager.clone();
     tokio::spawn({
         async move {
             let theme_holder = state_manager.get_theme_holder();
             let mw_weak1 = main_window_weak.clone();
+            let sm_changed = state_manager.clone();
             let _cancel_theme_changed =
                 theme_holder.on_theme_changed.listen(move |changed_theme| {
                     let changed_theme = changed_theme.clone();
                     let mw_weak = mw_weak1.clone();
+                    let sm = sm_changed.clone();
                     tokio::spawn(
                         async move {
-                            handle_theme_changed(changed_theme, mw_weak, state_manager);
+                            handle_theme_changed(changed_theme, mw_weak, sm);
                         }
                         .in_current_span(),
                     );
                 });
 
             let _cancel_themes_updated =
-                setup_themes_updated_listener(main_window_weak, state_manager);
+                setup_themes_updated_listener(main_window_weak, &state_manager);
         }
         .in_current_span()
     });
@@ -736,23 +743,23 @@ impl PageHandler for ThemesPageHandler {
     fn initialize(&self) {
         let main_window_weak = self.main_window.as_weak();
 
-        ThemesPageHandler::refresh_preferences(main_window_weak.clone(), self.state_manager);
-        listen_active_theme_preference(self.state_manager, main_window_weak.clone());
-        setup_select_preset_theme(self.main_window, self.state_manager);
-        setup_theme_constant_changed(self.main_window, self.state_manager);
-        setup_save_custom_theme(self.main_window, self.state_manager);
-        listen_theme_holder_changed(self.state_manager, main_window_weak);
+        ThemesPageHandler::refresh_preferences(main_window_weak.clone(), &self.state_manager);
+        listen_active_theme_preference(&self.state_manager, main_window_weak.clone());
+        setup_select_preset_theme(&self.main_window, &self.state_manager);
+        setup_theme_constant_changed(&self.main_window, &self.state_manager);
+        setup_save_custom_theme(&self.main_window, &self.state_manager);
+        listen_theme_holder_changed(&self.state_manager, main_window_weak);
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) {
         tracing::info!("ThemesPageHandler: on_show");
-        let state_manager = self.state_manager;
+        let state_manager = self.state_manager.clone();
         let main_window_weak = self.main_window.as_weak();
         tokio::spawn(
             async move {
-                update_available_themes(main_window_weak.clone(), state_manager);
-                ThemesPageHandler::refresh_preferences(main_window_weak, state_manager);
+                update_available_themes(main_window_weak.clone(), state_manager.clone());
+                ThemesPageHandler::refresh_preferences(main_window_weak, &state_manager);
             }
             .in_current_span(),
         );

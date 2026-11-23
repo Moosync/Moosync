@@ -51,15 +51,15 @@ impl EntitySongProvider for GenreSongProvider {
 }
 
 pub struct GenreContentPageHandler {
-    _main_window: &'static MainWindow,
+    _main_window: MainWindow,
     coordinator: EntityContentCoordinator<GenreSongProvider>,
 }
 
 impl GenreContentPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(main_window: &'static MainWindow, state_manager: &'static StateManager) -> Self {
+    pub fn new(main_window: &MainWindow, state_manager: &StateManager) -> Self {
         Self {
-            _main_window: main_window,
+            _main_window: main_window.clone_strong(),
             coordinator: EntityContentCoordinator::new(main_window, state_manager),
         }
     }

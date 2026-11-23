@@ -25,16 +25,16 @@ use crate::{
 };
 
 pub struct SearchPageHandler {
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 }
 
 impl SearchPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(main_window: &'static MainWindow, state_manager: &'static StateManager) -> Self {
+    pub fn new(main_window: &MainWindow, state_manager: &StateManager) -> Self {
         Self {
-            main_window,
-            state_manager,
+            main_window: main_window.clone_strong(),
+            state_manager: state_manager.clone(),
         }
     }
 
@@ -203,7 +203,7 @@ impl SearchPageHandler {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn perform_search(
-        state_manager: &'static StateManager,
+        state_manager: StateManager,
         main_window_weak: Weak<MainWindow>,
         term: String,
     ) {
@@ -212,22 +212,24 @@ impl SearchPageHandler {
             async move {
                 let term = term.trim().to_string();
                 if term.is_empty() {
+                    let sm_ui = state_manager.clone();
                     let _ = main_window_weak.upgrade_in_event_loop(move |window| {
-                        Self::reset_providers(&window, state_manager, false);
+                        Self::reset_providers(&window, &sm_ui, false);
                     });
                     return;
                 }
 
                 tracing::debug!("Performing search for '{}' (id: {})", term, search_id);
 
+                let sm_ui = state_manager.clone();
                 let _ = main_window_weak.upgrade_in_event_loop(move |window| {
                     if search_id == SEARCH_ID.load(Ordering::SeqCst) {
-                        Self::reset_providers(&window, state_manager, true);
+                        Self::reset_providers(&window, &sm_ui, true);
                     }
                 });
 
                 let cache_dir = state_manager.get_cache_dir();
-                let local_res = Self::search_local(state_manager, &term)
+                let local_res = Self::search_local(&state_manager, &term)
                     .await
                     .unwrap_or_else(|e| {
                         tracing::error!("Local search failed for query '{}': {:?}", term, e);
@@ -255,7 +257,7 @@ impl SearchPageHandler {
                 for detail in extension_handler.get_installed_extensions() {
                     let is_search = detail.contains_scope(ExtensionProviderScope::Search);
                     if is_search && !active_packages.contains(&detail.package_name) {
-                        let has_account = Self::has_account(state_manager, &detail);
+                        let has_account = Self::has_account(&state_manager, &detail);
                         Self::update_provider_result_if_current(
                             &main_window_weak,
                             &cache_dir,
@@ -316,7 +318,7 @@ impl SearchPageHandler {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn setup_callbacks(&self) {
-        let state_manager = self.state_manager;
+        let state_manager = self.state_manager.clone();
         let main_window_weak = self.main_window.as_weak();
         self.main_window
             .global::<AppCallbacks>()
@@ -330,32 +332,34 @@ impl SearchPageHandler {
                 if term.trim().is_empty() {
                     SEARCH_ID.fetch_add(1, Ordering::SeqCst);
                     if let Some(window) = main_window_weak.upgrade() {
-                        Self::reset_providers(&window, state_manager, false);
+                        Self::reset_providers(&window, &state_manager, false);
                     }
                     return;
                 }
-                Self::perform_search(state_manager, main_window_weak.clone(), term.to_string());
+                Self::perform_search(
+                    state_manager.clone(),
+                    main_window_weak.clone(),
+                    term.to_string(),
+                );
             });
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn setup_accounts_listener(&self) {
-        let state_manager = self.state_manager;
+        let state_manager = self.state_manager.clone();
         let main_window_weak = self.main_window.as_weak();
         tokio::spawn(
             async move {
                 let extension_handler = state_manager.get_extension_handler();
                 let _cancel = extension_handler.on_accounts_updated.listen({
                     let main_window_weak = main_window_weak.clone();
+                    let sm = state_manager.clone();
                     move |_| {
+                        let sm = sm.clone();
                         let _ = main_window_weak.upgrade_in_event_loop(move |window| {
                             let query = window.global::<SearchPageProps>().get_search_query();
                             if !query.trim().is_empty() {
-                                Self::perform_search(
-                                    state_manager,
-                                    window.as_weak(),
-                                    query.to_string(),
-                                );
+                                Self::perform_search(sm, window.as_weak(), query.to_string());
                             }
                         });
                     }
@@ -367,16 +371,18 @@ impl SearchPageHandler {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn setup_extensions_listener(&self) {
-        let state_manager = self.state_manager;
+        let state_manager = self.state_manager.clone();
         let main_window_weak = self.main_window.as_weak();
         tokio::spawn(
             async move {
                 let extension_handler = state_manager.get_extension_handler();
                 let _cancel = extension_handler.on_extensions_updated.listen({
                     let main_window_weak = main_window_weak.clone();
+                    let sm_ui = state_manager.clone();
                     move |_| {
+                        let sm_ui = sm_ui.clone();
                         let _ = main_window_weak.upgrade_in_event_loop(move |window| {
-                            Self::init_providers(&window, state_manager);
+                            Self::init_providers(&window, &sm_ui);
                         });
                     }
                 });
@@ -389,12 +395,12 @@ impl SearchPageHandler {
 impl PageHandler for SearchPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     fn initialize(&self) {
-        Self::init_providers(self.main_window, self.state_manager);
+        Self::init_providers(&self.main_window, &self.state_manager);
         self.setup_callbacks();
         self.setup_accounts_listener();
         self.setup_extensions_listener();
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn on_show(&self) { Self::init_providers(self.main_window, self.state_manager); }
+    fn on_show(&self) { Self::init_providers(&self.main_window, &self.state_manager); }
 }

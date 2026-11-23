@@ -11,10 +11,7 @@ use songs_proto::moosync::types::Playlist;
 use state_manager::StateManager;
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_search_category_songs(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+async fn do_search_category_songs(main_window: MainWindow, state_manager: StateManager) {
     let database = state_manager.get_database();
     let song = create_test_song("s4", "Searchable Melody", "Mix Album", "Mix Artist");
     database.insert_songs(vec![song]).await.unwrap();
@@ -50,22 +47,19 @@ async fn do_search_category_songs(
     );
 
     let handles_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Searchable Melody").count() == 1
+        ElementHandle::find_by_accessible_label(&main_window, "Searchable Melody").count() == 1
     })
     .await;
     assert!(handles_found);
 
     let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Searchable Melody").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Searchable Melody").collect();
     assert_eq!(handles.len(), 1);
     assert!(handles[0].is_valid());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_search_category_albums(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+async fn do_search_category_albums(main_window: MainWindow, state_manager: StateManager) {
     let database = state_manager.get_database();
     let song = create_test_song("s_album_disc", "Mix Track", "Searchable Disc", "Mix Artist");
     database.insert_songs(vec![song]).await.unwrap();
@@ -94,7 +88,7 @@ async fn do_search_category_albums(
     assert!(searched);
 
     let album_tabs: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Search Albums").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Search Albums").collect();
     assert_eq!(album_tabs.len(), 1);
     assert!(album_tabs[0].is_valid());
     album_tabs[0]
@@ -103,22 +97,19 @@ async fn do_search_category_albums(
     main_window.global::<SearchPageProps>().set_active_tab(1);
 
     let handles_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Searchable Disc").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Searchable Disc").count() > 0
     })
     .await;
     assert!(handles_found);
 
     let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Searchable Disc").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Searchable Disc").collect();
     assert!(!handles.is_empty());
     assert!(handles[0].is_valid());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_search_category_artists(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+async fn do_search_category_artists(main_window: MainWindow, state_manager: StateManager) {
     let database = state_manager.get_database();
     let song = create_test_song("s4", "Mix Track", "Mix Album", "Searchable Singer");
     database.insert_songs(vec![song]).await.unwrap();
@@ -147,7 +138,7 @@ async fn do_search_category_artists(
     assert!(searched);
 
     let artist_tabs: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Search Artists").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Search Artists").collect();
     assert_eq!(artist_tabs.len(), 1);
     assert!(artist_tabs[0].is_valid());
     artist_tabs[0]
@@ -155,22 +146,19 @@ async fn do_search_category_artists(
         .await;
 
     let handles_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Searchable Singer").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Searchable Singer").count() > 0
     })
     .await;
     assert!(handles_found);
 
     let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Searchable Singer").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Searchable Singer").collect();
     assert!(!handles.is_empty());
     assert!(handles[0].is_valid());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_search_category_playlists(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+async fn do_search_category_playlists(main_window: MainWindow, state_manager: StateManager) {
     let database = state_manager.get_database();
     let song = create_test_song("s4", "Mix Track", "Mix Album", "Mix Artist");
     database.insert_songs(vec![song.clone()]).await.unwrap();
@@ -211,7 +199,7 @@ async fn do_search_category_playlists(
     assert!(searched);
 
     let playlist_tabs: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Search Playlists").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Search Playlists").collect();
     assert_eq!(playlist_tabs.len(), 1);
     assert!(playlist_tabs[0].is_valid());
     playlist_tabs[0]
@@ -220,24 +208,21 @@ async fn do_search_category_playlists(
 
     let handles_found = wait_until(|| {
         let handles: Vec<ElementHandle> =
-            ElementHandle::find_by_accessible_label(main_window, "Searchable Mix").collect();
+            ElementHandle::find_by_accessible_label(&main_window, "Searchable Mix").collect();
         handles.len() == 1
     })
     .await;
     assert!(handles_found);
 
     let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Searchable Mix").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Searchable Mix").collect();
     assert_eq!(handles.len(), 1);
     assert!(handles[0].is_valid());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_search_extension_integration(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
-    let _ext = ExtensionFixture::new(state_manager).await;
+async fn do_search_extension_integration(main_window: MainWindow, state_manager: StateManager) {
+    let _ext = ExtensionFixture::new(&state_manager).await;
 
     main_window
         .global::<AppCallbacks>()
@@ -269,11 +254,8 @@ async fn do_search_extension_integration(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_search_not_logged_in_message(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
-    let _ext = ExtensionFixture::new_empty(state_manager).await;
+async fn do_search_not_logged_in_message(main_window: MainWindow, state_manager: StateManager) {
+    let _ext = ExtensionFixture::new_empty(&state_manager).await;
 
     main_window
         .global::<AppCallbacks>()
@@ -320,13 +302,13 @@ async fn do_search_not_logged_in_message(
         .set_selected_provider(sample_idx as i32);
 
     let prompt_visible = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Not logged in").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Not logged in").count() > 0
     })
     .await;
     assert!(prompt_visible);
 
     let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Not logged in").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Not logged in").collect();
     assert_eq!(handles.len(), 1);
     assert!(handles[0].is_valid());
 
@@ -343,17 +325,14 @@ async fn do_search_not_logged_in_message(
         .invoke_submit_oauth_code("sample_callback?code=sample_auth_code_123".into());
 
     let prompt_hidden = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Not logged in").count() == 0
+        ElementHandle::find_by_accessible_label(&main_window, "Not logged in").count() == 0
     })
     .await;
     assert!(prompt_hidden);
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_search_no_results_tooltip(
-    main_window: &'static MainWindow,
-    _state_manager: &'static StateManager,
-) {
+async fn do_search_no_results_tooltip(main_window: MainWindow, _state_manager: StateManager) {
     main_window
         .global::<AppCallbacks>()
         .invoke_active_page_changed(Pages::Search);
@@ -383,22 +362,19 @@ async fn do_search_no_results_tooltip(
         .set_selected_provider(0);
 
     let tooltip_visible = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "No results found").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "No results found").count() > 0
     })
     .await;
     assert!(tooltip_visible);
 
     let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "No results found").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "No results found").collect();
     assert_eq!(handles.len(), 1);
     assert!(handles[0].is_valid());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_search_network_covers_ui_hang(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+async fn do_search_network_covers_ui_hang(main_window: MainWindow, state_manager: StateManager) {
     use std::time::Duration;
 
     use wiremock::{Mock, MockServer, ResponseTemplate, matchers::method};
@@ -462,9 +438,10 @@ async fn do_search_network_covers_ui_hang(
     })
     .await;
     assert!(searched);
-    let handles_found =
-        wait_until(|| ElementHandle::find_by_accessible_label(main_window, "Track 0").count() == 1)
-            .await;
+    let handles_found = wait_until(|| {
+        ElementHandle::find_by_accessible_label(&main_window, "Track 0").count() == 1
+    })
+    .await;
     assert!(handles_found);
 
     let results = main_window
@@ -479,7 +456,7 @@ async fn do_search_network_covers_ui_hang(
 
     let start_time = std::time::Instant::now();
     let album_tabs: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Search Albums").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Search Albums").collect();
     assert_eq!(album_tabs.len(), 1);
     album_tabs[0]
         .single_click(slint::platform::PointerEventButton::Left)
@@ -491,7 +468,7 @@ async fn do_search_network_covers_ui_hang(
     assert!(tab_switched);
 
     let song_tabs: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Search Songs").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Search Songs").collect();
     assert_eq!(song_tabs.len(), 1);
     let switch_back_start = std::time::Instant::now();
     song_tabs[0]
@@ -539,10 +516,10 @@ async fn do_search_network_covers_ui_hang(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_search_extension_pills_appear_immediately(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 ) {
-    let _ext = ExtensionFixture::new(state_manager).await;
+    let _ext = ExtensionFixture::new(&state_manager).await;
 
     main_window
         .global::<AppCallbacks>()
@@ -565,12 +542,12 @@ async fn do_search_extension_pills_appear_immediately(
     assert!(pills_appear);
 
     let display_name_pill_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Sample Extension").count() == 1
+        ElementHandle::find_by_accessible_label(&main_window, "Sample Extension").count() == 1
     })
     .await;
     assert!(display_name_pill_found);
     assert_eq!(
-        ElementHandle::find_by_accessible_label(main_window, "rs.sample").count(),
+        ElementHandle::find_by_accessible_label(&main_window, "rs.sample").count(),
         0
     );
 
@@ -593,8 +570,8 @@ async fn do_search_extension_pills_appear_immediately(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_search_click_album_navigates_to_album_content(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 ) {
     let database = state_manager.get_database();
     let song = create_test_song("s_alb_nav", "Track One", "Clickable Album", "Album Artist");
@@ -626,13 +603,13 @@ async fn do_search_click_album_navigates_to_album_content(
     main_window.global::<SearchPageProps>().set_active_tab(1);
 
     let handles_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Clickable Album").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Clickable Album").count() > 0
     })
     .await;
     assert!(handles_found);
 
     let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Clickable Album").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Clickable Album").collect();
     assert!(!handles.is_empty());
     assert!(handles[0].is_valid());
     handles[0]
@@ -653,8 +630,8 @@ async fn do_search_click_album_navigates_to_album_content(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_search_click_artist_navigates_to_artist_content(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 ) {
     let database = state_manager.get_database();
     let song = create_test_song("s_art_nav", "Track Two", "Album Two", "Clickable Artist");
@@ -686,13 +663,13 @@ async fn do_search_click_artist_navigates_to_artist_content(
     main_window.global::<SearchPageProps>().set_active_tab(2);
 
     let handles_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Clickable Artist").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Clickable Artist").count() > 0
     })
     .await;
     assert!(handles_found);
 
     let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Clickable Artist").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Clickable Artist").collect();
     assert!(!handles.is_empty());
     assert!(handles[0].is_valid());
     handles[0]
@@ -718,8 +695,8 @@ async fn do_search_click_artist_navigates_to_artist_content(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_search_click_playlist_navigates_to_playlist_content(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 ) {
     let database = state_manager.get_database();
     let song = create_test_song("s_pl_song", "Pl Track", "Pl Album", "Pl Artist");
@@ -760,13 +737,13 @@ async fn do_search_click_playlist_navigates_to_playlist_content(
     main_window.global::<SearchPageProps>().set_active_tab(3);
 
     let handles_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Clickable Playlist").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Clickable Playlist").count() > 0
     })
     .await;
     assert!(handles_found);
 
     let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Clickable Playlist").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Clickable Playlist").collect();
     assert!(!handles.is_empty());
     assert!(handles[0].is_valid());
     handles[0]
@@ -792,10 +769,10 @@ async fn do_search_click_playlist_navigates_to_playlist_content(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_search_extension_album_with_scope_enables_provider(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 ) {
-    let _ext = ExtensionFixture::new(state_manager).await;
+    let _ext = ExtensionFixture::new(&state_manager).await;
 
     main_window
         .global::<AppCallbacks>()
@@ -826,13 +803,13 @@ async fn do_search_extension_album_with_scope_enables_provider(
     main_window.global::<SearchPageProps>().set_active_tab(1);
 
     let handles_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Search Album 1").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Search Album 1").count() > 0
     })
     .await;
     assert!(handles_found);
 
     let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Search Album 1").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Search Album 1").collect();
     assert!(!handles.is_empty());
     assert!(handles[0].is_valid());
     handles[0]
@@ -862,10 +839,10 @@ async fn do_search_extension_album_with_scope_enables_provider(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_search_extension_album_without_scope_does_not_enable_provider(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 ) {
-    let _ext = ExtensionFixture::new_empty(state_manager).await;
+    let _ext = ExtensionFixture::new_empty(&state_manager).await;
     let database = state_manager.get_database();
     let mut song = create_test_song(
         "s_no_scope",
@@ -904,13 +881,13 @@ async fn do_search_extension_album_without_scope_does_not_enable_provider(
     main_window.global::<SearchPageProps>().set_active_tab(1);
 
     let handles_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "No Scope Album").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "No Scope Album").count() > 0
     })
     .await;
     assert!(handles_found);
 
     let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "No Scope Album").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "No Scope Album").collect();
     assert!(!handles.is_empty());
     assert!(handles[0].is_valid());
     handles[0]

@@ -18,16 +18,16 @@ use crate::{
 type RecommendationItem = (ExtensionDetail, Option<String>, Vec<Song>);
 
 pub struct ExplorePageHandler {
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 }
 
 impl ExplorePageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(main_window: &'static MainWindow, state_manager: &'static StateManager) -> Self {
+    pub fn new(main_window: &MainWindow, state_manager: &StateManager) -> Self {
         Self {
-            main_window,
-            state_manager,
+            main_window: main_window.clone_strong(),
+            state_manager: state_manager.clone(),
         }
     }
 
@@ -124,16 +124,16 @@ impl PageHandler for ExplorePageHandler {
     fn on_show(&self) {
         tracing::debug!("ExplorePage: on_show triggered");
         tokio::spawn({
-            let state_manager = self.state_manager;
+            let state_manager = self.state_manager.clone();
             let main_window_weak = self.main_window.as_weak();
             async move {
-                match Self::fetch_all_recommendations(state_manager).await {
+                match Self::fetch_all_recommendations(&state_manager).await {
                     Ok(recommendations) => {
                         let _ = slint::invoke_from_event_loop(move || {
                             if let Some(main_window) = main_window_weak.upgrade() {
                                 Self::render_recommendations(
                                     &main_window,
-                                    state_manager,
+                                    &state_manager,
                                     recommendations,
                                 );
                             }

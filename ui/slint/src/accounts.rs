@@ -28,10 +28,10 @@ pub struct AccountsHandler;
 
 impl AccountsHandler {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn setup(main_window: &'static MainWindow, state_manager: &'static StateManager) {
+    pub fn setup(main_window: &MainWindow, state_manager: &StateManager) {
         Self::setup_callbacks(main_window, state_manager);
         Self::setup_listeners(main_window, state_manager);
-        Self::fetch_and_render_accounts(main_window.as_weak(), state_manager);
+        Self::fetch_and_render_accounts(main_window.as_weak(), state_manager.clone());
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -40,7 +40,7 @@ impl AccountsHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn fetch_and_render_accounts(
         main_window_weak: Weak<MainWindow>,
-        state_manager: &'static StateManager,
+        state_manager: StateManager,
     ) {
         tokio::spawn(
             async move {
@@ -81,15 +81,24 @@ impl AccountsHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn setup_listeners(main_window: &'static MainWindow, state_manager: &'static StateManager) {
+    fn setup_listeners(main_window: &MainWindow, state_manager: &StateManager) {
         let main_window_weak = main_window.as_weak();
+        let state_manager = state_manager.clone();
         tokio::spawn(
             async move {
                 let extension_handler = state_manager.get_extension_handler();
-                let _cancel = extension_handler.on_accounts_updated.listen({
+                let _cancel_accounts = extension_handler.on_accounts_updated.listen({
                     let main_window_weak = main_window_weak.clone();
+                    let sm = state_manager.clone();
                     move |_| {
-                        Self::fetch_and_render_accounts(main_window_weak.clone(), state_manager);
+                        Self::fetch_and_render_accounts(main_window_weak.clone(), sm.clone());
+                    }
+                });
+                let _cancel_extensions = extension_handler.on_extensions_updated.listen({
+                    let main_window_weak = main_window_weak.clone();
+                    let sm = state_manager.clone();
+                    move |_| {
+                        Self::fetch_and_render_accounts(main_window_weak.clone(), sm.clone());
                     }
                 });
             }
@@ -101,7 +110,7 @@ impl AccountsHandler {
     async fn handle_account_login(
         package_name: String,
         account_id: String,
-        state_manager: &'static StateManager,
+        state_manager: StateManager,
         main_window_weak: slint::Weak<MainWindow>,
     ) {
         let extension_handler = state_manager.get_extension_handler();
@@ -160,11 +169,9 @@ impl AccountsHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn setup_login_callback(
-        main_window: &'static MainWindow,
-        state_manager: &'static StateManager,
-    ) {
+    fn setup_login_callback(main_window: &MainWindow, state_manager: &StateManager) {
         let main_window_weak = main_window.as_weak();
+        let state_manager = state_manager.clone();
         main_window
             .global::<AppCallbacks>()
             .on_account_login(move |package_name, account_id| {
@@ -176,6 +183,7 @@ impl AccountsHandler {
                 let main_window_weak = main_window_weak.clone();
                 let package_name = package_name.to_string();
                 let account_id = account_id.to_string();
+                let state_manager = state_manager.clone();
                 tokio::spawn(
                     Self::handle_account_login(
                         package_name,
@@ -189,15 +197,14 @@ impl AccountsHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn setup_logout_callback(
-        main_window: &'static MainWindow,
-        state_manager: &'static StateManager,
-    ) {
+    fn setup_logout_callback(main_window: &MainWindow, state_manager: &StateManager) {
+        let state_manager = state_manager.clone();
         main_window
             .global::<AppCallbacks>()
             .on_account_logout(move |package_name, account_id| {
                 let package_name = package_name.to_string();
                 let account_id = account_id.to_string();
+                let state_manager = state_manager.clone();
                 tokio::spawn(
                     async move {
                         let extension_handler = state_manager.get_extension_handler();
@@ -436,11 +443,9 @@ impl AccountsHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn setup_oauth_code_callback(
-        main_window: &'static MainWindow,
-        state_manager: &'static StateManager,
-    ) {
+    fn setup_oauth_code_callback(main_window: &MainWindow, state_manager: &StateManager) {
         let main_window_weak = main_window.as_weak();
+        let state_manager = state_manager.clone();
         main_window
             .global::<AppCallbacks>()
             .on_submit_oauth_code(move |code| {
@@ -452,9 +457,10 @@ impl AccountsHandler {
                             .to_string()
                     })
                     .unwrap_or_default();
-                let code_str = Self::build_callback_url(&code, &active_pkg, state_manager);
+                let code_str = Self::build_callback_url(&code, &active_pkg, &state_manager);
                 tracing::debug!("Using code str: {}", code_str);
                 let main_window_weak = main_window_weak.clone();
+                let state_manager = state_manager.clone();
                 tokio::spawn(
                     async move {
                         let res = state_manager.handle_oauth_callback(&code_str).await;
@@ -466,29 +472,27 @@ impl AccountsHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn setup_callbacks(main_window: &'static MainWindow, state_manager: &'static StateManager) {
+    fn setup_callbacks(main_window: &MainWindow, state_manager: &StateManager) {
         Self::setup_login_callback(main_window, state_manager);
         Self::setup_logout_callback(main_window, state_manager);
         Self::setup_oauth_code_callback(main_window, state_manager);
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn setup_uri_scheme(
-        main_window: &'static MainWindow,
-        state_manager: &'static StateManager,
-    ) {
+    pub fn setup_uri_scheme(main_window: &MainWindow, state_manager: &StateManager) {
         Self::setup_deep_link(main_window, state_manager);
     }
 
     #[cfg(all(not(target_os = "android"), not(test)))]
     #[tracing::instrument(level = "debug", skip_all)]
-    fn setup_deep_link(main_window: &'static MainWindow, state_manager: &'static StateManager) {
+    fn setup_deep_link(main_window: &MainWindow, state_manager: &StateManager) {
         let mw_weak = main_window.as_weak();
+        let state_manager = state_manager.clone();
         sysuri::register_handler(
             "moosync",
             sysuri::FnHandler::new(move |uri: &str| {
                 if let Some(mw) = mw_weak.upgrade() {
-                    Self::handle_deep_link(uri, state_manager, &mw);
+                    Self::handle_deep_link(uri, state_manager.clone(), &mw);
                 }
             }),
         );
@@ -507,11 +511,11 @@ impl AccountsHandler {
 
     #[cfg(all(not(target_os = "android"), test))]
     #[tracing::instrument(level = "debug", skip_all)]
-    fn setup_deep_link(_main_window: &'static MainWindow, _state_manager: &'static StateManager) {}
+    fn setup_deep_link(_main_window: &MainWindow, _state_manager: &StateManager) {}
 
     #[cfg(target_os = "android")]
     #[tracing::instrument(level = "debug", skip_all)]
-    fn setup_deep_link(main_window: &'static MainWindow, state_manager: &'static StateManager) {
+    fn setup_deep_link(main_window: &MainWindow, state_manager: &StateManager) {
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<String>();
         match DEEP_LINK_TX.lock() {
             Ok(mut guard) => {
@@ -540,11 +544,7 @@ impl AccountsHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn handle_deep_link(
-        url: &str,
-        state_manager: &'static StateManager,
-        main_window: &MainWindow,
-    ) {
+    pub fn handle_deep_link(url: &str, state_manager: StateManager, main_window: &MainWindow) {
         let url_str = url.to_string();
         let main_window_weak = main_window.as_weak();
         tokio::spawn(

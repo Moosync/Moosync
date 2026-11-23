@@ -15,10 +15,10 @@ async fn test_accounts_handler_setup_and_empty_render(
     main_window: crate::MainWindow,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let main_window = Box::leak(Box::new(main_window));
-    let state_manager = Box::leak(Box::new(sm));
+    let main_window = main_window;
+    let state_manager = sm;
 
-    AccountsHandler::setup(main_window, state_manager);
+    AccountsHandler::setup(&main_window, &state_manager);
 
     assert_eq!(
         main_window
@@ -37,10 +37,10 @@ async fn test_accounts_handler_callbacks(
     main_window: crate::MainWindow,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let main_window = Box::leak(Box::new(main_window));
-    let state_manager = Box::leak(Box::new(sm));
+    let main_window = main_window;
+    let state_manager = sm;
 
-    AccountsHandler::setup(main_window, state_manager);
+    AccountsHandler::setup(&main_window, &state_manager);
 
     let callbacks = main_window.global::<crate::AppCallbacks>();
     callbacks.invoke_account_login("nonexistent.pkg".into(), "acc_1".into());
@@ -65,15 +65,15 @@ async fn test_accounts_handler_deep_link_and_browser(
     main_window: crate::MainWindow,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let main_window = Box::leak(Box::new(main_window));
-    let state_manager = Box::leak(Box::new(sm));
+    let main_window = main_window;
+    let state_manager = sm;
 
     AccountsHandler::handle_deep_link(
         "moosync://oauth_callback?code=abc",
-        state_manager,
-        main_window,
+        state_manager.clone(),
+        &main_window,
     );
-    AccountsHandler::setup_uri_scheme(main_window, state_manager);
+    AccountsHandler::setup_uri_scheme(&main_window, &state_manager);
 
     tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 }

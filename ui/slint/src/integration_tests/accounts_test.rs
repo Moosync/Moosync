@@ -8,11 +8,8 @@ use slint_app::{
 use state_manager::StateManager;
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_accounts_open_popup(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
-    AccountsHandler::fetch_and_render_accounts(main_window.as_weak(), state_manager);
+async fn do_accounts_open_popup(main_window: MainWindow, state_manager: StateManager) {
+    AccountsHandler::fetch_and_render_accounts(main_window.as_weak(), state_manager.clone());
     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
 
     let empty = wait_until(|| {
@@ -26,7 +23,7 @@ async fn do_accounts_open_popup(
     assert!(empty);
 
     let accounts_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Accounts").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Accounts").collect();
     assert_eq!(accounts_handles.len(), 1);
     assert!(accounts_handles[0].is_valid());
 
@@ -44,12 +41,9 @@ async fn do_accounts_open_popup(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_accounts_login_opens_oauth_modal(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
-    let _ext = ExtensionFixture::new(state_manager).await;
-    AccountsHandler::fetch_and_render_accounts(main_window.as_weak(), state_manager);
+async fn do_accounts_login_opens_oauth_modal(main_window: MainWindow, state_manager: StateManager) {
+    let _ext = ExtensionFixture::new(&state_manager).await;
+    AccountsHandler::fetch_and_render_accounts(main_window.as_weak(), state_manager.clone());
 
     let loaded = wait_until(|| {
         let accounts = main_window.global::<AccountsProps>().get_accounts();
@@ -62,7 +56,7 @@ async fn do_accounts_login_opens_oauth_modal(
     assert!(loaded);
 
     let accounts_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Accounts").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Accounts").collect();
     assert_eq!(accounts_handles.len(), 1);
     accounts_handles[0]
         .single_click(slint::platform::PointerEventButton::Left)
@@ -86,18 +80,18 @@ async fn do_accounts_login_opens_oauth_modal(
     );
 
     let submit_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Submit").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Submit").collect();
     assert_eq!(submit_handles.len(), 1);
     assert!(submit_handles[0].is_valid());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_accounts_submit_oauth_code_and_modal_dismissal(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 ) {
-    let _ext = ExtensionFixture::new(state_manager).await;
-    AccountsHandler::fetch_and_render_accounts(main_window.as_weak(), state_manager);
+    let _ext = ExtensionFixture::new(&state_manager).await;
+    AccountsHandler::fetch_and_render_accounts(main_window.as_weak(), state_manager.clone());
 
     let loaded = wait_until(|| {
         let accounts = main_window.global::<AccountsProps>().get_accounts();
@@ -110,7 +104,7 @@ async fn do_accounts_submit_oauth_code_and_modal_dismissal(
     assert!(loaded);
 
     let accounts_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Accounts").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Accounts").collect();
     assert_eq!(accounts_handles.len(), 1);
     accounts_handles[0]
         .single_click(slint::platform::PointerEventButton::Left)
@@ -133,7 +127,7 @@ async fn do_accounts_submit_oauth_code_and_modal_dismissal(
         .set_oauth_code("sample_callback?code=sample_auth_code_123".into());
 
     let submit_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Submit").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Submit").collect();
     assert_eq!(submit_handles.len(), 1);
     assert!(submit_handles[0].is_valid());
 
@@ -154,17 +148,14 @@ async fn do_accounts_submit_oauth_code_and_modal_dismissal(
     assert!(logged_in);
 
     let submit_handles_after: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Submit").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Submit").collect();
     assert_eq!(submit_handles_after.len(), 0);
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_accounts_logout(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
-    let _ext = ExtensionFixture::new(state_manager).await;
-    AccountsHandler::fetch_and_render_accounts(main_window.as_weak(), state_manager);
+async fn do_accounts_logout(main_window: MainWindow, state_manager: StateManager) {
+    let _ext = ExtensionFixture::new(&state_manager).await;
+    AccountsHandler::fetch_and_render_accounts(main_window.as_weak(), state_manager.clone());
 
     let loaded = wait_until(|| {
         let accounts = main_window.global::<AccountsProps>().get_accounts();
@@ -177,7 +168,7 @@ async fn do_accounts_logout(
     assert!(loaded);
 
     let accounts_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Accounts").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Accounts").collect();
     assert_eq!(accounts_handles.len(), 1);
     accounts_handles[0]
         .single_click(slint::platform::PointerEventButton::Left)
@@ -193,7 +184,7 @@ async fn do_accounts_logout(
         .set_oauth_code("sample_callback?code=sample_code".into());
 
     let submit_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Submit").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Submit").collect();
     assert_eq!(submit_handles.len(), 1);
 
     main_window
@@ -234,12 +225,9 @@ async fn do_accounts_logout(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_accounts_deep_link_login(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
-    let _ext = ExtensionFixture::new(state_manager).await;
-    AccountsHandler::fetch_and_render_accounts(main_window.as_weak(), state_manager);
+async fn do_accounts_deep_link_login(main_window: MainWindow, state_manager: StateManager) {
+    let _ext = ExtensionFixture::new(&state_manager).await;
+    AccountsHandler::fetch_and_render_accounts(main_window.as_weak(), state_manager.clone());
 
     let loaded = wait_until(|| {
         let accounts = main_window.global::<AccountsProps>().get_accounts();
@@ -252,7 +240,7 @@ async fn do_accounts_deep_link_login(
     assert!(loaded);
 
     let accounts_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Accounts").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Accounts").collect();
     assert_eq!(accounts_handles.len(), 1);
     accounts_handles[0]
         .single_click(slint::platform::PointerEventButton::Left)
@@ -272,8 +260,8 @@ async fn do_accounts_deep_link_login(
 
     AccountsHandler::handle_deep_link(
         "moosync://sample_callback?code=deep_link_456",
-        state_manager,
-        main_window,
+        state_manager.clone(),
+        &main_window,
     );
 
     let logged_in = wait_until(|| {
@@ -289,17 +277,14 @@ async fn do_accounts_deep_link_login(
     assert!(logged_in);
 
     let submit_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Submit").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Submit").collect();
     assert_eq!(submit_handles.len(), 0);
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_oauth_modal_plain_code_routing(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
-    let _ext = ExtensionFixture::new(state_manager).await;
-    AccountsHandler::fetch_and_render_accounts(main_window.as_weak(), state_manager);
+async fn do_oauth_modal_plain_code_routing(main_window: MainWindow, state_manager: StateManager) {
+    let _ext = ExtensionFixture::new(&state_manager).await;
+    AccountsHandler::fetch_and_render_accounts(main_window.as_weak(), state_manager.clone());
 
     let loaded = wait_until(|| {
         main_window
@@ -338,11 +323,11 @@ async fn do_oauth_modal_plain_code_routing(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_oauth_modal_extra_markdown_pairing(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 ) {
-    let _ext = ExtensionFixture::new(state_manager).await;
-    AccountsHandler::fetch_and_render_accounts(main_window.as_weak(), state_manager);
+    let _ext = ExtensionFixture::new(&state_manager).await;
+    AccountsHandler::fetch_and_render_accounts(main_window.as_weak(), state_manager.clone());
 
     let loaded = wait_until(|| {
         main_window
@@ -381,7 +366,7 @@ async fn do_oauth_modal_extra_markdown_pairing(
     );
 
     let done_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Done").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Done").collect();
     assert_eq!(done_handles.len(), 1);
     done_handles[0]
         .single_click(slint::platform::PointerEventButton::Left)
@@ -393,11 +378,11 @@ async fn do_oauth_modal_extra_markdown_pairing(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_oauth_modal_error_keeps_modal_open(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 ) {
-    let _ext = ExtensionFixture::new(state_manager).await;
-    AccountsHandler::fetch_and_render_accounts(main_window.as_weak(), state_manager);
+    let _ext = ExtensionFixture::new(&state_manager).await;
+    AccountsHandler::fetch_and_render_accounts(main_window.as_weak(), state_manager.clone());
 
     let loaded = wait_until(|| {
         main_window
@@ -438,11 +423,11 @@ async fn do_oauth_modal_error_keeps_modal_open(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_oauth_modal_device_code_and_refresh(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 ) {
-    let _ext = ExtensionFixture::new(state_manager).await;
-    AccountsHandler::fetch_and_render_accounts(main_window.as_weak(), state_manager);
+    let _ext = ExtensionFixture::new(&state_manager).await;
+    AccountsHandler::fetch_and_render_accounts(main_window.as_weak(), state_manager.clone());
 
     let loaded = wait_until(|| {
         main_window
@@ -468,13 +453,14 @@ async fn do_oauth_modal_device_code_and_refresh(
     .await;
     assert!(device_shown);
 
-    let refresh_ready =
-        wait_until(|| ElementHandle::find_by_accessible_label(main_window, "Refresh").count() == 1)
-            .await;
+    let refresh_ready = wait_until(|| {
+        ElementHandle::find_by_accessible_label(&main_window, "Refresh").count() == 1
+    })
+    .await;
     assert!(refresh_ready);
 
     let refresh_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Refresh").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Refresh").collect();
     assert_eq!(refresh_handles.len(), 1);
     refresh_handles[0]
         .single_click(slint::platform::PointerEventButton::Left)
@@ -495,11 +481,11 @@ async fn do_oauth_modal_device_code_and_refresh(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_oauth_modal_click_inside_and_cancel(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 ) {
-    let _ext = ExtensionFixture::new(state_manager).await;
-    AccountsHandler::fetch_and_render_accounts(main_window.as_weak(), state_manager);
+    let _ext = ExtensionFixture::new(&state_manager).await;
+    AccountsHandler::fetch_and_render_accounts(main_window.as_weak(), state_manager.clone());
 
     let loaded = wait_until(|| {
         main_window
@@ -520,7 +506,7 @@ async fn do_oauth_modal_click_inside_and_cancel(
     assert!(modal_shown);
 
     let title_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Account Login").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Account Login").collect();
     if let Some(title) = title_handles.first() {
         title
             .single_click(slint::platform::PointerEventButton::Left)
@@ -529,7 +515,7 @@ async fn do_oauth_modal_click_inside_and_cancel(
     assert!(main_window.global::<OAuthState>().get_show_oauth_modal());
 
     let cancel_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Cancel").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Cancel").collect();
     assert_eq!(cancel_handles.len(), 1);
     cancel_handles[0]
         .single_click(slint::platform::PointerEventButton::Left)

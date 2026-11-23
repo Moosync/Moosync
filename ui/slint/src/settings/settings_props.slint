@@ -3,9 +3,13 @@ import { AppCallbacks } from "../callbacks.slint";
 
 export global SettingsState {
     in-out property <bool> show_settings: false;
+    in-out property <bool> settings_mounted: false;
     in-out property <SettingsPages> active_page: SettingsPages.Paths;
 
     changed show_settings => {
+        if (self.show_settings) {
+            self.settings_mounted = true;
+        }
         AppCallbacks.settings-toggled(self.show_settings);
     }
     changed active_page => {

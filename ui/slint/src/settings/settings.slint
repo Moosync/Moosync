@@ -22,6 +22,40 @@ import { SettingsState } from "settings_props.slint";
 export component Settings inherits Modal {
     modalSize: ModalSize.Xl;
     in-out property <SettingsPages> active_page <=> SettingsState.active_page;
+    property <bool> is_animated_open: false;
+
+    opacity: root.is_animated_open ? 1.0 : 0.0;
+    animate opacity {
+        duration: Theme.durationMedium;
+        easing: ease-in-out;
+    }
+
+    init => {
+        open_timer.running = true;
+    }
+
+    open_timer := Timer {
+        interval: 1ms;
+        running: false;
+        triggered => {
+            self.running = false;
+            root.is_animated_open = SettingsState.show_settings;
+        }
+    }
+
+    close_timer := Timer {
+        interval: Theme.durationMedium;
+        running: !SettingsState.show_settings && SettingsState.settings_mounted;
+        triggered => {
+            self.running = false;
+            SettingsState.settings_mounted = false;
+        }
+    }
+
+    property <bool> show_settings_watch: SettingsState.show_settings;
+    changed show_settings_watch => {
+        root.is_animated_open = SettingsState.show_settings;
+    }
 
     property <[SettingsSidebarItem]> items: [
         {

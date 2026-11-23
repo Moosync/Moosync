@@ -328,7 +328,7 @@ export component MainWindow inherits Window {
         BottomBar { }
     }
 
-    if SettingsState.show_settings: Settings {
+    if SettingsState.settings_mounted: Settings {
         close => {
             SettingsState.show_settings = false;
         }

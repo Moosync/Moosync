@@ -12,8 +12,8 @@ use state_manager::StateManager;
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_sidebar_navigate_target(
-    main_window: &'static MainWindow,
-    _state_manager: &'static StateManager,
+    main_window: MainWindow,
+    _state_manager: StateManager,
     label: &'static str,
     target_page: Pages,
 ) {
@@ -25,7 +25,7 @@ async fn do_sidebar_navigate_target(
             .await;
     }
     let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, label).collect();
+        ElementHandle::find_by_accessible_label(&main_window, label).collect();
     assert_eq!(handles.len(), 1);
     assert!(handles[0].is_valid());
     click_element(&handles[0]).await;
@@ -33,19 +33,16 @@ async fn do_sidebar_navigate_target(
         wait_until(|| main_window.global::<AppProps>().get_active_page() == target_page).await;
     assert!(nav);
     let headers: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, label).collect();
+        ElementHandle::find_by_accessible_label(&main_window, label).collect();
     assert_eq!(headers.len(), 1);
     assert!(headers[0].is_valid());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_sidebar_toggle_collapse(
-    main_window: &'static MainWindow,
-    _state_manager: &'static StateManager,
-) {
+async fn do_sidebar_toggle_collapse(main_window: MainWindow, _state_manager: StateManager) {
     let initial_width = main_window.global::<WindowInfo>().get_sidebar_width();
     let toggle_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Toggle Sidebar").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Toggle Sidebar").collect();
     assert_eq!(toggle_handles.len(), 1);
     assert!(toggle_handles[0].is_valid());
     click_element(&toggle_handles[0]).await;
@@ -58,10 +55,7 @@ async fn do_sidebar_toggle_collapse(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_topbar_navigate_back(
-    main_window: &'static MainWindow,
-    _state_manager: &'static StateManager,
-) {
+async fn do_topbar_navigate_back(main_window: MainWindow, _state_manager: StateManager) {
     main_window
         .global::<AppCallbacks>()
         .invoke_active_page_changed(Pages::AllSongs);
@@ -77,7 +71,7 @@ async fn do_topbar_navigate_back(
         Pages::Albums
     );
     let back_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Back").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Back").collect();
     assert_eq!(back_handles.len(), 1);
     assert!(back_handles[0].is_valid());
     click_element(&back_handles[0]).await;
@@ -85,16 +79,13 @@ async fn do_topbar_navigate_back(
         wait_until(|| main_window.global::<AppProps>().get_active_page() == Pages::AllSongs).await;
     assert!(back_nav);
     let song_headers: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Sidebar Songs").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Sidebar Songs").collect();
     assert_eq!(song_headers.len(), 1);
     assert!(song_headers[0].is_valid());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_topbar_navigate_forward(
-    main_window: &'static MainWindow,
-    _state_manager: &'static StateManager,
-) {
+async fn do_topbar_navigate_forward(main_window: MainWindow, _state_manager: StateManager) {
     main_window
         .global::<AppCallbacks>()
         .invoke_active_page_changed(Pages::AllSongs);
@@ -109,7 +100,7 @@ async fn do_topbar_navigate_forward(
     let _ =
         wait_until(|| main_window.global::<AppProps>().get_active_page() == Pages::AllSongs).await;
     let forward_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Forward").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Forward").collect();
     assert_eq!(forward_handles.len(), 1);
     assert!(forward_handles[0].is_valid());
     click_element(&forward_handles[0]).await;
@@ -117,44 +108,48 @@ async fn do_topbar_navigate_forward(
         wait_until(|| main_window.global::<AppProps>().get_active_page() == Pages::Albums).await;
     assert!(forward_nav);
     let album_headers: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Sidebar Albums").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Sidebar Albums").collect();
     assert_eq!(album_headers.len(), 1);
     assert!(album_headers[0].is_valid());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_topbar_open_settings_modal(
-    main_window: &'static MainWindow,
-    _state_manager: &'static StateManager,
-) {
+async fn do_topbar_open_settings_modal(main_window: MainWindow, _state_manager: StateManager) {
     let settings_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Settings").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Settings").collect();
     assert_eq!(settings_handles.len(), 1);
     assert!(settings_handles[0].is_valid());
     click_element(&settings_handles[0]).await;
-    let modal_open = wait_until(|| main_window.global::<SettingsState>().get_show_settings()).await;
+    let modal_open = wait_until(|| {
+        main_window.global::<SettingsState>().get_show_settings()
+            && main_window.global::<SettingsState>().get_settings_mounted()
+            && ElementHandle::find_by_accessible_label(&main_window, "Settings Paths").count() == 1
+    })
+    .await;
     assert!(modal_open);
     let path_headers: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Settings Paths").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Settings Paths").collect();
     assert_eq!(path_headers.len(), 1);
     assert!(path_headers[0].is_valid());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_topbar_close_settings_modal(
-    main_window: &'static MainWindow,
-    _state_manager: &'static StateManager,
-) {
+async fn do_topbar_close_settings_modal(main_window: MainWindow, _state_manager: StateManager) {
     main_window
         .global::<SettingsState>()
         .set_show_settings(true);
     main_window
         .global::<AppCallbacks>()
         .invoke_settings_toggled(true);
-    let modal_open = wait_until(|| main_window.global::<SettingsState>().get_show_settings()).await;
+    let modal_open = wait_until(|| {
+        main_window.global::<SettingsState>().get_show_settings()
+            && main_window.global::<SettingsState>().get_settings_mounted()
+            && ElementHandle::find_by_accessible_label(&main_window, "Settings Paths").count() == 1
+    })
+    .await;
     assert!(modal_open);
     let path_headers: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Settings Paths").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Settings Paths").collect();
     assert_eq!(path_headers.len(), 1);
     assert!(path_headers[0].is_valid());
     main_window
@@ -169,10 +164,7 @@ async fn do_topbar_close_settings_modal(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_context_menu_goto_album(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+async fn do_context_menu_goto_album(main_window: MainWindow, state_manager: StateManager) {
     let database = state_manager.get_database();
     let song = create_test_song("cm_al", "Song For Album", "Target Album", "Target Artist");
     database.insert_songs(vec![song]).await.unwrap();
@@ -230,16 +222,13 @@ async fn do_context_menu_goto_album(
     );
 
     let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Song For Album").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Song For Album").collect();
     assert_eq!(handles.len(), 1);
     assert!(handles[0].is_valid());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_context_menu_goto_artist(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+async fn do_context_menu_goto_artist(main_window: MainWindow, state_manager: StateManager) {
     let database = state_manager.get_database();
     let song = create_test_song("cm_ar", "Song For Artist", "Target Album", "Target Artist");
     database.insert_songs(vec![song]).await.unwrap();
@@ -297,7 +286,7 @@ async fn do_context_menu_goto_artist(
     );
 
     let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Song For Artist").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Song For Artist").collect();
     assert_eq!(handles.len(), 1);
     assert!(handles[0].is_valid());
 }

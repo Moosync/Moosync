@@ -1,4 +1,5 @@
-use songs_proto::moosync::types::{Album, Artist, Genre, InnerSong, Playlist};
+use prost::Message;
+use songs_proto::moosync::types::{Album, Artist, Genre, InnerSong, PlaybackUrl, Playlist};
 
 use crate::utils::{db_ms_to_proto, song_type_from_str};
 
@@ -120,7 +121,7 @@ pub struct DbInnerSongRow {
     pub r#type: String,
     pub url: Option<String>,
     pub song_cover_path_high: Option<String>,
-    pub playback_url: Option<String>,
+    pub playback_url: Option<Vec<u8>>,
     pub song_cover_path_low: Option<String>,
     pub date_added: Option<i64>,
     pub extension: Option<String>,
@@ -148,7 +149,9 @@ impl From<DbInnerSongRow> for InnerSong {
             r#type: song_type_from_str(&row.r#type),
             url: row.url,
             song_cover_path_high: row.song_cover_path_high,
-            playback_url: row.playback_url,
+            playback_url: row
+                .playback_url
+                .and_then(|bytes| PlaybackUrl::decode(bytes.as_slice()).ok()),
             song_cover_path_low: row.song_cover_path_low,
             date_added: row.date_added,
             extension: row.extension,

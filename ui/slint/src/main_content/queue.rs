@@ -21,8 +21,8 @@ use crate::{
 };
 
 pub struct QueuePageHandler {
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
     cancel_handles: Arc<Mutex<Vec<CancelHandle>>>,
     hide_timer: RefCell<Timer>,
     is_visible: Arc<Mutex<bool>>,
@@ -30,10 +30,10 @@ pub struct QueuePageHandler {
 
 impl QueuePageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(main_window: &'static MainWindow, state_manager: &'static StateManager) -> Self {
+    pub fn new(main_window: &MainWindow, state_manager: &StateManager) -> Self {
         Self {
-            main_window,
-            state_manager,
+            main_window: main_window.clone_strong(),
+            state_manager: state_manager.clone(),
             cancel_handles: Arc::new(Mutex::new(Vec::new())),
             hide_timer: RefCell::new(slint::Timer::default()),
             is_visible: Arc::new(Mutex::new(false)),
@@ -42,9 +42,10 @@ impl QueuePageHandler {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn register_ui_callbacks(&self) {
-        let state_manager = self.state_manager;
+        let state_manager = self.state_manager.clone();
 
         let mw_weak_play = self.main_window.as_weak();
+        let sm_play = state_manager.clone();
         self.main_window
             .global::<AppCallbacks>()
             .on_play_queue_index(move |idx| {
@@ -52,6 +53,7 @@ impl QueuePageHandler {
                 if let Some(main_window) = mw_weak_play.upgrade() {
                     main_window.global::<QueuePageProps>().set_active_idx(idx);
                 }
+                let state_manager = sm_play.clone();
                 tokio::spawn(
                     async move {
                         let player_handler = state_manager.get_player_handler();
@@ -61,10 +63,12 @@ impl QueuePageHandler {
                 );
             });
 
+        let sm_rem = state_manager.clone();
         self.main_window
             .global::<AppCallbacks>()
             .on_remove_from_queue(move |idx| {
                 tracing::debug!("Queue action: remove_from_queue({})", idx);
+                let state_manager = sm_rem.clone();
                 tokio::spawn(
                     async move {
                         let player_handler = state_manager.get_player_handler();
@@ -74,10 +78,12 @@ impl QueuePageHandler {
                 );
             });
 
+        let sm_clear = state_manager.clone();
         self.main_window
             .global::<AppCallbacks>()
             .on_clear_queue(move || {
                 tracing::debug!("Queue action: clear_queue");
+                let state_manager = sm_clear.clone();
                 tokio::spawn(
                     async move {
                         let player_handler = state_manager.get_player_handler();
@@ -87,6 +93,7 @@ impl QueuePageHandler {
                 );
             });
 
+        let sm_move = state_manager.clone();
         self.main_window
             .global::<AppCallbacks>()
             .on_move_queue_item(
@@ -97,6 +104,7 @@ impl QueuePageHandler {
                             from_idx,
                             to_idx
                         );
+                        let state_manager = sm_move.clone();
                         tokio::spawn(
                             async move {
                                 let player_handler = state_manager.get_player_handler();
@@ -112,6 +120,7 @@ impl QueuePageHandler {
             );
 
         let mw_weak_save = self.main_window.as_weak();
+        let sm_save = state_manager.clone();
         self.main_window
             .global::<AppCallbacks>()
             .on_save_queue_as_playlist(move |name, desc, cover, song_models| {
@@ -125,9 +134,10 @@ impl QueuePageHandler {
                 let cover_str = cover.to_string();
                 let songs: Vec<Song> = song_models.into_vec().into_iter().map(Song::from).collect();
                 let weak = mw_weak_save.clone();
+                let state_manager = sm_save.clone();
                 tokio::spawn(
                     async move {
-                        save_queue(state_manager, name_str, desc_str, cover_str, songs).await;
+                        save_queue(&state_manager, name_str, desc_str, cover_str, songs).await;
                         PlaylistsPageHandler::refresh_playlists(weak, state_manager).await;
                     }
                     .instrument(tracing::debug_span!("slint_cb_on_save_queue_as_playlist")),
@@ -155,13 +165,48 @@ impl QueuePageHandler {
                 }
                 active_idx
             });
+
+        let mw_weak_offset = self.main_window.as_weak();
+        let sm_offset = state_manager.clone();
+        self.main_window
+            .global::<AppCallbacks>()
+            .on_set_lyrics_offset(move |offset_ms| {
+                if let Some(main_window) = mw_weak_offset.upgrade() {
+                    main_window
+                        .global::<QueuePageProps>()
+                        .set_lyrics_offset_ms(offset_ms);
+                }
+                let state_manager = sm_offset.clone();
+                tokio::spawn(
+                    async move {
+                        let Some(song_id) = state_manager
+                            .get_player_handler()
+                            .get_current_song()
+                            .and_then(|s| s.get_id().map(|id| id.into_owned()))
+                        else {
+                            return;
+                        };
+                        let db = state_manager.get_database();
+                        if let Ok(Some(mut lyrics)) = db.get_lyrics(&song_id).await {
+                            let seconds = (offset_ms / 1000) as i64;
+                            let nanos = (offset_ms % 1000) * 1_000_000;
+                            lyrics.offset =
+                                Some(songs_proto::duration_proto::google::protobuf::Duration {
+                                    seconds,
+                                    nanos,
+                                });
+                            if let Err(e) = db.update_lyrics(&song_id, &lyrics).await {
+                                tracing::error!("Failed to persist lyrics offset: {:?}", e);
+                            }
+                        }
+                    }
+                    .instrument(tracing::debug_span!("slint_cb_on_set_lyrics_offset")),
+                );
+            });
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn fetch_initial_state(
-        state_manager: &'static StateManager,
-        main_window_weak: slint::Weak<MainWindow>,
-    ) {
+    fn fetch_initial_state(state_manager: StateManager, main_window_weak: slint::Weak<MainWindow>) {
         tokio::spawn(
             async move {
                 let player_handler = state_manager.get_player_handler();
@@ -176,9 +221,10 @@ impl QueuePageHandler {
                 let blurred_path = Self::resolve_blurred_cover(current_song.as_ref(), &cache_dir);
 
                 let mw_weak_ui = main_window_weak.clone();
+                let sm_ui = state_manager.clone();
                 let _ = slint::invoke_from_event_loop(move || {
                     if let Some(main_window) = mw_weak_ui.upgrade() {
-                        Self::update_ui_queue(&main_window, state_manager, queue);
+                        Self::update_ui_queue(&main_window, &sm_ui, queue);
                         main_window
                             .global::<QueuePageProps>()
                             .set_active_idx(active_idx);
@@ -209,7 +255,7 @@ impl QueuePageHandler {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn register_player_callbacks(
-        state_manager: &'static StateManager,
+        state_manager: StateManager,
         main_window_weak: slint::Weak<MainWindow>,
         cancel_handles: Arc<Mutex<Vec<types::subscription::CancelHandle>>>,
     ) {
@@ -224,6 +270,7 @@ impl QueuePageHandler {
                 let mw_weak_song = main_window_weak.clone();
                 let cache_dir_events = cache_dir.clone();
                 let player_handler_song = state_manager.get_player_handler();
+                let sm_song = state_manager.clone();
                 let ch_song = player_handler.on_song_changed.listen(move |song| {
                     let mw_weak = mw_weak_song.clone();
                     let cache_dir = cache_dir_events.clone();
@@ -233,7 +280,7 @@ impl QueuePageHandler {
                         -1
                     };
 
-                    Self::fetch_and_update_lyrics(state_manager, mw_weak.clone(), song.clone());
+                    Self::fetch_and_update_lyrics(sm_song.clone(), mw_weak.clone(), song.clone());
 
                     tokio::spawn(
                         async move {
@@ -256,6 +303,7 @@ impl QueuePageHandler {
 
                 let mw_weak_queue = main_window_weak.clone();
                 let player_handler_queue = state_manager.get_player_handler();
+                let sm_queue = state_manager.clone();
                 let ch_queue = player_handler.on_queue_updated.listen(move |queue| {
                     let mw_weak = mw_weak_queue.clone();
                     let active_idx = if player_handler_queue.get_current_song().is_some() {
@@ -263,9 +311,10 @@ impl QueuePageHandler {
                     } else {
                         -1
                     };
+                    let sm_ui = sm_queue.clone();
                     let _ = slint::invoke_from_event_loop(move || {
                         if let Some(main_window) = mw_weak.upgrade() {
-                            Self::update_ui_queue(&main_window, state_manager, queue);
+                            Self::update_ui_queue(&main_window, &sm_ui, queue);
                             main_window
                                 .global::<QueuePageProps>()
                                 .set_active_idx(active_idx);
@@ -319,13 +368,20 @@ impl QueuePageHandler {
                         time_ms: line.time_ms as i32,
                     })
                     .collect();
+                let offset_ms = l
+                    .offset
+                    .as_ref()
+                    .map(|d| (d.seconds * 1000 + (d.nanos / 1_000_000) as i64) as i32)
+                    .unwrap_or(0);
                 props.set_has_lyrics(true);
                 props.set_is_synced(l.is_synced);
+                props.set_lyrics_offset_ms(offset_ms);
                 props.set_lyrics_lines(slint::ModelRc::new(slint::VecModel::from(lines)));
             }
             _ => {
                 props.set_has_lyrics(false);
                 props.set_is_synced(false);
+                props.set_lyrics_offset_ms(0);
                 props.set_lyrics_lines(slint::ModelRc::default());
             }
         }
@@ -333,7 +389,7 @@ impl QueuePageHandler {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn fetch_and_update_lyrics(
-        state_manager: &'static StateManager,
+        state_manager: StateManager,
         main_window_weak: slint::Weak<MainWindow>,
         song: Option<Song>,
     ) {
@@ -357,7 +413,7 @@ impl QueuePageHandler {
 
         tokio::spawn(
             async move {
-                let lyrics = crate::utils::fetch_song_lyrics(state_manager, &song).await;
+                let lyrics = crate::utils::fetch_song_lyrics(&state_manager, &song).await;
                 let _ = slint::invoke_from_event_loop(move || {
                     if let Some(main_window) = main_window_weak.upgrade() {
                         Self::update_ui_lyrics(&main_window, lyrics);
@@ -371,7 +427,7 @@ impl QueuePageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     fn register_context_menu_callbacks(&self) {
         let main_window_weak = self.main_window.as_weak();
-        let state_manager = self.state_manager;
+        let state_manager = self.state_manager.clone();
 
         self.main_window
             .global::<ContextMenuCallbacks>()
@@ -380,15 +436,22 @@ impl QueuePageHandler {
                     return ModelRc::default();
                 };
 
-                build_queue_context_menu_items(&main_window, state_manager, &song_models, idx)
+                build_queue_context_menu_items(
+                    &main_window,
+                    state_manager.clone(),
+                    &song_models,
+                    idx,
+                )
             });
 
         let main_window_weak = self.main_window.as_weak();
+        let state_manager = self.state_manager.clone();
         self.main_window
             .global::<ContextMenuCallbacks>()
             .on_queue_action(move |song_models, idx, action_id| {
                 if action_id == "play_now" {
                     let queue_idx = idx as usize;
+                    let state_manager = state_manager.clone();
                     tokio::spawn(
                         async move {
                             let player = state_manager.get_player_handler();
@@ -401,6 +464,7 @@ impl QueuePageHandler {
 
                 if action_id == "remove_from_queue" {
                     let queue_idx = idx as usize;
+                    let state_manager = state_manager.clone();
                     tokio::spawn(
                         async move {
                             let player = state_manager.get_player_handler();
@@ -415,7 +479,7 @@ impl QueuePageHandler {
 
                 dispatch_song_context_action(
                     &main_window_weak,
-                    state_manager,
+                    &state_manager,
                     &song_models,
                     action_id.as_str(),
                 );
@@ -467,9 +531,9 @@ impl PageHandler for QueuePageHandler {
             }
         }
 
-        Self::fetch_initial_state(self.state_manager, self.main_window.as_weak());
+        Self::fetch_initial_state(self.state_manager.clone(), self.main_window.as_weak());
         Self::register_player_callbacks(
-            self.state_manager,
+            self.state_manager.clone(),
             self.main_window.as_weak(),
             self.cancel_handles.clone(),
         );

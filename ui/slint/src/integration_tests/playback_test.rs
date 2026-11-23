@@ -9,10 +9,7 @@ use slint_app::{
 use state_manager::StateManager;
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_playback_play_song(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+async fn do_playback_play_song(main_window: MainWindow, state_manager: StateManager) {
     let database = state_manager.get_database();
     let song = create_test_song("s_play", "Playback Track", "Album", "Artist");
     database.insert_songs(vec![song.clone()]).await.unwrap();
@@ -41,16 +38,13 @@ async fn do_playback_play_song(
     );
 
     let song_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Playback Track").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Playback Track").collect();
     assert_eq!(song_handles.len(), 1);
     assert!(song_handles[0].is_valid());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_playback_pause_song(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+async fn do_playback_pause_song(main_window: MainWindow, state_manager: StateManager) {
     let database = state_manager.get_database();
     let song = create_test_song("s_pause", "Playback Track", "Album", "Artist");
     database.insert_songs(vec![song.clone()]).await.unwrap();
@@ -73,7 +67,7 @@ async fn do_playback_pause_song(
     let _ = wait_until(|| main_window.global::<PlayerProps>().get_playing()).await;
 
     let pause_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Pause").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Pause").collect();
     assert_eq!(pause_handles.len(), 1);
     assert!(pause_handles[0].is_valid());
     click_element(&pause_handles[0]).await;
@@ -83,10 +77,7 @@ async fn do_playback_pause_song(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_playback_resume_song(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+async fn do_playback_resume_song(main_window: MainWindow, state_manager: StateManager) {
     let database = state_manager.get_database();
     let song = create_test_song("s_resume", "Playback Track", "Album", "Artist");
     database.insert_songs(vec![song.clone()]).await.unwrap();
@@ -114,7 +105,7 @@ async fn do_playback_resume_song(
     let _ = wait_until(|| !main_window.global::<PlayerProps>().get_playing()).await;
 
     let play_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Play").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Play").collect();
     assert_eq!(play_handles.len(), 1);
     assert!(play_handles[0].is_valid());
     click_element(&play_handles[0]).await;
@@ -124,10 +115,7 @@ async fn do_playback_resume_song(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_playback_skip_next(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+async fn do_playback_skip_next(main_window: MainWindow, state_manager: StateManager) {
     let database = state_manager.get_database();
     let song1 = create_test_song("s_next1", "Track 1", "Album", "Artist");
     let song2 = create_test_song("s_next2", "Track 2", "Album", "Artist");
@@ -146,7 +134,7 @@ async fn do_playback_skip_next(
             .await;
 
     let next_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Next").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Next").collect();
     assert_eq!(next_handles.len(), 1);
     assert!(next_handles[0].is_valid());
     click_element(&next_handles[0]).await;
@@ -158,10 +146,7 @@ async fn do_playback_skip_next(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_playback_skip_previous(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+async fn do_playback_skip_previous(main_window: MainWindow, state_manager: StateManager) {
     let database = state_manager.get_database();
     let song1 = create_test_song("s_prev1", "Track 1", "Album", "Artist");
     let song2 = create_test_song("s_prev2", "Track 2", "Album", "Artist");
@@ -181,7 +166,7 @@ async fn do_playback_skip_previous(
             .await;
 
     let prev_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Previous").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Previous").collect();
     assert_eq!(prev_handles.len(), 1);
     assert!(prev_handles[0].is_valid());
     click_element(&prev_handles[0]).await;
@@ -193,26 +178,20 @@ async fn do_playback_skip_previous(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_playback_toggle_shuffle(
-    main_window: &'static MainWindow,
-    _state_manager: &'static StateManager,
-) {
+async fn do_playback_toggle_shuffle(main_window: MainWindow, _state_manager: StateManager) {
     let shuffle_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Shuffle").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Shuffle").collect();
     assert_eq!(shuffle_handles.len(), 1);
     assert!(shuffle_handles[0].is_valid());
     click_element(&shuffle_handles[0]).await;
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_playback_toggle_repeat(
-    main_window: &'static MainWindow,
-    _state_manager: &'static StateManager,
-) {
+async fn do_playback_toggle_repeat(main_window: MainWindow, _state_manager: StateManager) {
     let initial_mode = main_window.global::<PlayerProps>().get_repeat_mode();
 
     let repeat_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Repeat").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Repeat").collect();
     assert_eq!(repeat_handles.len(), 1);
     assert!(repeat_handles[0].is_valid());
     click_element(&repeat_handles[0]).await;
@@ -223,10 +202,7 @@ async fn do_playback_toggle_repeat(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_playback_volume_and_mute(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+async fn do_playback_volume_and_mute(main_window: MainWindow, state_manager: StateManager) {
     let _initial_volume = {
         let player_handler = state_manager.get_player_handler();
         player_handler.get_volume()
@@ -250,7 +226,7 @@ async fn do_playback_volume_and_mute(
     assert!(changed);
 
     let mute_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Mute").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Mute").collect();
     assert_eq!(mute_handles.len(), 1);
     assert!(mute_handles[0].is_valid());
     click_element(&mute_handles[0]).await;
@@ -269,16 +245,13 @@ async fn do_playback_volume_and_mute(
     assert!(muted);
 
     let unmute_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Unmute").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Unmute").collect();
     assert_eq!(unmute_handles.len(), 1);
     assert!(unmute_handles[0].is_valid());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_playback_seek_debounced(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+async fn do_playback_seek_debounced(main_window: MainWindow, state_manager: StateManager) {
     let database = state_manager.get_database();
     let song = create_test_song("s_seek_deb", "Seek Debounce Track", "Album", "Artist");
     database.insert_songs(vec![song.clone()]).await.unwrap();
@@ -309,9 +282,15 @@ async fn do_playback_seek_debounced(
         seeks_clone.lock().unwrap().push(pos);
     });
 
-    main_window.global::<BottomBarCallbacks>().invoke_seek(10);
-    main_window.global::<BottomBarCallbacks>().invoke_seek(20);
-    main_window.global::<BottomBarCallbacks>().invoke_seek(30);
+    main_window
+        .global::<BottomBarCallbacks>()
+        .invoke_seek(10_000);
+    main_window
+        .global::<BottomBarCallbacks>()
+        .invoke_seek(20_000);
+    main_window
+        .global::<BottomBarCallbacks>()
+        .invoke_seek(30_000);
 
     assert!(seeks.lock().unwrap().is_empty());
 

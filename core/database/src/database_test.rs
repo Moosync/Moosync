@@ -1247,6 +1247,7 @@ async fn test_get_lyrics_success() {
             },
         ],
         is_synced: true,
+        ..Default::default()
     });
     let inserted = db.insert_songs(vec![song]).await.unwrap();
     let song_id = inserted[0].song.as_ref().unwrap().id.clone().unwrap();
@@ -1612,7 +1613,10 @@ async fn test_remove_songs_outside_directories() {
     let mut song_no_path = create_test_song("Stream", "");
     if let Some(ref mut inner) = song_no_path.song {
         inner.path = None;
-        inner.playback_url = Some("https://youtube.com/watch?v=123".to_string());
+        inner.playback_url = Some(songs_proto::moosync::types::PlaybackUrl {
+            url: "https://youtube.com/watch?v=123".to_string(),
+            ..Default::default()
+        });
     }
 
     db.insert_songs(vec![song_inside, song_outside, song_no_path])
@@ -1908,4 +1912,50 @@ async fn test_reinsert_existing_song_overwrites_bridges() {
         .collect();
     assert!(!all_artist_names.contains(&"Old Artist A; Old Artist B"));
     assert!(all_artist_names.contains(&"Unrelated Artist"));
+}
+
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_remote_song_lyrics_with_offset_and_no_song_updated() {
+    let db_context = db_context().await;
+    let TestDbContext { db, .. } = db_context;
+
+    let updated_count = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let updated_count_clone = updated_count.clone();
+    let _handle = db.on_song_updated.listen(move |_| {
+        updated_count_clone.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    });
+
+    let lyrics = Lyrics {
+        lines: vec![LyricLine {
+            text: "Hello remote world".to_string(),
+            time_ms: 1500,
+        }],
+        is_synced: true,
+        offset: Some(songs_proto::duration_proto::google::protobuf::Duration {
+            seconds: -1,
+            nanos: -500_000_000,
+        }),
+    };
+
+    db.update_lyrics("remote-song-not-in-allsongs", &lyrics)
+        .await
+        .unwrap();
+
+    let fetched = db
+        .get_lyrics("remote-song-not-in-allsongs")
+        .await
+        .unwrap()
+        .expect("lyrics should be stored for remote song");
+    assert_eq!(fetched.lines.len(), 1);
+    assert_eq!(fetched.lines[0].text, "Hello remote world");
+    assert_eq!(
+        fetched.offset,
+        Some(songs_proto::duration_proto::google::protobuf::Duration {
+            seconds: -1,
+            nanos: -500_000_000,
+        })
+    );
+    assert_eq!(updated_count.load(std::sync::atomic::Ordering::SeqCst), 0);
 }

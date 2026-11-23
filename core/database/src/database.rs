@@ -303,14 +303,6 @@ impl Database {
     #[tracing::instrument(level = "debug", skip_all)]
     pub async fn update_lyrics(&self, id: &str, lyrics: &Lyrics) -> Result<(), DatabaseError> {
         self.songs.update_lyrics(id, lyrics).await?;
-        self.emit_song_updated(Song {
-            song: Some(InnerSong {
-                id: Some(id.to_string()),
-                lyrics: Some(lyrics.clone()),
-                ..Default::default()
-            }),
-            ..Default::default()
-        });
         Ok(())
     }
 

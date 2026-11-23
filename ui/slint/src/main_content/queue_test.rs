@@ -46,9 +46,9 @@ async fn test_queue_page_handler_initialize(
         ph.add_to_queue(vec![song1, song2]).await;
     }
 
-    let main_window = Box::leak(Box::new(main_window));
-    let state_manager = Box::leak(Box::new(sm.clone()));
-    let handler = QueuePageHandler::new(main_window, state_manager);
+    let main_window = main_window;
+    let state_manager = sm.clone();
+    let handler = QueuePageHandler::new(&main_window, &state_manager);
     handler.initialize();
 
     main_window
@@ -150,9 +150,9 @@ async fn test_queue_remove_currently_playing_song(
     let player_handler = sm.get_player_handler();
     player_handler.add_to_queue(vec![song1, song2]).await;
 
-    let main_window = Box::leak(Box::new(main_window));
-    let state_manager = Box::leak(Box::new(sm.clone()));
-    let handler = QueuePageHandler::new(main_window, state_manager);
+    let main_window = main_window;
+    let state_manager = sm.clone();
+    let handler = QueuePageHandler::new(&main_window, &state_manager);
     handler.initialize();
 
     player_handler.play_index(0).await;
@@ -210,9 +210,9 @@ async fn test_queue_page_handler_move_item_and_save_queue(
     let player_handler = sm.get_player_handler();
     player_handler.add_to_queue(vec![song1, song2]).await;
 
-    let main_window = Box::leak(Box::new(main_window));
-    let state_manager = Box::leak(Box::new(sm.clone()));
-    let handler = QueuePageHandler::new(main_window, state_manager);
+    let main_window = main_window;
+    let state_manager = sm.clone();
+    let handler = QueuePageHandler::new(&main_window, &state_manager);
     handler.initialize();
 
     main_window
@@ -247,9 +247,9 @@ async fn test_queue_page_handler_lyric_index_and_data_transfer(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let main_window = Box::leak(Box::new(main_window));
-    let state_manager = Box::leak(Box::new(sm));
-    let handler = QueuePageHandler::new(main_window, state_manager);
+    let main_window = main_window;
+    let state_manager = sm;
+    let handler = QueuePageHandler::new(&main_window, &state_manager);
     handler.initialize();
 
     let callbacks = main_window.global::<AppCallbacks>();
@@ -296,9 +296,9 @@ async fn test_queue_page_handler_context_menu(
     let player_handler = sm.get_player_handler();
     player_handler.add_to_queue(vec![song]).await;
 
-    let main_window = Box::leak(Box::new(main_window));
-    let state_manager = Box::leak(Box::new(sm));
-    let handler = QueuePageHandler::new(main_window, state_manager);
+    let main_window = main_window;
+    let state_manager = sm;
+    let handler = QueuePageHandler::new(&main_window, &state_manager);
     handler.initialize();
 
     let song_model = SongModel {
@@ -337,6 +337,7 @@ fn test_queue_page_handler_update_ui_lyrics_synced_and_empty(main_window: MainWi
                 time_ms: 2000,
             },
         ],
+        ..Default::default()
     };
 
     QueuePageHandler::update_ui_lyrics(&main_window, Some(lyrics));
@@ -386,9 +387,9 @@ async fn test_queue_page_handler_on_show_and_hide(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let main_window = Box::leak(Box::new(main_window));
-    let state_manager = Box::leak(Box::new(sm));
-    let handler = QueuePageHandler::new(main_window, state_manager);
+    let main_window = main_window;
+    let state_manager = sm;
+    let handler = QueuePageHandler::new(&main_window, &state_manager);
 
     handler.on_show();
     assert!(handler.is_visible());
@@ -427,9 +428,9 @@ async fn test_queue_duplicate_song_active_index(
             .await;
     }
 
-    let main_window = Box::leak(Box::new(main_window));
-    let state_manager = Box::leak(Box::new(sm.clone()));
-    let handler = QueuePageHandler::new(main_window, state_manager);
+    let main_window = main_window;
+    let state_manager = sm.clone();
+    let handler = QueuePageHandler::new(&main_window, &state_manager);
     handler.initialize();
 
     main_window

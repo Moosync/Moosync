@@ -13,6 +13,7 @@ export global QueuePageProps {
     in-out property <bool> has_lyrics: false;
     in-out property <bool> is_synced: false;
     in-out property <[LyricLineModel]> lyrics_lines: [];
+    in-out property <int> lyrics_offset_ms: 0;
 
     changed show_queue => {
         AppCallbacks.queue-toggled(self.show_queue);

@@ -91,6 +91,7 @@ fn build_lyrics_result(
         return Some(Lyrics {
             lines: synced_lines,
             is_synced: true,
+            ..Default::default()
         });
     }
 
@@ -105,6 +106,7 @@ fn build_lyrics_result(
     Some(Lyrics {
         lines,
         is_synced: false,
+        ..Default::default()
     })
 }
 

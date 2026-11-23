@@ -32,6 +32,7 @@ async fn test_fetch_song_lyrics_from_database(state_manager_fixture: TestSlintSm
                     },
                 ],
                 is_synced: true,
+                ..Default::default()
             }),
             ..Default::default()
         }),

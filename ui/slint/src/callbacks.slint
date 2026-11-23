@@ -73,6 +73,7 @@ export global AppCallbacks {
     // Song List Filter & Sort Callbacks and Functions
     pure callback filter_and_sort_songs([SongModel], string, SongSortCriterion, bool) -> [SongModel];
     pure callback get_active_lyric_index([LyricLineModel], int) -> int;
+    callback set_lyrics_offset(int);
 
     pure public function decide_sort_criterion(id: string) -> SongSortCriterion {
         if (id == Constants.sort_by_date) { return SongSortCriterion.Date; }

@@ -36,7 +36,7 @@ struct DbSongInsertRow {
     r#type: String,
     url: Option<String>,
     song_cover_path_high: Option<String>,
-    playback_url: Option<String>,
+    playback_url: Option<Vec<u8>>,
     song_cover_path_low: Option<String>,
     date_added: Option<i64>,
     track_no: Option<f64>,
@@ -203,6 +203,7 @@ impl SongRepository {
 
         let song_type = song_type_to_str(song.r#type);
         let duration_ms = proto_to_db_ms(&song.duration);
+        let playback_url = song.playback_url.as_ref().map(|p| p.encode_to_vec());
 
         sqlx::query!(
             "UPDATE allsongs SET
@@ -227,7 +228,7 @@ impl SongRepository {
             song_type,
             song.url,
             song.song_cover_path_high,
-            song.playback_url,
+            playback_url,
             song.song_cover_path_low,
             song.date_added,
             song.track_no,
@@ -264,6 +265,7 @@ impl SongRepository {
             };
             let song_type = song_type_to_str(inner.r#type);
             let duration_ms = proto_to_db_ms(&inner.duration);
+            let playback_url = inner.playback_url.as_ref().map(|p| p.encode_to_vec());
 
             sqlx::query!(
                 "UPDATE allsongs SET
@@ -288,7 +290,7 @@ impl SongRepository {
                 song_type,
                 inner.url,
                 inner.song_cover_path_high,
-                inner.playback_url,
+                playback_url,
                 inner.song_cover_path_low,
                 inner.date_added,
                 inner.track_no,
@@ -759,7 +761,7 @@ fn build_db_song_rows_and_bridges(songs: &[Song]) -> SongRowsAndBridges {
             r#type: song_type_to_str(inner.r#type).to_string(),
             url: inner.url.clone(),
             song_cover_path_high: inner.song_cover_path_high.clone(),
-            playback_url: inner.playback_url.clone(),
+            playback_url: inner.playback_url.as_ref().map(|p| p.encode_to_vec()),
             song_cover_path_low: inner.song_cover_path_low.clone(),
             date_added: inner.date_added,
             track_no: inner.track_no,

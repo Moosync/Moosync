@@ -3,8 +3,8 @@ import { BottomBarCallbacks } from "../callbacks.slint";
 import { PlayerProps } from "playback_props.slint";
 
 export component PlaybackProgressBar inherits Rectangle {
-    property <int> current_duration: PlayerProps.current_duration;
-    property <int> total_duration: PlayerProps.current_song.duration-s;
+    property <int> current_duration: PlayerProps.current_duration_ms;
+    property <int> total_duration: PlayerProps.current_song.duration-ms;
 
     property <float> progress: root.current_duration / Math.max(root.total_duration, 1);
 

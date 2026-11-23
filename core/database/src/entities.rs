@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use prost::Message;
 use songs_proto::moosync::types::{
     Album, Artist, Genre, GetSongOptions, InnerSong, Playlist, SearchableSong, Song,
 };
@@ -504,7 +505,7 @@ fn apply_song_filters(
     }
     if let Some(ref v) = song.playback_url {
         push_cond(qb, has_where, joiner);
-        qb.push("a.playbackurl = ").push_bind(v.clone());
+        qb.push("a.playbackurl = ").push_bind(v.encode_to_vec());
     }
     if let Some(v) = song.show_in_library {
         push_cond(qb, has_where, joiner);

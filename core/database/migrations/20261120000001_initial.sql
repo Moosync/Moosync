@@ -59,7 +59,7 @@ CREATE TABLE allsongs (
     type TEXT NOT NULL,
     url TEXT,
     song_coverpath_high TEXT,
-    playbackurl TEXT,
+    playbackurl BLOB,
     song_coverpath_low TEXT,
     date_added INTEGER,
     provider_extension TEXT,
@@ -70,7 +70,7 @@ CREATE TABLE allsongs (
 ) STRICT;
 
 CREATE TABLE song_lyrics (
-    song_id TEXT PRIMARY KEY REFERENCES allsongs(_id) ON DELETE CASCADE,
+    song_id TEXT PRIMARY KEY,
     lyrics BLOB NOT NULL
 ) STRICT;
 

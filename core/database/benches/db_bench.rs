@@ -80,6 +80,7 @@ fn generate_complex_songs(count: usize) -> Vec<Song> {
                         time_ms: 1000,
                     }],
                     is_synced: false,
+                    ..Default::default()
                 }),
                 r#type: song_type.into(),
                 track_no: Some(i as f64),

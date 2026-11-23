@@ -238,7 +238,7 @@ async fn test_map_song_row() {
             id TEXT, path TEXT, size REAL, title TEXT, date TEXT, year TEXT,
             release_type TEXT, bitrate REAL, codec TEXT, container TEXT, duration INTEGER,
             sample_rate REAL, hash TEXT, type TEXT, url TEXT, song_cover_path_high TEXT,
-            playback_url TEXT, song_cover_path_low TEXT, date_added INTEGER, extension TEXT,
+            playback_url BLOB, song_cover_path_low TEXT, date_added INTEGER, extension TEXT,
             track_no REAL
         );
         INSERT INTO songs VALUES (

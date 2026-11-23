@@ -234,7 +234,17 @@ impl Extension {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub(crate) async fn wait_context(&self) -> Result<Arc<dyn ExtensionContext>, ExtensionError> {
-        self.context.wait().await
+        tokio::time::timeout(std::time::Duration::from_secs(15), self.context.wait())
+            .await
+            .map_err(|_| {
+                ExtensionError::Io(std::io::Error::new(
+                    std::io::ErrorKind::TimedOut,
+                    format!(
+                        "Timed out waiting for extension {}",
+                        self.get_package_name()
+                    ),
+                ))
+            })?
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

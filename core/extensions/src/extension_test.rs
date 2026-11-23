@@ -751,6 +751,7 @@ impl crate::context::ExtensionContext for MockExtCtx {
                             text: "Yesterday all my troubles seemed so far away".to_string(),
                             time_ms: 12500,
                         }],
+                        ..Default::default()
                     }),
                 },
             ),

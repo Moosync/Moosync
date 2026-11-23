@@ -20,8 +20,8 @@ use state_manager::StateManager;
 /*
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_extension_preference_text_input(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 ) {
     main_window
         .global::<SettingsState>()
@@ -31,7 +31,7 @@ async fn do_extension_preference_text_input(
         .invoke_settings_toggled(false);
     tokio::time::sleep(Duration::from_millis(50)).await;
 
-    let _ext = ExtensionFixture::new(state_manager).await;
+    let _ext = ExtensionFixture::new(&state_manager).await;
 
     main_window
         .global::<SettingsState>()
@@ -47,19 +47,18 @@ async fn do_extension_preference_text_input(
         .invoke_settings_active_page_changed(SettingsPages::Extensions);
 
     let tab_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Settings Extensions")
+        ElementHandle::find_by_accessible_label(&main_window, "Settings Extensions")
             .next()
             .is_some()
     })
     .await;
-    if tab_found {
-        let ext_tabs: Vec<ElementHandle> =
-            ElementHandle::find_by_accessible_label(main_window, "Settings Extensions").collect();
-        if !ext_tabs.is_empty() {
-            ext_tabs[0]
-                .single_click(slint::platform::PointerEventButton::Left)
-                .await;
-        }
+    assert!(tab_found);
+    let ext_tabs: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(&main_window, "Settings Extensions").collect();
+    if !ext_tabs.is_empty() {
+        ext_tabs[0]
+            .single_click(slint::platform::PointerEventButton::Left)
+            .await;
     }
 
     let loaded = wait_until(|| {
@@ -75,12 +74,12 @@ async fn do_extension_preference_text_input(
     assert!(loaded);
 
     let found =
-        wait_until(|| ElementHandle::find_by_accessible_label(main_window, "API Key").count() > 0)
+        wait_until(|| ElementHandle::find_by_accessible_label(&main_window, "API Key").count() > 0)
             .await;
     assert!(found);
 
     let api_key_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "API Key").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "API Key").collect();
     assert!(!api_key_handles.is_empty());
     assert!(api_key_handles[0].is_valid());
 
@@ -120,8 +119,8 @@ async fn do_extension_preference_text_input(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_extension_preference_toggle(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 ) {
     main_window
         .global::<SettingsState>()
@@ -131,7 +130,7 @@ async fn do_extension_preference_toggle(
         .invoke_settings_toggled(false);
     tokio::time::sleep(Duration::from_millis(50)).await;
 
-    let _ext = ExtensionFixture::new(state_manager).await;
+    let _ext = ExtensionFixture::new(&state_manager).await;
 
     main_window
         .global::<SettingsState>()
@@ -147,19 +146,18 @@ async fn do_extension_preference_toggle(
         .invoke_settings_active_page_changed(SettingsPages::Extensions);
 
     let tab_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Settings Extensions")
+        ElementHandle::find_by_accessible_label(&main_window, "Settings Extensions")
             .next()
             .is_some()
     })
     .await;
-    if tab_found {
-        let ext_tabs: Vec<ElementHandle> =
-            ElementHandle::find_by_accessible_label(main_window, "Settings Extensions").collect();
-        if !ext_tabs.is_empty() {
-            ext_tabs[0]
-                .single_click(slint::platform::PointerEventButton::Left)
-                .await;
-        }
+    assert!(tab_found);
+    let ext_tabs: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(&main_window, "Settings Extensions").collect();
+    if !ext_tabs.is_empty() {
+        ext_tabs[0]
+            .single_click(slint::platform::PointerEventButton::Left)
+            .await;
     }
 
     let loaded = wait_until(|| {
@@ -175,13 +173,13 @@ async fn do_extension_preference_toggle(
     assert!(loaded);
 
     let found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Enable Feature").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Enable Feature").count() > 0
     })
     .await;
     assert!(found);
 
     let toggle_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Enable Feature").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Enable Feature").collect();
     assert!(!toggle_handles.is_empty());
     assert!(toggle_handles[0].is_valid());
 
@@ -221,10 +219,7 @@ async fn do_extension_preference_toggle(
 */
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_playlists_extension_integration(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+async fn do_playlists_extension_integration(main_window: MainWindow, state_manager: StateManager) {
     let database = state_manager.get_database();
     let song = create_test_song("p1", "Local Song", "Local Album", "Local Artist");
     database.insert_songs(vec![song.clone()]).await.unwrap();
@@ -238,7 +233,7 @@ async fn do_playlists_extension_integration(
         .await
         .unwrap();
 
-    let _ext = ExtensionFixture::new(state_manager).await;
+    let _ext = ExtensionFixture::new(&state_manager).await;
 
     main_window
         .global::<AppCallbacks>()
@@ -260,19 +255,19 @@ async fn do_playlists_extension_integration(
     );
 
     let found_local = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Local Playlist").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Local Playlist").count() > 0
     })
     .await;
     assert!(found_local);
 
     let found_ext1 = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Extension Playlist 1").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Extension Playlist 1").count() > 0
     })
     .await;
     assert!(found_ext1);
 
     let found_ext2 = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Extension Playlist 2").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Extension Playlist 2").count() > 0
     })
     .await;
     assert!(found_ext2);
@@ -280,8 +275,8 @@ async fn do_playlists_extension_integration(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_extension_content_toggle_provider_off(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 ) {
     let database = state_manager.get_database();
     let song = create_test_song("p_ext_t", "Local Song", "Local Album", "Local Artist");
@@ -296,7 +291,7 @@ async fn do_extension_content_toggle_provider_off(
         .await
         .unwrap();
 
-    let _ext = ExtensionFixture::new(state_manager).await;
+    let _ext = ExtensionFixture::new(&state_manager).await;
 
     main_window
         .global::<PlaylistsPageProps>()
@@ -360,14 +355,14 @@ async fn do_extension_content_toggle_provider_off(
     );
 
     let song1_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Playlist Song 1").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Playlist Song 1").collect();
     assert_eq!(song1_handles.len(), 0);
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_extension_content_toggle_provider_on(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 ) {
     let database = state_manager.get_database();
     let song = create_test_song("p_ext_on", "Local Song", "Local Album", "Local Artist");
@@ -382,7 +377,7 @@ async fn do_extension_content_toggle_provider_on(
         .await
         .unwrap();
 
-    let _ext = ExtensionFixture::new(state_manager).await;
+    let _ext = ExtensionFixture::new(&state_manager).await;
 
     main_window
         .global::<PlaylistsPageProps>()
@@ -469,7 +464,7 @@ async fn do_extension_content_toggle_provider_on(
     );
 
     let found_song1 = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Playlist Song 1").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Playlist Song 1").count() > 0
     })
     .await;
     assert!(found_song1);
@@ -477,8 +472,8 @@ async fn do_extension_content_toggle_provider_on(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_artist_content_extension_toggle_and_open(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 ) {
     let database = state_manager.get_database();
     let song = create_test_song("art_ext", "Local Song", "Local Album", "Artist Ext");
@@ -495,7 +490,7 @@ async fn do_artist_content_extension_toggle_and_open(
         .unwrap();
     let artist_id = songs[0].artists[0].artist_id.clone().unwrap();
 
-    let _ext = ExtensionFixture::new(state_manager).await;
+    let _ext = ExtensionFixture::new(&state_manager).await;
 
     main_window
         .global::<ArtistsPageProps>()
@@ -545,7 +540,7 @@ async fn do_artist_content_extension_toggle_and_open(
     );
 
     let found_artist_song = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Artist Song 1").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Artist Song 1").count() > 0
     })
     .await;
     assert!(found_artist_song);
@@ -553,8 +548,8 @@ async fn do_artist_content_extension_toggle_and_open(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_album_content_extension_toggle_and_open(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 ) {
     let database = state_manager.get_database();
     let song = create_test_song("alb_ext", "Local Song", "Album Ext", "Local Artist");
@@ -571,7 +566,7 @@ async fn do_album_content_extension_toggle_and_open(
         .unwrap();
     let album_id = songs[0].album.as_ref().unwrap().album_id.clone().unwrap();
 
-    let _ext = ExtensionFixture::new(state_manager).await;
+    let _ext = ExtensionFixture::new(&state_manager).await;
 
     main_window
         .global::<AlbumsPageProps>()
@@ -621,7 +616,7 @@ async fn do_album_content_extension_toggle_and_open(
     );
 
     let found_album_song = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Album Song 1").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Album Song 1").count() > 0
     })
     .await;
     assert!(found_album_song);
@@ -629,10 +624,10 @@ async fn do_album_content_extension_toggle_and_open(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_extension_content_pagination_load_more(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 ) {
-    let _ext = ExtensionFixture::new(state_manager).await;
+    let _ext = ExtensionFixture::new(&state_manager).await;
 
     main_window
         .global::<PlaylistsPageProps>()
@@ -657,7 +652,7 @@ async fn do_extension_content_pagination_load_more(
     assert!(loaded);
 
     let found_song1 = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Playlist Song 1").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Playlist Song 1").count() > 0
     })
     .await;
     assert!(found_song1);
@@ -692,11 +687,11 @@ async fn do_extension_content_pagination_load_more(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_multiple_extensions_pagination_integration(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 ) {
-    let _ext1 = ExtensionFixture::new_with_name(state_manager, "rs.sample.1", "Sample 1").await;
-    let _ext2 = ExtensionFixture::new_with_name(state_manager, "rs.sample.2", "Sample 2").await;
+    let _ext1 = ExtensionFixture::new_with_name(&state_manager, "rs.sample.1", "Sample 1").await;
+    let _ext2 = ExtensionFixture::new_with_name(&state_manager, "rs.sample.2", "Sample 2").await;
 
     main_window
         .global::<PlaylistsPageProps>()
@@ -736,7 +731,7 @@ async fn do_multiple_extensions_pagination_integration(
     assert!(initial_loaded);
 
     let found_song1 = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Playlist Song 1").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Playlist Song 1").count() > 0
     })
     .await;
     assert!(found_song1);
@@ -765,8 +760,8 @@ async fn do_multiple_extensions_pagination_integration(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_extension_details_modal_lifecycle(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 ) {
     main_window
         .global::<SettingsState>()
@@ -776,7 +771,7 @@ async fn do_extension_details_modal_lifecycle(
         .invoke_settings_toggled(false);
     tokio::time::sleep(Duration::from_millis(50)).await;
 
-    let _ext = ExtensionFixture::new(state_manager).await;
+    let _ext = ExtensionFixture::new(&state_manager).await;
 
     main_window
         .global::<SettingsState>()
@@ -792,19 +787,18 @@ async fn do_extension_details_modal_lifecycle(
         .invoke_settings_active_page_changed(SettingsPages::Extensions);
 
     let tab_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Settings Extensions")
+        ElementHandle::find_by_accessible_label(&main_window, "Settings Extensions")
             .next()
             .is_some()
     })
     .await;
-    if tab_found {
-        let ext_tabs: Vec<ElementHandle> =
-            ElementHandle::find_by_accessible_label(main_window, "Settings Extensions").collect();
-        if !ext_tabs.is_empty() {
-            ext_tabs[0]
-                .single_click(slint::platform::PointerEventButton::Left)
-                .await;
-        }
+    assert!(tab_found);
+    let ext_tabs: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(&main_window, "Settings Extensions").collect();
+    if !ext_tabs.is_empty() {
+        ext_tabs[0]
+            .single_click(slint::platform::PointerEventButton::Left)
+            .await;
     }
 
     let exts_loaded = wait_until(|| {
@@ -819,7 +813,7 @@ async fn do_extension_details_modal_lifecycle(
     tokio::time::sleep(Duration::from_millis(300)).await;
 
     let info_btn_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Extension Details")
+        ElementHandle::find_by_accessible_label(&main_window, "Extension Details")
             .next()
             .is_some()
     })
@@ -827,7 +821,7 @@ async fn do_extension_details_modal_lifecycle(
     assert!(info_btn_found);
 
     let info_btn_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Extension Details").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Extension Details").collect();
     assert_eq!(info_btn_handles.len(), 1);
     assert!(info_btn_handles[0].is_valid());
 
@@ -854,7 +848,7 @@ async fn do_extension_details_modal_lifecycle(
     assert!(modal_opened);
 
     let close_btn_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Close Extension Details")
+        ElementHandle::find_by_accessible_label(&main_window, "Close Extension Details")
             .next()
             .is_some()
     })
@@ -862,7 +856,7 @@ async fn do_extension_details_modal_lifecycle(
     assert!(close_btn_found);
 
     let close_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Close Extension Details").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Close Extension Details").collect();
     assert_eq!(close_handles.len(), 1);
     assert!(close_handles[0].is_valid());
 
@@ -876,7 +870,7 @@ async fn do_extension_details_modal_lifecycle(
     );
 
     let host1_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Network Host: api.example.com")
+        ElementHandle::find_by_accessible_label(&main_window, "Network Host: api.example.com")
             .next()
             .is_some()
     })
@@ -884,7 +878,7 @@ async fn do_extension_details_modal_lifecycle(
     assert!(host1_found);
 
     let host2_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Network Host: *.moosync.app")
+        ElementHandle::find_by_accessible_label(&main_window, "Network Host: *.moosync.app")
             .next()
             .is_some()
     })
@@ -893,7 +887,7 @@ async fn do_extension_details_modal_lifecycle(
 
     let path1_found = wait_until(|| {
         ElementHandle::find_by_accessible_label(
-            main_window,
+            &main_window,
             "Filesystem Path: /music -> /media/music",
         )
         .next()
@@ -904,7 +898,7 @@ async fn do_extension_details_modal_lifecycle(
 
     let path2_found = wait_until(|| {
         ElementHandle::find_by_accessible_label(
-            main_window,
+            &main_window,
             "Filesystem Path: /tmp/moosync -> /tmp/sandbox",
         )
         .next()
@@ -914,7 +908,7 @@ async fn do_extension_details_modal_lifecycle(
     assert!(path2_found);
 
     let accounts_scope_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Scope: Accounts")
+        ElementHandle::find_by_accessible_label(&main_window, "Scope: Accounts")
             .next()
             .is_some()
     })
@@ -922,7 +916,7 @@ async fn do_extension_details_modal_lifecycle(
     assert!(accounts_scope_found);
 
     let search_scope_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Scope: Search")
+        ElementHandle::find_by_accessible_label(&main_window, "Scope: Search")
             .next()
             .is_some()
     })
@@ -930,7 +924,7 @@ async fn do_extension_details_modal_lifecycle(
     assert!(search_scope_found);
 
     let playlists_scope_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Scope: Playlists")
+        ElementHandle::find_by_accessible_label(&main_window, "Scope: Playlists")
             .next()
             .is_some()
     })
@@ -938,7 +932,7 @@ async fn do_extension_details_modal_lifecycle(
     assert!(playlists_scope_found);
 
     let playlist_songs_scope_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Scope: Playlist Songs")
+        ElementHandle::find_by_accessible_label(&main_window, "Scope: Playlist Songs")
             .next()
             .is_some()
     })
@@ -946,7 +940,7 @@ async fn do_extension_details_modal_lifecycle(
     assert!(playlist_songs_scope_found);
 
     let artist_songs_scope_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Scope: Artist Songs")
+        ElementHandle::find_by_accessible_label(&main_window, "Scope: Artist Songs")
             .next()
             .is_some()
     })
@@ -954,7 +948,7 @@ async fn do_extension_details_modal_lifecycle(
     assert!(artist_songs_scope_found);
 
     let album_songs_scope_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Scope: Album Songs")
+        ElementHandle::find_by_accessible_label(&main_window, "Scope: Album Songs")
             .next()
             .is_some()
     })
@@ -962,7 +956,7 @@ async fn do_extension_details_modal_lifecycle(
     assert!(album_songs_scope_found);
 
     let lyrics_scope_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Scope: Lyrics")
+        ElementHandle::find_by_accessible_label(&main_window, "Scope: Lyrics")
             .next()
             .is_some()
     })
@@ -970,7 +964,7 @@ async fn do_extension_details_modal_lifecycle(
     assert!(lyrics_scope_found);
 
     let song_menu_scope_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Scope: Song Context Menu")
+        ElementHandle::find_by_accessible_label(&main_window, "Scope: Song Context Menu")
             .next()
             .is_some()
     })
@@ -978,7 +972,7 @@ async fn do_extension_details_modal_lifecycle(
     assert!(song_menu_scope_found);
 
     let playlist_menu_scope_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Scope: Playlist Context Menu")
+        ElementHandle::find_by_accessible_label(&main_window, "Scope: Playlist Context Menu")
             .next()
             .is_some()
     })
@@ -1008,14 +1002,14 @@ async fn do_extension_details_modal_lifecycle(
     assert!(modal_closed);
 
     let unmounted = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Close Extension Details")
+        ElementHandle::find_by_accessible_label(&main_window, "Close Extension Details")
             .next()
             .is_none()
     })
     .await;
     assert!(unmounted);
     let close_handles_after: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Close Extension Details").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Close Extension Details").collect();
     assert_eq!(close_handles_after.len(), 0);
 
     assert!(
@@ -1038,8 +1032,8 @@ async fn do_extension_details_modal_lifecycle(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_extension_install_prompt_lifecycle(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
+    main_window: MainWindow,
+    state_manager: StateManager,
 ) {
     main_window
         .global::<SettingsState>()
@@ -1121,7 +1115,7 @@ async fn do_extension_install_prompt_lifecycle(
 
     // Verify Reject & Approve action buttons are accessible
     let reject_btn_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Reject Extension Installation")
+        ElementHandle::find_by_accessible_label(&main_window, "Reject Extension Installation")
             .next()
             .is_some()
     })
@@ -1129,7 +1123,7 @@ async fn do_extension_install_prompt_lifecycle(
     assert!(reject_btn_found);
 
     let approve_btn_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Approve Extension Installation")
+        ElementHandle::find_by_accessible_label(&main_window, "Approve Extension Installation")
             .next()
             .is_some()
     })
@@ -1189,11 +1183,8 @@ async fn do_extension_install_prompt_lifecycle(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_extension_get_lyrics(
-    _main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
-    let _ext = ExtensionFixture::new(state_manager).await;
+async fn do_extension_get_lyrics(_main_window: MainWindow, state_manager: StateManager) {
+    let _ext = ExtensionFixture::new(&state_manager).await;
 
     let test_song = create_test_song(
         "lyric_ext_song",
@@ -1202,7 +1193,7 @@ async fn do_extension_get_lyrics(
         "Sample Artist",
     );
 
-    let lyrics = slint_app::utils::fetch_song_lyrics(state_manager, &test_song).await;
+    let lyrics = slint_app::utils::fetch_song_lyrics(&state_manager, &test_song).await;
 
     assert!(lyrics.is_some());
     let lyrics_val = lyrics.unwrap();
@@ -1215,10 +1206,7 @@ async fn do_extension_get_lyrics(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_extension_song_context_menu(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+async fn do_extension_song_context_menu(main_window: MainWindow, state_manager: StateManager) {
     let database = state_manager.get_database();
     let song = create_test_song(
         "ctx_target_song",
@@ -1228,7 +1216,7 @@ async fn do_extension_song_context_menu(
     );
     database.insert_songs(vec![song]).await.unwrap();
 
-    let _ext = ExtensionFixture::new(state_manager).await;
+    let _ext = ExtensionFixture::new(&state_manager).await;
 
     if main_window.global::<AppProps>().get_active_page() == Pages::AllSongs {
         main_window
@@ -1253,13 +1241,13 @@ async fn do_extension_song_context_menu(
     assert!(songs_loaded);
 
     let song_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Context Target Song").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Context Target Song").count() > 0
     })
     .await;
     assert!(song_found);
 
     let song_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Context Target Song").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Context Target Song").collect();
     assert_eq!(song_handles.len(), 1);
     assert!(song_handles[0].is_valid());
 
@@ -1268,13 +1256,13 @@ async fn do_extension_song_context_menu(
         .await;
 
     let action_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Sample Song Action").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Sample Song Action").count() > 0
     })
     .await;
     assert!(action_found);
 
     let action_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Sample Song Action").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Sample Song Action").collect();
     assert_eq!(action_handles.len(), 1);
     assert!(action_handles[0].is_valid());
 
@@ -1301,10 +1289,7 @@ async fn do_extension_song_context_menu(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_extension_playlist_context_menu(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) {
+async fn do_extension_playlist_context_menu(main_window: MainWindow, state_manager: StateManager) {
     let database = state_manager.get_database();
     let playlist = Playlist {
         playlist_id: Some("ctx_target_playlist".into()),
@@ -1313,7 +1298,7 @@ async fn do_extension_playlist_context_menu(
     };
     database.create_playlist(playlist).await.unwrap();
 
-    let _ext = ExtensionFixture::new(state_manager).await;
+    let _ext = ExtensionFixture::new(&state_manager).await;
 
     main_window
         .global::<AppCallbacks>()
@@ -1330,13 +1315,13 @@ async fn do_extension_playlist_context_menu(
     assert!(playlists_loaded);
 
     let playlist_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Context Target Playlist").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Context Target Playlist").count() > 0
     })
     .await;
     assert!(playlist_found);
 
     let playlist_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Context Target Playlist").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Context Target Playlist").collect();
     assert_eq!(playlist_handles.len(), 1);
     assert!(playlist_handles[0].is_valid());
 
@@ -1345,13 +1330,13 @@ async fn do_extension_playlist_context_menu(
         .await;
 
     let action_found = wait_until(|| {
-        ElementHandle::find_by_accessible_label(main_window, "Sample Playlist Action").count() > 0
+        ElementHandle::find_by_accessible_label(&main_window, "Sample Playlist Action").count() > 0
     })
     .await;
     assert!(action_found);
 
     let action_handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Sample Playlist Action").collect();
+        ElementHandle::find_by_accessible_label(&main_window, "Sample Playlist Action").collect();
     assert_eq!(action_handles.len(), 1);
     assert!(action_handles[0].is_valid());
 

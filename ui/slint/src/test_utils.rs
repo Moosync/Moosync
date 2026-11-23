@@ -96,8 +96,7 @@ pub mod integration {
     pub use crate::{integration_test, parameterized_test};
 
     pub type TestFuture = std::pin::Pin<Box<dyn std::future::Future<Output = ()> + 'static>>;
-    pub type TestFn =
-        Box<dyn FnOnce(&'static MainWindow, &'static StateManager) -> TestFuture + Send + 'static>;
+    pub type TestFn = Box<dyn FnOnce(MainWindow, StateManager) -> TestFuture + Send + 'static>;
     pub type Task = (
         &'static str,
         TestFn,
@@ -129,10 +128,9 @@ pub mod integration {
                     let _guard = runtime().enter();
                     i_slint_backend_testing::init_integration_test_with_system_time();
 
-                    let fixture = Box::leak(Box::new(state_manager_fixture()));
-                    let state_manager: &'static StateManager = &fixture.sm;
-                    let main_window: &'static MainWindow =
-                        Box::leak(Box::new(MainWindow::new().unwrap()));
+                    let fixture = state_manager_fixture();
+                    let state_manager = fixture.sm.clone();
+                    let main_window = MainWindow::new().unwrap();
 
                     main_window
                         .window()
@@ -141,15 +139,18 @@ pub mod integration {
                     main_window.global::<WindowInfo>().set_window_height(1080.0);
 
                     runtime().block_on(async {
-                        setup_test_context(state_manager).await;
-                        setup_ui(main_window, state_manager);
+                        setup_test_context(&state_manager).await;
+                        setup_ui(&main_window, &state_manager);
                     });
 
                     slint::spawn_local(async move {
+                        let _fixture = fixture;
                         while let Some((test_name, test_fn, result_tx)) = rx.recv().await {
-                            let res = std::panic::AssertUnwindSafe(async {
-                                reset_test_state(main_window, state_manager).await;
-                                let test_future = test_fn(main_window, state_manager);
+                            let mw = main_window.clone_strong();
+                            let sm = state_manager.clone();
+                            let res = std::panic::AssertUnwindSafe(async move {
+                                reset_test_state(&mw, &sm).await;
+                                let test_future = test_fn(mw, sm);
 
                                 if tokio::time::timeout(Duration::from_secs(30), test_future)
                                     .await
@@ -175,7 +176,7 @@ pub mod integration {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn reset_test_extensions(state_manager: &'static StateManager) {
+    fn reset_test_extensions(state_manager: &StateManager) {
         let ext_handler = state_manager.get_extension_handler();
         for detail in ext_handler.get_installed_extensions() {
             let _ = ext_handler.remove_extension(detail.package_name);
@@ -194,7 +195,7 @@ pub mod integration {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn reset_test_database(state_manager: &'static StateManager) {
+    fn reset_test_database(state_manager: &StateManager) {
         let database = state_manager.get_database();
         runtime().block_on(async move {
             if let Ok(songs) = database
@@ -223,7 +224,7 @@ pub mod integration {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    async fn reset_test_player(state_manager: &'static StateManager) {
+    async fn reset_test_player(state_manager: &StateManager) {
         let ph = state_manager.get_player_handler();
         ph.clear_queue().await;
         ph.clear_queue().await;
@@ -232,10 +233,13 @@ pub mod integration {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn reset_test_ui(main_window: &'static MainWindow) {
+    fn reset_test_ui(main_window: &MainWindow) {
         main_window
             .global::<SettingsState>()
             .set_show_settings(false);
+        main_window
+            .global::<SettingsState>()
+            .set_settings_mounted(false);
         main_window
             .global::<SettingsState>()
             .set_active_page(SettingsPages::Paths);
@@ -334,10 +338,7 @@ pub mod integration {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub async fn reset_test_state(
-        main_window: &'static MainWindow,
-        state_manager: &'static StateManager,
-    ) {
+    pub async fn reset_test_state(main_window: &MainWindow, state_manager: &StateManager) {
         await_cleanup_handles().await;
         reset_test_extensions(state_manager);
         reset_test_database(state_manager);
@@ -349,7 +350,7 @@ pub mod integration {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn run_slint_test<F, Fut>(test_name: &'static str, test_fn: F)
     where
-        F: FnOnce(&'static MainWindow, &'static StateManager) -> Fut + Send + 'static,
+        F: FnOnce(MainWindow, StateManager) -> Fut + Send + 'static,
         Fut: std::future::Future<Output = ()> + 'static,
     {
         let (tx, rx) = std::sync::mpsc::channel();
@@ -441,7 +442,10 @@ pub mod integration {
             song: Some(InnerSong {
                 id: Some(id.to_string()),
                 title: Some(title.to_string()),
-                playback_url: Some(format!("https://example.com/{}", id)),
+                playback_url: Some(songs_proto::moosync::types::PlaybackUrl {
+                    url: format!("https://example.com/{}", id),
+                    ..Default::default()
+                }),
                 path: Some(format!("/music/{}.mp3", id)),
                 r#type: SongType::Local.into(),
                 duration: Some(songs_proto::duration_proto::google::protobuf::Duration {
@@ -521,17 +525,17 @@ pub mod integration {
     pub struct ExtensionFixture {
         pub ext_dir: PathBuf,
         pub package_name: String,
-        pub state_manager: &'static StateManager,
+        pub state_manager: StateManager,
     }
 
     impl ExtensionFixture {
         #[tracing::instrument(level = "debug", skip_all)]
-        pub async fn new(state_manager: &'static StateManager) -> Self {
+        pub async fn new(state_manager: &StateManager) -> Self {
             Self::new_with_name(state_manager, "rs.sample", "Sample Extension").await
         }
 
         #[tracing::instrument(level = "debug", skip_all)]
-        pub async fn new_empty(state_manager: &'static StateManager) -> Self {
+        pub async fn new_empty(state_manager: &StateManager) -> Self {
             Self::new_from_subpath(
                 state_manager,
                 "empty",
@@ -543,7 +547,7 @@ pub mod integration {
 
         #[tracing::instrument(level = "debug", skip_all)]
         pub async fn new_with_name(
-            state_manager: &'static StateManager,
+            state_manager: &StateManager,
             package_name: &str,
             display_name: &str,
         ) -> Self {
@@ -650,7 +654,7 @@ pub mod integration {
 
         #[tracing::instrument(level = "debug", skip_all)]
         pub async fn new_from_subpath(
-            state_manager: &'static StateManager,
+            state_manager: &StateManager,
             subpath: &str,
             package_name: &str,
             display_name: &str,
@@ -690,7 +694,7 @@ pub mod integration {
             Self {
                 ext_dir,
                 package_name: package_name.to_string(),
-                state_manager,
+                state_manager: state_manager.clone(),
             }
         }
     }
@@ -698,7 +702,7 @@ pub mod integration {
     impl Drop for ExtensionFixture {
         fn drop(&mut self) {
             let _ = fs::remove_dir_all(&self.ext_dir);
-            let state_manager = self.state_manager;
+            let state_manager = self.state_manager.clone();
             let package_name = self.package_name.clone();
             let handle = runtime().spawn(async move {
                 let ext_handler = state_manager.get_extension_handler();

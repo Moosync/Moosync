@@ -113,6 +113,7 @@ impl Provider for EmptySampleExtension {
             }),
             url: String::new(),
             decryption_key: None,
+            ..Default::default()
         })
     }
 

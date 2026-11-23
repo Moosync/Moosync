@@ -250,7 +250,10 @@ async fn test_player_hook_dynamic_extension_player(sm_context: TestSmContext) {
         song: Some(InnerSong {
             id: Some("custom_stream_song".to_string()),
             title: Some("Custom Stream".to_string()),
-            playback_url: Some("custom_scheme://track/123".to_string()),
+            playback_url: Some(songs_proto::moosync::types::PlaybackUrl {
+                url: "custom_scheme://track/123".to_string(),
+                ..Default::default()
+            }),
             ..Default::default()
         }),
         ..Default::default()

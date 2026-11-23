@@ -8,7 +8,7 @@ use async_trait::async_trait;
 use extensions_proto::moosync::types::PlayerState;
 use player_proto::moosync::types::PlayerData;
 use rstest::{fixture, rstest};
-use songs_proto::moosync::types::{InnerSong, Song};
+use songs_proto::moosync::types::{InnerSong, PlaybackUrl, Song};
 use tracing_test::traced_test;
 use types::plugin::{Plugin, PluginContext};
 
@@ -25,7 +25,10 @@ fn create_mock_song(id: &str, title: &str) -> Song {
         song: Some(InnerSong {
             id: Some(id.to_string()),
             title: Some(title.to_string()),
-            playback_url: Some(format!("https://example.com/{}", id)),
+            playback_url: Some(songs_proto::moosync::types::PlaybackUrl {
+                url: format!("https://example.com/{}", id),
+                ..Default::default()
+            }),
             ..Default::default()
         }),
         ..Default::default()
@@ -738,6 +741,7 @@ async fn test_restore_player_data_sets_current_song() {
         song_queue: vec![song1, song2],
         current_idx: 1,
         repeat_mode: RepeatMode::RepeatInfinite.into(),
+        ..Default::default()
     };
     let (ended_tx, _ended_rx) = tokio::sync::mpsc::unbounded_channel();
     let player_handler = PlayerHandler::new_with_contexts(
@@ -769,6 +773,7 @@ async fn test_restore_player_data_play_loads_and_plays() {
         song_queue: vec![song1],
         current_idx: 0,
         repeat_mode: RepeatMode::RepeatNone.into(),
+        ..Default::default()
     };
     let (ended_tx, _ended_rx) = tokio::sync::mpsc::unbounded_channel();
     let player_handler = PlayerHandler::new_with_contexts(
@@ -795,6 +800,7 @@ async fn test_restore_player_data_out_of_bounds_idx_resets_to_zero() {
         song_queue: vec![song1],
         current_idx: 5,
         repeat_mode: RepeatMode::RepeatNone.into(),
+        ..Default::default()
     };
     let (ended_tx, _ended_rx) = tokio::sync::mpsc::unbounded_channel();
     let player_handler = PlayerHandler::new_with_contexts(
@@ -884,6 +890,7 @@ async fn test_player_handler_new_dummy_and_methods() {
         async fn resolve(
             &self,
             _song: &Song,
+            _is_prefetch: bool,
         ) -> Result<
             extensions_proto::moosync::types::PlaybackDetailsRequestedResponse,
             Box<dyn std::error::Error + Send + Sync>,
@@ -893,6 +900,7 @@ async fn test_player_handler_new_dummy_and_methods() {
                     url: "https://example.com/audio.mp3".to_string(),
                     duration: None,
                     decryption_key: None,
+                    ..Default::default()
                 },
             )
         }
@@ -901,6 +909,7 @@ async fn test_player_handler_new_dummy_and_methods() {
         async fn resolve_fallback(
             &self,
             _song: &Song,
+            _is_prefetch: bool,
         ) -> Result<
             extensions_proto::moosync::types::PlaybackDetailsRequestedResponse,
             Box<dyn std::error::Error + Send + Sync>,
@@ -910,6 +919,7 @@ async fn test_player_handler_new_dummy_and_methods() {
                     url: "https://example.com/audio.mp3".to_string(),
                     duration: None,
                     decryption_key: None,
+                    ..Default::default()
                 },
             )
         }
@@ -1111,4 +1121,62 @@ async fn test_on_volume_changed_and_on_seeked_emitted(player_handler: PlayerHand
 
     assert_eq!(*volumes.lock().unwrap(), vec![65]);
     assert_eq!(*seeks.lock().unwrap(), vec![Duration::from_secs(42)]);
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_update_song_in_queue_preserves_metadata(player_handler: PlayerHandler) {
+    let mut song = create_mock_song("preserve_1", "Original Title");
+    if let Some(inner) = song.song.as_mut() {
+        inner.url = Some("https://example.com/song".to_string());
+        inner.song_cover_path_high = Some("/cover/original.webp".to_string());
+        inner.playback_url = Some(PlaybackUrl {
+            url: "https://cdn.example.com/audio.mp3".to_string(),
+            expires_at: None,
+            decryption_key: None,
+        });
+    }
+    player_handler.add_to_queue(vec![song]).await;
+
+    let partial_update = Song {
+        song: Some(InnerSong {
+            id: Some("preserve_1".to_string()),
+            title: None,
+            url: None,
+            song_cover_path_high: None,
+            playback_url: None,
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    player_handler.update_song_in_queue(&partial_update);
+
+    let current = player_handler.current_song().unwrap();
+    let inner = current.song.as_ref().unwrap();
+    assert_eq!(inner.title.as_deref(), Some("Original Title"));
+    assert_eq!(inner.url.as_deref(), Some("https://example.com/song"));
+    assert_eq!(
+        inner.song_cover_path_high.as_deref(),
+        Some("/cover/original.webp")
+    );
+    assert_eq!(
+        inner.playback_url.as_ref().map(|p| p.url.as_str()),
+        Some("https://cdn.example.com/audio.mp3")
+    );
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_persist_is_playing(player_handler: PlayerHandler) {
+    let song = create_mock_song("play_state_1", "Play State Song");
+    player_handler.play_now(vec![song]).await;
+    assert!(player_handler.player_data.read().unwrap().is_playing);
+
+    let _ = player_handler.pause().await;
+    assert!(!player_handler.player_data.read().unwrap().is_playing);
 }

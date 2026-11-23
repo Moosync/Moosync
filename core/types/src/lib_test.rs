@@ -260,7 +260,10 @@ fn test_song_cover_getters() {
 fn test_song_playback_url_and_path_and_date() {
     let song = Song {
         song: Some(InnerSong {
-            playback_url: Some("http://stream.url".to_string()),
+            playback_url: Some(songs_proto::moosync::types::PlaybackUrl {
+                url: "http://stream.url".to_string(),
+                ..Default::default()
+            }),
             path: Some("/music/song.mp3".to_string()),
             date: Some("2024-01-01".to_string()),
             ..Default::default()
@@ -386,6 +389,10 @@ fn test_format_duration_live_trait() {
         fn get_cover_high(&self) -> Option<Cow<'_, str>> { None }
         fn get_cover_low(&self) -> Option<Cow<'_, str>> { None }
         fn get_playback_url(&self) -> Option<Cow<'_, str>> { None }
+        fn get_valid_playback_url(&self) -> Option<&songs_proto::moosync::types::PlaybackUrl> {
+            None
+        }
+        fn merge(&mut self, _updated: &Song) {}
         fn get_type_or_default(&self) -> SongType { SongType::Local }
         fn get_path(&self) -> Option<Cow<'_, str>> { None }
         fn get_lyrics(&self) -> Option<&Lyrics> { None }

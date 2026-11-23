@@ -275,7 +275,10 @@ async fn resolve_or_create_playlist_song(
     let opt = match &identifier {
         PlaylistSongId::Url(url) => GetSongOptions {
             song: Some(SearchableSong {
-                playback_url: Some(url.clone()),
+                playback_url: Some(songs_proto::moosync::types::PlaybackUrl {
+                    url: url.clone(),
+                    ..Default::default()
+                }),
                 ..Default::default()
             }),
             ..Default::default()
@@ -301,7 +304,15 @@ async fn resolve_or_create_playlist_song(
     }
 
     let (song_type, playback_url, path, title) = match identifier {
-        PlaylistSongId::Url(url) => (SongType::Url.into(), Some(url), None, None),
+        PlaylistSongId::Url(url) => (
+            SongType::Url.into(),
+            Some(songs_proto::moosync::types::PlaybackUrl {
+                url,
+                ..Default::default()
+            }),
+            None,
+            None,
+        ),
         PlaylistSongId::Path(p) => {
             let path_str = p.to_string_lossy().to_string();
             let title = p

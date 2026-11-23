@@ -6,6 +6,7 @@ import "core/types/protos/preferences.proto";
 import "core/types/protos/songs.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
 
 message ExtensionCommand {
   string package_name = 1;
@@ -155,12 +156,14 @@ message PreferenceChangedResponse {}
 
 message PlaybackDetailsRequestedRequest {
   Song song = 1;
+  bool is_prefetch = 2;
 }
 
 message PlaybackDetailsRequestedResponse {
   google.protobuf.Duration duration = 1;
   string url = 2;
   optional string decryption_key = 3;
+  optional google.protobuf.Timestamp expires_at = 4;
 }
 
 message CustomRequest {
@@ -772,12 +775,14 @@ enum PlayerState {
   LOADING = 3;
 }
 
+message LoadingEvent {}
+
 message PlayerEvent {
   oneof event {
     bool play = 1;
     bool pause = 2;
     bool ended = 3;
-    bool loading = 4;
+    LoadingEvent loading = 4;
     google.protobuf.Duration time_update = 5;
     string error = 6;
   }

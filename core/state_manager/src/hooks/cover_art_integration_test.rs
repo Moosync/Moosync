@@ -128,7 +128,10 @@ async fn insert_test_entities(sm: &StateManager, server_uri: &str) {
             id: None,
             title: Some("Integration Test Song".to_string()),
             path: None,
-            playback_url: Some(format!("{server_uri}/covers/song_1.png")),
+            playback_url: Some(songs_proto::moosync::types::PlaybackUrl {
+                url: format!("{server_uri}/covers/song_1.png"),
+                ..Default::default()
+            }),
             duration: Some(songs_proto::duration_proto::google::protobuf::Duration {
                 seconds: 240,
                 nanos: 0,

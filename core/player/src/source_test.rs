@@ -4,7 +4,7 @@ use assertables::{assert_err, assert_matches, assert_ok};
 use async_trait::async_trait;
 use extensions_proto::moosync::types::PlaybackDetailsRequestedResponse;
 use rstest::{fixture, rstest};
-use songs_proto::moosync::types::{InnerSong, Song};
+use songs_proto::moosync::types::{InnerSong, PlaybackUrl, Song};
 use tempdir::TempDir;
 use tracing_test::traced_test;
 
@@ -62,7 +62,10 @@ fn test_get_valid_src_playback_url_when_file_absent() {
     let song = Song {
         song: Some(InnerSong {
             path: Some("/non_existent_file.mp3".to_string()),
-            playback_url: Some("https://example.com/audio".to_string()),
+            playback_url: Some(songs_proto::moosync::types::PlaybackUrl {
+                url: "https://example.com/audio".to_string(),
+                ..Default::default()
+            }),
             ..Default::default()
         }),
         ..Default::default()
@@ -101,11 +104,13 @@ impl SourceResolver for MockResolver {
     async fn resolve(
         &self,
         _song: &Song,
+        _is_prefetch: bool,
     ) -> Result<PlaybackDetailsRequestedResponse, Box<dyn Error + Send + Sync>> {
         Ok(PlaybackDetailsRequestedResponse {
             url: "https://resolved.stream/123".to_string(),
             duration: None,
             decryption_key: Some("0123456789abcdef0123456789abcdef".to_string()),
+            ..Default::default()
         })
     }
 
@@ -113,11 +118,13 @@ impl SourceResolver for MockResolver {
     async fn resolve_fallback(
         &self,
         _song: &Song,
+        _is_prefetch: bool,
     ) -> Result<PlaybackDetailsRequestedResponse, Box<dyn Error + Send + Sync>> {
         Ok(PlaybackDetailsRequestedResponse {
             url: "https://resolved.stream/fallback".to_string(),
             duration: None,
             decryption_key: None,
+            ..Default::default()
         })
     }
 }
@@ -135,11 +142,11 @@ async fn test_source_resolver_resolve() {
         ..Default::default()
     };
 
-    assert_err!(resolver.resolve(&song).await.as_ref());
-    assert_err!(resolver.resolve_fallback(&song).await.as_ref());
+    assert_err!(resolver.resolve(&song, false).await.as_ref());
+    assert_err!(resolver.resolve_fallback(&song, false).await.as_ref());
 
     resolver.set_resolver(Arc::new(MockResolver));
-    let res = resolver.resolve(&song).await;
+    let res = resolver.resolve(&song, false).await;
     assert_ok!(res.as_ref());
     let resp = res.unwrap();
     assert_eq!(resp.url, "https://resolved.stream/123");
@@ -148,8 +155,65 @@ async fn test_source_resolver_resolve() {
         Some("0123456789abcdef0123456789abcdef")
     );
 
-    let res_fallback = resolver.resolve_fallback(&song).await;
+    let res_fallback = resolver.resolve_fallback(&song, false).await;
     assert_ok!(res_fallback.as_ref());
     let resp_fallback = res_fallback.unwrap();
     assert_eq!(resp_fallback.url, "https://resolved.stream/fallback");
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_get_valid_src_playback_url_expiration() {
+    let now_secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64;
+
+    let mut valid_playback_url = PlaybackUrl {
+        url: "https://stream.example/valid.mp3".to_string(),
+        expires_at: Some(Default::default()),
+        decryption_key: None,
+    };
+    if let Some(ts) = valid_playback_url.expires_at.as_mut() {
+        ts.seconds = now_secs + 3600;
+    }
+
+    let valid_song = Song {
+        song: Some(InnerSong {
+            id: Some("valid_ttl".to_string()),
+            playback_url: Some(valid_playback_url),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    let valid = get_valid_src(&valid_song);
+    assert_ok!(valid.as_ref());
+    assert_eq!(
+        valid.unwrap(),
+        ValidSrc::new_url("https://stream.example/valid.mp3")
+    );
+
+    let mut expired_playback_url = PlaybackUrl {
+        url: "https://stream.example/expired.mp3".to_string(),
+        expires_at: Some(Default::default()),
+        decryption_key: None,
+    };
+    if let Some(ts) = expired_playback_url.expires_at.as_mut() {
+        ts.seconds = now_secs - 60;
+    }
+
+    let expired_song = Song {
+        song: Some(InnerSong {
+            id: Some("expired_ttl".to_string()),
+            playback_url: Some(expired_playback_url),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    let expired = get_valid_src(&expired_song);
+    assert_err!(expired.as_ref());
+    assert_matches!(expired.unwrap_err(), PlayerError::NoSrcFound(_));
 }

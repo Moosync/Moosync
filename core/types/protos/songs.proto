@@ -3,6 +3,7 @@ syntax = "proto3";
 package moosync.types;
 
 import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
 
 message Album {
   optional string album_id = 1;
@@ -59,6 +60,13 @@ message LyricLine {
 message Lyrics {
   repeated LyricLine lines = 1;
   bool is_synced = 2;
+  optional google.protobuf.Duration offset = 3;
+}
+
+message PlaybackUrl {
+  string url = 1;
+  optional google.protobuf.Timestamp expires_at = 2;
+  optional string decryption_key = 3;
 }
 
 message InnerSong {
@@ -79,7 +87,7 @@ message InnerSong {
   SongType type = 17;
   optional string url = 18;
   optional string song_cover_path_high = 19;
-  optional string playback_url = 20;
+  optional PlaybackUrl playback_url = 20;
   optional string song_cover_path_low = 21;
   optional int64 date_added = 22;
   optional double track_no = 26;
@@ -94,7 +102,7 @@ message SearchableSong {
   optional string hash = 5;
   optional SongType type = 6;
   optional string url = 7;
-  optional string playback_url = 8;
+  optional PlaybackUrl playback_url = 8;
   optional string extension = 9;
   optional bool show_in_library = 10;
 }

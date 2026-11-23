@@ -38,8 +38,8 @@ pub mod prelude {
         ExtensionDetail, ExtensionManifest, ExtensionProviderScope, ScopePermission,
     };
     use songs_proto::moosync::types::{
-        Album, Artist, EntityResult, Genre, InnerSong, Lyrics, Playlist, Song, SongType,
-        entity_result,
+        Album, Artist, EntityResult, Genre, InnerSong, Lyrics, PlaybackUrl, Playlist, Song,
+        SongType, entity_result,
     };
     use themes_proto::moosync::types::{ThemeDetails, ThemeItem};
 
@@ -86,6 +86,8 @@ pub mod prelude {
         fn get_cover_high(&self) -> Option<Cow<'_, str>>;
         fn get_cover_low(&self) -> Option<Cow<'_, str>>;
         fn get_playback_url(&self) -> Option<Cow<'_, str>>;
+        fn get_valid_playback_url(&self) -> Option<&PlaybackUrl>;
+        fn merge(&mut self, updated: &Song);
         fn get_type_or_default(&self) -> SongType;
         fn get_path(&self) -> Option<Cow<'_, str>>;
         fn get_lyrics(&self) -> Option<&Lyrics>;
@@ -138,9 +140,81 @@ pub mod prelude {
             cover_low
         }
         fn get_playback_url(&self) -> Option<Cow<'_, str>> {
-            self.song
-                .as_ref()
-                .and_then(|s| s.playback_url.as_deref().map(Cow::Borrowed))
+            self.song.as_ref().and_then(|s| {
+                s.playback_url
+                    .as_ref()
+                    .map(|p| Cow::Borrowed(p.url.as_str()))
+            })
+        }
+        fn get_valid_playback_url(&self) -> Option<&PlaybackUrl> {
+            let playback_url = self.song.as_ref().and_then(|s| s.playback_url.as_ref())?;
+            if playback_url.url.is_empty() {
+                return None;
+            }
+            if let Some(expires_at) = playback_url.expires_at.as_ref() {
+                let Ok(secs) = u64::try_from(expires_at.seconds) else {
+                    return None;
+                };
+                let nanos = u32::try_from(expires_at.nanos).unwrap_or(0);
+                let expire_duration = std::time::Duration::new(secs, nanos);
+                let now = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default();
+                if expire_duration <= now {
+                    return None;
+                }
+            }
+            Some(playback_url)
+        }
+        fn merge(&mut self, updated: &Song) {
+            if let Some(ref upd_inner) = updated.song {
+                let tgt_inner = self.song.get_or_insert_with(Default::default);
+                if upd_inner.title.is_some() {
+                    tgt_inner.title = upd_inner.title.clone();
+                }
+                if upd_inner.path.is_some() {
+                    tgt_inner.path = upd_inner.path.clone();
+                }
+                if upd_inner.url.is_some() {
+                    tgt_inner.url = upd_inner.url.clone();
+                }
+                if upd_inner.playback_url.is_some() {
+                    tgt_inner.playback_url = upd_inner.playback_url.clone();
+                }
+                if upd_inner.extension.is_some() {
+                    tgt_inner.extension = upd_inner.extension.clone();
+                }
+                if upd_inner.song_cover_path_high.is_some() {
+                    tgt_inner.song_cover_path_high = upd_inner.song_cover_path_high.clone();
+                }
+                if upd_inner.song_cover_path_low.is_some() {
+                    tgt_inner.song_cover_path_low = upd_inner.song_cover_path_low.clone();
+                }
+                if upd_inner.duration.is_some() {
+                    tgt_inner.duration = upd_inner.duration;
+                }
+                if upd_inner.lyrics.is_some() {
+                    tgt_inner.lyrics = upd_inner.lyrics.clone();
+                }
+                if upd_inner.date.is_some() {
+                    tgt_inner.date = upd_inner.date.clone();
+                }
+                if upd_inner.year.is_some() {
+                    tgt_inner.year = upd_inner.year.clone();
+                }
+                if upd_inner.track_no.is_some() {
+                    tgt_inner.track_no = upd_inner.track_no;
+                }
+            }
+            if updated.album.is_some() {
+                self.album = updated.album.clone();
+            }
+            if !updated.artists.is_empty() {
+                self.artists = updated.artists.clone();
+            }
+            if !updated.genre.is_empty() {
+                self.genre = updated.genre.clone();
+            }
         }
         fn get_type_or_default(&self) -> SongType {
             self.song

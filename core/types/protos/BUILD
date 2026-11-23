@@ -34,6 +34,7 @@ proto_library(
         "@com_google_protobuf//:duration_proto",
         "@com_google_protobuf//:empty_proto",
         "@com_google_protobuf//:struct_proto",
+        "@com_google_protobuf//:timestamp_proto",
     ],
 )
 
@@ -61,7 +62,10 @@ rust_prost_library(
 proto_library(
     name = "songs_proto",
     srcs = ["songs.proto"],
-    deps = ["@com_google_protobuf//:duration_proto"],
+    deps = [
+        "@com_google_protobuf//:duration_proto",
+        "@com_google_protobuf//:timestamp_proto",
+    ],
 )
 
 rust_prost_library(

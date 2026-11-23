@@ -26,7 +26,7 @@ pub struct MuxPlayer {
     active_idx: AtomicUsize,
     events_tx: RwLock<UnboundedSender<PlayerEvent>>,
     pub on_ended_callback: SubscriberList<()>,
-    source_resolver: SourceResolverHolder,
+    source_resolver: Arc<SourceResolverHolder>,
 }
 
 impl MuxPlayer {
@@ -57,9 +57,12 @@ impl MuxPlayer {
             active_idx: AtomicUsize::new(0),
             events_tx: RwLock::new(events_tx),
             on_ended_callback,
-            source_resolver: SourceResolverHolder::new(),
+            source_resolver: Arc::new(SourceResolverHolder::new()),
         }
     }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub(crate) fn get_resolver(&self) -> Arc<SourceResolverHolder> { self.source_resolver.clone() }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn add_player(&self, player: Arc<dyn AudioPlayerContext>) {
@@ -252,7 +255,7 @@ impl MuxPlayer {
         // 2. If no, check if the same extension which gave us the song can
         //    resolve the URL, if yes then get the URL from that extension and
         //    play it
-        if let Ok(resp) = self.source_resolver.resolve(song).await {
+        if let Ok(resp) = self.source_resolver.resolve(song, false).await {
             let src = ValidSrc::new_url_with_key(resp.url, resp.decryption_key);
             if self.load_src(src).await.is_ok() {
                 return Ok(());
@@ -280,7 +283,7 @@ impl MuxPlayer {
 
         // 4. If no, fall back to other extensions to handle the song: 4a. Fall
         //    back to other extensions to resolve the URL
-        if let Ok(resp) = self.source_resolver.resolve_fallback(song).await {
+        if let Ok(resp) = self.source_resolver.resolve_fallback(song, false).await {
             let src = ValidSrc::new_url_with_key(resp.url, resp.decryption_key);
             if self.load_src(src).await.is_ok() {
                 return Ok(());

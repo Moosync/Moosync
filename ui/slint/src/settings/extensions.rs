@@ -70,7 +70,9 @@ impl ExtensionsPageHandler {
             .into_iter()
             .map(|ext| match ext {
                 ExtensionInfo::Local(detail) => extension_item_from_detail(detail, &cache_dir),
-                ExtensionInfo::Remote(manifest) => extension_item_from_manifest(manifest, &cache_dir),
+                ExtensionInfo::Remote(manifest) => {
+                    extension_item_from_manifest(manifest, &cache_dir)
+                }
                 ExtensionInfo::LocalPath(_) => unreachable!(),
             })
             .collect();

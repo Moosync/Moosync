@@ -564,7 +564,10 @@ async fn test_reply_handler_player_getters_when_active(reply_context: TestReplyC
         song: Some(InnerSong {
             id: Some("reply_song_1".to_string()),
             title: Some("Reply Song 1".to_string()),
-            playback_url: Some("https://example.com/reply1".to_string()),
+            playback_url: Some(songs_proto::moosync::types::PlaybackUrl {
+                url: "https://example.com/reply1".to_string(),
+                ..Default::default()
+            }),
             ..Default::default()
         }),
         ..Default::default()
@@ -573,7 +576,10 @@ async fn test_reply_handler_player_getters_when_active(reply_context: TestReplyC
         song: Some(InnerSong {
             id: Some("reply_song_2".to_string()),
             title: Some("Reply Song 2".to_string()),
-            playback_url: Some("https://example.com/reply2".to_string()),
+            playback_url: Some(songs_proto::moosync::types::PlaybackUrl {
+                url: "https://example.com/reply2".to_string(),
+                ..Default::default()
+            }),
             ..Default::default()
         }),
         ..Default::default()

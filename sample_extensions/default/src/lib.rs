@@ -316,6 +316,7 @@ impl Provider for SampleExtension {
             }),
             url: "https://example.com/song.mp3".to_string(),
             decryption_key: None,
+            ..Default::default()
         })
     }
 
@@ -496,6 +497,7 @@ impl Provider for SampleExtension {
             lyrics: Some(Lyrics {
                 lines,
                 is_synced: true,
+                ..Default::default()
             }),
         })
     }
@@ -509,9 +511,9 @@ impl Provider for SampleExtension {
             Some(requested_cover_art_request::Item::Song(song)) => {
                 if let Some(inner) = &song.song
                     && let Some(playback_url) = &inner.playback_url
-                    && playback_url.starts_with("http")
+                    && playback_url.url.starts_with("http")
                 {
-                    playback_url.clone()
+                    playback_url.url.clone()
                 } else {
                     let id = song
                         .song

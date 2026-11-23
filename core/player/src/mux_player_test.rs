@@ -53,7 +53,10 @@ async fn test_mux_player_can_play_unsupported_url(mux_player: MuxPlayer) {
 async fn test_mux_player_load_unsupported_url(mux_player: MuxPlayer) {
     let song = Song {
         song: Some(InnerSong {
-            playback_url: Some("ftp://example.com/audio.mp3".to_string()),
+            playback_url: Some(songs_proto::moosync::types::PlaybackUrl {
+                url: "ftp://example.com/audio.mp3".to_string(),
+                ..Default::default()
+            }),
             ..Default::default()
         }),
         ..Default::default()
@@ -170,7 +173,10 @@ async fn test_mux_player_no_player_found() {
 
     let song = Song {
         song: Some(InnerSong {
-            playback_url: Some("https://example.com/audio.mp3".to_string()),
+            playback_url: Some(songs_proto::moosync::types::PlaybackUrl {
+                url: "https://example.com/audio.mp3".to_string(),
+                ..Default::default()
+            }),
             ..Default::default()
         }),
         ..Default::default()
@@ -188,7 +194,10 @@ async fn test_mux_player_no_player_found() {
 async fn test_mux_player_play_success(mux_player: MuxPlayer) {
     let song = Song {
         song: Some(InnerSong {
-            playback_url: Some("https://example.com/audio.mp3".to_string()),
+            playback_url: Some(songs_proto::moosync::types::PlaybackUrl {
+                url: "https://example.com/audio.mp3".to_string(),
+                ..Default::default()
+            }),
             ..Default::default()
         }),
         ..Default::default()
@@ -218,11 +227,13 @@ async fn test_mux_player_load_song_resolution() {
         async fn resolve(
             &self,
             _song: &Song,
+            _is_prefetch: bool,
         ) -> Result<PlaybackDetailsRequestedResponse, Box<dyn Error + Send + Sync>> {
             Ok(PlaybackDetailsRequestedResponse {
                 url: "https://resolved.example.com/stream.mp3".to_string(),
                 duration: None,
                 decryption_key: None,
+                ..Default::default()
             })
         }
 
@@ -230,11 +241,13 @@ async fn test_mux_player_load_song_resolution() {
         async fn resolve_fallback(
             &self,
             _song: &Song,
+            _is_prefetch: bool,
         ) -> Result<PlaybackDetailsRequestedResponse, Box<dyn Error + Send + Sync>> {
             Ok(PlaybackDetailsRequestedResponse {
                 url: "https://resolved.example.com/stream.mp3".to_string(),
                 duration: None,
                 decryption_key: None,
+                ..Default::default()
             })
         }
     }
@@ -412,6 +425,7 @@ impl SourceResolver for AdvancedMockResolver {
     async fn resolve(
         &self,
         song: &Song,
+        _is_prefetch: bool,
     ) -> Result<PlaybackDetailsRequestedResponse, Box<dyn Error + Send + Sync>> {
         let ext = song.song.as_ref().and_then(|s| s.extension.as_deref());
         if ext == Some("ext_a")
@@ -421,6 +435,7 @@ impl SourceResolver for AdvancedMockResolver {
                 url: url.clone(),
                 duration: None,
                 decryption_key: None,
+                ..Default::default()
             });
         }
         Err(Box::new(crate::error::PlayerError::NoSrcFound(Box::new(
@@ -432,12 +447,14 @@ impl SourceResolver for AdvancedMockResolver {
     async fn resolve_fallback(
         &self,
         _song: &Song,
+        _is_prefetch: bool,
     ) -> Result<PlaybackDetailsRequestedResponse, Box<dyn Error + Send + Sync>> {
         if let Some(ref url) = self.fallback_url {
             return Ok(PlaybackDetailsRequestedResponse {
                 url: url.clone(),
                 duration: None,
                 decryption_key: None,
+                ..Default::default()
             });
         }
         Err(Box::new(crate::error::PlayerError::NoSrcFound(Box::new(
@@ -514,7 +531,10 @@ async fn test_url_resolution_rule_1_existing_playback_url() {
 
     let song = Song {
         song: Some(InnerSong {
-            playback_url: Some("https://example.com/rule1.mp3".to_string()),
+            playback_url: Some(songs_proto::moosync::types::PlaybackUrl {
+                url: "https://example.com/rule1.mp3".to_string(),
+                ..Default::default()
+            }),
             extension: Some("ext_a".to_string()),
             ..Default::default()
         }),

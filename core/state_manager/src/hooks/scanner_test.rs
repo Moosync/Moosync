@@ -187,7 +187,7 @@ async fn test_resolve_or_create_playlist_song_url_new(sm_context: TestSmContext)
     let song = resolved.unwrap();
     let inner = song.song.expect("inner song is missing");
     assert_eq!(
-        inner.playback_url.as_deref(),
+        inner.playback_url.as_ref().map(|p| p.url.as_str()),
         Some("https://example.com/stream.mp3")
     );
 }

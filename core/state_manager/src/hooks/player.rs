@@ -7,7 +7,7 @@ use extensions_proto::moosync::types::{
     SongQueueChangedRequest, VolumeChangedRequest, player_event::Event as ProtoPlayerEvent,
 };
 use player::{PlayerHandler, SourceResolver, error::PlayerError};
-use preferences::keys::{CLEAR_QUEUE, PreferenceItemExt};
+use preferences::keys::{CLEAR_QUEUE, PERSIST_PLAYBACK_STATE, PreferenceItemExt};
 use songs_proto::moosync::types::Song;
 use tracing::{Instrument, error};
 use types::{player::AudioPlayerContext, prelude::ScopeListExt};
@@ -234,6 +234,7 @@ impl SourceResolver for ExtensionSourceResolver {
     async fn resolve(
         &self,
         song: &Song,
+        is_prefetch: bool,
     ) -> Result<PlaybackDetailsRequestedResponse, Box<dyn Error + Send + Sync>> {
         let extension_handler = self.state_manager.get_extension_handler();
         let ext_name = song.song.as_ref().and_then(|s| s.extension.as_deref());
@@ -246,6 +247,7 @@ impl SourceResolver for ExtensionSourceResolver {
             && let Ok(resp) = extension
                 .playback_details_requested(PlaybackDetailsRequestedRequest {
                     song: Some(song.clone()),
+                    is_prefetch,
                 })
                 .await
             && !resp.url.is_empty()
@@ -259,6 +261,7 @@ impl SourceResolver for ExtensionSourceResolver {
     async fn resolve_fallback(
         &self,
         song: &Song,
+        is_prefetch: bool,
     ) -> Result<PlaybackDetailsRequestedResponse, Box<dyn Error + Send + Sync>> {
         let extension_handler = self.state_manager.get_extension_handler();
         let ext_name = song.song.as_ref().and_then(|s| s.extension.as_deref());
@@ -273,6 +276,7 @@ impl SourceResolver for ExtensionSourceResolver {
             match ext
                 .playback_details_requested(PlaybackDetailsRequestedRequest {
                     song: Some(song.clone()),
+                    is_prefetch,
                 })
                 .await
             {
@@ -305,6 +309,20 @@ impl Hook for PlayerHook {
         Self::bind_player_data_events(state_manager, &player_handler);
         Self::bind_player_ui_events(state_manager, &player_handler);
         Self::bind_extension_players(state_manager, &player_handler);
+
+        let persist_playback_state = state_manager
+            .get_preference_config()
+            .load(&PERSIST_PLAYBACK_STATE)
+            .value::<bool>()
+            .unwrap_or(false);
+        tokio::spawn(
+            async move {
+                player_handler
+                    .load_initial_song(persist_playback_state)
+                    .await;
+            }
+            .in_current_span(),
+        );
 
         Ok(())
     }

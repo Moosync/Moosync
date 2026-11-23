@@ -21,8 +21,11 @@ pub(crate) fn get_valid_src(song: &'_ Song) -> Result<ValidSrc<'_>, PlayerError>
     if let Some(path) = path_opt {
         return Ok(ValidSrc::Path(path));
     }
-    if let Some(src) = song.get_playback_url() {
-        return Ok(ValidSrc::new_url(src));
+    if let Some(pb) = song.get_valid_playback_url() {
+        return Ok(ValidSrc::new_url_with_key(
+            pb.url.as_str(),
+            pb.decryption_key.clone(),
+        ));
     }
     Err(PlayerError::NoSrcFound(Box::new(song.clone())))
 }
@@ -32,11 +35,13 @@ pub trait SourceResolver: Send + Sync {
     async fn resolve(
         &self,
         song: &Song,
+        is_prefetch: bool,
     ) -> Result<PlaybackDetailsRequestedResponse, Box<dyn Error + Send + Sync>>;
 
     async fn resolve_fallback(
         &self,
         song: &Song,
+        is_prefetch: bool,
     ) -> Result<PlaybackDetailsRequestedResponse, Box<dyn Error + Send + Sync>>;
 }
 
@@ -62,6 +67,7 @@ impl SourceResolverHolder {
     pub async fn resolve(
         &self,
         song: &Song,
+        is_prefetch: bool,
     ) -> Result<PlaybackDetailsRequestedResponse, PlayerError> {
         let resolver = {
             let resolver_lock = self.resolver.lock().unwrap();
@@ -73,7 +79,7 @@ impl SourceResolverHolder {
             resolver.clone()
         };
         tracing::debug!("Resolving playback details for song: {:?}", song);
-        resolver.resolve(song).await.map_err(|e| {
+        resolver.resolve(song, is_prefetch).await.map_err(|e| {
             PlayerError::PlaybackUrlResolutionFailed(format!("Resolver failed: {}", e))
         })
     }
@@ -82,6 +88,7 @@ impl SourceResolverHolder {
     pub async fn resolve_fallback(
         &self,
         song: &Song,
+        is_prefetch: bool,
     ) -> Result<PlaybackDetailsRequestedResponse, PlayerError> {
         let resolver = {
             let resolver_lock = self.resolver.lock().unwrap();
@@ -93,8 +100,11 @@ impl SourceResolverHolder {
             resolver.clone()
         };
         tracing::debug!("Resolving fallback playback details for song: {:?}", song);
-        resolver.resolve_fallback(song).await.map_err(|e| {
-            PlayerError::PlaybackUrlResolutionFailed(format!("Resolver failed: {}", e))
-        })
+        resolver
+            .resolve_fallback(song, is_prefetch)
+            .await
+            .map_err(|e| {
+                PlayerError::PlaybackUrlResolutionFailed(format!("Resolver failed: {}", e))
+            })
     }
 }

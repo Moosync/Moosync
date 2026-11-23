@@ -342,6 +342,7 @@ impl LazyModel for ExtensionItem {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn update_from(&mut self, updated: Self) {
+        self.loading = updated.loading;
         if !updated.name.is_empty() {
             self.name = updated.name;
         }
@@ -370,8 +371,8 @@ impl LazyModel for SongModel {
         if !updated.title.is_empty() {
             self.title = updated.title;
         }
-        if updated.duration_s > 0 {
-            self.duration_s = updated.duration_s;
+        if updated.duration_ms > 0 {
+            self.duration_ms = updated.duration_ms;
         }
         if !updated.album_name.is_empty() {
             self.album_name = updated.album_name;

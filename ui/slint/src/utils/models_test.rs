@@ -62,7 +62,7 @@ fn test_to_song_model() {
     assert_eq!(model.album_coverpath_high, "https://example.com/cover.jpg");
     assert_eq!(model.artists.row_count(), 1);
     assert_eq!(model.genre.row_count(), 1);
-    assert_eq!(model.duration_s, 240);
+    assert_eq!(model.duration_ms, 240_000);
 }
 
 #[test]
@@ -75,7 +75,7 @@ fn test_song_model_to_song() {
         album_name: "Album Name".into(),
         album_id: "album_id".into(),
         song_cover_path_high: "https://example.com/cover.jpg".into(),
-        duration_s: 240,
+        duration_ms: 240_000,
         ..Default::default()
     };
 

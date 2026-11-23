@@ -39,7 +39,7 @@ impl<T: Clone + 'static> IntoVec<T> for &ModelRc<T> {
 impl From<SongModel> for Song {
     #[tracing::instrument(level = "debug", skip_all)]
     fn from(model: SongModel) -> Self {
-        let duration = core_to_proto_duration(Duration::from_secs(model.duration_s as u64));
+        let duration = core_to_proto_duration(Duration::from_millis(model.duration_ms as u64));
 
         let inner_song = InnerSong {
             id: (!model.id.is_empty()).then(|| model.id.to_string()),
@@ -53,14 +53,19 @@ impl From<SongModel> for Song {
             bitrate: (model.bitrate != 0.0).then_some(model.bitrate as f64),
             codec: (!model.codec.is_empty()).then(|| model.codec.to_string()),
             container: (!model.container.is_empty()).then(|| model.container.to_string()),
-            duration: (model.duration_s != 0).then_some(duration),
+            duration: (model.duration_ms != 0).then_some(duration),
             sample_rate: (model.sample_rate != 0.0).then_some(model.sample_rate as f64),
             hash: (!model.hash.is_empty()).then(|| model.hash.to_string()),
             r#type: model.r#type,
             url: (!model.url.is_empty()).then(|| model.url.to_string()),
             song_cover_path_high: (!model.song_cover_path_high.is_empty())
                 .then(|| model.song_cover_path_high.to_string()),
-            playback_url: (!model.playback_url.is_empty()).then(|| model.playback_url.to_string()),
+            playback_url: (!model.playback_url.is_empty()).then(|| {
+                songs_proto::moosync::types::PlaybackUrl {
+                    url: model.playback_url.to_string(),
+                    ..Default::default()
+                }
+            }),
             song_cover_path_low: (!model.song_cover_path_low.is_empty())
                 .then(|| model.song_cover_path_low.to_string()),
             date_added: (model.date_added != 0).then_some(model.date_added as i64),
@@ -118,13 +123,20 @@ impl From<(Song, Option<&ExtensionDetail>)> for SongModel {
             .into();
         let extension_icon = resolve_extension_icon(detail, None);
         let raw_duration = song.get_duration_or_default();
-        let duration_s = raw_duration.as_secs() as i32;
+        let duration_ms = raw_duration.as_millis() as i32;
         let duration_str = song.format_duration();
         let cover_url_high: SharedString =
             song.get_cover_high().as_deref().unwrap_or_default().into();
         let cover_url_low: SharedString =
             song.get_cover_low().as_deref().unwrap_or_default().into();
 
+        let artists_str: SharedString = song
+            .artists
+            .iter()
+            .filter_map(|a| a.artist_name.as_deref())
+            .collect::<Vec<_>>()
+            .join(", ")
+            .into();
         let artists: Vec<ArtistModel> = song
             .artists
             .into_iter()
@@ -178,7 +190,7 @@ impl From<(Song, Option<&ExtensionDetail>)> for SongModel {
                 .and_then(|s| s.container.as_deref())
                 .unwrap_or_default()
                 .into(),
-            duration_s,
+            duration_ms,
             duration_str: duration_str.into(),
             sample_rate: inner
                 .as_ref()
@@ -202,7 +214,7 @@ impl From<(Song, Option<&ExtensionDetail>)> for SongModel {
                 .into(),
             playback_url: inner
                 .as_ref()
-                .and_then(|s| s.playback_url.as_deref())
+                .and_then(|s| s.playback_url.as_ref().map(|p| p.url.as_str()))
                 .unwrap_or_default()
                 .into(),
             song_cover_path_low: inner
@@ -250,6 +262,7 @@ impl From<(Song, Option<&ExtensionDetail>)> for SongModel {
                 .unwrap_or_default()
                 .into(),
             artists: ModelRc::new(VecModel::from(artists)),
+            artists_str,
             genre: ModelRc::new(VecModel::from(genres)),
             coverPathHigh: Image::default(),
             coverPathLow: Image::default(),

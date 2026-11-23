@@ -3,6 +3,7 @@ import { Theme } from "../constants.slint";
 import { WindowInfo } from "../window_info.slint";
 import { ScrollView } from "std-widgets.slint";
 import { Utils, DefaultIconType } from "../utils.slint";
+import { SongItemExtensionIcon } from "song_item_components.slint";
 
 export component SongDetails inherits HorizontalLayout {
 
@@ -50,24 +51,29 @@ export component SongDetails inherits HorizontalLayout {
             VerticalLayout {
                 spacing: Theme.spacingXxs;
 
-                Text {
-                    text: song.title;
-                    color: Theme.textPrimary;
-                    font-size: Theme.modelTitle;
-                    font-weight: 600;
-                    overflow: elide;
+                HorizontalLayout {
+                    spacing: Theme.spacingXs;
+                    alignment: start;
+
+                    Text {
+                        text: song.title;
+                        color: Theme.textPrimary;
+                        font-size: Theme.modelTitle;
+                        font-weight: 600;
+                        overflow: elide;
+                    }
+
+                    if song.extension != "": SongItemExtensionIcon {
+                        song: root.song;
+                    }
                 }
 
-                HorizontalLayout {
-                    for artist[i] in song.artists: HorizontalLayout {
-                        Text {
-                            accessible-role: none;
-                            text: (i > 0 ? ", " : "") + artist.title;
-                            color: Theme.textSecondary;
-                            font-size: Theme.subtitle;
-                            overflow: elide;
-                        }
-                    }
+                Text {
+                    accessible-role: none;
+                    text: song.artists_str;
+                    color: Theme.textSecondary;
+                    font-size: Theme.subtitle;
+                    overflow: elide;
                 }
 
                 Text {

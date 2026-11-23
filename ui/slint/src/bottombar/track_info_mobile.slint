@@ -1,7 +1,9 @@
 import { Theme } from "../constants_mobile.slint";
 import { SongModel, CoverHelper } from "../types/song_view.slint";
 import { PlayerProps } from "playback_props.slint";
-import { SongArtistsList } from "../common/song_item_components_mobile.slint";
+import {
+    SongItemExtensionIcon,
+} from "../common/song_item_components_mobile.slint";
 
 export component TrackInfoMobile inherits Rectangle {
     property <SongModel> current_song: PlayerProps.current_song;
@@ -33,19 +35,29 @@ export component TrackInfoMobile inherits Rectangle {
             horizontal-stretch: 1;
             spacing: Theme.spacingTiny;
 
-            Text {
-                text: root.current_song.title != "" ? root.current_song.title : @tr("No song playing");
-                color: Theme.textPrimary;
-                font-size: Theme.body;
-                font-weight: 600;
-                overflow: elide;
-                vertical-alignment: center;
+            HorizontalLayout {
+                spacing: Theme.spacingXs;
+                alignment: start;
+
+                Text {
+                    text: root.current_song.title != "" ? root.current_song.title : @tr("No song playing");
+                    color: Theme.textPrimary;
+                    font-size: Theme.body;
+                    font-weight: 600;
+                    overflow: elide;
+                    vertical-alignment: center;
+                }
+
+                if root.current_song.extension != "": SongItemExtensionIcon {
+                    song: root.current_song;
+                }
             }
 
-            SongArtistsList {
-                artists: root.current_song.artists;
-                font_size: Theme.caption;
-                text_color: Theme.textSecondary;
+            Text {
+                text: root.current_song.artists_str;
+                font-size: Theme.caption;
+                color: Theme.textSecondary;
+                overflow: elide;
             }
         }
     }

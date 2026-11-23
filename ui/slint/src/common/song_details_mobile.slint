@@ -1,7 +1,7 @@
 import { SongModel, CoverHelper } from "../types/song_view.slint";
 import { Theme } from "../constants_mobile.slint";
 import { Utils, DefaultIconType } from "../utils.slint";
-import { SongArtistsList } from "song_item_components_mobile.slint";
+import { SongItemExtensionIcon } from "song_item_components_mobile.slint";
 
 export component SongDetailsMobile inherits VerticalLayout {
     in property <SongModel> song: {
@@ -47,23 +47,30 @@ export component SongDetailsMobile inherits VerticalLayout {
         padding-left: Theme.paddingLg;
         padding-right: Theme.paddingLg;
 
-        Text {
-            text: root.song.title != "" ? root.song.title : @tr("No song playing");
-            font-size: Theme.modelTitle;
-            font-weight: 700;
-            color: Theme.textPrimary;
-            horizontal-alignment: center;
-            overflow: elide;
-        }
-
         HorizontalLayout {
             alignment: center;
+            spacing: Theme.spacingXs;
 
-            SongArtistsList {
-                artists: root.song.artists;
-                font_size: Theme.subtitle;
-                text_color: Theme.textSecondary;
+            Text {
+                text: root.song.title != "" ? root.song.title : @tr("No song playing");
+                font-size: Theme.modelTitle;
+                font-weight: 700;
+                color: Theme.textPrimary;
+                horizontal-alignment: center;
+                overflow: elide;
             }
+
+            if root.song.extension != "": SongItemExtensionIcon {
+                song: root.song;
+            }
+        }
+
+        Text {
+            text: root.song.artists_str;
+            font-size: Theme.subtitle;
+            color: Theme.textSecondary;
+            horizontal-alignment: center;
+            overflow: elide;
         }
     }
 

@@ -1,6 +1,7 @@
 import { Theme } from "../constants.slint";
 import { SongModel, CoverHelper } from "../types/song_view.slint";
 import { PlayerProps } from "playback_props.slint";
+import { SongItemExtensionIcon } from "../common/song_item_components.slint";
 
 export component TrackInfo inherits Rectangle {
     width: Theme.trackInfoWidth;
@@ -35,27 +36,32 @@ export component TrackInfo inherits Rectangle {
             alignment: center;
             spacing: Theme.spacingTiny;
 
-            Text {
-                accessible-role: text;
-                accessible-label: root.current_song.title;
-                text: root.current_song.title;
-                color: Theme.textPrimary; // Text Primary
-                font-size: Theme.body;
-                font-weight: 600;
-                overflow: elide;
+            HorizontalLayout {
+                spacing: Theme.spacingXs;
+                alignment: start;
+
+                Text {
+                    accessible-role: text;
+                    accessible-label: root.current_song.title;
+                    text: root.current_song.title;
+                    color: Theme.textPrimary; // Text Primary
+                    font-size: Theme.body;
+                    font-weight: 600;
+                    overflow: elide;
+                }
+
+                if root.current_song.extension != "": SongItemExtensionIcon {
+                    song: root.current_song;
+                }
             }
 
-            HorizontalLayout {
-                for artist[i] in root.current_song.artists: HorizontalLayout {
-                    Text {
-                        accessible-role: text;
-                        accessible-label: artist.title;
-                        text: (i > 0 ? ", " : "") + artist.title;
-                        color: Theme.textSecondary;
-                        font-size: Theme.caption;
-                        overflow: elide;
-                    }
-                }
+            Text {
+                accessible-role: text;
+                accessible-label: root.current_song.artists_str;
+                text: root.current_song.artists_str;
+                color: Theme.textSecondary;
+                font-size: Theme.caption;
+                overflow: elide;
             }
 
             Text {

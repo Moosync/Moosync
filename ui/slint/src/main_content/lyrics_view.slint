@@ -63,6 +63,13 @@ export component LyricsView inherits HorizontalLayout {
         root.scroll_to_active_lyric();
     }
 
+    property <bool> is_lyrics_visible: QueuePageProps.show_lyrics && QueuePageProps.show_queue;
+    changed is_lyrics_visible => {
+        if (self.is_lyrics_visible) {
+            root.scroll_to_active_lyric();
+        }
+    }
+
     VerticalLayout {
         width: 100%;
         height: 100%;

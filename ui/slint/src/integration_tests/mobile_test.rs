@@ -1473,6 +1473,67 @@ parameterized_test!(
     ),
 );
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_mobile_synced_lyrics_scroll_with_timestamp(
+    main_window: MainWindow,
+    _state_manager: StateManager,
+) {
+    let lines: Vec<slint_app::LyricLineModel> = (0..50)
+        .map(|i| slint_app::LyricLineModel {
+            text: format!("Mobile lyric line {i}").into(),
+            time_ms: i * 1000,
+        })
+        .collect();
+
+    let props = main_window.global::<QueuePageProps>();
+    props.set_show_queue(true);
+    props.set_active_tab(2);
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    props.set_lyrics_lines(ModelRc::new(VecModel::from(lines)));
+    props.set_is_synced(true);
+    props.set_has_lyrics(true);
+    props.set_lyrics_loading(false);
+    main_window
+        .global::<PlayerProps>()
+        .set_current_duration_ms(0);
+
+    let loaded = wait_until_timeout(Duration::from_secs(2), || {
+        ElementHandle::find_by_accessible_label(&main_window, "Mobile lyric line 0").count() > 0
+    })
+    .await;
+    assert!(loaded);
+
+    let line30_initial_y =
+        ElementHandle::find_by_accessible_label(&main_window, "Mobile lyric line 30")
+            .next()
+            .map(|h| h.absolute_position().y);
+
+    main_window
+        .global::<PlayerProps>()
+        .set_current_duration_ms(30_000);
+    i_slint_backend_testing::mock_elapsed_time(Duration::from_millis(50));
+    i_slint_backend_testing::mock_elapsed_time(Duration::from_millis(500));
+
+    let line30_after: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(&main_window, "Mobile lyric line 30").collect();
+    assert!(
+        !line30_after.is_empty(),
+        "Mobile lyric line 30 should be visible in viewport after scrolling"
+    );
+    let after_y = line30_after[0].absolute_position().y;
+    let win_height = main_window.window().size().height as f32;
+    assert!(
+        (0.0..win_height).contains(&after_y),
+        "Mobile lyric line 30 should be within window viewport (after_y={after_y}, win_height={win_height})"
+    );
+    if let Some(init_y) = line30_initial_y {
+        assert!(
+            after_y < init_y - 50.0,
+            "Mobile synced lyrics should scroll upward when timestamp advances (init_y={init_y}, after_y={after_y})"
+        );
+    }
+}
+
 integration_test!(
     test_mobile_topbar_search_toggle => do_mobile_topbar_search_toggle,
     test_mobile_topbar_accounts_toggle => do_mobile_topbar_accounts_toggle,
@@ -1495,4 +1556,5 @@ integration_test!(
     test_mobile_context_menu_close_animation_and_on_hide => do_mobile_context_menu_close_animation_and_on_hide,
     test_mobile_progress_bar_tap_bounds => do_mobile_progress_bar_tap_bounds,
     test_mobile_topbar_context_menu_extensions => do_mobile_topbar_context_menu_extensions,
+    test_mobile_synced_lyrics_scroll_with_timestamp => do_mobile_synced_lyrics_scroll_with_timestamp,
 );

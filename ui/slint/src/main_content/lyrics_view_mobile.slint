@@ -3,7 +3,7 @@ import { Theme } from "../constants_mobile.slint";
 import { QueuePageProps } from "queue_props.slint";
 import { PlayerProps } from "../bottombar/playback_props.slint";
 import { AppCallbacks } from "../callbacks.slint";
-import { ListView } from "std-widgets.slint";
+import { ListView, ScrollView } from "std-widgets.slint";
 import { ScrollActivity } from "../common/scroll_activity_mobile.slint";
 import { TextButton } from "../common/text_button.slint";
 
@@ -21,7 +21,8 @@ export component LyricsViewMobile inherits Rectangle {
         if (root.active_index >= 0 && root.is_synced && !root.lyrics_loading && root.has_lyrics && lyrics_list.height > 0px) {
             let item_height = Theme.mobileLyricsActiveFontSize + Theme.spacingSm * 2;
             let max_scroll = Math.max(0px, lyrics_list.content-height - lyrics_list.height);
-            let target_y = -root.active_index * item_height + (lyrics_list.height / 2) - (item_height / 2);
+            let line_y = Theme.size3Xl + root.active_index * item_height;
+            let target_y = -line_y + (lyrics_list.height / 2) - (item_height / 2);
             lyrics_list.content-y = Math.max(-max_scroll, Math.min(0px, target_y));
         }
     }
@@ -36,6 +37,13 @@ export component LyricsViewMobile inherits Rectangle {
 
     changed lyrics_loading => {
         root.scroll_to_active_lyric();
+    }
+
+    property <bool> is_tab_active: QueuePageProps.active_tab == 2 && QueuePageProps.show_queue;
+    changed is_tab_active => {
+        if (self.is_tab_active) {
+            root.scroll_to_active_lyric();
+        }
     }
 
     pure function get_line_opacity(idx: int, active_idx: int) -> float {
@@ -108,8 +116,9 @@ export component LyricsViewMobile inherits Rectangle {
             }
         }
 
-        lyrics_list := ListView {
+        lyrics_list := ScrollView {
             visible: !root.lyrics_loading && root.has_lyrics;
+            width: 100%;
             vertical-stretch: 1;
             horizontal-scrollbar-policy: always-off;
             vertical-scrollbar-policy: scroll_activity.active ? as-needed : always-off;
@@ -127,18 +136,29 @@ export component LyricsViewMobile inherits Rectangle {
                 easing: ease-out;
             }
 
-            for line[idx] in root.lyrics_lines: VerticalLayout {
-                padding-top: Theme.spacingSm;
-                padding-bottom: Theme.spacingSm;
+            VerticalLayout {
+                width: parent.visible-width;
+                alignment: start;
+                padding-top: Theme.size3Xl;
+                padding-bottom: Theme.size3Xl;
 
-                Text {
-                    text: line.text;
-                    font-size: (idx == root.active_index) ? Theme.mobileLyricsActiveFontSize : Theme.mobileLyricsInactiveFontSize;
-                    font-weight: (idx == root.active_index) ? 700 : 500;
-                    color: (idx == root.active_index) ? Theme.accent : Theme.textPrimary;
-                    opacity: root.get_line_opacity(idx, root.active_index);
-                    horizontal-alignment: center;
-                    wrap: word-wrap;
+                for line[idx] in root.lyrics_lines: Rectangle {
+                    min-height: Theme.mobileLyricsActiveFontSize + Theme.spacingSm * 2;
+                    width: 100%;
+
+                    Text {
+                        accessible-role: text;
+                        accessible-label: line.text;
+                        width: 100%;
+                        text: line.text;
+                        font-size: (idx == root.active_index) ? Theme.mobileLyricsActiveFontSize : Theme.mobileLyricsInactiveFontSize;
+                        font-weight: (idx == root.active_index) ? 700 : 500;
+                        color: (idx == root.active_index) ? Theme.accent : Theme.textPrimary;
+                        opacity: root.get_line_opacity(idx, root.active_index);
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                        wrap: word-wrap;
+                    }
                 }
             }
         }

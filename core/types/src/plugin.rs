@@ -16,6 +16,7 @@ pub type PlayerResolverFn = std::sync::Arc<
 >;
 
 // Context passed to every plugin during initialization
+#[derive(Clone)]
 pub struct PluginContext {
     pub data_dir: PathBuf,
     pub cache_dir: PathBuf,

@@ -40,7 +40,7 @@ plugin_macro::generate_plugin_system!(
 pub struct StateManager {
     pub(crate) plugins: Arc<PluginRegistry>,
     pub interceptors: Arc<Interceptors>,
-    pub cache_dir: std::path::PathBuf,
+    pub context: PluginContext,
 
     runtime: Handle,
     pub hooks: Arc<tokio::sync::Mutex<Vec<Arc<dyn hooks::Hook>>>>,
@@ -48,7 +48,11 @@ pub struct StateManager {
 
 impl StateManager {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn get_cache_dir(&self) -> std::path::PathBuf { self.cache_dir.clone() }
+    pub fn get_cache_dir(&self) -> std::path::PathBuf { self.context.cache_dir.clone() }
+
+    #[cfg(target_os = "android")]
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn get_android_context(&self) -> AndroidJNIContext { self.context.android_context.clone() }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_dirs() -> (std::path::PathBuf, std::path::PathBuf, std::path::PathBuf) {
@@ -131,7 +135,7 @@ impl StateManager {
         Ok(Self {
             plugins: Arc::new(plugins),
             interceptors: Arc::new(interceptors),
-            cache_dir: context.cache_dir,
+            context,
             runtime,
             hooks,
         })

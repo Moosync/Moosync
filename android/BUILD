@@ -1,10 +1,9 @@
 load("@rules_android//rules:rules.bzl", "android_binary")
 load("@rules_cc//cc:defs.bzl", "cc_import")
 load("@rules_kotlin//kotlin:android.bzl", "kt_android_library", "kt_android_local_test")
-load("@rules_kotlin//kotlin:jvm.bzl", "kt_jvm_binary", "kt_jvm_import", "kt_jvm_library")
+load("@rules_kotlin//kotlin:jvm.bzl", "kt_jvm_import", "kt_jvm_library", "kt_jvm_test")
 load("@rules_python//python:defs.bzl", "py_binary", "py_test")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
-load("@rules_shell//shell:sh_test.bzl", "sh_test")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -35,22 +34,16 @@ kt_jvm_library(
     ],
 )
 
-kt_jvm_binary(
-    name = "scanner_kt_runner",
+kt_jvm_test(
+    name = "scanner_kt_test",
     srcs = ["test/app/moosync/android/scanner/ScannerTest.kt"],
-    main_class = "app.moosync.android.scanner.ScannerTestKt",
+    test_class = "app.moosync.android.scanner.ScannerTest",
     deps = [
         ":scanner_jvm_lib",
         "//core/types/protos:android_scanner_java_proto_lite",
         "//core/types/protos:songs_java_proto_lite",
+        "@maven//:junit_junit",
     ],
-)
-
-sh_test(
-    name = "scanner_kt_test",
-    srcs = ["test/run_scanner_kt_test.sh"],
-    args = ["$(location :scanner_kt_runner)"],
-    data = [":scanner_kt_runner"],
 )
 
 kt_android_local_test(

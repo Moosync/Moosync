@@ -342,7 +342,11 @@ impl ReplyHandler for StateReplyHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     fn open_external_url(&self, _package_name: &str, url: String) -> Result<bool, ExtensionError> {
         #[cfg(target_os = "android")]
-        let success = self.state_manager.android_context.open_url(&url).is_ok();
+        let success = self
+            .state_manager
+            .get_android_context()
+            .open_url(&url)
+            .is_ok();
         #[cfg(not(target_os = "android"))]
         let success = open::that_detached(&url).is_ok();
         Ok(success)

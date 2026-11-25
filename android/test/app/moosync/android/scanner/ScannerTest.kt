@@ -4,6 +4,7 @@ import java.io.File
 import java.nio.file.Files
 import moosync.types.AndroidScanner.ScanRequest
 import moosync.types.AndroidScanner.ScanResult
+import org.junit.Test
 
 private fun checkEqual(expected: Any?, actual: Any?, message: String) {
     if (expected != actual) {
@@ -17,7 +18,9 @@ private fun checkTrue(condition: Boolean, message: String) {
     }
 }
 
-fun testPathFilterIncludesAndExcludes() {
+class ScannerTest {
+    @Test
+    fun testPathFilterIncludesAndExcludes() {
     val root = Files.createTempDirectory("moosync_filter_test").toFile()
     try {
         val musicDir = File(root, "Music").apply { mkdirs() }
@@ -55,7 +58,8 @@ fun testPathFilterIncludesAndExcludes() {
     }
 }
 
-fun testLyricsScannerParsesSyncedAndUnsyncedLrc() {
+    @Test
+    fun testLyricsScannerParsesSyncedAndUnsyncedLrc() {
     val syncedContent = """
         [ti:Test Song]
         [offset:100]
@@ -84,7 +88,8 @@ fun testLyricsScannerParsesSyncedAndUnsyncedLrc() {
     checkEqual("Plain line one", unsynced.getLines(0).text, "First unsynced line")
 }
 
-fun testPlaylistScannerParsesM3u() {
+    @Test
+    fun testPlaylistScannerParsesM3u() {
     val root = Files.createTempDirectory("moosync_playlist_test").toFile()
     try {
         val songFile = File(root, "song1.mp3").apply { writeBytes(byteArrayOf(1, 2, 3)) }
@@ -113,7 +118,8 @@ fun testPlaylistScannerParsesM3u() {
     }
 }
 
-fun testCoverScannerFindsSiblingCoverAndCaches() {
+    @Test
+    fun testCoverScannerFindsSiblingCoverAndCaches() {
     val root = Files.createTempDirectory("moosync_cover_test").toFile()
     val thumbDir = Files.createTempDirectory("moosync_thumb_test").toFile()
     try {
@@ -140,7 +146,8 @@ fun testCoverScannerFindsSiblingCoverAndCaches() {
     }
 }
 
-fun testMediaScannerDirectoriesProtobufRoundTrip() {
+    @Test
+    fun testMediaScannerDirectoriesProtobufRoundTrip() {
     val root = Files.createTempDirectory("moosync_e2e_kt").toFile()
     val thumbDir = Files.createTempDirectory("moosync_e2e_thumbs").toFile()
     try {
@@ -187,18 +194,4 @@ fun testMediaScannerDirectoriesProtobufRoundTrip() {
         thumbDir.deleteRecursively()
     }
 }
-
-fun main(args: Array<String>) {
-    if (args.size == 2) {
-        val requestBytes = File(args[0]).readBytes()
-        val resultBytes = MediaScanner.scanDirectories(requestBytes)
-        File(args[1]).writeBytes(resultBytes)
-        return
-    }
-    testPathFilterIncludesAndExcludes()
-    testLyricsScannerParsesSyncedAndUnsyncedLrc()
-    testPlaylistScannerParsesM3u()
-    testCoverScannerFindsSiblingCoverAndCaches()
-    testMediaScannerDirectoriesProtobufRoundTrip()
-    println("All Kotlin scanner tests passed!")
 }

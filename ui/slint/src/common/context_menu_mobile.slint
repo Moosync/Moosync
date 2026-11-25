@@ -14,6 +14,8 @@ export component ContextMenuMobile inherits Rectangle {
     in-out property <length> requested_x: 0px;
     in-out property <length> requested_y: 0px;
     in property <string> selected_id: "";
+    in property <string> selected_sub_id: "";
+    in property <bool> sort_ascending: true;
     out property <bool> is_open: false;
 
     callback selected(string);
@@ -393,6 +395,7 @@ export component ContextMenuMobile inherits Rectangle {
                             enabled: root.is_open;
                             accessible-role: button;
                             accessible-label: sub_item.title;
+                            accessible-value: (root.selected_sub_id != "" && sub_item.action_id == root.selected_sub_id) ? (root.sort_ascending ? "asc" : "desc") : "";
                             accessible-action-default => {
                                 if (!root.is_open) {
                                     return;
@@ -410,7 +413,7 @@ export component ContextMenuMobile inherits Rectangle {
                             }
 
                             Rectangle {
-                                background: parent.has-hover ? Theme.primary.with-alpha(0.5) : transparent;
+                                background: (root.selected_sub_id != "" && sub_item.action_id == root.selected_sub_id) ? Theme.accent.with-alpha(0.12) : (parent.has-hover ? Theme.primary.with-alpha(0.5) : transparent);
                                 border-radius: Theme.borderRadiusMd;
 
                                 HorizontalLayout {
@@ -430,7 +433,8 @@ export component ContextMenuMobile inherits Rectangle {
                                                 height: 100%;
                                                 source: sub_item.icon;
                                                 image-fit: contain;
-                                                colorize: Theme.textPrimary;
+                                                colorize: (root.selected_sub_id != "" && sub_item.action_id == root.selected_sub_id) ? Theme.accent : Theme.textPrimary;
+                                                transform-rotation: (root.selected_sub_id != "" && sub_item.action_id == root.selected_sub_id && root.sort_ascending) ? Theme.angle180 : Theme.angle0;
                                             }
                                         }
                                     }
@@ -438,10 +442,21 @@ export component ContextMenuMobile inherits Rectangle {
                                     Text {
                                         text: sub_item.title;
                                         font-size: Theme.body;
-                                        font-weight: 500;
-                                        color: Theme.textPrimary;
+                                        font-weight: (root.selected_sub_id != "" && sub_item.action_id == root.selected_sub_id) ? 700 : 500;
+                                        color: (root.selected_sub_id != "" && sub_item.action_id == root.selected_sub_id) ? Theme.accent : Theme.textPrimary;
                                         vertical-alignment: center;
                                         horizontal-stretch: 1;
+                                    }
+
+                                    if (root.selected_sub_id != "" && sub_item.action_id == root.selected_sub_id): VerticalLayout {
+                                        alignment: center;
+
+                                        Rectangle {
+                                            width: Theme.sizeXxs;
+                                            height: Theme.sizeLg;
+                                            border-radius: Theme.borderWidthLg;
+                                            background: Theme.accent;
+                                        }
                                     }
                                 }
                             }

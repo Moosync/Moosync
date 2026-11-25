@@ -7,7 +7,11 @@ import {
     SongSortState,
 } from "../common/selection_props.slint";
 import { SavePlaylistState } from "../common/save_playlist_modal_props.slint";
-import { SongModel, SongDetailAction } from "../types/song_view.slint";
+import {
+    SongModel,
+    SongDetailAction,
+    SongSortCriterion,
+} from "../types/song_view.slint";
 import {
     ContextMenuItem,
     ContextSubMenuItem,
@@ -121,7 +125,7 @@ export component TopBarContextMenuMobile inherits Rectangle {
                         title: @tr("Sort"),
                         icon: @image-url("../icons/sort.svg"),
                         has_sub_menu: true,
-                        sub_items: ContextMenuItems.get_sort_sub_items()
+                        sub_items: ContextMenuItems.get_sort_sub_items(SongSortState.sort_criterion)
                     },
                     {
                         action_id: Constants.action_extensions,
@@ -145,7 +149,7 @@ export component TopBarContextMenuMobile inherits Rectangle {
                     title: @tr("Sort"),
                     icon: @image-url("../icons/sort.svg"),
                     has_sub_menu: true,
-                    sub_items: ContextMenuItems.get_sort_sub_items()
+                    sub_items: ContextMenuItems.get_sort_sub_items(SongSortState.sort_criterion)
                 },
             ];
         }
@@ -224,10 +228,28 @@ export component TopBarContextMenuMobile inherits Rectangle {
         }
     }
 
+    pure function get_sort_action_id(criterion: SongSortCriterion) -> string {
+        if (criterion == SongSortCriterion.Date) {
+            return Constants.sort_by_date;
+        }
+        if (criterion == SongSortCriterion.Album) {
+            return Constants.sort_by_album;
+        }
+        if (criterion == SongSortCriterion.TrackNumber) {
+            return Constants.sort_by_track;
+        }
+        if (criterion == SongSortCriterion.Artist) {
+            return Constants.sort_by_artist;
+        }
+        return Constants.sort_by_title;
+    }
+
     context_menu := ContextMenuMobile {
         property <bool> has_selected_action: false;
         actions: root.get_page_actions();
         items: root.get_dynamic_items();
+        selected_sub_id: root.get_sort_action_id(SongSortState.sort_criterion);
+        sort_ascending: SongSortState.sort_ascending;
         selected(id) => {
             if (SongSelectionState.selection_mode) {
                 self.has_selected_action = true;

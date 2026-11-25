@@ -2005,6 +2005,61 @@ async fn do_mobile_oauth_modal_input_bounds(main_window: MainWindow, _state_mana
     );
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_mobile_sort_indicator(main_window: MainWindow, _state_manager: StateManager) {
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::AllSongs);
+
+    let ready = wait_until_timeout(Duration::from_secs(2), || {
+        ElementHandle::find_by_accessible_label(&main_window, "More options").count() > 0
+    })
+    .await;
+    assert!(ready);
+
+    let more_btn = ElementHandle::find_by_accessible_label(&main_window, "More options")
+        .next()
+        .unwrap();
+    click_element(&more_btn).await;
+
+    let sort_ready = wait_until_timeout(Duration::from_secs(2), || {
+        ElementHandle::find_by_accessible_label(&main_window, "Sort").count() > 0
+    })
+    .await;
+    assert!(sort_ready);
+    tokio::time::sleep(Duration::from_millis(300)).await;
+
+    let sort_btn = ElementHandle::find_by_accessible_label(&main_window, "Sort")
+        .next()
+        .unwrap();
+    click_element(&sort_btn).await;
+
+    let sub_ready = wait_until_timeout(Duration::from_secs(2), || {
+        ElementHandle::find_by_accessible_label(&main_window, "Title").count() > 0
+    })
+    .await;
+    assert!(sub_ready);
+    tokio::time::sleep(Duration::from_millis(300)).await;
+
+    let title_item = ElementHandle::find_by_accessible_label(&main_window, "Title")
+        .next()
+        .unwrap();
+    assert_eq!(title_item.accessible_value().as_deref(), Some("asc"));
+
+    let date_item = ElementHandle::find_by_accessible_label(&main_window, "Date")
+        .next()
+        .unwrap();
+    assert_eq!(date_item.accessible_value().as_deref(), Some(""));
+
+    click_element(&title_item).await;
+    let closed = wait_until_timeout(Duration::from_secs(2), || {
+        ElementHandle::find_by_accessible_label(&main_window, "Context Menu Drag Handle").count()
+            == 0
+    })
+    .await;
+    assert!(closed);
+}
+
 integration_test!(
     test_mobile_topbar_search_toggle => do_mobile_topbar_search_toggle,
     test_mobile_topbar_accounts_toggle => do_mobile_topbar_accounts_toggle,
@@ -2038,4 +2093,5 @@ integration_test!(
     test_mobile_dropdown_uses_context_menu_sheet => do_mobile_dropdown_uses_context_menu_sheet,
     test_mobile_content_page_scrollable_entity_header => do_mobile_content_page_scrollable_entity_header,
     test_mobile_oauth_modal_input_bounds => do_mobile_oauth_modal_input_bounds,
+    test_mobile_sort_indicator => do_mobile_sort_indicator,
 );

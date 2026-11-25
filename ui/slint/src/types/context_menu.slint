@@ -1,4 +1,5 @@
 import { Constants } from "../constants.slint";
+import { SongSortCriterion } from "song_view.slint";
 
 export struct ContextSubMenuItem {
     action_id: string,
@@ -177,32 +178,32 @@ export global ContextMenuItems {
         return @image-url("../icons/plus.svg");
     }
 
-    pure public function get_sort_sub_items() -> [ContextSubMenuItem] {
+    pure public function get_sort_sub_items(current_criterion: SongSortCriterion, ) -> [ContextSubMenuItem] {
         return [
             {
                 action_id: Constants.sort_by_title,
                 title: @tr("Title"),
-                icon: @image-url(""),
+                icon: current_criterion == SongSortCriterion.Title ? @image-url("../icons/chevron.svg") : @image-url(""),
             },
             {
                 action_id: Constants.sort_by_date,
                 title: @tr("Date"),
-                icon: @image-url(""),
+                icon: current_criterion == SongSortCriterion.Date ? @image-url("../icons/chevron.svg") : @image-url(""),
             },
             {
                 action_id: Constants.sort_by_album,
                 title: @tr("Album"),
-                icon: @image-url(""),
+                icon: current_criterion == SongSortCriterion.Album ? @image-url("../icons/chevron.svg") : @image-url(""),
             },
             {
                 action_id: Constants.sort_by_track,
                 title: @tr("Track Number"),
-                icon: @image-url(""),
+                icon: current_criterion == SongSortCriterion.TrackNumber ? @image-url("../icons/chevron.svg") : @image-url(""),
             },
             {
                 action_id: Constants.sort_by_artist,
                 title: @tr("Artist"),
-                icon: @image-url(""),
+                icon: current_criterion == SongSortCriterion.Artist ? @image-url("../icons/chevron.svg") : @image-url(""),
             },
         ];
     }

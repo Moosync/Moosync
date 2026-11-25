@@ -1759,6 +1759,67 @@ async fn do_mobile_settings_cache_and_logs_navigation(
     assert!(on_logs);
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_mobile_action_group_no_horizontal_overflow(
+    main_window: MainWindow,
+    _state_manager: StateManager,
+) {
+    let item = slint_app::PreferenceItem {
+        id: "action_test".into(),
+        title: "Action Group With Very Long Title That Should Wrap Cleanly".into(),
+        subtitle: "Detailed description that should wrap inside mobile card".into(),
+        value_string: "123.45 MB".into(),
+        pref_type: slint_app::PreferenceType::ActionGroup,
+        options: ModelRc::new(VecModel::from(vec![
+            slint_app::PreferenceOption {
+                id: "opt1".into(),
+                label: "First Long Action Button".into(),
+            },
+            slint_app::PreferenceOption {
+                id: "opt2".into(),
+                label: "Second Long Action Button".into(),
+            },
+            slint_app::PreferenceOption {
+                id: "opt3".into(),
+                label: "Third Action".into(),
+            },
+        ])),
+        ..Default::default()
+    };
+    main_window
+        .global::<slint_app::AppPreferences>()
+        .set_system_items(ModelRc::new(VecModel::from(vec![item])));
+    main_window
+        .global::<SettingsState>()
+        .set_active_page(SettingsPages::System);
+    main_window
+        .global::<SettingsState>()
+        .set_show_settings(true);
+
+    let opened = wait_until_timeout(Duration::from_secs(2), || {
+        ElementHandle::find_by_accessible_label(&main_window, "First Long Action Button").count()
+            > 0
+    })
+    .await;
+    assert!(opened);
+
+    let win_width = main_window.window().size().width as f32;
+    for label in [
+        "First Long Action Button",
+        "Second Long Action Button",
+        "Third Action",
+    ] {
+        let btn = ElementHandle::find_by_accessible_label(&main_window, label)
+            .next()
+            .unwrap();
+        let right = btn.absolute_position().x + btn.size().width;
+        assert!(
+            right <= win_width,
+            "Action button '{label}' overflows mobile viewport (right={right}, win_width={win_width})"
+        );
+    }
+}
+
 integration_test!(
     test_mobile_topbar_search_toggle => do_mobile_topbar_search_toggle,
     test_mobile_topbar_accounts_toggle => do_mobile_topbar_accounts_toggle,
@@ -1788,4 +1849,5 @@ integration_test!(
     test_mobile_pill_button_shape => do_mobile_pill_button_shape,
     test_mobile_accounts_popup_google_layout => do_mobile_accounts_popup_google_layout,
     test_mobile_settings_cache_and_logs_navigation => do_mobile_settings_cache_and_logs_navigation,
+    test_mobile_action_group_no_horizontal_overflow => do_mobile_action_group_no_horizontal_overflow,
 );

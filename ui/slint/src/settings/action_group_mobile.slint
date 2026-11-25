@@ -8,8 +8,10 @@ export component ActionGroupMobile inherits Rectangle {
     in property <bool> is_destructive: false;
     callback action_clicked(string);
 
+    width: 100%;
     background: Theme.secondary;
     border-radius: Theme.borderRadiusMd;
+    clip: true;
 
     VerticalLayout {
         padding: Theme.paddingMd;
@@ -18,9 +20,11 @@ export component ActionGroupMobile inherits Rectangle {
         HorizontalLayout {
             spacing: Theme.spacingSm;
             alignment: space-between;
+            min-width: 0px;
 
             Text {
                 horizontal-stretch: 1;
+                min-width: 0px;
                 text: root.preference.title;
                 font-size: Theme.body;
                 font-weight: 600;
@@ -29,14 +33,17 @@ export component ActionGroupMobile inherits Rectangle {
             }
 
             if root.preference.value_string != "": Text {
+                min-width: 0px;
                 text: root.preference.value_string;
                 font-size: Theme.body;
                 font-weight: 700;
                 color: Theme.accent;
+                wrap: word-wrap;
             }
         }
 
         if root.preference.subtitle != "": Text {
+            width: 100%;
             text: root.preference.subtitle;
             font-size: Theme.caption;
             color: Theme.textSecondary;
@@ -44,31 +51,38 @@ export component ActionGroupMobile inherits Rectangle {
         }
 
         if root.preference.placeholder != "": Text {
+            width: 100%;
             text: root.preference.placeholder;
             font-size: Theme.extraSmall;
             color: Theme.textSecondary;
             wrap: word-wrap;
         }
 
-        HorizontalLayout {
-            spacing: Theme.spacingSm;
+        FlexboxLayout {
+            flex-direction: row;
+            flex-wrap: wrap;
             alignment: end;
 
-            for option in root.preference.options: GroupActionButtonMobile {
-                width: max(Theme.buttonMinWidth, self.preferred-width + Theme.spacingXl);
-                text: option.label;
-                is_destructive: root.is_destructive;
-                clicked => {
-                    if (root.preference.id != "") {
-                        AppCallbacks.preference_changed({
-                            id: root.preference.id,
-                            value_string: option.id,
-                            value_bool: false,
-                            value_number: 0.0,
-                            value_list: []
-                        });
+            for option in root.preference.options: VerticalLayout {
+                padding-left: Theme.spacingXs;
+                padding-top: Theme.spacingXs;
+
+                GroupActionButtonMobile {
+                    padding_h: Theme.paddingLg;
+                    text: option.label;
+                    is_destructive: root.is_destructive;
+                    clicked => {
+                        if (root.preference.id != "") {
+                            AppCallbacks.preference_changed({
+                                id: root.preference.id,
+                                value_string: option.id,
+                                value_bool: false,
+                                value_number: 0.0,
+                                value_list: []
+                            });
+                        }
+                        root.action_clicked(option.id);
                     }
-                    root.action_clicked(option.id);
                 }
             }
         }

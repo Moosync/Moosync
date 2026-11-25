@@ -1937,6 +1937,41 @@ async fn do_mobile_content_page_scrollable_entity_header(
     assert!(play_all.is_valid());
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_mobile_topbar_context_menu_visibility(
+    main_window: MainWindow,
+    _state_manager: StateManager,
+    page: Pages,
+    expected_count: usize,
+) {
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(page);
+
+    let matched = wait_until_timeout(Duration::from_secs(2), || {
+        ElementHandle::find_by_accessible_label(&main_window, "More options").count()
+            == expected_count
+    })
+    .await;
+    assert!(
+        matched,
+        "Expected {expected_count} 'More options' button(s) on page {page:?}"
+    );
+}
+
+parameterized_test!(
+    do_mobile_topbar_context_menu_visibility,
+    (test_mobile_topbar_ctx_hidden_albums, Pages::Albums, 0),
+    (test_mobile_topbar_ctx_hidden_artists, Pages::Artists, 0),
+    (test_mobile_topbar_ctx_hidden_genres, Pages::Genres, 0),
+    (test_mobile_topbar_ctx_visible_all_songs, Pages::AllSongs, 1),
+    (
+        test_mobile_topbar_ctx_visible_playlists,
+        Pages::Playlists,
+        1
+    ),
+);
+
 integration_test!(
     test_mobile_topbar_search_toggle => do_mobile_topbar_search_toggle,
     test_mobile_topbar_accounts_toggle => do_mobile_topbar_accounts_toggle,

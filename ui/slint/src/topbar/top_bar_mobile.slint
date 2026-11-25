@@ -155,8 +155,8 @@ export component TopBarMobile inherits Rectangle {
             }
         }
 
-        // Context Menu Action (Always shown in top bar)
-        VerticalLayout {
+        // Context Menu Action (Hidden when no items available)
+        if top_bar_context_menu.has_items: VerticalLayout {
             alignment: center;
 
             IconButton {

@@ -50,6 +50,7 @@ export component TopBarContextMenuMobile inherits Rectangle {
     }
 
     out property <bool> is_open: context_menu.is_open;
+    out property <bool> has_items: root.get_page_actions().length > 0 || root.get_dynamic_items().length > 0;
 
     pure function is_songs_page() -> bool {
         return AppProps.active_page == Pages.AllSongs

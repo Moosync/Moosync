@@ -1820,6 +1820,75 @@ async fn do_mobile_action_group_no_horizontal_overflow(
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_mobile_dropdown_uses_context_menu_sheet(
+    main_window: MainWindow,
+    _state_manager: StateManager,
+) {
+    let item = slint_app::PreferenceItem {
+        id: "dropdown_test".into(),
+        title: "Audio Quality".into(),
+        pref_type: slint_app::PreferenceType::DropdownGroup,
+        value_string: "low".into(),
+        options: ModelRc::new(VecModel::from(vec![
+            slint_app::PreferenceOption {
+                id: "low".into(),
+                label: "Low".into(),
+            },
+            slint_app::PreferenceOption {
+                id: "high".into(),
+                label: "High".into(),
+            },
+        ])),
+        ..Default::default()
+    };
+    main_window
+        .global::<SettingsState>()
+        .set_active_page(SettingsPages::System);
+    main_window
+        .global::<SettingsState>()
+        .set_show_settings(true);
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    main_window
+        .global::<slint_app::AppPreferences>()
+        .set_system_items(ModelRc::new(VecModel::from(vec![item])));
+
+    let opened = wait_until_timeout(Duration::from_secs(2), || {
+        ElementHandle::find_by_accessible_label(&main_window, "Audio Quality").count() > 0
+    })
+    .await;
+    assert!(opened);
+    tokio::time::sleep(Duration::from_millis(350)).await;
+
+    let combobox = ElementHandle::find_by_accessible_label(&main_window, "Audio Quality")
+        .last()
+        .expect("combobox not found");
+    click_element(&combobox).await;
+
+    let sheet_open = wait_until_timeout(Duration::from_secs(2), || {
+        ElementHandle::find_by_accessible_label(&main_window, "Context Menu Drag Handle").count()
+            > 0
+            && ElementHandle::find_by_accessible_label(&main_window, "High").count() > 0
+    })
+    .await;
+    assert!(
+        sheet_open,
+        "Dropdown on mobile should open ContextMenuMobile with Context Menu Drag Handle"
+    );
+
+    let high_opt = ElementHandle::find_by_accessible_label(&main_window, "High")
+        .next()
+        .unwrap();
+    click_element(&high_opt).await;
+
+    let closed = wait_until_timeout(Duration::from_secs(2), || {
+        ElementHandle::find_by_accessible_label(&main_window, "Context Menu Drag Handle").count()
+            == 0
+    })
+    .await;
+    assert!(closed);
+}
+
 integration_test!(
     test_mobile_topbar_search_toggle => do_mobile_topbar_search_toggle,
     test_mobile_topbar_accounts_toggle => do_mobile_topbar_accounts_toggle,
@@ -1850,4 +1919,5 @@ integration_test!(
     test_mobile_accounts_popup_google_layout => do_mobile_accounts_popup_google_layout,
     test_mobile_settings_cache_and_logs_navigation => do_mobile_settings_cache_and_logs_navigation,
     test_mobile_action_group_no_horizontal_overflow => do_mobile_action_group_no_horizontal_overflow,
+    test_mobile_dropdown_uses_context_menu_sheet => do_mobile_dropdown_uses_context_menu_sheet,
 );

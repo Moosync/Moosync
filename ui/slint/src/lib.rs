@@ -440,6 +440,28 @@ fn setup_song_list_helper(main_window: &MainWindow, state_manager: &StateManager
                 .filter_map(|i| providers.row_data(i))
                 .any(|p| p.enabled)
         });
+
+    main_window
+        .global::<UtilCallbacks>()
+        .on_options_to_context_items(move |options| {
+            let items: Vec<ContextMenuItem> = (0..options.row_count())
+                .filter_map(|i| options.row_data(i))
+                .map(|opt| ContextMenuItem {
+                    action_id: if opt.id.is_empty() {
+                        opt.label.clone()
+                    } else {
+                        opt.id.clone()
+                    },
+                    title: if opt.label.is_empty() {
+                        opt.id
+                    } else {
+                        opt.label
+                    },
+                    ..Default::default()
+                })
+                .collect();
+            ModelRc::new(VecModel::from(items))
+        });
 }
 
 #[tracing::instrument(level = "debug", skip_all)]

@@ -13,6 +13,7 @@ import {
 } from "./types/song_view.slint";
 import { ContextMenuItem } from "./types/context_menu.slint";
 import { ExtensionProviderItem } from "./types/extension_view.slint";
+import { PreferenceOption } from "./settings/preferences.slint";
 
 export struct PreferenceChange {
     id: string,
@@ -163,6 +164,7 @@ export global UtilCallbacks {
     pure callback select_all(int) -> [int];
     pure callback validate_input(string, string) -> bool;
     pure callback has_active_extension_providers([ExtensionProviderItem]) -> bool;
+    pure callback options_to_context_items([PreferenceOption]) -> [ContextMenuItem];
 }
 
 export global ContextMenuCallbacks {

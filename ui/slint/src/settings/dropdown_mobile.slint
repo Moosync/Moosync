@@ -1,8 +1,7 @@
 import { Theme } from "../constants_mobile.slint";
-import { WindowInfo } from "../window_info.slint";
 import { PreferenceItem, PreferenceOption } from "preferences.slint";
-import { AppCallbacks } from "../callbacks.slint";
-import { ListView } from "std-widgets.slint";
+import { AppCallbacks, UtilCallbacks } from "../callbacks.slint";
+import { ContextMenuMobile } from "../common/context_menu_mobile.slint";
 
 export component DropdownGroupMobile inherits Rectangle {
     in property <PreferenceItem> preference;
@@ -42,7 +41,7 @@ export component DropdownGroupMobile inherits Rectangle {
             accessible-role: combobox;
             accessible-label: root.title;
             clicked => {
-                popup.show();
+                context_menu.show();
             }
 
             Rectangle {
@@ -82,105 +81,21 @@ export component DropdownGroupMobile inherits Rectangle {
         }
     }
 
-    popup := PopupWindow {
-        x: -root.absolute-position.x;
-        y: -root.absolute-position.y;
-        width: WindowInfo.window-width;
-        height: WindowInfo.window-height;
-        close-policy: PopupClosePolicy.close-on-click-outside;
-
-        TouchArea {
-            width: 100%;
-            height: 100%;
-            clicked => { popup.close(); }
-        }
-
-        popup_sheet := Rectangle {
-            y: parent.height - self.height;
-            width: 100%;
-            height: Math.min(WindowInfo.window-height * 0.55, (root.options.length * Theme.mobileQueueDragHandleHeight) + Theme.size6Xl);
-            background: Theme.secondary;
-            border-top-left-radius: Theme.borderRadiusXl;
-            border-top-right-radius: Theme.borderRadiusXl;
-            clip: true;
-
-            VerticalLayout {
-                padding: Theme.paddingMd;
-                spacing: Theme.spacingSm;
-
-                HorizontalLayout {
-                    alignment: center;
-                    padding-top: Theme.spacingXs;
-                    padding-bottom: Theme.spacingXs;
-
-                    Rectangle {
-                        width: Theme.searchBarHeight;
-                        height: Theme.sizeXxs;
-                        border-radius: Theme.borderWidthLg;
-                        background: Theme.textSecondary.with-alpha(0.4);
-                    }
-                }
-
-                Text {
-                    text: root.title;
-                    font-size: Theme.modelTitle;
-                    font-weight: 700;
-                    color: Theme.textPrimary;
-                }
-
-                ListView {
-                    width: 100%;
-                    vertical-stretch: 1;
-
-                    for option in root.options: TouchArea {
-                        height: Theme.mobileQueueDragHandleHeight;
-                        accessible-role: list-item;
-                        accessible-label: option.label != "" ? option.label : option.id;
-                        clicked => {
-                            root.selected_id = option.id != "" ? option.id : option.label;
-                            if (root.preference.id != "") {
-                                AppCallbacks.preference_changed({
-                                    id: root.preference.id,
-                                    value_string: root.selected_id,
-                                    value_bool: false,
-                                    value_number: 0.0,
-                                    value_list: []
-                                });
-                            }
-                            root.changed(root.selected_id);
-                            popup.close();
-                        }
-
-                        Rectangle {
-                            background: parent.has-hover ? Theme.primary.with-alpha(0.5) : transparent;
-                            border-radius: Theme.borderRadiusMd;
-
-                            HorizontalLayout {
-                                padding-left: Theme.paddingMd;
-                                padding-right: Theme.paddingMd;
-                                alignment: center;
-
-                                Text {
-                                    accessible-role: none;
-                                    text: option.label != "" ? option.label : option.id;
-                                    font-size: Theme.body;
-                                    color: (option.id == root.selected_id) ? Theme.accent : Theme.textPrimary;
-                                    font-weight: (option.id == root.selected_id) ? 700 : 400;
-                                    vertical-alignment: center;
-                                    horizontal-stretch: 1;
-                                }
-
-                                if (option.id == root.selected_id): Rectangle {
-                                    width: Theme.sizeXxs;
-                                    height: Theme.sizeLg;
-                                    border-radius: Theme.borderWidthLg;
-                                    background: Theme.accent;
-                                }
-                            }
-                        }
-                    }
-                }
+    context_menu := ContextMenuMobile {
+        items: UtilCallbacks.options_to_context_items(root.options);
+        selected_id: root.selected_id;
+        selected(action_id) => {
+            root.selected_id = action_id;
+            if (root.preference.id != "") {
+                AppCallbacks.preference_changed({
+                    id: root.preference.id,
+                    value_string: root.selected_id,
+                    value_bool: false,
+                    value_number: 0.0,
+                    value_list: []
+                });
             }
+            root.changed(root.selected_id);
         }
     }
 }

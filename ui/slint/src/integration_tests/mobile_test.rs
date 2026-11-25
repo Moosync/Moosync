@@ -2060,6 +2060,45 @@ async fn do_mobile_sort_indicator(main_window: MainWindow, _state_manager: State
     assert!(closed);
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_mobile_oauth_modal_submitting_shows_spinner(
+    main_window: MainWindow,
+    _state_manager: StateManager,
+) {
+    let oauth = main_window.global::<OAuthState>();
+    oauth.set_modal_title("Login".into());
+    oauth.set_oauth_url("https://example.com/oauth".into());
+    oauth.set_device_code("".into());
+    oauth.set_has_extra_content(false);
+    oauth.set_is_submitting(false);
+    oauth.set_show_oauth_modal(true);
+
+    let opened = wait_until_timeout(Duration::from_secs(2), || {
+        ElementHandle::find_by_accessible_label(&main_window, "Submit").count() == 1
+    })
+    .await;
+    assert!(opened);
+    assert_eq!(
+        ElementHandle::find_by_accessible_label(&main_window, "Submitting").count(),
+        0
+    );
+
+    oauth.set_is_submitting(true);
+
+    let spinning = wait_until_timeout(Duration::from_secs(2), || {
+        ElementHandle::find_by_accessible_label(&main_window, "Submitting").count() == 1
+    })
+    .await;
+    assert!(spinning);
+    assert_eq!(
+        ElementHandle::find_by_accessible_label(&main_window, "Submit").count(),
+        0
+    );
+
+    oauth.set_is_submitting(false);
+    oauth.set_show_oauth_modal(false);
+}
+
 integration_test!(
     test_mobile_topbar_search_toggle => do_mobile_topbar_search_toggle,
     test_mobile_topbar_accounts_toggle => do_mobile_topbar_accounts_toggle,
@@ -2094,4 +2133,5 @@ integration_test!(
     test_mobile_content_page_scrollable_entity_header => do_mobile_content_page_scrollable_entity_header,
     test_mobile_oauth_modal_input_bounds => do_mobile_oauth_modal_input_bounds,
     test_mobile_sort_indicator => do_mobile_sort_indicator,
+    test_mobile_oauth_modal_submitting_shows_spinner => do_mobile_oauth_modal_submitting_shows_spinner,
 );

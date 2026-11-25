@@ -525,6 +525,44 @@ async fn do_oauth_modal_click_inside_and_cancel(
     assert!(closed);
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_oauth_modal_submitting_shows_spinner(
+    main_window: MainWindow,
+    _state_manager: StateManager,
+) {
+    let oauth = main_window.global::<OAuthState>();
+    oauth.set_modal_title("Login".into());
+    oauth.set_oauth_url("https://example.com/oauth".into());
+    oauth.set_device_code("".into());
+    oauth.set_has_extra_content(false);
+    oauth.set_is_submitting(false);
+    oauth.set_show_oauth_modal(true);
+
+    let opened =
+        wait_until(|| ElementHandle::find_by_accessible_label(&main_window, "Submit").count() == 1)
+            .await;
+    assert!(opened);
+    assert_eq!(
+        ElementHandle::find_by_accessible_label(&main_window, "Submitting").count(),
+        0
+    );
+
+    oauth.set_is_submitting(true);
+
+    let spinning = wait_until(|| {
+        ElementHandle::find_by_accessible_label(&main_window, "Submitting").count() == 1
+    })
+    .await;
+    assert!(spinning);
+    assert_eq!(
+        ElementHandle::find_by_accessible_label(&main_window, "Submit").count(),
+        0
+    );
+
+    oauth.set_is_submitting(false);
+    oauth.set_show_oauth_modal(false);
+}
+
 integration_test!(
     test_accounts_open_popup => do_accounts_open_popup,
     test_accounts_login_opens_oauth_modal => do_accounts_login_opens_oauth_modal,
@@ -536,4 +574,5 @@ integration_test!(
     test_oauth_modal_error_keeps_modal_open => do_oauth_modal_error_keeps_modal_open,
     test_oauth_modal_device_code_and_refresh => do_oauth_modal_device_code_and_refresh,
     test_oauth_modal_click_inside_and_cancel => do_oauth_modal_click_inside_and_cancel,
+    test_oauth_modal_submitting_shows_spinner => do_oauth_modal_submitting_shows_spinner,
 );

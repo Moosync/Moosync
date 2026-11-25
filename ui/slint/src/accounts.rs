@@ -172,6 +172,7 @@ impl AccountsHandler {
                 oauth_state.set_has_extra_content(false);
                 oauth_state.set_markdown_parts(ModelRc::new(VecModel::default()));
                 oauth_state.set_error_message(SharedString::default());
+                oauth_state.set_is_submitting(false);
                 oauth_state.set_show_oauth_modal(true);
             }
         });
@@ -433,6 +434,7 @@ impl AccountsHandler {
                 return;
             };
             let oauth_state = main_window.global::<OAuthState>();
+            oauth_state.set_is_submitting(false);
 
             match outcome {
                 UiOutcome::Close => oauth_state.set_show_oauth_modal(false),
@@ -458,14 +460,15 @@ impl AccountsHandler {
         main_window
             .global::<AppCallbacks>()
             .on_submit_oauth_code(move |code| {
-                let active_pkg = main_window_weak
-                    .upgrade()
-                    .map(|mw| {
-                        mw.global::<OAuthState>()
-                            .get_active_package_name()
-                            .to_string()
-                    })
-                    .unwrap_or_default();
+                let Some(mw) = main_window_weak.upgrade() else {
+                    return;
+                };
+                let oauth_state = mw.global::<OAuthState>();
+                if oauth_state.get_is_submitting() {
+                    return;
+                }
+                oauth_state.set_is_submitting(true);
+                let active_pkg = oauth_state.get_active_package_name().to_string();
                 let code_str = Self::build_callback_url(&code, &active_pkg, &state_manager);
                 tracing::debug!("Using code str: {}", code_str);
                 let main_window_weak = main_window_weak.clone();

@@ -3,6 +3,7 @@ import { Theme } from "../constants.slint";
 import { Modal, ModalSize } from "modal.slint";
 import { TextInputGroup } from "../settings/text_input.slint";
 import { ButtonGroup } from "../settings/button_group.slint";
+import { Spinner } from "spinner.slint";
 
 import { OAuthState } from "oauth_modal_props.slint";
 
@@ -261,23 +262,34 @@ export component OAuthModal inherits Modal {
 
             if !OAuthState.has_extra_content: HorizontalLayout {
                 alignment: end;
+                spacing: Theme.spacingMd;
 
                 ButtonGroup {
-                    buttons: OAuthState.device_code != "" ? [
+                    buttons: OAuthState.is_submitting ? [{ id: "cancel", text: @tr("Cancel"), is-destructive: false, is-neutral: true }] : (OAuthState.device_code != "" ? [
                         { id: "cancel", text: @tr("Cancel"), is-destructive: false, is-neutral: true },
                         { id: "refresh", text: @tr("Refresh"), is-destructive: false, is-neutral: false }
                     ] : [
                         { id: "cancel", text: @tr("Cancel"), is-destructive: false, is-neutral: true },
                         { id: "submit", text: @tr("Submit"), is-destructive: false, is-neutral: false }
-                    ];
+                    ]);
                     clicked(id) => {
                         if (id == "cancel") {
                             root.close();
-                        } else if (id == "submit") {
+                        } else if (!OAuthState.is_submitting && id == "submit") {
                             root.submit_code(root.oauth_code);
-                        } else if (id == "refresh") {
+                        } else if (!OAuthState.is_submitting && id == "refresh") {
                             root.submit_code("");
                         }
+                    }
+                }
+
+                if OAuthState.is_submitting: VerticalLayout {
+                    alignment: center;
+
+                    Spinner {
+                        accessible-role: progress-indicator;
+                        accessible-label: @tr("Submitting");
+                        active: true;
                     }
                 }
             }

@@ -1576,6 +1576,40 @@ async fn do_mobile_settings_long_text_wraps_without_horizontal_overflow(
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_mobile_now_playing_extension_icon_beside_title(
+    main_window: MainWindow,
+    _state_manager: StateManager,
+) {
+    let mut song = create_test_song("mob_ext", "Short", "Alb", "Art");
+    if let Some(ref mut inner) = song.song {
+        inner.extension = Some("test.ext".to_string());
+    }
+    main_window
+        .global::<PlayerProps>()
+        .set_current_song(SongModel::from(song));
+
+    let found = wait_until_timeout(Duration::from_secs(2), || {
+        ElementHandle::find_by_accessible_label(&main_window, "Extension Icon").count() > 0
+    })
+    .await;
+    assert!(found);
+
+    let title_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(&main_window, "Short").collect();
+    let ext_icons: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(&main_window, "Extension Icon").collect();
+    assert_eq!(title_handles.len(), 1);
+    assert_eq!(ext_icons.len(), 1);
+
+    let title_right = title_handles[0].absolute_position().x + title_handles[0].size().width;
+    let icon_x = ext_icons[0].absolute_position().x;
+    assert!(
+        (icon_x - title_right).abs() < 20.0,
+        "Extension icon should sit next to title on mobile (title_right={title_right}, icon_x={icon_x})"
+    );
+}
+
 integration_test!(
     test_mobile_topbar_search_toggle => do_mobile_topbar_search_toggle,
     test_mobile_topbar_accounts_toggle => do_mobile_topbar_accounts_toggle,
@@ -1600,4 +1634,5 @@ integration_test!(
     test_mobile_topbar_context_menu_extensions => do_mobile_topbar_context_menu_extensions,
     test_mobile_synced_lyrics_scroll_with_timestamp => do_mobile_synced_lyrics_scroll_with_timestamp,
     test_mobile_settings_long_text_wraps_without_horizontal_overflow => do_mobile_settings_long_text_wraps_without_horizontal_overflow,
+    test_mobile_now_playing_extension_icon_beside_title => do_mobile_now_playing_extension_icon_beside_title,
 );

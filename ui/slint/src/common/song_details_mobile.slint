@@ -42,12 +42,16 @@ export component SongDetailsMobile inherits VerticalLayout {
 
     // Title and Artist
     VerticalLayout {
+        width: 100%;
+        min-width: 0px;
         alignment: center;
         spacing: Theme.spacingXs;
         padding-left: Theme.paddingLg;
         padding-right: Theme.paddingLg;
 
         HorizontalLayout {
+            width: 100%;
+            min-width: 0px;
             alignment: center;
             spacing: Theme.spacingXs;
 
@@ -58,6 +62,7 @@ export component SongDetailsMobile inherits VerticalLayout {
                 color: Theme.textPrimary;
                 horizontal-alignment: center;
                 overflow: elide;
+                min-width: 0px;
             }
 
             if root.song.extension != "": SongItemExtensionIcon {
@@ -66,6 +71,8 @@ export component SongDetailsMobile inherits VerticalLayout {
         }
 
         Text {
+            width: 100%;
+            min-width: 0px;
             text: root.song.artists_str;
             font-size: Theme.subtitle;
             color: Theme.textSecondary;

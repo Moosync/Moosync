@@ -6,6 +6,7 @@ import {
 } from "../common/song_item_components_mobile.slint";
 
 export component TrackInfoMobile inherits Rectangle {
+    min-width: 0px;
     property <SongModel> current_song: PlayerProps.current_song;
 
     HorizontalLayout {
@@ -37,6 +38,7 @@ export component TrackInfoMobile inherits Rectangle {
             spacing: Theme.spacingTiny;
 
             HorizontalLayout {
+                alignment: start;
                 spacing: Theme.spacingXs;
                 min-width: 0px;
 
@@ -47,7 +49,6 @@ export component TrackInfoMobile inherits Rectangle {
                     font-weight: 600;
                     overflow: elide;
                     vertical-alignment: center;
-                    horizontal-stretch: 1;
                     min-width: 0px;
                 }
 

@@ -138,9 +138,9 @@ component QueueItemMobile inherits Rectangle {
                         IconButton {
                             accessible-label: @tr("Remove from queue");
                             icon_source: @image-url("../icons/cross.svg");
-                            icon_size: Theme.iconSizeMd;
-                            width: Theme.mobileButtonSize;
-                            height: Theme.mobileButtonSize;
+                            icon_size: Theme.iconSizeSm;
+                            width: Theme.sizeXxl;
+                            height: Theme.sizeXxl;
                             icon_color: #ff5555;
                             clicked => { root.remove-clicked(); }
                         }

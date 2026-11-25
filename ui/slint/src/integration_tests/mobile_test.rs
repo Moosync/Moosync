@@ -1610,6 +1610,38 @@ async fn do_mobile_now_playing_extension_icon_beside_title(
     );
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_mobile_queue_remove_icon_size(main_window: MainWindow, state_manager: StateManager) {
+    let s1 = create_test_song("mob_q_rm_1", "Queue Remove Song", "Alb", "Art");
+    let ph = state_manager.get_player_handler();
+    ph.add_to_queue(vec![s1.clone()]).await;
+
+    main_window
+        .global::<QueuePageProps>()
+        .set_queue(ModelRc::new(VecModel::from(vec![SongModel::from(s1)])));
+    main_window.global::<QueuePageProps>().set_show_queue(true);
+    main_window.global::<QueuePageProps>().set_active_tab(1);
+
+    let loaded = wait_until_timeout(Duration::from_secs(2), || {
+        ElementHandle::find_by_accessible_label(&main_window, "Remove from queue").count() > 0
+    })
+    .await;
+    assert!(loaded);
+
+    let remove_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(&main_window, "Remove from queue").collect();
+    let more_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(&main_window, "More options").collect();
+    assert_eq!(remove_handles.len(), 1);
+    assert!(!more_handles.is_empty());
+    assert!(
+        remove_handles[0].size().width < more_handles[0].size().width,
+        "Remove button should be smaller than More options button (remove={}, more={})",
+        remove_handles[0].size().width,
+        more_handles[0].size().width
+    );
+}
+
 integration_test!(
     test_mobile_topbar_search_toggle => do_mobile_topbar_search_toggle,
     test_mobile_topbar_accounts_toggle => do_mobile_topbar_accounts_toggle,
@@ -1635,4 +1667,5 @@ integration_test!(
     test_mobile_synced_lyrics_scroll_with_timestamp => do_mobile_synced_lyrics_scroll_with_timestamp,
     test_mobile_settings_long_text_wraps_without_horizontal_overflow => do_mobile_settings_long_text_wraps_without_horizontal_overflow,
     test_mobile_now_playing_extension_icon_beside_title => do_mobile_now_playing_extension_icon_beside_title,
+    test_mobile_queue_remove_icon_size => do_mobile_queue_remove_icon_size,
 );

@@ -1723,6 +1723,42 @@ async fn do_mobile_accounts_popup_google_layout(
         .set_show_accounts(false);
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_mobile_settings_cache_and_logs_navigation(
+    main_window: MainWindow,
+    _state_manager: StateManager,
+) {
+    main_window
+        .global::<SettingsState>()
+        .set_show_settings(true);
+
+    let opened = wait_until_timeout(Duration::from_secs(2), || {
+        ElementHandle::find_by_accessible_label(&main_window, "Cache Settings").count() > 0
+    })
+    .await;
+    assert!(opened);
+
+    let cache_btn = ElementHandle::find_by_accessible_label(&main_window, "Cache Settings")
+        .next()
+        .unwrap();
+    click_element(&cache_btn).await;
+    let on_cache = wait_until_timeout(Duration::from_secs(2), || {
+        main_window.global::<SettingsState>().get_active_page() == SettingsPages::Cache
+    })
+    .await;
+    assert!(on_cache);
+
+    let logs_btn = ElementHandle::find_by_accessible_label(&main_window, "Logs Settings")
+        .next()
+        .unwrap();
+    click_element(&logs_btn).await;
+    let on_logs = wait_until_timeout(Duration::from_secs(2), || {
+        main_window.global::<SettingsState>().get_active_page() == SettingsPages::Logs
+    })
+    .await;
+    assert!(on_logs);
+}
+
 integration_test!(
     test_mobile_topbar_search_toggle => do_mobile_topbar_search_toggle,
     test_mobile_topbar_accounts_toggle => do_mobile_topbar_accounts_toggle,
@@ -1751,4 +1787,5 @@ integration_test!(
     test_mobile_queue_remove_icon_size => do_mobile_queue_remove_icon_size,
     test_mobile_pill_button_shape => do_mobile_pill_button_shape,
     test_mobile_accounts_popup_google_layout => do_mobile_accounts_popup_google_layout,
+    test_mobile_settings_cache_and_logs_navigation => do_mobile_settings_cache_and_logs_navigation,
 );

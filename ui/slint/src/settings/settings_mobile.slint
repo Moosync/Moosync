@@ -213,7 +213,7 @@ export component SettingsMobile inherits Rectangle {
 
                 SidebarButtonMobile {
                     text: @tr("Cache");
-                    icon: @image-url("../icons/info.svg");
+                    icon: @image-url("../icons/cache.svg");
                     accessible-label: @tr("Cache Settings");
                     active: root.active_page == SettingsPages.Cache;
                     clicked => {
@@ -223,7 +223,7 @@ export component SettingsMobile inherits Rectangle {
 
                 SidebarButtonMobile {
                     text: @tr("Logs");
-                    icon: @image-url("../icons/info.svg");
+                    icon: @image-url("../icons/logs.svg");
                     accessible-label: @tr("Logs Settings");
                     active: root.active_page == SettingsPages.Logs;
                     clicked => {

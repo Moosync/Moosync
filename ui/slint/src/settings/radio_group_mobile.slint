@@ -60,11 +60,13 @@ export component RadioOptionMobile inherits Rectangle {
             alignment: center;
             spacing: Theme.spacingTiny;
             horizontal-stretch: 1;
+            min-width: 0px;
 
             if (root.text != ""): Text {
                 vertical-alignment: center;
                 text: root.text;
                 font-size: Theme.body;
+                wrap: word-wrap;
                 color: Theme.textPrimary;
             }
 
@@ -93,6 +95,7 @@ export component RadioGroupMobile inherits VerticalLayout {
             text: root.preference.title;
             font-size: Theme.modelTitle;
             font-weight: 600;
+            wrap: word-wrap;
             color: Theme.textPrimary;
         }
 

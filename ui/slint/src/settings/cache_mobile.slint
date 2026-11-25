@@ -19,6 +19,7 @@ export component CachePageMobile inherits SettingsPageLayoutMobile {
             Text {
                 text: @tr("Total Tracked & Orphan Cache");
                 font-size: Theme.caption;
+                wrap: word-wrap;
                 color: Theme.textSecondary;
             }
 
@@ -26,6 +27,7 @@ export component CachePageMobile inherits SettingsPageLayoutMobile {
                 text: CacheState.is_loading ? @tr("Scanning...") : CacheState.total_size_text;
                 font-size: Theme.modelTitle;
                 font-weight: 700;
+                wrap: word-wrap;
                 color: Theme.textPrimary;
             }
 

@@ -1534,6 +1534,48 @@ async fn do_mobile_synced_lyrics_scroll_with_timestamp(
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_mobile_settings_long_text_wraps_without_horizontal_overflow(
+    main_window: MainWindow,
+    _state_manager: StateManager,
+) {
+    let long_title = "VeryLongSettingsPreferenceTitle ".repeat(12);
+    let item = slint_app::PreferenceItem {
+        id: "long_toggle".into(),
+        title: long_title.clone().into(),
+        subtitle: long_title.clone().into(),
+        pref_type: slint_app::PreferenceType::ToggleGroup,
+        ..Default::default()
+    };
+    main_window
+        .global::<slint_app::AppPreferences>()
+        .set_system_items(ModelRc::new(VecModel::from(vec![item])));
+    main_window
+        .global::<SettingsState>()
+        .set_active_page(SettingsPages::System);
+    main_window
+        .global::<SettingsState>()
+        .set_show_settings(true);
+
+    let opened = wait_until_timeout(Duration::from_secs(2), || {
+        ElementHandle::find_by_accessible_label(&main_window, &long_title).count() > 0
+    })
+    .await;
+    assert!(opened);
+
+    let handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(&main_window, &long_title).collect();
+    let win_width = main_window.window().size().width as f32;
+    assert!(!handles.is_empty());
+    for handle in handles {
+        assert!(
+            handle.size().width <= win_width,
+            "Settings text should wrap within window width (width={}, win_width={win_width})",
+            handle.size().width
+        );
+    }
+}
+
 integration_test!(
     test_mobile_topbar_search_toggle => do_mobile_topbar_search_toggle,
     test_mobile_topbar_accounts_toggle => do_mobile_topbar_accounts_toggle,
@@ -1557,4 +1599,5 @@ integration_test!(
     test_mobile_progress_bar_tap_bounds => do_mobile_progress_bar_tap_bounds,
     test_mobile_topbar_context_menu_extensions => do_mobile_topbar_context_menu_extensions,
     test_mobile_synced_lyrics_scroll_with_timestamp => do_mobile_synced_lyrics_scroll_with_timestamp,
+    test_mobile_settings_long_text_wraps_without_horizontal_overflow => do_mobile_settings_long_text_wraps_without_horizontal_overflow,
 );

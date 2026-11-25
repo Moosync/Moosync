@@ -40,6 +40,7 @@ export component StatusDotMobile inherits HorizontalLayout {
         font-size: Theme.body;
         font-weight: 700;
         color: Theme.textPrimary;
+        wrap: word-wrap;
         vertical-alignment: center;
     }
 
@@ -47,6 +48,7 @@ export component StatusDotMobile inherits HorizontalLayout {
         text: root.item.subtitle;
         font-size: Theme.body;
         color: Theme.textSecondary;
+        wrap: word-wrap;
         vertical-alignment: center;
     }
 }
@@ -66,6 +68,7 @@ export component StatusGroupMobile inherits VerticalLayout {
             text: root.title;
             font-size: Theme.modelTitle;
             font-weight: 600;
+            wrap: word-wrap;
             color: Theme.textPrimary;
         }
 

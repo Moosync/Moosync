@@ -31,6 +31,12 @@ py_binary(
     main = "check_instrument.py",
 )
 
+py_binary(
+    name = "check_git_override",
+    srcs = ["check_git_override.py"],
+    main = "check_git_override.py",
+)
+
 rust_binary(
     name = "check_slint",
     srcs = ["check_slint.rs"],

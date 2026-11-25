@@ -78,6 +78,7 @@ http_file(
     sha256 = "8725a20d85fa35a094cf092286295668fd5292247128c4bb8101585ba063799c",
     urls = ["https://service.termux-pacman.dev/gpkg/aarch64/glibc-2.44-0-aarch64.pkg.tar.xz"],
 )
+
 include("//modules:maven.MODULE.bazel")
 
 register_toolchains(
@@ -103,7 +104,8 @@ buf.toolchains(version = "v1.75.0")
 use_repo(buf, "rules_buf_toolchains")
 
 bazel_dep(name = "extensions_sdk")
-local_path_override(
+git_override(
     module_name = "extensions_sdk",
-    path = "/home/ovenoboyo/projects/extensions-sdk",
+    branch = "main",
+    remote = "https://github.com/Moosync/extensions-sdk",
 )

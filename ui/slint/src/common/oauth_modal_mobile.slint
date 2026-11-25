@@ -151,19 +151,29 @@ export component OAuthModalMobile inherits Rectangle {
                         height: Theme.mobileInputHeight;
                         border-radius: Theme.borderRadiusMd;
                         background: Theme.tertiary;
+                        clip: true;
 
                         HorizontalLayout {
                             padding-left: Theme.paddingSm;
                             padding-right: Theme.paddingSm;
                             spacing: Theme.spacingSm;
+                            min-width: 0px;
 
-                            url_input := TextInput {
-                                text: root.oauth_url;
-                                read-only: true;
-                                font-size: Theme.body;
-                                color: Theme.accent;
-                                vertical-alignment: center;
+                            Rectangle {
+                                clip: true;
                                 horizontal-stretch: 1;
+                                min-width: 0px;
+
+                                url_input := TextInput {
+                                    width: 100%;
+                                    height: 100%;
+                                    text: root.oauth_url;
+                                    read-only: true;
+                                    single-line: true;
+                                    font-size: Theme.body;
+                                    color: Theme.accent;
+                                    vertical-alignment: center;
+                                }
                             }
 
                             ButtonMobile {
@@ -193,20 +203,30 @@ export component OAuthModalMobile inherits Rectangle {
                         border-color: Theme.accent;
                         border-width: Theme.borderWidth;
                         background: Theme.tertiary;
+                        clip: true;
 
                         HorizontalLayout {
                             padding-left: Theme.paddingSm;
                             padding-right: Theme.paddingSm;
                             spacing: Theme.spacingSm;
+                            min-width: 0px;
 
-                            device_code_input := TextInput {
-                                text: OAuthState.device_code;
-                                read-only: true;
-                                font-size: Theme.modelTitle;
-                                font-weight: 700;
-                                color: Theme.accent;
-                                vertical-alignment: center;
+                            Rectangle {
+                                clip: true;
                                 horizontal-stretch: 1;
+                                min-width: 0px;
+
+                                device_code_input := TextInput {
+                                    width: 100%;
+                                    height: 100%;
+                                    text: OAuthState.device_code;
+                                    read-only: true;
+                                    single-line: true;
+                                    font-size: Theme.modelTitle;
+                                    font-weight: 700;
+                                    color: Theme.accent;
+                                    vertical-alignment: center;
+                                }
                             }
 
                             ButtonMobile {
@@ -234,16 +254,28 @@ export component OAuthModalMobile inherits Rectangle {
                         height: Theme.mobileInputHeight;
                         border-radius: Theme.borderRadiusMd;
                         background: Theme.tertiary;
+                        clip: true;
 
                         HorizontalLayout {
                             padding-left: Theme.paddingSm;
                             padding-right: Theme.paddingSm;
+                            min-width: 0px;
 
-                            TextInput {
-                                text <=> root.oauth_code;
-                                font-size: Theme.body;
-                                color: Theme.textPrimary;
-                                vertical-alignment: center;
+                            Rectangle {
+                                clip: true;
+                                horizontal-stretch: 1;
+                                min-width: 0px;
+
+                                TextInput {
+                                    accessible-label: @tr("Authorization code input");
+                                    width: 100%;
+                                    height: 100%;
+                                    text <=> root.oauth_code;
+                                    single-line: true;
+                                    font-size: Theme.body;
+                                    color: Theme.textPrimary;
+                                    vertical-alignment: center;
+                                }
                             }
                         }
                     }

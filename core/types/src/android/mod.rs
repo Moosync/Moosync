@@ -206,4 +206,38 @@ impl AndroidJNIContext {
             Ret::from_jvalue(env, ret)
         })
     }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn open_url(&self, url: &str) -> Result<(), JniError> {
+        self.with_env(|env, this| {
+            let activity_lock = this.activity.read().unwrap();
+            let activity = activity_lock.as_obj();
+
+            let url_jstr = env.new_string(url)?;
+            let uri_class = env.find_class(jni_str!("android/net/Uri"))?;
+            let uri_val = env.call_static_method(
+                uri_class,
+                jni_str!("parse"),
+                jni_sig!("(Ljava/lang/String;)Landroid/net/Uri;"),
+                &[JValue::Object(&url_jstr)],
+            )?;
+            let uri_obj = uri_val.l()?;
+
+            let action_view = env.new_string("android.intent.action.VIEW")?;
+            let intent_class = env.find_class(jni_str!("android/content/Intent"))?;
+            let intent_obj = env.new_object(
+                intent_class,
+                jni_sig!("(Ljava/lang/String;Landroid/net/Uri;)V"),
+                &[JValue::Object(&action_view), JValue::Object(&uri_obj)],
+            )?;
+
+            env.call_method(
+                activity,
+                jni_str!("startActivity"),
+                jni_sig!("(Landroid/content/Intent;)V"),
+                &[JValue::Object(&intent_obj)],
+            )?;
+            Ok(())
+        })
+    }
 }

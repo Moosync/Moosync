@@ -1972,6 +1972,39 @@ parameterized_test!(
     ),
 );
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_mobile_oauth_modal_input_bounds(main_window: MainWindow, _state_manager: StateManager) {
+    let long_url = format!(
+        "https://example.com/oauth/authorize?code={}",
+        "a".repeat(250)
+    );
+    let long_code = "oauth_redirect_code_".to_string() + &"b".repeat(250);
+
+    let oauth = main_window.global::<OAuthState>();
+    oauth.set_modal_title("Login".into());
+    oauth.set_oauth_url(long_url.into());
+    oauth.set_oauth_code(long_code.into());
+    oauth.set_show_oauth_modal(true);
+
+    let opened = wait_until_timeout(Duration::from_secs(2), || {
+        ElementHandle::find_by_accessible_label(&main_window, "Authorization code input").count()
+            > 0
+    })
+    .await;
+    assert!(opened);
+
+    let win_width = main_window.window().size().width as f32;
+    let code_input =
+        ElementHandle::find_by_accessible_label(&main_window, "Authorization code input")
+            .next()
+            .unwrap();
+    let right = code_input.absolute_position().x + code_input.size().width;
+    assert!(
+        right <= win_width,
+        "OAuth input must not overflow mobile viewport (right={right}, win_width={win_width})"
+    );
+}
+
 integration_test!(
     test_mobile_topbar_search_toggle => do_mobile_topbar_search_toggle,
     test_mobile_topbar_accounts_toggle => do_mobile_topbar_accounts_toggle,
@@ -2004,4 +2037,5 @@ integration_test!(
     test_mobile_action_group_no_horizontal_overflow => do_mobile_action_group_no_horizontal_overflow,
     test_mobile_dropdown_uses_context_menu_sheet => do_mobile_dropdown_uses_context_menu_sheet,
     test_mobile_content_page_scrollable_entity_header => do_mobile_content_page_scrollable_entity_header,
+    test_mobile_oauth_modal_input_bounds => do_mobile_oauth_modal_input_bounds,
 );

@@ -35,7 +35,16 @@ impl AccountsHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn open_browser(url: &str) { let _ = open::that_detached(url); }
+    pub fn open_browser(url: &str) {
+        #[cfg(target_os = "android")]
+        if let Err(e) = get_android_context().open_url(url) {
+            tracing::error!("Failed to open browser URL '{}' on Android: {:?}", url, e);
+        }
+        #[cfg(not(target_os = "android"))]
+        if let Err(e) = open::that_detached(url) {
+            tracing::error!("Failed to open browser URL '{}': {:?}", url, e);
+        }
+    }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn fetch_and_render_accounts(

@@ -1180,3 +1180,38 @@ async fn test_persist_is_playing(player_handler: PlayerHandler) {
     let _ = player_handler.pause().await;
     assert!(!player_handler.player_data.read().unwrap().is_playing);
 }
+
+#[rstest]
+#[case(false, false)]
+#[case(true, false)]
+#[case(false, true)]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_load_initial_song_remains_paused_when_not_resuming(
+    #[case] was_playing: bool,
+    #[case] persist_playback_state: bool,
+) {
+    let song1 = create_mock_song("1", "Song One");
+    let player_data = PlayerData {
+        song_queue: vec![song1],
+        current_idx: 0,
+        is_playing: was_playing,
+        repeat_mode: RepeatMode::RepeatNone.into(),
+    };
+    let (ended_tx, _ended_rx) = tokio::sync::mpsc::unbounded_channel();
+    let player_handler = PlayerHandler::new_with_contexts(
+        ended_tx,
+        vec![Arc::new(DummyAudioPlayerContext::new())],
+        Box::new(MockPersistContext { data: player_data }),
+    );
+
+    player_handler
+        .load_initial_song(persist_playback_state)
+        .await;
+
+    assert_eq!(
+        player_handler.get_player_state(),
+        PlayerState::Paused as i32
+    );
+}

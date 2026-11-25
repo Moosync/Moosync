@@ -231,6 +231,7 @@ impl AudioPlayerContext for RodioPlayerContext {
             }),
         );
         player.append(source);
+        player.pause();
         player.set_volume(old_volume as f32 / 100f32);
 
         *self.player.lock().unwrap() = Some(player);

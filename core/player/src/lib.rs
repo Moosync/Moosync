@@ -278,6 +278,9 @@ impl PlayerHandler {
                 tracing::error!("Failed to resume playback on startup: {:?}", e);
             }
         } else {
+            if let Err(e) = self.player.pause().await {
+                tracing::error!("Failed to keep initial song paused on startup: {:?}", e);
+            }
             self.trigger_player_event(Event::Pause(true));
         }
     }

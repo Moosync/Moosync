@@ -49,6 +49,7 @@ message ExtensionCommand {
     PlayerLoadTrackRequest player_load_track = 39;
     WsEventRequest ws_event = 40;
     ProcessEventRequest process_event = 41;
+    AppExitRequest app_exit = 42;
   }
 }
 
@@ -92,6 +93,7 @@ message ExtensionCommandResponse {
     PlayerLoadTrackResponse player_load_track = 38;
     WsEventResponse ws_event = 39;
     ProcessEventResponse process_event = 40;
+    AppExitResponse app_exit = 42;
   }
 }
 
@@ -962,6 +964,9 @@ message ProcessEventRequest {
   }
 }
 message ProcessEventResponse {}
+
+message AppExitRequest {}
+message AppExitResponse {}
 
 message WsCloseRequest {
   uint64 connection_id = 1;

@@ -329,3 +329,67 @@ async fn test_process_manager_streams_output_events_and_resolves_args() {
     assert!(stdout_str.contains("ARG2:--flag"));
     assert_eq!(stderr, b"ERR\n");
 }
+
+#[cfg(unix)]
+#[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_spawn_process_dispatches_exited_event() {
+    use std::sync::Arc;
+
+    use extensions_proto::moosync::types::{
+        ExtensionCommand, extension_command, process_event_request,
+    };
+    use tokio::sync::mpsc;
+
+    use crate::{errors::ExtensionError, event_sink::ExtensionEventSink};
+
+    struct ChannelSink {
+        tx: mpsc::UnboundedSender<ExtensionCommand>,
+    }
+
+    #[async_trait::async_trait]
+    impl ExtensionEventSink for ChannelSink {
+        #[tracing::instrument(level = "debug", skip_all)]
+        async fn dispatch(&self, command: ExtensionCommand) -> Result<(), ExtensionError> {
+            let _ = self.tx.send(command);
+            Ok(())
+        }
+    }
+
+    let tmp = tempdir::TempDir::new("proc_exit_event").unwrap();
+    let (bin_path, perm) =
+        create_test_binary(tmp.path(), "exit_test.sh", "#!/bin/sh\necho done\nexit 0\n");
+
+    let mut allowed_paths = HashMap::new();
+    allowed_paths.insert(
+        tmp.path().to_string_lossy().to_string(),
+        PathBuf::from("/guest"),
+    );
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    let mgr = ExtensionProcessManager::with_sink(
+        Some(allowed_paths),
+        vec![perm],
+        Arc::new(ChannelSink { tx }),
+    );
+
+    let spawn_res = mgr
+        .spawn_process(SpawnProcessRequest {
+            path: bin_path.file_name().unwrap().to_str().unwrap().to_string(),
+            args: vec![],
+            env: Default::default(),
+        })
+        .unwrap();
+
+    let mut exit_code = None;
+    while let Ok(Some(cmd)) = tokio::time::timeout(Duration::from_secs(2), rx.recv()).await {
+        if let Some(extension_command::Event::ProcessEvent(ev)) = cmd.event
+            && let Some(process_event_request::Event::Exited(code)) = ev.event
+        {
+            assert_eq!(ev.process_id, spawn_res.process_id);
+            exit_code = Some(code);
+            break;
+        }
+    }
+
+    assert_eq!(exit_code, Some(0));
+}

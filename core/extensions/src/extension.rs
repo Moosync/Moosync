@@ -11,24 +11,24 @@ use std::{
 
 use async_trait::async_trait;
 use extensions_proto::moosync::types::{
-    CanPlayRequest, CanPlayResponse, ContextMenuActionRequest, ContextMenuActionResponse,
-    CustomRequest, CustomRequestResponse, ExtensionAccountDetail, ExtensionCommand,
-    ExtensionCommandResponse, ExtensionDetail, ExtensionLockData, ExtensionManifest,
-    ExtensionProviderScope, GetRemoteUrlRequest, GetRemoteUrlResponse, NotifyPlayerEventRequest,
-    NotifyPlayerEventResponse, OauthCallbackRequest, OauthCallbackResponse,
-    PerformAccountLoginRequest, PerformAccountLoginResponse, PlaybackDetailsRequestedRequest,
-    PlaybackDetailsRequestedResponse, PlayerLoadTrackRequest, PlayerLoadTrackResponse,
-    PlayerPauseRequest, PlayerPauseResponse, PlayerPlayRequest, PlayerPlayResponse,
-    PlayerSeekRequest, PlayerSeekResponse, PlayerSetVolumeRequest, PlayerSetVolumeResponse,
-    PlayerState, PlayerStateChangedRequest, PlayerStateChangedResponse, PlayerStopRequest,
-    PlayerStopResponse, PlaylistAddedRequest, PlaylistAddedResponse, PlaylistRemovedRequest,
-    PlaylistRemovedResponse, PreferenceChangedRequest, PreferenceChangedResponse,
-    RequestedAlbumSongsRequest, RequestedAlbumSongsResponse, RequestedArtistSongsRequest,
-    RequestedArtistSongsResponse, RequestedCoverArtRequest, RequestedCoverArtResponse,
-    RequestedLyricsRequest, RequestedLyricsResponse, RequestedPlaylistContextMenuRequest,
-    RequestedPlaylistContextMenuResponse, RequestedPlaylistSongsRequest,
-    RequestedPlaylistSongsResponse, RequestedPlaylistsRequest, RequestedPlaylistsResponse,
-    RequestedRecommendationsRequest, RequestedRecommendationsResponse,
+    AppExitRequest, AppExitResponse, CanPlayRequest, CanPlayResponse, ContextMenuActionRequest,
+    ContextMenuActionResponse, CustomRequest, CustomRequestResponse, ExtensionAccountDetail,
+    ExtensionCommand, ExtensionCommandResponse, ExtensionDetail, ExtensionLockData,
+    ExtensionManifest, ExtensionProviderScope, GetRemoteUrlRequest, GetRemoteUrlResponse,
+    NotifyPlayerEventRequest, NotifyPlayerEventResponse, OauthCallbackRequest,
+    OauthCallbackResponse, PerformAccountLoginRequest, PerformAccountLoginResponse,
+    PlaybackDetailsRequestedRequest, PlaybackDetailsRequestedResponse, PlayerLoadTrackRequest,
+    PlayerLoadTrackResponse, PlayerPauseRequest, PlayerPauseResponse, PlayerPlayRequest,
+    PlayerPlayResponse, PlayerSeekRequest, PlayerSeekResponse, PlayerSetVolumeRequest,
+    PlayerSetVolumeResponse, PlayerState, PlayerStateChangedRequest, PlayerStateChangedResponse,
+    PlayerStopRequest, PlayerStopResponse, PlaylistAddedRequest, PlaylistAddedResponse,
+    PlaylistRemovedRequest, PlaylistRemovedResponse, PreferenceChangedRequest,
+    PreferenceChangedResponse, RequestedAlbumSongsRequest, RequestedAlbumSongsResponse,
+    RequestedArtistSongsRequest, RequestedArtistSongsResponse, RequestedCoverArtRequest,
+    RequestedCoverArtResponse, RequestedLyricsRequest, RequestedLyricsResponse,
+    RequestedPlaylistContextMenuRequest, RequestedPlaylistContextMenuResponse,
+    RequestedPlaylistSongsRequest, RequestedPlaylistSongsResponse, RequestedPlaylistsRequest,
+    RequestedPlaylistsResponse, RequestedRecommendationsRequest, RequestedRecommendationsResponse,
     RequestedSearchResultRequest, RequestedSearchResultResponse, RequestedSongContextMenuRequest,
     RequestedSongContextMenuResponse, RequestedSongFromIdRequest, RequestedSongFromIdResponse,
     ScrobbleRequest, ScrobbleResponse, SeekedRequest, SeekedResponse, SongAddedRequest,
@@ -567,6 +567,7 @@ impl Extension {
         PlayerLoadTrackRequest,
         PlayerLoadTrackResponse
     );
+    delegate_command!(app_exit, AppExit, AppExitRequest, AppExitResponse);
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn notify_player_event(

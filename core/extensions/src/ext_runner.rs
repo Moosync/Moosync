@@ -149,6 +149,16 @@ impl ExtensionHandlerInner {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
+    pub fn get_active_extensions(&self) -> Vec<Arc<Extension>> {
+        self.extensions_map
+            .read()
+            .unwrap()
+            .values()
+            .cloned()
+            .collect()
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn shutdown(&self) {
         let drained: Vec<Arc<Extension>> = {
             let mut extensions_map = self.extensions_map.write().unwrap();

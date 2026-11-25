@@ -74,3 +74,17 @@ async fn test_extensions_hook_on_songs_added_listener(sm_context: TestSmContext)
     let inserted = sm.get_database().insert_songs(vec![song]).await;
     assert_ok!(inserted);
 }
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_extensions_hook_on_exit(sm_context: TestSmContext) {
+    let TestSmContext { sm, .. } = sm_context;
+    let hook = ExtensionsHook::new();
+    assert_ok!(hook.on_startup(&sm).await);
+
+    let res = hook.on_exit(&sm).await;
+
+    assert_ok!(res);
+}

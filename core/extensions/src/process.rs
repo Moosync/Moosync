@@ -331,6 +331,7 @@ impl ExtensionProcessManager {
     async fn run_output_debouncer(
         process_id: usize,
         sink: Arc<dyn ExtensionEventSink>,
+        processes: Arc<Mutex<HashMap<usize, ProcessHandle>>>,
         mut rx: mpsc::UnboundedReceiver<StreamChunk>,
     ) {
         let mut stdout_buf = Vec::new();
@@ -363,6 +364,45 @@ impl ExtensionProcessManager {
             } else if deadline.is_none() {
                 deadline = Some(Instant::now() + OUTPUT_DEBOUNCE_WINDOW);
             }
+        }
+
+        let exit_code = {
+            let guard = processes.lock().unwrap();
+            let Some(handle) = guard.get(&process_id) else {
+                return;
+            };
+            let mut child_guard = handle.child.lock().unwrap();
+            if let Some(child) = child_guard.as_mut() {
+                match child.wait() {
+                    Ok(status) => {
+                        handle.is_running.store(false, Ordering::SeqCst);
+                        *handle.exit_code.lock().unwrap() = status.code();
+                        status.code()
+                    }
+                    Err(_) => *handle.exit_code.lock().unwrap(),
+                }
+            } else {
+                *handle.exit_code.lock().unwrap()
+            }
+        };
+
+        let exit_cmd = ExtensionCommand {
+            package_name: String::new(),
+            event: Some(extension_command::Event::ProcessEvent(
+                ProcessEventRequest {
+                    process_id: process_id as u64,
+                    event: Some(process_event_request::Event::Exited(
+                        exit_code.unwrap_or(-1),
+                    )),
+                },
+            )),
+        };
+        if let Err(err) = sink.dispatch(exit_cmd).await {
+            tracing::debug!(
+                "Failed to dispatch process exited event for process {}: {}",
+                process_id,
+                err
+            );
         }
     }
 
@@ -539,34 +579,35 @@ impl ExtensionProcessManager {
 
         let pid = child.id();
         let stdin = Mutex::new(child.stdin.take());
+        let stdout_stream = child.stdout.take();
+        let stderr_stream = child.stderr.take();
         let stdout_buffer = Arc::new(Mutex::new(Vec::new()));
         let process_id = self.next_process_id.fetch_add(1, Ordering::SeqCst);
-        let output_tx =
-            if let (Some(sink), Some(rt)) = (self.sink.clone(), Handle::try_current().ok()) {
-                let (tx, rx) = mpsc::unbounded_channel();
-                rt.spawn(Self::run_output_debouncer(process_id, sink, rx).in_current_span());
-                Some(tx)
-            } else {
-                None
-            };
-        Self::capture_stream(
-            child.stdout.take(),
-            Some(stdout_buffer.clone()),
-            false,
-            output_tx.clone(),
-        );
-        Self::capture_stream(child.stderr.take(), None, true, output_tx);
         let handle = ProcessHandle {
             process_id,
             pid,
             stdin,
-            stdout_buffer,
+            stdout_buffer: stdout_buffer.clone(),
             is_running: Arc::new(AtomicBool::new(true)),
             exit_code: Arc::new(Mutex::new(None)),
             child: Mutex::new(Some(child)),
         };
 
         self.processes.lock().unwrap().insert(process_id, handle);
+
+        let output_tx =
+            if let (Some(sink), Some(rt)) = (self.sink.clone(), Handle::try_current().ok()) {
+                let (tx, rx) = mpsc::unbounded_channel();
+                rt.spawn(
+                    Self::run_output_debouncer(process_id, sink, self.processes.clone(), rx)
+                        .in_current_span(),
+                );
+                Some(tx)
+            } else {
+                None
+            };
+        Self::capture_stream(stdout_stream, Some(stdout_buffer), false, output_tx.clone());
+        Self::capture_stream(stderr_stream, None, true, output_tx);
 
         Ok(SpawnProcessResponse {
             process_id: process_id as u64,

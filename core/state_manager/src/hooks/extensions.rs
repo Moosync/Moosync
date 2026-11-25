@@ -78,4 +78,16 @@ impl Hook for ExtensionsHook {
 
         Ok(())
     }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn on_exit(
+        &self,
+        state_manager: &StateManager,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        state_manager
+            .get_extension_handler()
+            .notify_app_exit()
+            .await;
+        Ok(())
+    }
 }

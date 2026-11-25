@@ -3,11 +3,14 @@ use std::{
     env, fs,
     path::{Path, PathBuf},
     sync::{Arc, LazyLock, Mutex, OnceLock},
+    time::Duration,
 };
 
 use ext_runner::ExtensionHandlerInner;
 pub use extensions_proto::moosync::types::ExtensionLockData;
-use extensions_proto::moosync::types::{ExtensionDetail, ExtensionManifest, PackageName};
+use extensions_proto::moosync::types::{
+    AppExitRequest, ExtensionDetail, ExtensionManifest, PackageName,
+};
 use fs_extra::dir::CopyOptions;
 use prost::Message;
 use regex::{Captures, Regex};
@@ -357,6 +360,31 @@ impl ExtensionHandler {
         }
 
         ret
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub async fn notify_app_exit(&self) {
+        let extensions = self.inner.get_active_extensions();
+        for ext in extensions {
+            match tokio::time::timeout(Duration::from_secs(2), ext.app_exit(AppExitRequest {}))
+                .await
+            {
+                Ok(Ok(_)) => {}
+                Ok(Err(e)) => {
+                    tracing::debug!(
+                        "Failed to send app_exit to {}: {:?}",
+                        ext.get_package_name(),
+                        e
+                    );
+                }
+                Err(_) => {
+                    tracing::debug!(
+                        "App exit notification timed out for {}",
+                        ext.get_package_name()
+                    );
+                }
+            }
+        }
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

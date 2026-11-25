@@ -58,6 +58,8 @@ export component SongItemExtensionIcon inherits Image {
     in property <string> extension: root.song.extension;
     in property <image> extension_icon: root.song.extension_icon;
 
+    accessible-role: image;
+    accessible-label: @tr("Extension Icon");
     width: Theme.iconSizeSm;
     source: Utils.load_image_or_default(root.extension_icon, DefaultIconType.Extension);
 }

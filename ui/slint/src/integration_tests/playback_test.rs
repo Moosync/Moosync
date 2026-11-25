@@ -301,6 +301,37 @@ async fn do_playback_seek_debounced(main_window: MainWindow, state_manager: Stat
     assert_eq!(recorded, vec![Duration::from_secs(30)]);
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_now_playing_extension_icon_adjacent_to_title(
+    main_window: MainWindow,
+    _state_manager: StateManager,
+) {
+    main_window
+        .window()
+        .set_size(slint::LogicalSize::new(1200.0, 800.0));
+    let mut song = create_test_song("s_ext", "Short", "Album", "Artist");
+    if let Some(ref mut inner) = song.song {
+        inner.extension = Some("test.ext".to_string());
+    }
+    main_window
+        .global::<PlayerProps>()
+        .set_current_song(SongModel::from(song));
+
+    let title_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(&main_window, "Short").collect();
+    let ext_icons: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(&main_window, "Extension Icon").collect();
+    assert_eq!(title_handles.len(), 1);
+    assert_eq!(ext_icons.len(), 1);
+
+    let title_right = title_handles[0].absolute_position().x + title_handles[0].size().width;
+    let icon_x = ext_icons[0].absolute_position().x;
+    assert!(
+        (icon_x - title_right).abs() < 20.0,
+        "Extension icon should sit next to title (title_right={title_right}, icon_x={icon_x})"
+    );
+}
+
 integration_test!(
     test_playback_play_song => do_playback_play_song,
     test_playback_pause_song => do_playback_pause_song,
@@ -311,4 +342,5 @@ integration_test!(
     test_playback_toggle_repeat => do_playback_toggle_repeat,
     test_playback_volume_and_mute => do_playback_volume_and_mute,
     test_playback_seek_debounced => do_playback_seek_debounced,
+    test_now_playing_extension_icon_adjacent_to_title => do_now_playing_extension_icon_adjacent_to_title,
 );

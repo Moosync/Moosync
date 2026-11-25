@@ -1889,6 +1889,54 @@ async fn do_mobile_dropdown_uses_context_menu_sheet(
     assert!(closed);
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_mobile_content_page_scrollable_entity_header(
+    main_window: MainWindow,
+    _state_manager: StateManager,
+) {
+    let album = slint_app::AlbumModel {
+        id: "alb_hdr_1".into(),
+        title: "Midnight Album Header".into(),
+        ..Default::default()
+    };
+    let songs: Vec<SongModel> = (0..15)
+        .map(|i| {
+            SongModel::from(create_test_song(
+                &format!("hdr_s_{i}"),
+                &format!("Header Song {i}"),
+                "Midnight Album Header",
+                "Artist",
+            ))
+        })
+        .collect();
+    main_window
+        .global::<slint_app::AlbumsPageProps>()
+        .set_selected_album(album);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::AlbumContent);
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    main_window
+        .global::<slint_app::AlbumContentPageProps>()
+        .set_songs(ModelRc::new(VecModel::from(songs)));
+
+    let loaded = wait_until_timeout(Duration::from_secs(2), || {
+        ElementHandle::find_by_accessible_label(&main_window, "Midnight Album Header").count() > 0
+    })
+    .await;
+    assert!(loaded);
+
+    let header_title =
+        ElementHandle::find_by_accessible_label(&main_window, "Midnight Album Header")
+            .next()
+            .unwrap();
+    let play_all = ElementHandle::find_by_accessible_label(&main_window, "Play All")
+        .next()
+        .unwrap();
+    assert!(header_title.is_valid());
+    assert!(play_all.is_valid());
+}
+
 integration_test!(
     test_mobile_topbar_search_toggle => do_mobile_topbar_search_toggle,
     test_mobile_topbar_accounts_toggle => do_mobile_topbar_accounts_toggle,
@@ -1920,4 +1968,5 @@ integration_test!(
     test_mobile_settings_cache_and_logs_navigation => do_mobile_settings_cache_and_logs_navigation,
     test_mobile_action_group_no_horizontal_overflow => do_mobile_action_group_no_horizontal_overflow,
     test_mobile_dropdown_uses_context_menu_sheet => do_mobile_dropdown_uses_context_menu_sheet,
+    test_mobile_content_page_scrollable_entity_header => do_mobile_content_page_scrollable_entity_header,
 );

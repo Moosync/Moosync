@@ -1,11 +1,14 @@
 import { ListView } from "std-widgets.slint";
 import {
     SongModel,
+    SongDetailAction,
     SongSortCriterion,
 } from "../types/song_view.slint";
 import { ExtensionProviderItem } from "../types/extension_view.slint";
 import { SongListItemMobile } from "song_list_item_mobile.slint";
 import { GhostSongListItemMobile } from "ghost_items_mobile.slint";
+import { PillButton } from "pill_button_mobile.slint";
+import { Utils, DefaultIconType } from "../utils.slint";
 import { Theme, Constants } from "../constants_mobile.slint";
 import {
     AppCallbacks,
@@ -17,6 +20,7 @@ import { SongSelectionState, SongSortState } from "selection_props.slint";
 
 export component SongListViewMobile inherits Rectangle {
     in property <[SongModel]> songs: Constants.testSongs;
+    in property <SongModel> default-song: Constants.defaultSong;
     in-out property <[ExtensionProviderItem]> extension_providers: [];
     callback provider_toggled(string, bool);
     callback load_more();
@@ -28,6 +32,8 @@ export component SongListViewMobile inherits Rectangle {
     in property <bool> show_play_all: false;
     in property <bool> is_loading: false;
     out property <bool> is_scrollable: list_view.content-height > list_view.height;
+    property <bool> has_header: root.default-song.title != "";
+    property <int> header_offset: root.has_header ? 1 : 0;
 
     property <bool> select_all_trigger: SongSelectionState.select_all_trigger;
     property <bool> clear_selection_trigger: SongSelectionState.clear_selection_trigger;
@@ -113,43 +119,109 @@ export component SongListViewMobile inherits Rectangle {
         height: 100%;
         horizontal-scrollbar-policy: always-off;
         vertical-scrollbar-policy: scroll_activity.active ? as-needed : always-off;
-        for idx in (root.display-songs.length + (root.is_loading ? 6 : 0)): VerticalLayout {
-            padding-bottom: Theme.spacingXs;
-            padding-left: Theme.paddingSm;
-            padding-right: Theme.paddingSm;
 
-            if (idx < root.display-songs.length): SongListItemMobile {
-                song: root.display-songs[idx];
-                is_selected: UtilCallbacks.is_index_selected(root.selected-indices, idx);
-                selection_mode: root.selection_mode;
-                long_pressed => {
-                    root.toggle_selection_mode(idx);
-                }
-                clicked => {
-                    if (root.selection_mode) {
-                        root.selected-indices = UtilCallbacks.update_selection(
-                            root.selected-indices,
-                            idx,
-                            0,
-                            true,
-                            false,
-                            false,
-                            root.display-songs.length);
-                        SongSelectionState.selected_count = root.selected-indices.length;
-                        SongSelectionState.selected_songs = root.selected-songs;
-                    } else {
-                        AppCallbacks.play-song(root.display-songs[idx]);
+        for raw_idx in (root.header_offset + root.display-songs.length + (root.is_loading ? 6 : 0)): VerticalLayout {
+            property <int> idx: raw_idx - root.header_offset;
+
+            if (root.has_header && raw_idx == 0): VerticalLayout {
+                padding-top: Theme.paddingLg;
+                padding-bottom: Theme.paddingMd;
+                padding-left: Theme.paddingMd;
+                padding-right: Theme.paddingMd;
+                spacing: Theme.spacingMd;
+                alignment: center;
+
+                HorizontalLayout {
+                    alignment: center;
+
+                    Rectangle {
+                        width: Theme.mobileModalWidth * 0.55;
+                        height: self.width;
+                        border-radius: Theme.borderRadiusLg;
+                        background: Theme.secondary;
+                        clip: true;
+
+                        Image {
+                            width: 100%;
+                            height: 100%;
+                            source: Utils.load_image_or_default(
+                                root.default-song.coverPathHigh.width > 0 ? root.default-song.coverPathHigh : root.default-song.coverPathLow,
+                                DefaultIconType.Song,
+                            );
+                            image-fit: cover;
+                        }
                     }
                 }
-                item_pressed(event) => {
-                    if (event.kind == PointerEventKind.down && event.button == PointerEventButton.right) {
-                        root.toggle_selection_mode(idx);
+
+                Text {
+                    text: root.default-song.title;
+                    font-size: Theme.modelTitle;
+                    font-weight: 700;
+                    color: Theme.textPrimary;
+                    horizontal-alignment: center;
+                    wrap: word-wrap;
+                }
+
+                HorizontalLayout {
+                    alignment: space-between;
+
+                    Text {
+                        text: @tr("{} songs", root.display-songs.length);
+                        font-size: Theme.caption;
+                        color: Theme.textSecondary;
+                        vertical-alignment: center;
+                    }
+
+                    PillButton {
+                        text: @tr("Play All");
+                        icon: @image-url("../icons/plain_play.svg");
+                        clicked => {
+                            if (root.display-songs.length > 0) {
+                                AppCallbacks.song_detail_action(SongDetailAction.Play, root.display-songs);
+                            }
+                        }
                     }
                 }
             }
 
-            if (idx >= root.display-songs.length): GhostSongListItemMobile {
-                item_index: idx - root.display-songs.length;
+            if (!root.has_header || raw_idx > 0): VerticalLayout {
+                padding-bottom: Theme.spacingXs;
+                padding-left: Theme.paddingSm;
+                padding-right: Theme.paddingSm;
+
+                if (idx < root.display-songs.length): SongListItemMobile {
+                    song: root.display-songs[idx];
+                    is_selected: UtilCallbacks.is_index_selected(root.selected-indices, idx);
+                    selection_mode: root.selection_mode;
+                    long_pressed => {
+                        root.toggle_selection_mode(idx);
+                    }
+                    clicked => {
+                        if (root.selection_mode) {
+                            root.selected-indices = UtilCallbacks.update_selection(
+                                root.selected-indices,
+                                idx,
+                                0,
+                                true,
+                                false,
+                                false,
+                                root.display-songs.length);
+                            SongSelectionState.selected_count = root.selected-indices.length;
+                            SongSelectionState.selected_songs = root.selected-songs;
+                        } else {
+                            AppCallbacks.play-song(root.display-songs[idx]);
+                        }
+                    }
+                    item_pressed(event) => {
+                        if (event.kind == PointerEventKind.down && event.button == PointerEventButton.right) {
+                            root.toggle_selection_mode(idx);
+                        }
+                    }
+                }
+
+                if (idx >= root.display-songs.length): GhostSongListItemMobile {
+                    item_index: idx - root.display-songs.length;
+                }
             }
         }
     }

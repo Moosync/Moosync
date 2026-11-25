@@ -15,6 +15,7 @@ export component SongsPageLayoutMobile inherits Rectangle {
 
     song-list := SongListViewMobile {
         songs: root.songs;
+        default-song: root.default-song;
         is_loading: root.is_loading;
         active-idx <=> root.active-idx;
         extension_providers <=> root.extension_providers;

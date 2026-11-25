@@ -64,6 +64,20 @@ include("//modules:external_deps.MODULE.bazel")
 include("//modules:rust_toolchains.MODULE.bazel")
 include("//modules:crates.MODULE.bazel")
 include("//modules:android_toolchains.MODULE.bazel")
+
+http_file = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
+
+http_file(
+    name = "termux_glibc_x86_64",
+    sha256 = "a09a3649a0febc5b04e30756f1599958f33f2f50a7db1b271c2320337d6cf0de",
+    urls = ["https://service.termux-pacman.dev/gpkg/x86_64/glibc-2.44-0-x86_64.pkg.tar.xz"],
+)
+
+http_file(
+    name = "termux_glibc_arm64",
+    sha256 = "8725a20d85fa35a094cf092286295668fd5292247128c4bb8101585ba063799c",
+    urls = ["https://service.termux-pacman.dev/gpkg/aarch64/glibc-2.44-0-aarch64.pkg.tar.xz"],
+)
 include("//modules:maven.MODULE.bazel")
 
 register_toolchains(
@@ -89,8 +103,7 @@ buf.toolchains(version = "v1.75.0")
 use_repo(buf, "rules_buf_toolchains")
 
 bazel_dep(name = "extensions_sdk")
-git_override(
+local_path_override(
     module_name = "extensions_sdk",
-    branch = "main",
-    remote = "https://github.com/Moosync/extensions-sdk",
+    path = "/home/ovenoboyo/projects/extensions-sdk",
 )

@@ -27,6 +27,9 @@ mod cache_test;
 mod context;
 pub use context::ReplyHandler;
 mod errors;
+pub mod event_sink;
+#[cfg(test)]
+mod event_sink_test;
 mod ext_runner;
 pub mod extension;
 pub mod http;

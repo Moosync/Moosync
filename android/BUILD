@@ -2,6 +2,7 @@ load("@rules_android//rules:rules.bzl", "android_binary")
 load("@rules_cc//cc:defs.bzl", "cc_import")
 load("@rules_kotlin//kotlin:android.bzl", "kt_android_library", "kt_android_local_test")
 load("@rules_kotlin//kotlin:jvm.bzl", "kt_jvm_binary", "kt_jvm_import", "kt_jvm_library")
+load("@rules_python//python:defs.bzl", "py_binary", "py_test")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load("@rules_shell//shell:sh_test.bzl", "sh_test")
 
@@ -113,6 +114,46 @@ cc_import(
     }),
 )
 
+py_binary(
+    name = "extract_ld_linux",
+    srcs = ["extract_ld_linux.py"],
+    deps = ["@extensions_sdk//tools:elf_align_lib"],
+)
+
+py_test(
+    name = "extract_ld_linux_test",
+    srcs = ["extract_ld_linux_test.py"],
+    deps = [
+        ":extract_ld_linux",
+        "@extensions_sdk//tools:elf_align_lib",
+    ],
+)
+
+genrule(
+    name = "extract_ld_linux_x86_64",
+    srcs = ["@termux_glibc_x86_64//file"],
+    outs = ["x86_64/libld_linux.so"],
+    cmd = "$(location :extract_ld_linux) --archive $< --member data/data/com.termux/files/usr/glibc/lib/ld-linux-x86-64.so.2 --out $@ --align-16k",
+    tools = [":extract_ld_linux"],
+)
+
+genrule(
+    name = "extract_ld_linux_arm64",
+    srcs = ["@termux_glibc_arm64//file"],
+    outs = ["arm64/libld_linux.so"],
+    cmd = "$(location :extract_ld_linux) --archive $< --member data/data/com.termux/files/usr/glibc/lib/ld-linux-aarch64.so.1 --out $@",
+    tools = [":extract_ld_linux"],
+)
+
+cc_import(
+    name = "libld_linux",
+    shared_library = select({
+        "@platforms//cpu:x86_64": ":extract_ld_linux_x86_64",
+        "@platforms//cpu:aarch64": ":extract_ld_linux_arm64",
+        "//conditions:default": ":extract_ld_linux_x86_64",
+    }),
+)
+
 # android_binary packages the Slint shared library into an APK.
 # The rust_shared_library (//ui/slint:slint_app_android) provides CcInfo,
 # which android_binary picks up automatically to include the .so in the APK.
@@ -124,6 +165,7 @@ android_binary(
     resource_files = glob(["res/**"]),
     deps = [
         ":libcxx_shared",
+        ":libld_linux",
         ":moosync_kt",
         "//ui/slint:slint_app_android",
     ],

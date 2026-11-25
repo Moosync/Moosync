@@ -526,11 +526,12 @@ impl AccountsHandler {
             }
         }
         let mw_weak = main_window.as_weak();
+        let state_manager = state_manager.clone();
         tokio::spawn(
             async move {
                 while let Some(url) = rx.recv().await {
                     if let Some(mw) = mw_weak.upgrade() {
-                        Self::handle_deep_link(&url, state_manager, &mw);
+                        Self::handle_deep_link(&url, state_manager.clone(), &mw);
                     }
                 }
             }

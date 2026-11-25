@@ -48,6 +48,7 @@ message ExtensionCommand {
     PlayerSetVolumeRequest player_set_volume = 38;
     PlayerLoadTrackRequest player_load_track = 39;
     WsEventRequest ws_event = 40;
+    ProcessEventRequest process_event = 41;
   }
 }
 
@@ -90,6 +91,7 @@ message ExtensionCommandResponse {
     PlayerSetVolumeResponse player_set_volume = 37;
     PlayerLoadTrackResponse player_load_track = 38;
     WsEventResponse ws_event = 39;
+    ProcessEventResponse process_event = 40;
   }
 }
 
@@ -946,6 +948,20 @@ message WsEventRequest {
   }
 }
 message WsEventResponse {}
+
+message ProcessOutput {
+  bytes stdout = 1;
+  bytes stderr = 2;
+}
+
+message ProcessEventRequest {
+  uint64 process_id = 1;
+  oneof event {
+    ProcessOutput output = 2;
+    int32 exited = 3;
+  }
+}
+message ProcessEventResponse {}
 
 message WsCloseRequest {
   uint64 connection_id = 1;

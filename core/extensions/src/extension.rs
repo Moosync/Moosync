@@ -233,9 +233,11 @@ impl Extension {
                     .collect()
             })
             .unwrap_or_default();
-        let process_manager = Arc::new(ExtensionProcessManager::new(
+        let context = Arc::new(AsyncContext::new());
+        let process_manager = Arc::new(ExtensionProcessManager::new_with_context(
             allowed_paths.clone(),
             allowed_binaries,
+            Arc::downgrade(&context),
         ));
         let socket_manager = Arc::new(SocketManager::new(allowed_paths));
 
@@ -243,7 +245,6 @@ impl Extension {
             .permissions
             .as_ref()
             .map(|p| p.hosts.iter().map(|h| h.host.clone()).collect::<Vec<_>>());
-        let context = Arc::new(AsyncContext::new());
         let package_name = manifest.name.clone();
         let http_manager = Arc::new(HttpManager::new(allowed_hosts.clone()));
         let ws_manager = Arc::new(WsManager::new(

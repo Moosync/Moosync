@@ -27,6 +27,7 @@
         android:allowBackup="false"
         android:usesCleartextTraffic="false"
         android:largeHeap="true"
+        android:extractNativeLibs="true"
         android:hasCode="true">
 
         <!-- NativeActivity hosts the Slint/Rust UI via the slint_app shared library -->

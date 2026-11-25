@@ -33,29 +33,12 @@ use tokio_tungstenite::{
 use tracing::Instrument;
 use url::Url;
 
-use crate::{errors::ExtensionError, extension::AsyncContext, http::is_host_allowed};
-
-#[async_trait::async_trait]
-pub trait WsEventSink: Send + Sync {
-    async fn dispatch(&self, command: ExtensionCommand) -> Result<(), ExtensionError>;
-}
-
-struct ContextWsEventSink {
-    context: Weak<AsyncContext>,
-}
-
-#[async_trait::async_trait]
-impl WsEventSink for ContextWsEventSink {
-    #[tracing::instrument(level = "debug", skip_all)]
-    async fn dispatch(&self, command: ExtensionCommand) -> Result<(), ExtensionError> {
-        let Some(context) = self.context.upgrade() else {
-            return Err(ExtensionError::NoContext);
-        };
-        let extension_context = context.wait().await?;
-        let _ = extension_context.execute_command(command).await?;
-        Ok(())
-    }
-}
+use crate::{
+    errors::ExtensionError,
+    event_sink::{ExtensionEventSink, context_event_sink},
+    extension::AsyncContext,
+    http::is_host_allowed,
+};
 
 enum WsIncomingEvent {
     Text(String),
@@ -78,7 +61,7 @@ pub struct WsManager {
     next_id: AtomicUsize,
     allowed_hosts: Option<Vec<String>>,
     package_name: String,
-    sink: Arc<dyn WsEventSink>,
+    sink: Arc<dyn ExtensionEventSink>,
 }
 
 impl WsManager {
@@ -88,18 +71,14 @@ impl WsManager {
         package_name: impl Into<String>,
         context: Weak<AsyncContext>,
     ) -> Self {
-        Self::with_sink(
-            allowed_hosts,
-            package_name,
-            Arc::new(ContextWsEventSink { context }),
-        )
+        Self::with_sink(allowed_hosts, package_name, context_event_sink(context))
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn with_sink(
         allowed_hosts: Option<Vec<String>>,
         package_name: impl Into<String>,
-        sink: Arc<dyn WsEventSink>,
+        sink: Arc<dyn ExtensionEventSink>,
     ) -> Self {
         Self {
             connections: Arc::new(Mutex::new(HashMap::new())),
@@ -374,7 +353,7 @@ async fn run_dispatcher_loop(
     connection_id: usize,
     package_name: String,
     connections: Arc<Mutex<HashMap<usize, Arc<AsyncMutex<ConnectionState>>>>>,
-    sink: Arc<dyn WsEventSink>,
+    sink: Arc<dyn ExtensionEventSink>,
     mut event_rx: mpsc::UnboundedReceiver<WsIncomingEvent>,
 ) {
     while let Some(incoming) = event_rx.recv().await {

@@ -14,17 +14,14 @@ use tokio_tungstenite::{
     },
 };
 
-use crate::{
-    errors::ExtensionError,
-    websocket::{WsEventSink, WsManager},
-};
+use crate::{errors::ExtensionError, event_sink::ExtensionEventSink, websocket::WsManager};
 
 struct ChannelSink {
     tx: mpsc::UnboundedSender<ExtensionCommand>,
 }
 
 #[async_trait::async_trait]
-impl WsEventSink for ChannelSink {
+impl ExtensionEventSink for ChannelSink {
     #[tracing::instrument(level = "debug", skip_all)]
     async fn dispatch(&self, command: ExtensionCommand) -> Result<(), ExtensionError> {
         let _ = self.tx.send(command);

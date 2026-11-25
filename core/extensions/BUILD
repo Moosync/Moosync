@@ -66,6 +66,8 @@ rust_library(
         "src/context/mod.rs",
         "src/context/mod_test.rs",
         "src/errors.rs",
+        "src/event_sink.rs",
+        "src/event_sink_test.rs",
         "src/ext_runner.rs",
         "src/ext_runner_test.rs",
         "src/extension.rs",

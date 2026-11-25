@@ -16,6 +16,13 @@ crates.from_cargo(
     ],
 )
 crates.annotation(
+    crate = "wasmtime-environ",
+    patch_args = ["-p1"],
+    patches = [
+        "//patches:wasmtime_environ_16k_android.patch",
+    ],
+)
+crates.annotation(
     crate = "protoc-gen-prost",
     gen_binaries = ["protoc-gen-prost"],
 )

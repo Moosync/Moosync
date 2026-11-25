@@ -253,3 +253,79 @@ fn test_process_manager_outside_allowed_rejected() {
     let err_str = spawn_res.err().unwrap().to_string();
     assert!(err_str.contains("outside allowed extension paths"));
 }
+
+#[tokio::test]
+#[cfg(unix)]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_process_manager_streams_output_events_and_resolves_args() {
+    use std::sync::Arc;
+
+    use extensions_proto::moosync::types::{
+        ExtensionCommand, extension_command, process_event_request,
+    };
+    use tokio::sync::mpsc;
+
+    use crate::{errors::ExtensionError, event_sink::ExtensionEventSink};
+
+    struct ChannelSink {
+        tx: mpsc::UnboundedSender<ExtensionCommand>,
+    }
+
+    #[async_trait::async_trait]
+    impl ExtensionEventSink for ChannelSink {
+        #[tracing::instrument(level = "debug", skip_all)]
+        async fn dispatch(&self, command: ExtensionCommand) -> Result<(), ExtensionError> {
+            let _ = self.tx.send(command);
+            Ok(())
+        }
+    }
+
+    let tmp = tempdir::TempDir::new("test_proc_events").unwrap();
+    let data_file = tmp.path().join("data.txt");
+    fs::write(&data_file, b"payload").unwrap();
+    let script = "#!/bin/sh\necho \"ARG1:$1\"\necho \"ARG2:$2\"\necho \"ERR\" >&2\n";
+    let (bin_path, perm) = create_test_binary(tmp.path(), "emit_bin", script);
+
+    let mut allowed_paths = HashMap::new();
+    allowed_paths.insert(
+        tmp.path().to_string_lossy().to_string(),
+        PathBuf::from("/guest"),
+    );
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    let mgr = ExtensionProcessManager::with_sink(
+        Some(allowed_paths),
+        vec![perm],
+        Arc::new(ChannelSink { tx }),
+    );
+
+    let spawn_res = mgr
+        .spawn_process(SpawnProcessRequest {
+            path: bin_path.file_name().unwrap().to_str().unwrap().to_string(),
+            args: vec!["/guest/data.txt".to_string(), "--flag".to_string()],
+            env: Default::default(),
+        })
+        .unwrap();
+
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+    while let Ok(Some(cmd)) = tokio::time::timeout(Duration::from_millis(500), rx.recv()).await {
+        if let Some(extension_command::Event::ProcessEvent(ev)) = cmd.event
+            && let Some(process_event_request::Event::Output(out)) = ev.event
+        {
+            assert_eq!(ev.process_id, spawn_res.process_id);
+            stdout.extend_from_slice(&out.stdout);
+            stderr.extend_from_slice(&out.stderr);
+            if stdout.contains(&b'\n') && stderr.contains(&b'\n') {
+                break;
+            }
+        }
+    }
+
+    let stdout_str = String::from_utf8_lossy(&stdout);
+    assert!(stdout_str.contains(&format!(
+        "ARG1:{}",
+        dunce::canonicalize(&data_file).unwrap().display()
+    )));
+    assert!(stdout_str.contains("ARG2:--flag"));
+    assert_eq!(stderr, b"ERR\n");
+}

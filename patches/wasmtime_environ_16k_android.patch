@@ -1,0 +1,10 @@
+--- a/src/compile/mod.rs
++++ b/src/compile/mod.rs
+@@ -390,6 +390,7 @@
+             // 64 KB is the maximal page size (i.e. memory translation granule size)
+             // supported by the architecture and is used on some platforms.
+             (_, Architecture::Aarch64(..)) => 0x10000,
++            _ if self.triple().environment == Environment::Android => 0x4000,
+             _ => 0x1000,
+         }
+     }

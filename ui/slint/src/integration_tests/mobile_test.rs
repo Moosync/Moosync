@@ -1669,6 +1669,60 @@ async fn do_mobile_pill_button_shape(main_window: MainWindow, _state_manager: St
     );
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_mobile_accounts_popup_google_layout(
+    main_window: MainWindow,
+    _state_manager: StateManager,
+) {
+    let account = slint_app::AccountItem {
+        id: "acc_1".into(),
+        name: "Spotify".into(),
+        username: "testuser".into(),
+        logged_in: true,
+        package_name: "ext.spotify".into(),
+        ..Default::default()
+    };
+    main_window
+        .global::<AccountsProps>()
+        .set_accounts(ModelRc::new(VecModel::from(vec![account])));
+    main_window
+        .global::<AccountsProps>()
+        .set_show_accounts(true);
+
+    let opened = wait_until_timeout(Duration::from_secs(2), || {
+        ElementHandle::find_by_accessible_label(&main_window, "Hide more accounts").count() > 0
+    })
+    .await;
+    assert!(opened);
+
+    let close_btns: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(&main_window, "Close").collect();
+    let card_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(&main_window, "Accounts Card").collect();
+    assert_eq!(close_btns.len(), 1);
+    assert_eq!(card_handles.len(), 1);
+    let card_center_x = card_handles[0].absolute_position().x + card_handles[0].size().width / 2.0;
+    assert!(
+        close_btns[0].absolute_position().x > card_center_x,
+        "Close button should be on the right side of the Google-style accounts card"
+    );
+
+    let toggle_btn = ElementHandle::find_by_accessible_label(&main_window, "Hide more accounts")
+        .next()
+        .unwrap();
+    click_element(&toggle_btn).await;
+
+    let collapsed = wait_until_timeout(Duration::from_secs(2), || {
+        ElementHandle::find_by_accessible_label(&main_window, "Show more accounts").count() > 0
+    })
+    .await;
+    assert!(collapsed);
+
+    main_window
+        .global::<AccountsProps>()
+        .set_show_accounts(false);
+}
+
 integration_test!(
     test_mobile_topbar_search_toggle => do_mobile_topbar_search_toggle,
     test_mobile_topbar_accounts_toggle => do_mobile_topbar_accounts_toggle,
@@ -1696,4 +1750,5 @@ integration_test!(
     test_mobile_now_playing_extension_icon_beside_title => do_mobile_now_playing_extension_icon_beside_title,
     test_mobile_queue_remove_icon_size => do_mobile_queue_remove_icon_size,
     test_mobile_pill_button_shape => do_mobile_pill_button_shape,
+    test_mobile_accounts_popup_google_layout => do_mobile_accounts_popup_google_layout,
 );

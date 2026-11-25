@@ -1,17 +1,95 @@
 import { Theme } from "../constants_mobile.slint";
 import { AccountItem } from "../types/extension_view.slint";
 import { AppCallbacks } from "../callbacks.slint";
-import { AccountItemButton } from "accounts_popup.slint";
 import { AccountsProps } from "accounts_props.slint";
 import { IconButton } from "icon_button_mobile.slint";
 import { PillButton } from "pill_button_mobile.slint";
 import { SettingsState } from "../settings/settings_props.slint";
 import { ScrollView } from "std-widgets.slint";
+import { Utils, DefaultIconType } from "../utils.slint";
+
+component GoogleAccountRow inherits Rectangle {
+    in property <AccountItem> item;
+    callback clicked();
+
+    height: Theme.size5Xl;
+    background: touch.pressed ? Theme.secondary.darker(0.1) : (touch.has-hover ? Theme.secondary.with-alpha(0.6) : transparent);
+
+    touch := TouchArea {
+        accessible-role: button;
+        accessible-label: !root.item.logged_in ? @tr("Login") : @tr("Logout");
+        clicked => {
+            root.clicked();
+        }
+    }
+
+    HorizontalLayout {
+        padding-left: Theme.paddingMd;
+        padding-right: Theme.paddingMd;
+        spacing: Theme.spacingMd;
+        alignment: start;
+
+        VerticalLayout {
+            alignment: center;
+
+            Rectangle {
+                width: Theme.size3Xl;
+                height: Theme.size3Xl;
+                border-radius: self.width / 2;
+                background: root.item.bg_color.alpha > 0 ? root.item.bg_color : Theme.accent;
+
+                Image {
+                    width: Theme.iconSizeMd;
+                    height: Theme.iconSizeMd;
+                    source: Utils.load_image_or_default(root.item.icon, DefaultIconType.Extension);
+                    image-fit: contain;
+                }
+            }
+        }
+
+        VerticalLayout {
+            horizontal-stretch: 1;
+            min-width: 0px;
+            alignment: center;
+            spacing: Theme.spacingTiny;
+
+            Text {
+                accessible-role: none;
+                text: root.item.name;
+                font-size: Theme.body;
+                font-weight: 600;
+                color: Theme.textPrimary;
+                overflow: elide;
+            }
+
+            Text {
+                accessible-role: none;
+                text: root.item.logged_in ? (root.item.username != "" ? root.item.username : @tr("Signed in")) : @tr("Tap to sign in");
+                font-size: Theme.caption;
+                color: Theme.textSecondary;
+                overflow: elide;
+            }
+        }
+
+        VerticalLayout {
+            alignment: center;
+
+            Text {
+                accessible-role: none;
+                text: root.item.logged_in ? @tr("Sign out") : @tr("Sign in");
+                font-size: Theme.caption;
+                font-weight: 600;
+                color: root.item.logged_in ? Theme.danger : Theme.accent;
+            }
+        }
+    }
+}
 
 export component AccountsPopupMobile inherits Rectangle {
     callback close();
 
     property <bool> is_closing: false;
+    property <bool> accounts_expanded: true;
 
     close_timer := Timer {
         interval: Theme.durationMedium;
@@ -61,26 +139,39 @@ export component AccountsPopupMobile inherits Rectangle {
         x: Theme.paddingLg;
         y: (Theme.mobileTopBarPaddingTop + Theme.spacingMd) + (1.0 - root.ease_progress) * 20px;
         width: parent.width - (Theme.paddingLg * 2);
-        max-height: parent.height - (Theme.mobileTopBarPaddingTop + Theme.spacingMd) - Theme.paddingLg;
+        height: Math.min(parent.height - (Theme.mobileTopBarPaddingTop + Theme.spacingMd) - Theme.paddingLg, card_layout.preferred-height);
         background: Theme.secondary;
         border-radius: Theme.mobileBottomSheetRadius;
         opacity: root.ease_progress;
         clip: true;
 
-        VerticalLayout {
+        card_layout := VerticalLayout {
             padding: Theme.paddingLg;
             spacing: Theme.spacingMd;
             alignment: start;
 
-            // Header with close button (X) and Title
+            // Header with centered title and close (X) on the right
             HorizontalLayout {
                 spacing: Theme.spacingSm;
                 alignment: space-between;
 
+                Rectangle {
+                    width: Theme.searchBarHeight;
+                    height: Theme.searchBarHeight;
+                }
+
+                Text {
+                    text: @tr("Accounts");
+                    font-size: Theme.subtitle;
+                    font-weight: 600;
+                    color: Theme.textPrimary;
+                    vertical-alignment: center;
+                }
+
                 IconButton {
                     accessible-label: @tr("Close");
                     icon_source: @image-url("../icons/cross.svg");
-                    icon_size: Theme.sizeSm;
+                    icon_size: Theme.iconSizeSm;
                     width: Theme.searchBarHeight;
                     height: Theme.searchBarHeight;
                     clicked => {
@@ -89,106 +180,181 @@ export component AccountsPopupMobile inherits Rectangle {
                         }
                     }
                 }
+            }
 
-                Text {
-                    text: @tr("Accounts");
-                    font-size: Theme.modelTitle;
-                    font-weight: 700;
-                    color: Theme.textPrimary;
-                    vertical-alignment: center;
+            // Hero profile avatar, greeting, and Settings pill
+            VerticalLayout {
+                alignment: center;
+                spacing: Theme.spacingSm;
+
+                HorizontalLayout {
+                    alignment: center;
+
+                    Rectangle {
+                        width: Theme.size6Xl;
+                        height: Theme.size6Xl;
+                        border-radius: self.width / 2;
+                        background: Theme.primary;
+                        border-width: Theme.borderWidthLg;
+                        border-color: Theme.accent;
+
+                        Image {
+                            width: Theme.iconSizeXl;
+                            height: Theme.iconSizeXl;
+                            source: @image-url("../icons/profile.svg");
+                            colorize: Theme.textPrimary;
+                        }
+                    }
                 }
 
-                Rectangle {
-                    width: Theme.searchBarHeight;
-                    height: Theme.searchBarHeight;
+                Text {
+                    text: AccountsProps.accounts.length > 0 ? @tr("Manage your accounts") : @tr("Welcome to Moosync");
+                    font-size: Theme.modelTitle;
+                    font-weight: 600;
+                    color: Theme.textPrimary;
+                    horizontal-alignment: center;
+                }
+
+                HorizontalLayout {
+                    alignment: center;
+
+                    PillButton {
+                        text: @tr("Settings");
+                        has_custom_layout: true;
+                        background: transparent;
+                        border-width: Theme.borderWidth;
+                        border-color: Theme.divider;
+                        clicked => {
+                            if (!root.is_closing) {
+                                root.is_closing = true;
+                                SettingsState.show_settings = true;
+                                close_timer.running = true;
+                            }
+                        }
+
+                        HorizontalLayout {
+                            padding-left: Theme.paddingLg;
+                            padding-right: Theme.paddingLg;
+                            spacing: Theme.spacingSm;
+                            alignment: center;
+
+                            VerticalLayout {
+                                alignment: center;
+
+                                Image {
+                                    width: Theme.iconSizeSm;
+                                    height: Theme.iconSizeSm;
+                                    source: @image-url("../icons/settings.svg");
+                                    colorize: Theme.textPrimary;
+                                }
+                            }
+
+                            Text {
+                                accessible-role: none;
+                                text: @tr("Settings");
+                                font-size: Theme.caption;
+                                font-weight: 600;
+                                color: Theme.textPrimary;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
                 }
             }
 
-            // Accounts list container
+            // Grouped accounts card
             Rectangle {
-                vertical-stretch: 1;
                 background: Theme.primary;
                 border-radius: Theme.borderRadiusXl;
                 clip: true;
 
-                ScrollView {
-                    VerticalLayout {
-                        padding: Theme.paddingMd;
-                        spacing: Theme.spacingMd;
-                        alignment: start;
+                VerticalLayout {
+                    alignment: start;
 
-                        if (AccountsProps.accounts.length == 0): Rectangle {
-                            height: 60px;
+                    // Expand/collapse header row
+                    Rectangle {
+                        height: Theme.size4Xl;
+                        background: expand_touch.pressed ? Theme.secondary.darker(0.1) : transparent;
 
-                            Text {
-                                text: @tr("No accounts configured");
-                                color: Theme.textSecondary;
-                                font-size: Theme.body;
-                                horizontal-alignment: center;
-                                vertical-alignment: center;
+                        expand_touch := TouchArea {
+                            accessible-role: button;
+                            accessible-label: root.accounts_expanded ? @tr("Hide more accounts") : @tr("Show more accounts");
+                            clicked => {
+                                root.accounts_expanded = !root.accounts_expanded;
                             }
                         }
 
-                        for item in AccountsProps.accounts: AccountItemButton {
-                            item: item;
-                            clicked => {
-                                if (!root.is_closing) {
-                                    if (item.logged_in) {
-                                        AppCallbacks.account_logout(item.package_name, item.id);
-                                    } else {
-                                        AppCallbacks.account_login(item.package_name, item.id);
-                                    }
-                                    root.close();
+                        HorizontalLayout {
+                            padding-left: Theme.paddingMd;
+                            padding-right: Theme.paddingMd;
+                            alignment: space-between;
+
+                            Text {
+                                accessible-role: none;
+                                text: root.accounts_expanded ? @tr("Hide more accounts") : @tr("Show more accounts");
+                                font-size: Theme.caption;
+                                font-weight: 600;
+                                color: Theme.textPrimary;
+                                vertical-alignment: center;
+                            }
+
+                            VerticalLayout {
+                                alignment: center;
+
+                                Image {
+                                    width: Theme.iconSizeSm;
+                                    height: Theme.iconSizeSm;
+                                    source: @image-url("../icons/chevron.svg");
+                                    colorize: Theme.textSecondary;
+                                    transform-rotation: root.accounts_expanded ? Theme.angle180 : Theme.angle0;
                                 }
                             }
                         }
                     }
-                }
-            }
 
-            // Google-style Settings pill at bottom
-            HorizontalLayout {
-                alignment: center;
-                padding-bottom: Theme.paddingXs;
+                    if (root.accounts_expanded): Rectangle {
+                        height: Theme.borderWidth;
+                        background: Theme.divider;
+                    }
 
-                PillButton {
-                    text: @tr("Settings");
-                    has_custom_layout: true;
-                    background: Theme.primary;
-                    border-width: Theme.borderWidth;
-                    border-color: Theme.divider;
-                    clicked => {
-                        if (!root.is_closing) {
-                            root.is_closing = true;
-                            SettingsState.show_settings = true;
-                            close_timer.running = true;
+                    if (root.accounts_expanded && AccountsProps.accounts.length == 0): Rectangle {
+                        height: Theme.size5Xl;
+
+                        Text {
+                            text: @tr("No accounts configured");
+                            color: Theme.textSecondary;
+                            font-size: Theme.body;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
                         }
                     }
 
-                    HorizontalLayout {
-                        padding-left: Theme.paddingLg;
-                        padding-right: Theme.paddingLg;
-                        spacing: Theme.spacingSm;
-                        alignment: center;
+                    if (root.accounts_expanded): ScrollView {
+                        max-height: 240px;
 
                         VerticalLayout {
-                            alignment: center;
+                            alignment: start;
 
-                            Image {
-                                width: Theme.playbackControlsIconSize;
-                                height: Theme.playbackControlsIconSize;
-                                source: @image-url("../icons/settings.svg");
-                                colorize: Theme.textPrimary;
+                            for item[idx] in AccountsProps.accounts: VerticalLayout {
+                                if idx > 0: Rectangle {
+                                    height: Theme.borderWidth;
+                                    background: Theme.divider;
+                                }
+
+                                GoogleAccountRow {
+                                    item: item;
+                                    clicked => {
+                                        if (!root.is_closing) {
+                                            if (item.logged_in) {
+                                                AppCallbacks.account_logout(item.package_name, item.id);
+                                            } else {
+                                                AppCallbacks.account_login(item.package_name, item.id);
+                                            }
+                                            root.close();
+                                        }
+                                    }
+                                }
                             }
-                        }
-
-                        Text {
-                            accessible-role: none;
-                            text: @tr("Settings");
-                            font-size: Theme.body;
-                            font-weight: 600;
-                            color: Theme.textPrimary;
-                            vertical-alignment: center;
                         }
                     }
                 }

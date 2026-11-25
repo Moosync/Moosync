@@ -14,7 +14,6 @@ export component GroupActionButtonMobile inherits PillButton {
     border-color: is_destructive ? (root.has_hover ? Theme.danger : Theme.textSecondary) : is_neutral ? Theme.secondary : Theme.accent;
     background: is_destructive ? (root.pressed ? Theme.danger : transparent) : is_neutral ? Theme.secondary : Theme.accent;
     opacity: root.pressed ? 0.7 : (root.has_hover ? 0.85 : 1.0);
-    height: Theme.size4Xl;
 
     animate border-color { duration: Theme.durationFast; }
     animate background { duration: Theme.durationFast; }

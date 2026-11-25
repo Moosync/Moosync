@@ -1642,6 +1642,33 @@ async fn do_mobile_queue_remove_icon_size(main_window: MainWindow, state_manager
     );
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_mobile_pill_button_shape(main_window: MainWindow, _state_manager: StateManager) {
+    main_window
+        .global::<SettingsState>()
+        .set_active_page(SettingsPages::Extensions);
+    main_window
+        .global::<SettingsState>()
+        .set_show_settings(true);
+
+    let opened = wait_until_timeout(Duration::from_secs(2), || {
+        ElementHandle::find_by_accessible_label(&main_window, "Add Extension").count() > 0
+    })
+    .await;
+    assert!(opened);
+
+    let add_btn: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(&main_window, "Add Extension").collect();
+    assert_eq!(add_btn.len(), 1);
+    let size = add_btn[0].size();
+    assert!(
+        size.height <= 36.0 && size.width > size.height,
+        "Mobile PillButton should be compact and pill-shaped (width={}, height={})",
+        size.width,
+        size.height
+    );
+}
+
 integration_test!(
     test_mobile_topbar_search_toggle => do_mobile_topbar_search_toggle,
     test_mobile_topbar_accounts_toggle => do_mobile_topbar_accounts_toggle,
@@ -1668,4 +1695,5 @@ integration_test!(
     test_mobile_settings_long_text_wraps_without_horizontal_overflow => do_mobile_settings_long_text_wraps_without_horizontal_overflow,
     test_mobile_now_playing_extension_icon_beside_title => do_mobile_now_playing_extension_icon_beside_title,
     test_mobile_queue_remove_icon_size => do_mobile_queue_remove_icon_size,
+    test_mobile_pill_button_shape => do_mobile_pill_button_shape,
 );

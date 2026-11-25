@@ -4,7 +4,9 @@ import { Theme } from "../constants_mobile.slint";
 export { PillButtonMobile as PillButton }
 export component PillButtonMobile inherits ButtonMobile {
     height: Theme.mobilePillButtonHeight;
+    vertical-stretch: 0;
+    horizontal-stretch: 0;
     border-radius: self.height / 2;
-    font_size: Theme.body;
-    padding_h: Theme.paddingLg;
+    font_size: Theme.caption;
+    padding_h: Theme.paddingMd;
 }

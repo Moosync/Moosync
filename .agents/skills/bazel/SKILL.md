@@ -44,6 +44,8 @@ bazel build @pkg//:all
 - All dependencies are managed through `MODULE.bazel` and included sub-files under `modules/`.
 - Rust crates: declared in `modules/crates.MODULE.bazel` via the `crates.io` integration.
 - Toolchains: registered in `modules/rust_toolchains.MODULE.bazel`.
+- Never commit `local_path_override` or `local_repository` in `MODULE.bazel`; run `bazel run //tools:check_git_override` before committing.
+- `bazel-bin` is a symlink: use `find -L bazel-bin ...` or `bazel cquery --output=files <target>` when collecting build outputs in scripts/CI.
 
 ## Patching External Rules
 

@@ -50,6 +50,7 @@ Always activate and follow the **problem-solving** skill (`.agents/skills/proble
 2. **All builds must be hermetic** — no environment variables or system libraries unless explicitly declared in a `BUILD.bazel` file.
 3. If a Bazel target fails, the issue is with your code or missing dependencies — not with Bazel itself.
 4. **NEVER run `bazel clean`** unless explicitly instructed by user. It invalidates cached outputs and masks real build issues.
+5. **No `local_path_override` in `MODULE.bazel`**: Never commit `local_path_override` or `local_repository` for `moosync` or `extensions_sdk`; always use `git_override` pointing to `https://github.com/Moosync/...` and verify with `bazel run //tools:check_git_override`.
 
 ### Rust Operations
 

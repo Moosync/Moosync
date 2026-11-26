@@ -37,22 +37,30 @@ use extensions_proto::moosync::types::{
     VolumeChangedResponse, extension_command, extension_command_response,
     player_event::Event as PlayerEvent,
 };
+use fs_extra::dir::CopyOptions;
 use preferences_proto::moosync::types::PreferenceItem;
 use prost::Message;
+use semver::Version;
+use tempdir::TempDir;
 use tokio::sync::{mpsc::UnboundedSender, watch};
 use types::{
     player::{AudioPlayerContext, PlayerError, ValidSrc},
     prelude::{ScopeListExt, core_to_proto_duration},
 };
+use zip_extensions::zip_extract::zip_extract;
 
 use crate::{
-    ReplyHandler,
+    EXTENSION_LOCK_FILE, MANIFEST_FILE, ReplyHandler,
     cache::ExtensionMemoryCache,
     context::{ExtensionContext, ExtismContext},
     errors::ExtensionError,
     http::HttpManager,
     process::ExtensionProcessManager,
     sanitize::Sanitize,
+    signing::{
+        InspectedPackage, MANIFEST_SIGNATURE_FILE, SignatureStatus, read_signing_key_fingerprint,
+        validate_package_name, verify_package_contents,
+    },
     socket::SocketManager,
     websocket::WsManager,
 };
@@ -179,15 +187,163 @@ pub struct Extension {
     pub(crate) player_data: ExtensionPlayerData,
 }
 
+/// Extracted and verified extension package ready to be moved into
+/// `extensions_dir`.
+pub struct StagedExtension {
+    pub package_manifest: ExtensionManifest,
+    pub ext_extract_path: PathBuf,
+    pub tmp_dir: PathBuf,
+    pub should_remove_old: bool,
+}
+
 impl Extension {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub(crate) fn read_manifest(
-        manifest_path: &std::path::Path,
-    ) -> Result<ExtensionManifest, ExtensionError> {
-        let contents = std::fs::read(manifest_path)?;
-        let mut manifest = ExtensionManifest::decode(&contents[..])?;
+    fn check_upgrade_compatibility(
+        ext_extract_path: &Path,
+        package_manifest: &ExtensionManifest,
+        new_key_fingerprint: Option<&str>,
+        all_keys: &[Vec<u8>],
+    ) -> Result<bool, ExtensionError> {
+        let manifest_path = ext_extract_path.join(MANIFEST_FILE);
+        if !manifest_path.exists() {
+            return Ok(false);
+        }
 
-        let parent = manifest_path.parent().unwrap();
+        let existing_manifest = ExtensionManifest::decode(&fs::read(&manifest_path)?[..])?;
+        let old_version = Version::parse(&existing_manifest.version)?;
+        let new_version = Version::parse(&package_manifest.version)?;
+        if new_version <= old_version {
+            return Err(ExtensionError::DuplicateExtension(
+                package_manifest.package_name.clone(),
+            ));
+        }
+
+        if ext_extract_path.join(MANIFEST_SIGNATURE_FILE).exists() {
+            let old_key_fingerprint = read_signing_key_fingerprint(ext_extract_path, all_keys)?;
+            if old_key_fingerprint.is_none()
+                || old_key_fingerprint.as_deref() != new_key_fingerprint
+            {
+                return Err(ExtensionError::UpdateSigningKeyMismatch(
+                    package_manifest.package_name.clone(),
+                ));
+            }
+        }
+        Ok(true)
+    }
+
+    /// Extracts, validates, and verifies an `.msxt` archive in `tmp_dir`.
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn stage_package(
+        ext_path: &Path,
+        tmp_dir: PathBuf,
+        extensions_dir: &Path,
+        is_remote: bool,
+        keys: &[Vec<u8>],
+        all_keys: &[Vec<u8>],
+    ) -> Result<StagedExtension, ExtensionError> {
+        zip_extract(&ext_path.to_path_buf(), &tmp_dir)
+            .map_err(|e| ExtensionError::Zip(e.to_string()))?;
+
+        let package_manifest =
+            ExtensionManifest::decode(&fs::read(tmp_dir.join(MANIFEST_FILE))?[..])?;
+
+        if !package_manifest.moosync_extension {
+            return Err(ExtensionError::NotAnExtension);
+        }
+        validate_package_name(&package_manifest.package_name)?;
+
+        let verification = verify_package_contents(&tmp_dir, &package_manifest, keys)?;
+        if is_remote && verification.status != SignatureStatus::Verified {
+            return Err(ExtensionError::MissingSignature);
+        }
+
+        let ext_extract_path = extensions_dir.join(&package_manifest.package_name);
+        let should_remove_old = Self::check_upgrade_compatibility(
+            &ext_extract_path,
+            &package_manifest,
+            verification.key_fingerprint.as_deref(),
+            all_keys,
+        )?;
+
+        Ok(StagedExtension {
+            package_manifest,
+            ext_extract_path,
+            tmp_dir,
+            should_remove_old,
+        })
+    }
+
+    /// Moves a staged extension into its final directory and writes
+    /// `extension.lock`.
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn finalize_install(
+        staged: StagedExtension,
+        registry_name: String,
+    ) -> Result<PathBuf, ExtensionError> {
+        if staged.should_remove_old {
+            fs::remove_dir_all(&staged.ext_extract_path)?;
+        } else {
+            let _ = fs::remove_dir_all(&staged.ext_extract_path);
+        }
+
+        let options = CopyOptions::default().overwrite(true);
+        let parent_dir = staged.ext_extract_path.parent().unwrap();
+        tracing::debug!("Moving items from {:?} to {:?}", staged.tmp_dir, parent_dir);
+        if !parent_dir.exists() {
+            tracing::debug!("Creating dir {:?}", parent_dir);
+            fs::create_dir_all(parent_dir)?;
+        }
+        fs_extra::move_items(std::slice::from_ref(&staged.tmp_dir), parent_dir, &options)?;
+
+        tracing::debug!(
+            "Renaming {:?} to {:?}",
+            parent_dir.join(staged.tmp_dir.file_name().unwrap()),
+            parent_dir.join(&staged.package_manifest.package_name)
+        );
+        fs::rename(
+            parent_dir.join(staged.tmp_dir.file_name().unwrap()),
+            parent_dir.join(&staged.package_manifest.package_name),
+        )?;
+
+        let lock_data = ExtensionLockData {
+            registry: registry_name,
+        };
+        // instrument: ignore
+        let _ = fs::write(
+            staged.ext_extract_path.join(EXTENSION_LOCK_FILE),
+            lock_data.encode_to_vec(),
+        );
+
+        Ok(staged.ext_extract_path.join(MANIFEST_FILE))
+    }
+
+    /// Inspects a local `.msxt` archive and returns its manifest and signature
+    /// status.
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn inspect_package(
+        ext_path: &Path,
+        tmp_dir: &Path,
+        keys: &[Vec<u8>],
+    ) -> Result<InspectedPackage, ExtensionError> {
+        let inspect_dir = TempDir::new_in(tmp_dir, "moosync_inspect")?;
+        let ext_path_buf = ext_path.to_path_buf();
+        zip_extract(&ext_path_buf, &inspect_dir.path().to_path_buf())
+            .map_err(|e| ExtensionError::Zip(e.to_string()))?;
+        let manifest_bytes = fs::read(inspect_dir.path().join(MANIFEST_FILE))?;
+        let manifest = ExtensionManifest::decode(&manifest_bytes[..])?;
+        if !manifest.moosync_extension {
+            return Err(ExtensionError::NotAnExtension);
+        }
+        validate_package_name(&manifest.package_name)?;
+        let verification = verify_package_contents(inspect_dir.path(), &manifest, keys)?;
+        Ok(InspectedPackage {
+            manifest,
+            signature_status: verification.status,
+        })
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn normalize_manifest_paths(manifest: &mut ExtensionManifest, parent: &Path) {
         let extension_entry_path = parent.join(&manifest.extension_entry);
         manifest.extension_entry = extension_entry_path.to_string_lossy().to_string();
 
@@ -195,25 +351,65 @@ impl Extension {
             let icon_path = parent.join(&manifest.icon);
             manifest.icon = icon_path.to_string_lossy().to_string();
         }
+    }
 
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub(crate) fn read_manifest(manifest_path: &Path) -> Result<ExtensionManifest, ExtensionError> {
+        let contents = fs::read(manifest_path)?;
+        let mut manifest = ExtensionManifest::decode(&contents[..])?;
+        Self::normalize_manifest_paths(&mut manifest, manifest_path.parent().unwrap());
         Ok(manifest)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(
-        manifest_path: &std::path::Path,
+        manifest_path: &Path,
         reply_handler: Arc<dyn ReplyHandler>,
         cache_path: PathBuf,
         has_started: Arc<std::sync::atomic::AtomicBool>,
+    ) -> Result<Self, ExtensionError> {
+        Self::new_verified(
+            manifest_path,
+            reply_handler,
+            cache_path,
+            has_started,
+            &[],
+            true,
+        )
+    }
+
+    /// Loads an extension after verifying file hashes and OpenPGP signature
+    /// against `keys`.
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn new_verified(
+        manifest_path: &Path,
+        reply_handler: Arc<dyn ReplyHandler>,
+        cache_path: PathBuf,
+        has_started: Arc<std::sync::atomic::AtomicBool>,
+        keys: &[Vec<u8>],
+        allow_unsigned: bool,
     ) -> Result<Self, ExtensionError> {
         let extension_dir = manifest_path
             .parent()
             .expect("manifest path cannot be root")
             .to_path_buf();
 
-        let manifest = Self::read_manifest(manifest_path)?;
+        let raw_contents = fs::read(manifest_path)?;
+        let mut manifest = ExtensionManifest::decode(&raw_contents[..])?;
+        if !allow_unsigned {
+            validate_package_name(&manifest.package_name)?;
+        }
+        let verification = verify_package_contents(&extension_dir, &manifest, keys)?;
+        if verification.status == SignatureStatus::Unsigned && !allow_unsigned {
+            return Err(ExtensionError::UnsignedExtension {
+                manifest: Box::new(manifest),
+                manifest_path: manifest_path.to_path_buf(),
+            });
+        }
 
-        let ext_cache_dir = cache_path.join("extensions").join(&manifest.name);
+        Self::normalize_manifest_paths(&mut manifest, &extension_dir);
+
+        let ext_cache_dir = cache_path.join("extensions").join(&manifest.package_name);
         let ext_cache_dir_str = ext_cache_dir.to_string_lossy();
         let allowed_paths = manifest
             .permissions
@@ -245,7 +441,7 @@ impl Extension {
             .permissions
             .as_ref()
             .map(|p| p.hosts.iter().map(|h| h.host.clone()).collect::<Vec<_>>());
-        let package_name = manifest.name.clone();
+        let package_name = manifest.package_name.clone();
         let http_manager = Arc::new(HttpManager::new(allowed_hosts.clone()));
         let ws_manager = Arc::new(WsManager::new(
             allowed_hosts,
@@ -338,7 +534,7 @@ macro_rules! delegate_command {
 
 impl Extension {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn get_package_name(&self) -> &str { &self.manifest.name }
+    pub fn get_package_name(&self) -> &str { &self.manifest.package_name }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn register_ui_preferences(&self, preferences: Vec<PreferenceItem>) {
@@ -630,7 +826,7 @@ impl From<&Extension> for ExtensionDetail {
         let lock_data = val.get_lock_data();
         ExtensionDetail {
             name: val.manifest.display_name.clone(),
-            package_name: val.manifest.name.clone(),
+            package_name: val.manifest.package_name.clone(),
             desc: None,
             author: val.manifest.author.clone(),
             version: val.manifest.version.clone(),

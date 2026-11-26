@@ -34,7 +34,7 @@ async fn notify_extensions_songs_added(state_manager: StateManager, songs: Vec<S
         {
             tracing::error!(
                 "Failed to send song_added event to extension {}: {:?}",
-                ext.manifest.name,
+                ext.manifest.package_name,
                 e
             );
         }

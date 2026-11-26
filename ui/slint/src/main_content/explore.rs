@@ -34,7 +34,10 @@ impl ExplorePageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     async fn fetch_extension_recommendations(ext: &Extension) -> Result<Vec<Song>, UiError> {
         let resp = ext
-            .get_recommendations(RequestedRecommendationsRequest { refresh: false })
+            .get_recommendations(RequestedRecommendationsRequest {
+                refresh: false,
+                related_songs: vec![],
+            })
             .await?;
         Ok(resp.songs)
     }

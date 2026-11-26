@@ -242,7 +242,7 @@ async fn do_search_extension_integration(main_window: MainWindow, state_manager:
         results.row_count() > 0
             && results
                 .iter()
-                .any(|r| r.extension == "rs.sample" && r.songs.row_count() == 2)
+                .any(|r| r.extension == "app.moosync.sample" && r.songs.row_count() == 2)
     })
     .await;
 
@@ -270,7 +270,7 @@ async fn do_search_not_logged_in_message(main_window: MainWindow, state_manager:
             .global::<AccountsProps>()
             .get_accounts()
             .iter()
-            .any(|a| a.package_name == "rs.sample.empty" && !a.logged_in)
+            .any(|a| a.package_name == "app.moosync.sample.empty" && !a.logged_in)
     })
     .await;
     assert!(accounts_loaded);
@@ -286,7 +286,7 @@ async fn do_search_not_logged_in_message(main_window: MainWindow, state_manager:
         let results = main_window
             .global::<SearchPageProps>()
             .get_provider_results();
-        results.iter().any(|r| r.extension == "rs.sample.empty")
+        results.iter().any(|r| r.extension == "app.moosync.sample.empty")
     })
     .await;
     assert!(provider_loaded);
@@ -295,7 +295,7 @@ async fn do_search_not_logged_in_message(main_window: MainWindow, state_manager:
         .global::<SearchPageProps>()
         .get_provider_results()
         .iter()
-        .position(|r| r.extension == "rs.sample.empty")
+        .position(|r| r.extension == "app.moosync.sample.empty")
         .unwrap();
     main_window
         .global::<SearchPageProps>()
@@ -314,7 +314,7 @@ async fn do_search_not_logged_in_message(main_window: MainWindow, state_manager:
 
     main_window
         .global::<AppCallbacks>()
-        .invoke_account_login("rs.sample.empty".into(), "sample_spotify".into());
+        .invoke_account_login("app.moosync.sample.empty".into(), "sample_spotify".into());
 
     let modal_shown =
         wait_until(|| main_window.global::<OAuthState>().get_show_oauth_modal()).await;
@@ -535,7 +535,7 @@ async fn do_search_extension_pills_appear_immediately(
         results.row_count() == 2
             && results.row_data(0).is_some_and(|r| r.extension.is_empty())
             && results.row_data(1).is_some_and(|r| {
-                r.extension == "rs.sample" && r.extension_name == "Sample Extension" && !r.loading
+                r.extension == "app.moosync.sample" && r.extension_name == "Sample Extension" && !r.loading
             })
     })
     .await;
@@ -547,7 +547,7 @@ async fn do_search_extension_pills_appear_immediately(
     .await;
     assert!(display_name_pill_found);
     assert_eq!(
-        ElementHandle::find_by_accessible_label(&main_window, "rs.sample").count(),
+        ElementHandle::find_by_accessible_label(&main_window, "app.moosync.sample").count(),
         0
     );
 
@@ -562,7 +562,7 @@ async fn do_search_extension_pills_appear_immediately(
         results.row_count() == 2
             && results
                 .iter()
-                .any(|r| r.extension == "rs.sample" && !r.loading && r.songs.row_count() == 2)
+                .any(|r| r.extension == "app.moosync.sample" && !r.loading && r.songs.row_count() == 2)
     })
     .await;
     assert!(searched);
@@ -791,7 +791,7 @@ async fn do_search_extension_album_with_scope_enables_provider(
             .get_provider_results();
         results.row_count() == 2
             && results.iter().any(|r| {
-                r.extension == "rs.sample" && r.albums.iter().any(|a| a.title == "Search Album 1")
+                r.extension == "app.moosync.sample" && r.albums.iter().any(|a| a.title == "Search Album 1")
             })
     })
     .await;
@@ -831,7 +831,7 @@ async fn do_search_extension_album_with_scope_enables_provider(
         let providers = main_window
             .global::<AlbumContentPageProps>()
             .get_extension_providers();
-        providers.iter().any(|p| p.id == "rs.sample" && p.enabled)
+        providers.iter().any(|p| p.id == "app.moosync.sample" && p.enabled)
     })
     .await;
     assert!(provider_enabled);
@@ -851,7 +851,7 @@ async fn do_search_extension_album_without_scope_does_not_enable_provider(
         "No Scope Artist",
     );
     if let Some(ref mut alb) = song.album {
-        alb.extension = Some("rs.sample.empty".into());
+        alb.extension = Some("app.moosync.sample.empty".into());
     }
     database.insert_songs(vec![song]).await.unwrap();
 

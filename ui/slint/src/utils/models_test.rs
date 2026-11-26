@@ -422,13 +422,15 @@ fn test_to_fetched_extension_item() {
         display_name: "Fetched Ext".to_string(),
         extension_entry: "".to_string(),
         author: None,
-        name: "com.fetched.ext".to_string(),
+        package_name: "com.fetched.ext".to_string(),
         version: "2.0.0".to_string(),
         icon: "".to_string(),
         permissions: None,
         description: Some("Fetched description".to_string()),
         url: None,
         registry: None,
+        file_hashes: Default::default(),
+        sha256: None,
         ..Default::default()
     };
 
@@ -535,13 +537,15 @@ fn test_from_fetched_extension_manifest_default_icon() {
         display_name: "Remote Extension".to_string(),
         extension_entry: "".to_string(),
         author: None,
-        name: "remote.ext".to_string(),
+        package_name: "remote.ext".to_string(),
         version: "2.0.0".to_string(),
         icon: "".to_string(),
         permissions: None,
         description: Some("Remote description".to_string()),
         url: Some("https://example.com/ext.msox".to_string()),
         registry: Some("Community".to_string()),
+        file_hashes: Default::default(),
+        sha256: None,
         ..Default::default()
     };
 
@@ -631,7 +635,7 @@ fn test_extension_item_from_manifest_permissions_mapping() {
     hashes.insert("md5".to_string(), "ghi012".to_string());
 
     let manifest = ExtensionManifest {
-        name: "test.pkg".to_string(),
+        package_name: "test.pkg".to_string(),
         display_name: "Test Display".to_string(),
         version: "1.2.3".to_string(),
         description: Some("Test description".to_string()),
@@ -766,7 +770,7 @@ fn test_extension_item_resolves_cache_dir_and_env_vars() {
     hashes.insert("sha256".to_string(), "deadbeef".to_string());
 
     let manifest = ExtensionManifest {
-        name: "env.test.ext".to_string(),
+        package_name: "env.test.ext".to_string(),
         display_name: "Env Ext".to_string(),
         permissions: Some(ManifestPermissions {
             paths: vec![PathPermission {

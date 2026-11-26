@@ -573,6 +573,9 @@ fn copy_extension_files(src_path: &Path, dest_path: &Path) {
         let entry = entry.unwrap();
         let path = entry.path();
         if path.is_file() {
+            if path.extension().and_then(|e| e.to_str()) == Some("msxt") {
+                continue;
+            }
             let dest = dest_path.join(path.file_name().unwrap());
             std::fs::copy(&path, &dest).unwrap();
             #[cfg(unix)]
@@ -591,19 +594,21 @@ fn write_test_manifest(dest_ext_path: &Path, actual_pkg: &str) {
         let contents = std::fs::read(&manifest_pb_path).unwrap();
         let mut manifest =
             extensions_proto::moosync::types::ExtensionManifest::decode(&contents[..]).unwrap();
-        manifest.name = actual_pkg.to_string();
+        manifest.package_name = actual_pkg.to_string();
         if manifest.icon.is_empty() {
             manifest.icon = "icon.png".to_string();
         }
         std::fs::write(&manifest_pb_path, prost::Message::encode_to_vec(&manifest)).unwrap();
     } else {
         let manifest = extensions_proto::moosync::types::ExtensionManifest {
-            name: actual_pkg.to_string(),
+            package_name: actual_pkg.to_string(),
             display_name: "Sample Extension".to_string(),
             version: "1.0.0".to_string(),
             extension_entry: "sample_extension.wasm".to_string(),
             icon: "icon.png".to_string(),
             author: Some("Moosync".to_string()),
+            file_hashes: Default::default(),
+            sha256: None,
             ..Default::default()
         };
         std::fs::write(&manifest_pb_path, prost::Message::encode_to_vec(&manifest)).unwrap();
@@ -629,7 +634,7 @@ async fn setup_extension_at(
     let src_ext_path = resolve_source_extension_path(subdir, &runfiles_dir);
 
     let uuid_str = uuid::Uuid::new_v4().simple().to_string();
-    let actual_pkg = format!("{}-{}", pkg.replace(".", "-"), uuid_str);
+    let actual_pkg = format!("{}.t{}", pkg, uuid_str);
     let dest_ext_path = temp_dir.path().join("extensions").join(&actual_pkg);
     async_create_dir_all(&dest_ext_path).await.unwrap();
 
@@ -651,7 +656,9 @@ async fn setup_extension_at(
     );
 
     let reply_handler = get_global_router() as Arc<dyn ReplyHandler>;
-    handler.spawn_extensions(reply_handler);
+    handler
+        .spawn_single_extension(&dest_ext_path.join("manifest.pb"), reply_handler, &[], true)
+        .unwrap();
 
     if let Some(pending) = get_global_router().drain_pending_accounts(&actual_pkg)
         && let Some(ext) = handler.extensions_map.read().unwrap().get(&actual_pkg)
@@ -703,7 +710,7 @@ async fn setup_extension_at(
 /// `$mod_name` – Rust module name (e.g. `sample_rs`)
 /// `$subdir`   – fixture sub-directory name (e.g. `"rs"`)
 /// `$pkg`      – expected package_name in the extension manifest (e.g.
-/// `"rs.sample"`)
+/// `"app.moosync.sample"`)
 macro_rules! generate_sample_tests {
     ($mod_name:ident, $subdir:expr, $pkg:expr, $expected_scopes:expr) => {
         mod $mod_name {
@@ -776,9 +783,7 @@ macro_rules! generate_sample_tests {
                     })
                     .await
                     .unwrap();
-                assert!(
-                    res.status == "success" || res.status == "https://example.com/oauth/authorize"
-                );
+                assert!(res.url == "success" || res.url == "https://example.com/oauth/authorize");
 
                 let cmds = captured_commands.lock().unwrap();
                 if let Some(main_command::Command::RegisterOauth(req)) = &cmds[0].command {
@@ -1110,7 +1115,12 @@ macro_rules! generate_sample_tests {
     };
 }
 
-generate_sample_tests!(sample_rs, "default", "rs.sample", vec![0, 9, 11, 12, 18]);
+generate_sample_tests!(
+    sample_rs,
+    "default",
+    "app.moosync.sample",
+    vec![0, 9, 11, 12, 18]
+);
 
 mod sample_empty {
     use super::*;
@@ -1122,7 +1132,7 @@ mod sample_empty {
         Arc<Mutex<Vec<MainCommand>>>,
         TestCleanupGuard,
     ) {
-        setup_extension_at("empty", "rs.sample.empty").await
+        setup_extension_at("empty", "app.moosync.sample.empty").await
     }
 
     #[tokio::test]

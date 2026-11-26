@@ -114,6 +114,32 @@ export component ExtensionDetailsModalMobile inherits Rectangle {
                         wrap: word-wrap;
                     }
 
+                    if root.item.is_unsigned: Rectangle {
+                        background: Theme.danger.transparentize(0.88);
+                        border-radius: Theme.borderRadiusMd;
+                        border-width: Theme.borderWidthXl;
+                        border-color: Theme.danger;
+
+                        VerticalLayout {
+                            padding: Theme.paddingMd;
+                            spacing: Theme.spacingSm;
+
+                            Text {
+                                text: @tr("SECURITY WARNING: UNSIGNED EXTENSION");
+                                font-size: Theme.body;
+                                font-weight: 800;
+                                color: Theme.danger;
+                            }
+
+                            Text {
+                                text: @tr("This extension is not signed by a trusted registry key. Its integrity and publisher cannot be verified. Only allow this extension if you built it yourself or completely trust its source.");
+                                font-size: Theme.caption;
+                                color: Theme.textPrimary;
+                                wrap: word-wrap;
+                            }
+                        }
+                    }
+
                     // Native Binaries Warning
                     if root.item.binaries_permissions.length > 0: Rectangle {
                         background: Theme.danger.transparentize(0.88);

@@ -115,7 +115,7 @@ impl TryFrom<&Extension> for Arc<ExtismContext> {
         let url = Wasm::file(manifest.extension_entry.clone());
         let mut plugin_manifest = Manifest::new([url]);
 
-        let package_name = manifest.name.clone();
+        let package_name = manifest.package_name.clone();
         let ext_cache_dir = extension.cache_path.join("extensions").join(&package_name);
 
         if let Err(error) = fs::create_dir_all(&ext_cache_dir) {

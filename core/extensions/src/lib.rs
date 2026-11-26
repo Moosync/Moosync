@@ -11,13 +11,8 @@ pub use extensions_proto::moosync::types::ExtensionLockData;
 use extensions_proto::moosync::types::{
     AppExitRequest, ExtensionDetail, ExtensionManifest, PackageName,
 };
-use fs_extra::dir::CopyOptions;
-use prost::Message;
 use regex::{Captures, Regex};
-use semver::Version;
-use tempdir::TempDir;
 use types::{prelude::ScopeListExt, subscription::SubscriberList};
-use zip_extensions::zip_extract::zip_extract;
 
 pub use crate::{
     errors::ExtensionError,
@@ -49,8 +44,14 @@ mod socket_test;
 pub mod websocket;
 #[cfg(test)]
 mod websocket_test;
+pub use ext_runner::UnsignedExtension;
 pub use remote::{DEFAULT_EXTENSION_REGISTRY, RemoteExtensions};
 pub mod sanitize;
+pub mod signing;
+pub use signing::{
+    InspectedPackage, MANIFEST_SIGNATURE_FILE, PackageVerification, RegistryKeyStorage,
+    SignatureStatus, read_signing_key_fingerprint, validate_package_name, verify_package_contents,
+};
 
 pub const MANIFEST_FILE: &str = "manifest.pb";
 pub const EXTENSION_LOCK_FILE: &str = "extension.lock";
@@ -90,6 +91,8 @@ mod remote_test;
 mod remote_test_smoke;
 #[cfg(test)]
 mod sanitize_test;
+#[cfg(test)]
+mod signing_test;
 
 #[cfg(feature = "wasm_integration_tests")]
 mod sample_tests;
@@ -108,7 +111,7 @@ impl ExtensionInfo {
     pub fn package_name(&self) -> &str {
         match self {
             ExtensionInfo::Local(detail) => &detail.package_name,
-            ExtensionInfo::Remote(manifest) => &manifest.name,
+            ExtensionInfo::Remote(manifest) => &manifest.package_name,
             ExtensionInfo::LocalPath(_) => "",
         }
     }
@@ -141,6 +144,7 @@ pub struct ExtensionHandler {
     pub on_extensions_updated: SubscriberList<()>,
     pub on_accounts_updated: SubscriberList<Option<String>>,
     pub on_preferences_updated: SubscriberList<String>,
+    pub on_unsigned_extension: SubscriberList<UnsignedExtension>,
     remote: RemoteExtensions,
     config: Mutex<ExtensionConfig>,
 }
@@ -149,18 +153,25 @@ pub struct ExtensionHandler {
 impl ExtensionHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(extensions_dir: PathBuf, tmp_dir: PathBuf, cache_dir: PathBuf) -> Self {
+        let remote = RemoteExtensions::new(tmp_dir.clone());
         Self {
             inner: ExtensionHandlerInner::new(extensions_dir.clone(), cache_dir.clone()),
-            extensions_dir: extensions_dir.clone(),
-            tmp_dir: tmp_dir.clone(),
-            cache_dir: cache_dir.clone(),
+            extensions_dir,
+            tmp_dir,
+            cache_dir,
             reply_handler: OnceLock::new(),
             on_extensions_updated: SubscriberList::new(),
             on_accounts_updated: SubscriberList::new(),
             on_preferences_updated: SubscriberList::new(),
-            remote: RemoteExtensions::new(tmp_dir),
+            on_unsigned_extension: SubscriberList::new(),
+            remote,
             config: Mutex::new(ExtensionConfig::default()),
         }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn set_registry_key_storage(&self, storage: Arc<dyn RegistryKeyStorage>) {
+        self.remote.set_key_storage(storage);
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -183,7 +194,7 @@ impl ExtensionHandler {
             let Some(remote) = config
                 .remote_manifests
                 .iter()
-                .find(|r| r.name == inst.package_name)
+                .find(|r| r.package_name == inst.package_name)
             else {
                 continue;
             };
@@ -208,8 +219,13 @@ impl ExtensionHandler {
         let updatables = self.get_updatable_extensions();
         let mut any_failed = false;
         for remote in updatables {
+            let package_name = remote.package_name.clone();
             if let Err(e) = self.install_extension(ExtensionInfo::Remote(remote)).await {
-                tracing::error!("update_all_extensions: Failed to update: {:?}", e);
+                tracing::error!(
+                    "update_all_extensions: Failed to update {}: {:?}",
+                    package_name,
+                    e
+                );
                 any_failed = true;
             }
         }
@@ -253,26 +269,31 @@ impl ExtensionHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn get_extension_mut(&self, package_name: &str) -> Result<Arc<Extension>, ExtensionError> {
-        self.inner.get_extension(package_name)
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
     pub async fn install_extension(&self, info: ExtensionInfo) -> Result<(), ExtensionError> {
-        let (ext_path, registry_name, should_cleanup_ext_path) = match info {
-            ExtensionInfo::Local(_) => {
-                return Ok(());
-            }
-            ExtensionInfo::Remote(manifest) => {
-                let reg = manifest
-                    .registry
-                    .clone()
-                    .unwrap_or_else(|| "remote".to_string());
-                (self.remote.download_extension(manifest).await?, reg, true)
-            }
-            ExtensionInfo::LocalPath(path) => (path, "local".to_string(), false),
-        };
+        let (ext_path, registry_name, should_cleanup_ext_path, expected_remote, registry_key) =
+            match info {
+                ExtensionInfo::Local(_) => {
+                    return Ok(());
+                }
+                ExtensionInfo::Remote(manifest) => {
+                    let reg = manifest
+                        .registry
+                        .clone()
+                        .unwrap_or_else(|| "remote".to_string());
+                    let key = self.remote.get_registry_key(&reg)?;
+                    let expected = (manifest.package_name.clone(), manifest.version.clone());
+                    (
+                        self.remote.download_extension(manifest).await?,
+                        reg,
+                        true,
+                        Some(expected),
+                        key,
+                    )
+                }
+                ExtensionInfo::LocalPath(path) => (path, "local".to_string(), false, None, None),
+            };
 
+        let is_remote = expected_remote.is_some();
         tracing::debug!("ext path {:?}", ext_path);
 
         let tmp_dir = self
@@ -280,9 +301,22 @@ impl ExtensionHandler {
             .join(format!("moosync_ext_{}", uuid::Uuid::new_v4()));
         let extensions_dir = self.extensions_dir.clone();
         let stage_path = ext_path.clone();
+        let all_keys = self.remote.list_registry_keys()?;
+        let keys = if let Some(key) = registry_key {
+            vec![key]
+        } else {
+            all_keys.clone()
+        };
 
         let staged = tokio::task::spawn_blocking(move || {
-            stage_extension_package(&stage_path, tmp_dir, &extensions_dir)
+            Extension::stage_package(
+                &stage_path,
+                tmp_dir,
+                &extensions_dir,
+                is_remote,
+                &keys,
+                &all_keys,
+            )
         })
         .await
         .map_err(|e| ExtensionError::Io(std::io::Error::other(e)))??;
@@ -291,17 +325,36 @@ impl ExtensionHandler {
             let _ = tokio::fs::remove_file(&ext_path).await;
         }
 
+        if let Some((expected_pkg, expected_ver)) = expected_remote
+            && (staged.package_manifest.package_name != expected_pkg
+                || staged.package_manifest.version != expected_ver)
+        {
+            let _ = tokio::fs::remove_dir_all(&staged.tmp_dir).await;
+            return Err(ExtensionError::InvalidSignature(format!(
+                "Package manifest mismatch: expected {}@{}, got {}@{}",
+                expected_pkg,
+                expected_ver,
+                staged.package_manifest.package_name,
+                staged.package_manifest.version
+            )));
+        }
+
         if staged.should_remove_old {
             let _ = self.send_remove_extension(PackageName {
-                package_name: staged.package_manifest.name.clone(),
+                package_name: staged.package_manifest.package_name.clone(),
             });
         }
 
-        tokio::task::spawn_blocking(move || finalize_extension_install(staged, registry_name))
-            .await
-            .map_err(|e| ExtensionError::Io(std::io::Error::other(e)))??;
+        let installed_manifest_path =
+            tokio::task::spawn_blocking(move || Extension::finalize_install(staged, registry_name))
+                .await
+                .map_err(|e| ExtensionError::Io(std::io::Error::other(e)))??;
 
-        self.find_new_extensions()?;
+        if is_remote {
+            self.find_new_extensions()?;
+        } else {
+            self.load_extension(&installed_manifest_path, true)?;
+        }
         self.trigger_extensions_updated();
 
         Ok(())
@@ -353,8 +406,8 @@ impl ExtensionHandler {
         }
 
         for rem in remote {
-            if !seen_packages.contains(&rem.name) {
-                seen_packages.insert(rem.name.clone());
+            if !seen_packages.contains(&rem.package_name) {
+                seen_packages.insert(rem.package_name.clone());
                 ret.push(ExtensionInfo::Remote(rem.clone()));
             }
         }
@@ -403,7 +456,28 @@ impl ExtensionHandler {
             .get()
             .cloned()
             .expect("Reply handler not set");
-        self.inner.spawn_extensions(reply_handler);
+        let keys = self.remote.list_registry_keys()?;
+        for unsigned in self.inner.spawn_extensions(reply_handler, &keys) {
+            self.on_unsigned_extension.emit(unsigned);
+        }
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn load_extension(
+        &self,
+        manifest_path: &Path,
+        allow_unsigned: bool,
+    ) -> Result<(), ExtensionError> {
+        let reply_handler = self
+            .reply_handler
+            .get()
+            .cloned()
+            .expect("Reply handler not set");
+        let keys = self.remote.list_registry_keys()?;
+        self.inner
+            .spawn_single_extension(manifest_path, reply_handler, &keys, allow_unsigned)?;
+        self.trigger_extensions_updated();
         Ok(())
     }
 
@@ -443,8 +517,14 @@ impl ExtensionHandler {
     pub fn inspect_extension_package(
         &self,
         ext_path: &Path,
-    ) -> Result<ExtensionManifest, ExtensionError> {
-        inspect_package(ext_path, &self.tmp_dir)
+    ) -> Result<InspectedPackage, ExtensionError> {
+        let keys = self.remote.list_registry_keys()?;
+        Extension::inspect_package(ext_path, &self.tmp_dir, &keys)
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn remove_registry_key(&self, registry_url: &str) -> Result<(), ExtensionError> {
+        self.remote.remove_registry_key(registry_url)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -472,114 +552,4 @@ impl types::plugin::Plugin for ExtensionHandler {
         );
         Arc::new(handler)
     }
-}
-
-struct StagedExtension {
-    package_manifest: ExtensionManifest,
-    ext_extract_path: PathBuf,
-    tmp_dir: PathBuf,
-    should_remove_old: bool,
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-#[allow(clippy::ptr_arg)]
-fn stage_extension_package(
-    ext_path: &PathBuf,
-    tmp_dir: PathBuf,
-    extensions_dir: &Path,
-) -> Result<StagedExtension, ExtensionError> {
-    zip_extract(ext_path, &tmp_dir).map_err(|e| ExtensionError::Zip(e.to_string()))?;
-
-    let package_manifest = ExtensionManifest::decode(&fs::read(tmp_dir.join(MANIFEST_FILE))?[..])?;
-
-    if !package_manifest.moosync_extension {
-        return Err(ExtensionError::NotAnExtension);
-    }
-
-    let ext_extract_path = extensions_dir.join(package_manifest.name.clone());
-    let manifest_path = ext_extract_path.join(MANIFEST_FILE);
-    let should_remove_old = if manifest_path.exists() {
-        let existing_manifest = ExtensionManifest::decode(&fs::read(manifest_path)?[..])?;
-        let old_version = Version::parse(&existing_manifest.version)?;
-        let new_version = Version::parse(&package_manifest.version)?;
-
-        if new_version > old_version {
-            true
-        } else {
-            return Err(ExtensionError::DuplicateExtension(package_manifest.name));
-        }
-    } else {
-        false
-    };
-
-    Ok(StagedExtension {
-        package_manifest,
-        ext_extract_path,
-        tmp_dir,
-        should_remove_old,
-    })
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn finalize_extension_install(
-    staged: StagedExtension,
-    registry_name: String,
-) -> Result<(), ExtensionError> {
-    if staged.should_remove_old {
-        fs::remove_dir_all(staged.ext_extract_path.clone())?;
-    } else {
-        let _ = fs::remove_dir_all(staged.ext_extract_path.clone());
-    }
-
-    let options = CopyOptions::default().overwrite(true);
-    let parent_dir = staged.ext_extract_path.parent().unwrap();
-    tracing::debug!(
-        "Moving items from {:?} to {:?}",
-        staged.tmp_dir.clone(),
-        parent_dir
-    );
-    if !parent_dir.exists() {
-        tracing::debug!("Creating dir {:?}", parent_dir);
-        fs::create_dir_all(parent_dir)?;
-    }
-    fs_extra::move_items(std::slice::from_ref(&staged.tmp_dir), parent_dir, &options)?;
-
-    tracing::debug!(
-        "Renaming {:?} to {:?}",
-        parent_dir.join(staged.tmp_dir.file_name().unwrap()),
-        parent_dir.join(staged.package_manifest.name.clone())
-    );
-    fs::rename(
-        parent_dir.join(staged.tmp_dir.file_name().unwrap()),
-        parent_dir.join(staged.package_manifest.name.clone()),
-    )?;
-
-    // Write extension.lock with registry metadata
-    let lock_data = ExtensionLockData {
-        registry: registry_name,
-    };
-    // instrument: ignore
-    let _ = fs::write(
-        staged.ext_extract_path.join(EXTENSION_LOCK_FILE),
-        lock_data.encode_to_vec(),
-    );
-
-    Ok(())
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-pub fn inspect_package(
-    ext_path: &Path,
-    tmp_dir: &Path,
-) -> Result<ExtensionManifest, ExtensionError> {
-    let inspect_dir = TempDir::new_in(tmp_dir, "moosync_inspect")?;
-    let ext_path_buf = ext_path.to_path_buf();
-    zip_extract(&ext_path_buf, &inspect_dir.path().to_path_buf())
-        .map_err(|e| ExtensionError::Zip(e.to_string()))?;
-    let manifest_bytes = fs::read(inspect_dir.path().join(MANIFEST_FILE))?;
-    let manifest = ExtensionManifest::decode(&manifest_bytes[..])?;
-    if !manifest.moosync_extension {
-        return Err(ExtensionError::NotAnExtension);
-    }
-    Ok(manifest)
 }

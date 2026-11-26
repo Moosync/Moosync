@@ -567,7 +567,7 @@ pub fn extension_item_from_detail(mut ext: ExtensionDetail, cache_dir: &Path) ->
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn extension_item_from_manifest(mut ext: ExtensionManifest, cache_dir: &Path) -> ExtensionItem {
     if let Some(permissions) = &mut ext.permissions {
-        resolve_permission_env_vars(permissions, &ext.name, cache_dir);
+        resolve_permission_env_vars(permissions, &ext.package_name, cache_dir);
     }
     ExtensionItem::from(ext)
 }
@@ -596,6 +596,7 @@ impl From<ExtensionDetail> for ExtensionItem {
             binaries_permissions: permissions.binaries.into_model_rc(),
             scopes: ext.scopes.into_model_rc(),
             error: error.into(),
+            is_unsigned: false,
         }
     }
 }
@@ -607,7 +608,7 @@ impl From<ExtensionManifest> for ExtensionItem {
 
         Self {
             name: ext.display_name.into(),
-            package_name: ext.name.into(),
+            package_name: ext.package_name.into(),
             version: ext.version.into(),
             is_installed: false,
             loading: false,
@@ -622,6 +623,7 @@ impl From<ExtensionManifest> for ExtensionItem {
             binaries_permissions: permissions.binaries.into_model_rc(),
             scopes: ext.scopes.into_model_rc(),
             error: SharedString::default(),
+            is_unsigned: false,
         }
     }
 }

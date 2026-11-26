@@ -37,10 +37,11 @@ fn create_test_image_bytes(width: u32, height: u32) -> Vec<u8> {
 fn find_sample_extension_msxt() -> PathBuf {
     let runfiles_dir = std::env::var("TEST_SRCDIR").unwrap_or_else(|_| ".".to_string());
     let candidates = [
-        PathBuf::from(&runfiles_dir).join("_main/sample_extensions/default/sample_extension.msxt"),
         PathBuf::from(&runfiles_dir)
-            .join("moosync/sample_extensions/default/sample_extension.msxt"),
-        PathBuf::from("bazel-bin/sample_extensions/default/sample_extension.msxt"),
+            .join("_main/sample_extensions/default/app.moosync.sample.msxt"),
+        PathBuf::from(&runfiles_dir)
+            .join("moosync/sample_extensions/default/app.moosync.sample.msxt"),
+        PathBuf::from("bazel-bin/sample_extensions/default/app.moosync.sample.msxt"),
     ];
     candidates
         .iter()
@@ -239,7 +240,7 @@ async fn test_user_journey_1_existing_extension_on_startup() {
 
     let ext_handler = sm.get_extension_handler();
     let sample_src = find_sample_extension_dir();
-    let target_dir = ext_handler.extensions_dir.join("rs.sample");
+    let target_dir = ext_handler.extensions_dir.join("app.moosync.sample");
     create_dir_all(&target_dir).unwrap();
     copy(
         sample_src.join("sample_extension.wasm"),
@@ -255,6 +256,9 @@ async fn test_user_journey_1_existing_extension_on_startup() {
     insert_test_entities(&sm, &server_uri).await;
 
     sm.setup().await;
+    ext_handler
+        .load_extension(&target_dir.join("manifest.pb"), true)
+        .unwrap();
 
     wait_for_covers_to_show_up(&sm).await;
 }

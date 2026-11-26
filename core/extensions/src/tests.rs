@@ -264,13 +264,15 @@ fn test_find_and_spawn_extensions() {
     std::fs::create_dir_all(&ext_path).unwrap();
 
     let manifest = extensions_proto::moosync::types::ExtensionManifest {
-        name: "test.pkg".to_string(),
+        package_name: "app.test.pkg".to_string(),
         display_name: "Test Extension".to_string(),
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
         description: Some("Test".to_string()),
         icon: "icon.png".to_string(),
         author: Some("Author".to_string()),
+        file_hashes: Default::default(),
+        sha256: None,
         ..Default::default()
     };
     std::fs::write(
@@ -286,11 +288,13 @@ fn test_find_and_spawn_extensions() {
 
     assert_is_empty!(&handler.get_installed_extensions());
 
-    handler.spawn_extensions(reply_handler);
+    handler
+        .spawn_single_extension(&ext_path.join("manifest.pb"), reply_handler, &[], true)
+        .unwrap();
     let installed = handler.get_installed_extensions();
 
     assert_len_eq_x!(&installed, 1);
-    assert_eq!(installed[0].package_name, "test.pkg");
+    assert_eq!(installed[0].package_name, "app.test.pkg");
     assert_eq!(installed[0].name, "Test Extension");
 }
 
@@ -307,11 +311,13 @@ async fn test_handle_extension_command() {
     std::fs::create_dir_all(&ext_path).unwrap();
 
     let manifest = extensions_proto::moosync::types::ExtensionManifest {
-        name: "sample.pkg".to_string(),
+        package_name: "app.test.sample".to_string(),
         display_name: "Test Extension".to_string(),
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
         icon: "icon.png".to_string(),
+        file_hashes: Default::default(),
+        sha256: None,
         scopes: [13, 0, 1, 2, 3, 4, 10]
             .into_iter()
             .map(|s| extensions_proto::moosync::types::ScopePermission {
@@ -331,13 +337,15 @@ async fn test_handle_extension_command() {
 
     let handler = ExtensionHandlerInner::new(extensions_path, tmp_dir.path().join("cache"));
     let reply_handler = Arc::new(TestReplyHandler);
-    handler.spawn_extensions(reply_handler);
+    handler
+        .spawn_single_extension(&ext_path.join("manifest.pb"), reply_handler, &[], true)
+        .unwrap();
 
     sleep(Duration::from_millis(500)).await;
 
     let ext = {
         let map = handler.extensions_map.read().unwrap();
-        map.get("sample.pkg").unwrap().clone()
+        map.get("app.test.sample").unwrap().clone()
     };
 
     let actual_scopes: Vec<i32> = ext.manifest.scopes.iter().map(|s| s.scope).collect();
@@ -363,11 +371,13 @@ fn test_register_unregister_ui_preferences() {
     std::fs::create_dir_all(&ext_path).unwrap();
 
     let manifest = extensions_proto::moosync::types::ExtensionManifest {
-        name: "sample.pkg".to_string(),
+        package_name: "app.test.sample".to_string(),
         display_name: "Test Extension".to_string(),
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
         icon: "icon.png".to_string(),
+        file_hashes: Default::default(),
+        sha256: None,
         ..Default::default()
     };
     std::fs::write(
@@ -380,7 +390,9 @@ fn test_register_unregister_ui_preferences() {
 
     let handler = ExtensionHandlerInner::new(extensions_path, tmp_dir.path().join("cache"));
     let reply_handler = Arc::new(TestReplyHandler);
-    handler.spawn_extensions(reply_handler);
+    handler
+        .spawn_single_extension(&ext_path.join("manifest.pb"), reply_handler, &[], true)
+        .unwrap();
 
     let prefs = vec![PreferenceItem {
         id: "pref1".to_string(),
@@ -390,7 +402,7 @@ fn test_register_unregister_ui_preferences() {
         ..Default::default()
     }];
 
-    let ext = handler.get_extension("sample.pkg").unwrap();
+    let ext = handler.get_extension("app.test.sample").unwrap();
     ext.register_ui_preferences(prefs);
 
     let installed = handler.get_installed_extensions();
@@ -411,15 +423,17 @@ fn test_extension_removal() {
     let extensions_path = tmp_dir.path().join("extensions");
     std::fs::create_dir_all(&extensions_path).unwrap();
 
-    let ext_path = extensions_path.join("test_pkg");
+    let ext_path = extensions_path.join("app.test.pkg2");
     std::fs::create_dir_all(&ext_path).unwrap();
 
     let manifest = extensions_proto::moosync::types::ExtensionManifest {
-        name: "test_pkg".to_string(),
+        package_name: "app.test.pkg2".to_string(),
         display_name: "Test Extension".to_string(),
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
         icon: "icon.png".to_string(),
+        file_hashes: Default::default(),
+        sha256: None,
         ..Default::default()
     };
     std::fs::write(
@@ -438,15 +452,22 @@ fn test_extension_removal() {
 
     let reply_handler = Arc::new(TestReplyHandler);
     let handler = ExtensionHandlerInner::new(extensions_path.clone(), tmp_dir.path().join("cache"));
-    handler.spawn_extensions(reply_handler.clone());
+    handler
+        .spawn_single_extension(
+            &ext_path.join("manifest.pb"),
+            reply_handler.clone(),
+            &[],
+            true,
+        )
+        .unwrap();
 
     let installed = handler.get_installed_extensions();
     assert_len_eq_x!(&installed, 1);
-    assert_eq!(installed[0].package_name, "test_pkg");
+    assert_eq!(installed[0].package_name, "app.test.pkg2");
 
-    handler.remove_extension("test_pkg");
+    handler.remove_extension("app.test.pkg2");
 
     let installed_after = handler.get_installed_extensions();
     assert_is_empty!(&installed_after);
-    assert!(handler.get_extension("test_pkg").is_err());
+    assert!(handler.get_extension("app.test.pkg2").is_err());
 }

@@ -154,12 +154,14 @@ struct TestExtContext {
 fn ext_context() -> TestExtContext {
     let temp_dir = TempDir::new("moosync_ext_unit").expect("failed to create temp dir");
     let manifest = extensions_proto::moosync::types::ExtensionManifest {
-        name: "unit.pkg".to_string(),
+        package_name: "unit.pkg".to_string(),
         display_name: "Unit Test Extension".to_string(),
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
         icon: "icon.png".to_string(),
         author: Some("Tester".to_string()),
+        file_hashes: Default::default(),
+        sha256: None,
         ..Default::default()
     };
     let manifest_path = temp_dir.path().join("manifest.pb");
@@ -246,10 +248,12 @@ fn test_extension_preferences(ext_context: TestExtContext) {
 fn test_extension_load_manifest_without_optional_fields() {
     let temp_dir = TempDir::new("moosync_ext_no_icon").expect("failed to create temp dir");
     let manifest = extensions_proto::moosync::types::ExtensionManifest {
-        name: "sample.ext".to_string(),
+        package_name: "sample.ext".to_string(),
         display_name: "Sample Extension".to_string(),
         version: "0.1.0".to_string(),
         extension_entry: "main.wasm".to_string(),
+        file_hashes: Default::default(),
+        sha256: None,
         ..Default::default()
     };
     let manifest_path = temp_dir.path().join("manifest.pb");
@@ -498,10 +502,12 @@ fn test_sanitize_trait_search_result() {
 fn test_extension_load_invalid_wasm_records_error() {
     let temp_dir = TempDir::new("moosync_ext_invalid_wasm").expect("failed to create temp dir");
     let manifest = extensions_proto::moosync::types::ExtensionManifest {
-        name: "invalid.wasm.ext".to_string(),
+        package_name: "invalid.wasm.ext".to_string(),
         display_name: "Invalid WASM Extension".to_string(),
         version: "0.1.0".to_string(),
         extension_entry: "main.wasm".to_string(),
+        file_hashes: Default::default(),
+        sha256: None,
         ..Default::default()
     };
     let manifest_path = temp_dir.path().join("manifest.pb");
@@ -534,10 +540,12 @@ async fn test_extension_group_with_order() {
 
     let temp_dir = TempDir::new("moosync_ext_group_order").unwrap();
     let manifest1 = extensions_proto::moosync::types::ExtensionManifest {
-        name: "ext.one".to_string(),
+        package_name: "ext.one".to_string(),
         display_name: "Extension One".to_string(),
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
+        file_hashes: Default::default(),
+        sha256: None,
         scopes: vec![extensions_proto::moosync::types::ScopePermission {
             scope: extensions_proto::moosync::types::ExtensionProviderScope::Search as i32,
             justification: "Search".to_string(),
@@ -549,10 +557,12 @@ async fn test_extension_group_with_order() {
     fs::write(temp_dir.path().join("main.wasm"), b"wasm bytes").unwrap();
 
     let manifest2 = extensions_proto::moosync::types::ExtensionManifest {
-        name: "ext.two".to_string(),
+        package_name: "ext.two".to_string(),
         display_name: "Extension Two".to_string(),
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
+        file_hashes: Default::default(),
+        sha256: None,
         scopes: vec![extensions_proto::moosync::types::ScopePermission {
             scope: extensions_proto::moosync::types::ExtensionProviderScope::Search as i32,
             justification: "Search".to_string(),
@@ -578,7 +588,7 @@ async fn test_extension_group_with_order() {
 
     let extensions = [ext1, ext2];
     let mut stream = extensions.with(|ext| async move {
-        if ext.manifest.name == "ext.one" {
+        if ext.manifest.package_name == "ext.one" {
             tokio::time::sleep(std::time::Duration::from_millis(50)).await;
             "ext.one"
         } else {
@@ -605,10 +615,12 @@ async fn test_extension_group_with_drop_cancels_pending() {
 
     let temp_dir = TempDir::new("moosync_ext_group_drop").unwrap();
     let manifest1 = extensions_proto::moosync::types::ExtensionManifest {
-        name: "ext.fast".to_string(),
+        package_name: "ext.fast".to_string(),
         display_name: "Fast Extension".to_string(),
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
+        file_hashes: Default::default(),
+        sha256: None,
         scopes: vec![extensions_proto::moosync::types::ScopePermission {
             scope: extensions_proto::moosync::types::ExtensionProviderScope::PlaybackDetails as i32,
             justification: "PlaybackDetails".to_string(),
@@ -620,10 +632,12 @@ async fn test_extension_group_with_drop_cancels_pending() {
     fs::write(temp_dir.path().join("main.wasm"), b"wasm bytes").unwrap();
 
     let manifest2 = extensions_proto::moosync::types::ExtensionManifest {
-        name: "ext.slow".to_string(),
+        package_name: "ext.slow".to_string(),
         display_name: "Slow Extension".to_string(),
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
+        file_hashes: Default::default(),
+        sha256: None,
         scopes: vec![extensions_proto::moosync::types::ScopePermission {
             scope: extensions_proto::moosync::types::ExtensionProviderScope::PlaybackDetails as i32,
             justification: "PlaybackDetails".to_string(),
@@ -659,7 +673,7 @@ async fn test_extension_group_with_drop_cancels_pending() {
     {
         let slow_dropped_clone = slow_dropped.clone();
         let mut stream = extensions.with(move |ext| {
-            let is_slow = ext.manifest.name == "ext.slow";
+            let is_slow = ext.manifest.package_name == "ext.slow";
             let drop_tracker = if is_slow {
                 Some(TrackDrop(slow_dropped_clone.clone()))
             } else {
@@ -667,7 +681,7 @@ async fn test_extension_group_with_drop_cancels_pending() {
             };
             async move {
                 let _drop = drop_tracker;
-                if ext.manifest.name == "ext.fast" {
+                if ext.manifest.package_name == "ext.fast" {
                     "fast_result"
                 } else {
                     tokio::time::sleep(std::time::Duration::from_secs(10)).await;
@@ -690,10 +704,12 @@ async fn test_extension_group_with_drop_cancels_pending() {
 async fn test_extension_provider_scopes_from_manifest() {
     let temp_dir = TempDir::new("moosync_ext_scopes").unwrap();
     let manifest = extensions_proto::moosync::types::ExtensionManifest {
-        name: "scoped.ext".to_string(),
+        package_name: "scoped.ext".to_string(),
         display_name: "Scoped Extension".to_string(),
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
+        file_hashes: Default::default(),
+        sha256: None,
         scopes: vec![
             extensions_proto::moosync::types::ScopePermission {
                 scope: extensions_proto::moosync::types::ExtensionProviderScope::Search as i32,
@@ -824,10 +840,12 @@ async fn test_async_context_lifecycle() {
 async fn test_extension_accounts_and_delegated_commands() {
     let temp_dir = TempDir::new("moosync_ext_delegation").unwrap();
     let manifest = extensions_proto::moosync::types::ExtensionManifest {
-        name: "delegated.ext".to_string(),
+        package_name: "delegated.ext".to_string(),
         display_name: "Delegated Extension".to_string(),
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
+        file_hashes: Default::default(),
+        sha256: None,
         ..Default::default()
     };
     let manifest_path = temp_dir.path().join("manifest.pb");
@@ -873,10 +891,12 @@ async fn test_extension_accounts_and_delegated_commands() {
 async fn test_extension_get_cover_art_api() {
     let temp_dir = TempDir::new("moosync_ext_cover_art_test").unwrap();
     let manifest = extensions_proto::moosync::types::ExtensionManifest {
-        name: "cover_art.test".to_string(),
+        package_name: "cover_art.test".to_string(),
         display_name: "Cover Art Test Extension".to_string(),
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
+        file_hashes: Default::default(),
+        sha256: None,
         scopes: vec![extensions_proto::moosync::types::ScopePermission {
             scope: extensions_proto::moosync::types::ExtensionProviderScope::CoverArt as i32,
             justification: "CoverArt".to_string(),
@@ -944,10 +964,12 @@ async fn test_extension_get_cover_art_api() {
 async fn test_extension_get_lyrics_api() {
     let temp_dir = TempDir::new("moosync_ext_lyrics_test").unwrap();
     let manifest = extensions_proto::moosync::types::ExtensionManifest {
-        name: "lyrics.test".to_string(),
+        package_name: "lyrics.test".to_string(),
         display_name: "Lyrics Test Extension".to_string(),
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
+        file_hashes: Default::default(),
+        sha256: None,
         scopes: vec![extensions_proto::moosync::types::ScopePermission {
             scope: extensions_proto::moosync::types::ExtensionProviderScope::Lyrics as i32,
             justification: "Lyrics".to_string(),

@@ -3,6 +3,7 @@ import { ExtensionItem } from "../types/extension_view.slint";
 export global ExtensionDetailsState {
     in-out property <bool> show_modal: false;
     in-out property <bool> show_install_prompt: false;
+    in-out property <bool> is_unsigned_start_prompt: false;
     in-out property <string> local_package_path: "";
     in-out property <ExtensionItem> item;
     callback approve();

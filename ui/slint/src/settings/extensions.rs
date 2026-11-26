@@ -1,6 +1,10 @@
-use std::{path::PathBuf, sync::LazyLock};
+use std::{
+    collections::VecDeque,
+    path::PathBuf,
+    sync::{Arc, LazyLock, Mutex},
+};
 
-use extensions::ExtensionInfo;
+use extensions::{ExtensionInfo, SignatureStatus};
 use extensions_proto::moosync::types::ExtensionManifest;
 use preferences::keys::{EXTENSION_REGISTRIES, PreferenceItemExt};
 use preferences_proto::moosync::types::PreferenceItem as ProtoPreferenceItem;
@@ -18,9 +22,21 @@ use crate::{
 
 pub static PREFERENCES: &[&LazyLock<ProtoPreferenceItem>] = &[&EXTENSION_REGISTRIES];
 
+#[derive(Clone)]
+struct PendingExtensionPrompt {
+    manifest: Box<ExtensionManifest>,
+    local_package_path: String,
+    cache_dir: PathBuf,
+    is_unsigned: bool,
+    unsigned_manifest_path: Option<PathBuf>,
+}
+
+type PromptQueue = Arc<Mutex<VecDeque<PendingExtensionPrompt>>>;
+
 pub struct ExtensionsPageHandler {
     main_window: MainWindow,
     state_manager: StateManager,
+    prompt_queue: PromptQueue,
 }
 
 impl ExtensionsPageHandler {
@@ -29,6 +45,7 @@ impl ExtensionsPageHandler {
         Self {
             main_window: main_window.clone_strong(),
             state_manager: state_manager.clone(),
+            prompt_queue: Arc::new(Mutex::new(VecDeque::new())),
         }
     }
 
@@ -106,6 +123,7 @@ impl ExtensionsPageHandler {
     fn setup_callbacks(&self) {
         let state_manager = self.state_manager.clone();
         let main_window_weak = self.main_window.as_weak();
+        let prompt_queue = self.prompt_queue.clone();
 
         let state_manager_refresh = state_manager.clone();
         self.main_window
@@ -127,16 +145,19 @@ impl ExtensionsPageHandler {
             .on_toggle_extension({
                 let main_window_weak = main_window_weak.clone();
                 let state_manager = state_manager.clone();
+                let prompt_queue = prompt_queue.clone();
                 move |package_name| {
                     let package_name = package_name.to_string();
                     let main_window_weak = main_window_weak.clone();
                     let state_manager = state_manager.clone();
+                    let prompt_queue = prompt_queue.clone();
                     tokio::spawn(
                         async move {
                             Self::handle_toggle_extension(
                                 package_name,
                                 state_manager,
                                 main_window_weak,
+                                prompt_queue,
                             )
                             .await;
                         }
@@ -150,16 +171,19 @@ impl ExtensionsPageHandler {
             .on_install_extension({
                 let main_window_weak = main_window_weak.clone();
                 let state_manager = state_manager.clone();
+                let prompt_queue = prompt_queue.clone();
                 move |file_path| {
                     let file_path = file_path.to_string();
                     let main_window_weak = main_window_weak.clone();
                     let state_manager = state_manager.clone();
+                    let prompt_queue = prompt_queue.clone();
                     tokio::spawn(
                         async move {
                             Self::install_local_extension(
                                 file_path,
                                 state_manager,
                                 main_window_weak,
+                                prompt_queue,
                             )
                             .await;
                         }
@@ -173,20 +197,28 @@ impl ExtensionsPageHandler {
             .on_approve({
                 let main_window_weak = main_window_weak.clone();
                 let state_manager = state_manager.clone();
+                let prompt_queue = prompt_queue.clone();
                 move || {
                     if let Some(main_window) = main_window_weak.upgrade() {
                         let details_state = main_window.global::<ExtensionDetailsState>();
                         let package_name = details_state.get_item().package_name.to_string();
                         let local_path = details_state.get_local_package_path().to_string();
-                        details_state.set_show_modal(false);
-                        details_state.set_show_install_prompt(false);
-                        details_state.set_local_package_path("".into());
+                        let is_unsigned_start = details_state.get_is_unsigned_start_prompt();
+                        Self::clear_modal_state(&details_state);
+                        Self::show_next_queued_prompt(&main_window, &prompt_queue);
 
                         let state_manager = state_manager.clone();
                         let main_window_weak = main_window_weak.clone();
                         tokio::spawn(
                             async move {
                                 let handler = state_manager.get_extension_handler();
+                                if is_unsigned_start {
+                                    let manifest_path = PathBuf::from(local_path);
+                                    if let Err(e) = handler.load_extension(&manifest_path, true) {
+                                        tracing::error!("load_extension: Failed: {:?}", e);
+                                    }
+                                    return;
+                                }
                                 let info = if !local_path.is_empty() {
                                     Some(ExtensionInfo::LocalPath(PathBuf::from(local_path)))
                                 } else {
@@ -225,12 +257,12 @@ impl ExtensionsPageHandler {
             .global::<ExtensionDetailsState>()
             .on_reject({
                 let main_window_weak = main_window_weak.clone();
+                let prompt_queue = prompt_queue.clone();
                 move || {
                     if let Some(main_window) = main_window_weak.upgrade() {
                         let details_state = main_window.global::<ExtensionDetailsState>();
-                        details_state.set_show_modal(false);
-                        details_state.set_show_install_prompt(false);
-                        details_state.set_local_package_path("".into());
+                        Self::clear_modal_state(&details_state);
+                        Self::show_next_queued_prompt(&main_window, &prompt_queue);
                     }
                 }
             });
@@ -295,13 +327,14 @@ impl ExtensionsPageHandler {
         package_name: String,
         state_manager: StateManager,
         main_window_weak: slint::Weak<MainWindow>,
+        prompt_queue: PromptQueue,
     ) {
         tracing::info!("handle_toggle_extension: {}", package_name);
         let handler = state_manager.get_extension_handler();
         let extensions = handler.get_all_extensions().await;
         let ext_info = extensions.into_iter().find(|ext| match ext {
             ExtensionInfo::Local(detail) => detail.package_name == package_name,
-            ExtensionInfo::Remote(manifest) => manifest.name == package_name,
+            ExtensionInfo::Remote(manifest) => manifest.package_name == package_name,
             _ => false,
         });
 
@@ -319,11 +352,16 @@ impl ExtensionsPageHandler {
                 }
             }
             ExtensionInfo::Remote(manifest) => {
-                Self::show_install_prompt(
+                Self::enqueue_or_show_prompt(
                     main_window_weak,
-                    manifest,
-                    String::new(),
-                    state_manager.get_cache_dir(),
+                    prompt_queue,
+                    PendingExtensionPrompt {
+                        manifest: Box::new(manifest),
+                        local_package_path: String::new(),
+                        cache_dir: state_manager.get_cache_dir(),
+                        is_unsigned: false,
+                        unsigned_manifest_path: None,
+                    },
                 );
             }
             _ => {}
@@ -331,20 +369,54 @@ impl ExtensionsPageHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn show_install_prompt(
+    fn clear_modal_state(details_state: &ExtensionDetailsState) {
+        details_state.set_show_modal(false);
+        details_state.set_show_install_prompt(false);
+        details_state.set_is_unsigned_start_prompt(false);
+        details_state.set_local_package_path("".into());
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn apply_prompt(main_window: &MainWindow, prompt: PendingExtensionPrompt) {
+        let details_state = main_window.global::<ExtensionDetailsState>();
+        Self::clear_modal_state(&details_state);
+        let mut item = extension_item_from_manifest(*prompt.manifest, &prompt.cache_dir);
+        item.is_unsigned = prompt.is_unsigned;
+        details_state.set_item(item);
+        let is_unsigned_start_prompt = prompt.unsigned_manifest_path.is_some();
+        let stored_path = prompt
+            .unsigned_manifest_path
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or(prompt.local_package_path);
+        details_state.set_local_package_path(stored_path.into());
+        details_state.set_is_unsigned_start_prompt(is_unsigned_start_prompt);
+        details_state.set_show_install_prompt(true);
+        details_state.set_show_modal(true);
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn show_next_queued_prompt(main_window: &MainWindow, prompt_queue: &PromptQueue) {
+        let next = prompt_queue.lock().unwrap().pop_front();
+        if let Some(prompt) = next {
+            Self::apply_prompt(main_window, prompt);
+        }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn enqueue_or_show_prompt(
         main_window_weak: slint::Weak<MainWindow>,
-        manifest: ExtensionManifest,
-        local_package_path: String,
-        cache_dir: PathBuf,
+        prompt_queue: PromptQueue,
+        prompt: PendingExtensionPrompt,
     ) {
         let _ = invoke_from_event_loop(move || {
-            if let Some(main_window) = main_window_weak.upgrade() {
-                let item = extension_item_from_manifest(manifest, &cache_dir);
-                let details_state = main_window.global::<ExtensionDetailsState>();
-                details_state.set_item(item);
-                details_state.set_local_package_path(local_package_path.into());
-                details_state.set_show_install_prompt(true);
-                details_state.set_show_modal(true);
+            let Some(main_window) = main_window_weak.upgrade() else {
+                return;
+            };
+            let details_state = main_window.global::<ExtensionDetailsState>();
+            if details_state.get_show_modal() {
+                prompt_queue.lock().unwrap().push_back(prompt);
+            } else {
+                Self::apply_prompt(&main_window, prompt);
             }
         });
     }
@@ -354,17 +426,23 @@ impl ExtensionsPageHandler {
         file_path: String,
         state_manager: StateManager,
         main_window_weak: slint::Weak<MainWindow>,
+        prompt_queue: PromptQueue,
     ) {
         tracing::info!("install_local_extension: {}", file_path);
         let handler = state_manager.get_extension_handler();
         let ext_path = PathBuf::from(&file_path);
         match handler.inspect_extension_package(&ext_path) {
-            Ok(manifest) => {
-                Self::show_install_prompt(
+            Ok(inspected) => {
+                Self::enqueue_or_show_prompt(
                     main_window_weak,
-                    manifest,
-                    file_path,
-                    state_manager.get_cache_dir(),
+                    prompt_queue,
+                    PendingExtensionPrompt {
+                        manifest: Box::new(inspected.manifest),
+                        local_package_path: file_path,
+                        cache_dir: state_manager.get_cache_dir(),
+                        is_unsigned: inspected.signature_status == SignatureStatus::Unsigned,
+                        unsigned_manifest_path: None,
+                    },
                 );
             }
             Err(e) => {
@@ -374,6 +452,29 @@ impl ExtensionsPageHandler {
                 );
             }
         }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn refresh_extensions_view(
+        main_window_weak: slint::Weak<MainWindow>,
+        state_manager: StateManager,
+    ) {
+        let handler = state_manager.get_extension_handler();
+        let extensions = handler.get_all_extensions().await;
+        let has_updates = handler.has_updates();
+        let cache_dir = state_manager.get_cache_dir();
+        let window_weak = main_window_weak.clone();
+        if let Err(e) = invoke_from_event_loop(move || {
+            if let Some(main_window) = window_weak.upgrade() {
+                main_window
+                    .global::<ExtensionsPageProps>()
+                    .set_has_updates(has_updates);
+                Self::render_extensions(&main_window, extensions, cache_dir);
+            }
+        }) {
+            tracing::error!("Failed to invoke from event loop: {:?}", e);
+        }
+        Self::refresh_preferences(main_window_weak, state_manager).await;
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -443,9 +544,30 @@ impl PageHandler for ExtensionsPageHandler {
 
         let state_manager = self.state_manager.clone();
         let main_window_weak = self.main_window.as_weak();
+        let prompt_queue = self.prompt_queue.clone();
+
         tokio::spawn(
             async move {
                 let handler = state_manager.get_extension_handler();
+                let _cancel_unsigned = handler.on_unsigned_extension.listen({
+                    let main_window_weak = main_window_weak.clone();
+                    let cache_dir = state_manager.get_cache_dir();
+                    let prompt_queue = prompt_queue.clone();
+                    move |unsigned| {
+                        Self::enqueue_or_show_prompt(
+                            main_window_weak.clone(),
+                            prompt_queue.clone(),
+                            PendingExtensionPrompt {
+                                manifest: Box::new(unsigned.manifest.clone()),
+                                local_package_path: String::new(),
+                                cache_dir: cache_dir.clone(),
+                                is_unsigned: true,
+                                unsigned_manifest_path: Some(unsigned.manifest_path.clone()),
+                            },
+                        );
+                    }
+                });
+
                 let _cancel_ext = handler.on_extensions_updated.listen({
                     let main_window_weak = main_window_weak.clone();
                     let state_manager = state_manager.clone();
@@ -453,28 +575,8 @@ impl PageHandler for ExtensionsPageHandler {
                         let main_window_weak = main_window_weak.clone();
                         let state_manager = state_manager.clone();
                         tokio::spawn(
-                            async move {
-                                let handler = state_manager.get_extension_handler();
-                                let extensions = handler.get_all_extensions().await;
-                                let has_updates = handler.has_updates();
-                                let cache_dir = state_manager.get_cache_dir();
-                                let mw_weak = main_window_weak.clone();
-                                if let Err(e) = invoke_from_event_loop(move || {
-                                    if let Some(main_window) = mw_weak.upgrade() {
-                                        main_window
-                                            .global::<ExtensionsPageProps>()
-                                            .set_has_updates(has_updates);
-                                        Self::render_extensions(&main_window, extensions, cache_dir);
-                                    }
-                                }) {
-                                    tracing::error!(
-                                        "Failed to invoke from event loop on extensions updated: {:?}",
-                                        e
-                                    );
-                                }
-                                Self::refresh_preferences(main_window_weak, state_manager).await;
-                            }
-                            .in_current_span(),
+                            Self::refresh_extensions_view(main_window_weak, state_manager)
+                                .in_current_span(),
                         );
                     }
                 });
@@ -503,29 +605,9 @@ impl PageHandler for ExtensionsPageHandler {
         tracing::info!("ExtensionsPageHandler: on_show");
         let state_manager = self.state_manager.clone();
         let main_window_weak = self.main_window.as_weak();
+
         tokio::spawn(
-            async move {
-                let cache_dir = state_manager.get_cache_dir();
-                let handler = state_manager.get_extension_handler();
-                let extensions = handler.get_all_extensions().await;
-                let has_updates = handler.has_updates();
-                let mw_weak = main_window_weak.clone();
-                if let Err(e) = invoke_from_event_loop(move || {
-                    if let Some(main_window) = mw_weak.upgrade() {
-                        main_window
-                            .global::<ExtensionsPageProps>()
-                            .set_has_updates(has_updates);
-                        Self::render_extensions(&main_window, extensions, cache_dir);
-                    }
-                }) {
-                    tracing::error!(
-                        "Failed to invoke from event loop on extensions on_show: {:?}",
-                        e
-                    );
-                }
-                Self::refresh_preferences(main_window_weak, state_manager).await;
-            }
-            .in_current_span(),
+            Self::refresh_extensions_view(main_window_weak, state_manager).in_current_span(),
         );
     }
 

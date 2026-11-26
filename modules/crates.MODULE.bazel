@@ -47,7 +47,7 @@ crates.annotation_select(
         "@@//:ndk_sysroot",
     ],
     build_script_env = {
-        "BINDGEN_EXTRA_CLANG_ARGS": "--target=aarch64-linux-android --sysroot=$${pwd}/external/rules_android_ndk++android_ndk_repository_extension+androidndk/toolchains/llvm/prebuilt/linux-x86_64/sysroot -D__float128=double -D__ssize_t=long -D__intptr_t=long",
+        "BINDGEN_EXTRA_CLANG_ARGS": "--target=aarch64-linux-android23 --sysroot=$${pwd}/external/rules_android_ndk++android_ndk_repository_extension+androidndk/toolchains/llvm/prebuilt/linux-x86_64/sysroot -D__float128=double -D__ssize_t=long -D__intptr_t=long",
     },
     crate = "rusty_ffmpeg",
     triples = ["aarch64-linux-android"],
@@ -57,7 +57,7 @@ crates.annotation_select(
         "@@//:ndk_sysroot",
     ],
     build_script_env = {
-        "BINDGEN_EXTRA_CLANG_ARGS": "--target=x86_64-linux-android --sysroot=$${pwd}/external/rules_android_ndk++android_ndk_repository_extension+androidndk/toolchains/llvm/prebuilt/linux-x86_64/sysroot -D__float128=double -D__ssize_t=long -D__intptr_t=long",
+        "BINDGEN_EXTRA_CLANG_ARGS": "--target=x86_64-linux-android23 --sysroot=$${pwd}/external/rules_android_ndk++android_ndk_repository_extension+androidndk/toolchains/llvm/prebuilt/linux-x86_64/sysroot -D__float128=double -D__ssize_t=long -D__intptr_t=long",
     },
     crate = "rusty_ffmpeg",
     triples = ["x86_64-linux-android"],

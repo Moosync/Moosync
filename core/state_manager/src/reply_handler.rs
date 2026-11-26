@@ -239,6 +239,8 @@ impl ReplyHandler for StateReplyHandler {
         Ok(true)
     }
 
+    // TODO: Tie secure preferences to extension signing keys so an extension
+    // with a different key cannot read prior secrets.
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_secure(
         &self,

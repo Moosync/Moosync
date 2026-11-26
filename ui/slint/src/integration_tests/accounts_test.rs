@@ -50,7 +50,7 @@ async fn do_accounts_login_opens_oauth_modal(main_window: MainWindow, state_mana
         accounts.row_count() == 1
             && accounts
                 .row_data(0)
-                .is_some_and(|a| a.package_name == "rs.sample" && a.id == "sample_spotify")
+                .is_some_and(|a| a.package_name == "app.moosync.sample" && a.id == "sample_spotify")
     })
     .await;
     assert!(loaded);
@@ -64,7 +64,7 @@ async fn do_accounts_login_opens_oauth_modal(main_window: MainWindow, state_mana
 
     main_window
         .global::<AppCallbacks>()
-        .invoke_account_login("rs.sample".into(), "sample_spotify".into());
+        .invoke_account_login("app.moosync.sample".into(), "sample_spotify".into());
 
     let modal_shown = wait_until(|| {
         let oauth = main_window.global::<OAuthState>();
@@ -98,7 +98,7 @@ async fn do_accounts_submit_oauth_code_and_modal_dismissal(
         accounts.row_count() == 1
             && accounts
                 .row_data(0)
-                .is_some_and(|a| a.package_name == "rs.sample" && a.id == "sample_spotify")
+                .is_some_and(|a| a.package_name == "app.moosync.sample" && a.id == "sample_spotify")
     })
     .await;
     assert!(loaded);
@@ -112,7 +112,7 @@ async fn do_accounts_submit_oauth_code_and_modal_dismissal(
 
     main_window
         .global::<AppCallbacks>()
-        .invoke_account_login("rs.sample".into(), "sample_spotify".into());
+        .invoke_account_login("app.moosync.sample".into(), "sample_spotify".into());
 
     let modal_shown = wait_until(|| {
         let oauth = main_window.global::<OAuthState>();
@@ -162,7 +162,7 @@ async fn do_accounts_logout(main_window: MainWindow, state_manager: StateManager
         accounts.row_count() == 1
             && accounts
                 .row_data(0)
-                .is_some_and(|a| a.package_name == "rs.sample" && a.id == "sample_spotify")
+                .is_some_and(|a| a.package_name == "app.moosync.sample" && a.id == "sample_spotify")
     })
     .await;
     assert!(loaded);
@@ -176,7 +176,7 @@ async fn do_accounts_logout(main_window: MainWindow, state_manager: StateManager
 
     main_window
         .global::<AppCallbacks>()
-        .invoke_account_login("rs.sample".into(), "sample_spotify".into());
+        .invoke_account_login("app.moosync.sample".into(), "sample_spotify".into());
 
     let _ = wait_until(|| main_window.global::<OAuthState>().get_show_oauth_modal()).await;
     main_window
@@ -203,7 +203,7 @@ async fn do_accounts_logout(main_window: MainWindow, state_manager: StateManager
 
     main_window
         .global::<AppCallbacks>()
-        .invoke_account_logout("rs.sample".into(), "sample_spotify".into());
+        .invoke_account_logout("app.moosync.sample".into(), "sample_spotify".into());
 
     let logged_out = wait_until(|| {
         main_window
@@ -234,7 +234,7 @@ async fn do_accounts_deep_link_login(main_window: MainWindow, state_manager: Sta
         accounts.row_count() == 1
             && accounts
                 .row_data(0)
-                .is_some_and(|a| a.package_name == "rs.sample" && a.id == "sample_spotify")
+                .is_some_and(|a| a.package_name == "app.moosync.sample" && a.id == "sample_spotify")
     })
     .await;
     assert!(loaded);
@@ -248,7 +248,7 @@ async fn do_accounts_deep_link_login(main_window: MainWindow, state_manager: Sta
 
     main_window
         .global::<AppCallbacks>()
-        .invoke_account_login("rs.sample".into(), "sample_spotify".into());
+        .invoke_account_login("app.moosync.sample".into(), "sample_spotify".into());
 
     let modal_shown = wait_until(|| {
         let oauth = main_window.global::<OAuthState>();
@@ -298,7 +298,7 @@ async fn do_oauth_modal_plain_code_routing(main_window: MainWindow, state_manage
 
     main_window
         .global::<AppCallbacks>()
-        .invoke_account_login("rs.sample".into(), "sample_spotify".into());
+        .invoke_account_login("app.moosync.sample".into(), "sample_spotify".into());
 
     let modal_shown =
         wait_until(|| main_window.global::<OAuthState>().get_show_oauth_modal()).await;
@@ -341,7 +341,7 @@ async fn do_oauth_modal_extra_markdown_pairing(
 
     main_window
         .global::<AppCallbacks>()
-        .invoke_account_login("rs.sample".into(), "sample_spotify".into());
+        .invoke_account_login("app.moosync.sample".into(), "sample_spotify".into());
 
     let modal_shown =
         wait_until(|| main_window.global::<OAuthState>().get_show_oauth_modal()).await;
@@ -396,7 +396,7 @@ async fn do_oauth_modal_error_keeps_modal_open(
 
     main_window
         .global::<AppCallbacks>()
-        .invoke_account_login("rs.sample".into(), "sample_spotify".into());
+        .invoke_account_login("app.moosync.sample".into(), "sample_spotify".into());
 
     let modal_shown =
         wait_until(|| main_window.global::<OAuthState>().get_show_oauth_modal()).await;
@@ -441,7 +441,7 @@ async fn do_oauth_modal_device_code_and_refresh(
 
     main_window
         .global::<AppCallbacks>()
-        .invoke_account_login("rs.sample".into(), "sample_device".into());
+        .invoke_account_login("app.moosync.sample".into(), "sample_device".into());
 
     let device_shown = wait_until(|| {
         let oauth = main_window.global::<OAuthState>();
@@ -499,7 +499,7 @@ async fn do_oauth_modal_click_inside_and_cancel(
 
     main_window
         .global::<AppCallbacks>()
-        .invoke_account_login("rs.sample".into(), "sample_spotify".into());
+        .invoke_account_login("app.moosync.sample".into(), "sample_spotify".into());
 
     let modal_shown =
         wait_until(|| main_window.global::<OAuthState>().get_show_oauth_modal()).await;

@@ -496,13 +496,13 @@ pub mod integration {
         let runfiles_dir = env::var("TEST_SRCDIR").expect("TEST_SRCDIR must be set");
         let candidates = [
             PathBuf::from(&runfiles_dir)
-                .join("_main/sample_extensions/default/sample_extension.msxt"),
+                .join("_main/sample_extensions/default/app.moosync.sample.msxt"),
             PathBuf::from(&runfiles_dir)
-                .join("moosync/sample_extensions/default/sample_extension.msxt"),
+                .join("moosync/sample_extensions/default/app.moosync.sample.msxt"),
             PathBuf::from(&runfiles_dir)
-                .join("moosync_ext+/sample_extensions/default/sample_extension.msxt"),
+                .join("moosync_ext+/sample_extensions/default/app.moosync.sample.msxt"),
             PathBuf::from(&runfiles_dir)
-                .join("moosync_ext/sample_extensions/default/sample_extension.msxt"),
+                .join("moosync_ext/sample_extensions/default/app.moosync.sample.msxt"),
         ];
         candidates
             .iter()
@@ -531,7 +531,7 @@ pub mod integration {
     impl ExtensionFixture {
         #[tracing::instrument(level = "debug", skip_all)]
         pub async fn new(state_manager: &StateManager) -> Self {
-            Self::new_with_name(state_manager, "rs.sample", "Sample Extension").await
+            Self::new_with_name(state_manager, "app.moosync.sample", "Sample Extension").await
         }
 
         #[tracing::instrument(level = "debug", skip_all)]
@@ -539,7 +539,7 @@ pub mod integration {
             Self::new_from_subpath(
                 state_manager,
                 "empty",
-                "rs.sample.empty",
+                "app.moosync.sample.empty",
                 "Empty Sample Extension",
             )
             .await
@@ -610,7 +610,7 @@ pub mod integration {
             };
 
             let manifest = ExtensionManifest {
-                name: package_name.to_string(),
+                package_name: package_name.to_string(),
                 display_name: display_name.to_string(),
                 version: "1.0.0".to_string(),
                 extension_entry: "sample_extension.wasm".to_string(),
@@ -679,13 +679,15 @@ pub mod integration {
             .await
             .unwrap();
 
-            ext_handler.find_new_extensions().unwrap();
+            ext_handler
+                .load_extension(&ext_dir.join("manifest.pb"), true)
+                .unwrap();
             let loaded = wait_until(|| {
                 ext_handler.get_active_extensions().iter().any(|e| {
                     let detail = e.get_extension_detail();
                     e.get_package_name() == package_name
                         && detail.has_started
-                        && (package_name != "rs.sample" || !detail.preferences.is_empty())
+                        && (package_name != "app.moosync.sample" || !detail.preferences.is_empty())
                 })
             })
             .await;

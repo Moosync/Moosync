@@ -25,6 +25,9 @@ fn remote_context() -> TestRemoteContext {
     let tmp_dir = temp_dir.path().join("tmp");
     fs::create_dir_all(&tmp_dir).unwrap();
 
+    let cache_dir = temp_dir.path().join("cache");
+    fs::create_dir_all(&cache_dir).unwrap();
+
     let remote = RemoteExtensions::new(tmp_dir);
     TestRemoteContext {
         _temp_dir: temp_dir,
@@ -40,18 +43,21 @@ async fn test_fetch_registry_success_and_caching(remote_context: TestRemoteConte
     let server = MockServer::start().await;
     let manifest = ExtensionRegistryManifest {
         name: "test_community_registry".to_string(),
+        public_key: None,
         extensions: vec![ExtensionManifest {
             moosync_extension: false,
             display_name: "Discord Integration".to_string(),
             extension_entry: "".to_string(),
             author: None,
-            name: "org.test.discord".to_string(),
+            package_name: "org.test.discord".to_string(),
             version: "1.2.3".to_string(),
             icon: "assets/discord.svg".to_string(),
             permissions: None,
             description: Some("Rich presence for discord".to_string()),
             url: Some("discord.msox".to_string()),
             registry: None,
+            file_hashes: Default::default(),
+            sha256: None,
             scopes: vec![],
         }],
     };
@@ -77,7 +83,7 @@ async fn test_fetch_registry_success_and_caching(remote_context: TestRemoteConte
 
     let item = results
         .iter()
-        .find(|i| i.name == "org.test.discord")
+        .find(|i| i.package_name == "org.test.discord")
         .unwrap();
     assert_eq!(item.display_name, "Discord Integration");
     assert_eq!(item.version, "1.2.3");
@@ -94,18 +100,21 @@ async fn test_fetch_registry_fallback_to_name(remote_context: TestRemoteContext)
     let server = MockServer::start().await;
     let manifest = ExtensionRegistryManifest {
         name: "raw_registry_name".to_string(),
+        public_key: None,
         extensions: vec![ExtensionManifest {
             moosync_extension: false,
             display_name: "Ext".to_string(),
             extension_entry: "".to_string(),
             author: None,
-            name: "org.test.ext".to_string(),
+            package_name: "org.test.ext".to_string(),
             version: "1.0.0".to_string(),
             icon: "".to_string(),
             permissions: None,
             description: None,
             url: Some("ext.msox".to_string()),
             registry: None,
+            file_hashes: Default::default(),
+            sha256: None,
             scopes: vec![],
         }],
     };
@@ -137,19 +146,22 @@ async fn test_fetch_registry_rejects_missing_version(remote_context: TestRemoteC
     let server = MockServer::start().await;
     let manifest = ExtensionRegistryManifest {
         name: "Verified Registry".to_string(),
+        public_key: None,
         extensions: vec![
             ExtensionManifest {
                 moosync_extension: false,
                 display_name: "Valid Ext".to_string(),
                 extension_entry: "".to_string(),
                 author: None,
-                name: "valid.ext".to_string(),
+                package_name: "valid.ext".to_string(),
                 version: "2.0.0".to_string(),
                 icon: "".to_string(),
                 permissions: None,
                 description: None,
                 url: Some("valid.msox".to_string()),
                 registry: None,
+                file_hashes: Default::default(),
+                sha256: None,
                 scopes: vec![],
             },
             ExtensionManifest {
@@ -157,13 +169,15 @@ async fn test_fetch_registry_rejects_missing_version(remote_context: TestRemoteC
                 display_name: "No Version Ext".to_string(),
                 extension_entry: "".to_string(),
                 author: None,
-                name: "invalid.ext".to_string(),
+                package_name: "invalid.ext".to_string(),
                 version: "".to_string(),
                 icon: "".to_string(),
                 permissions: None,
                 description: None,
                 url: Some("invalid.msox".to_string()),
                 registry: None,
+                file_hashes: Default::default(),
+                sha256: None,
                 scopes: vec![],
             },
         ],
@@ -185,7 +199,7 @@ async fn test_fetch_registry_rejects_missing_version(remote_context: TestRemoteC
     let results = results.unwrap();
     assert_len_eq_x!(&results, 1);
     let item = results.into_iter().next().unwrap();
-    assert_eq!(item.name, "valid.ext");
+    assert_eq!(item.package_name, "valid.ext");
 }
 
 #[rstest]
@@ -196,35 +210,41 @@ async fn test_fetch_multiple_registries_and_download(remote_context: TestRemoteC
     let server = MockServer::start().await;
     let reg1 = ExtensionRegistryManifest {
         name: "reg1".to_string(),
+        public_key: None,
         extensions: vec![ExtensionManifest {
             moosync_extension: false,
             display_name: "Extension One".to_string(),
             extension_entry: "".to_string(),
             author: None,
-            name: "ext.one".to_string(),
+            package_name: "ext.one".to_string(),
             version: "1.0.0".to_string(),
             icon: "".to_string(),
             permissions: None,
             description: None,
             url: Some("pkg1.msox".to_string()),
             registry: None,
+            file_hashes: Default::default(),
+            sha256: None,
             scopes: vec![],
         }],
     };
     let reg2 = ExtensionRegistryManifest {
         name: "reg2".to_string(),
+        public_key: None,
         extensions: vec![ExtensionManifest {
             moosync_extension: false,
             display_name: "Extension Two".to_string(),
             extension_entry: "".to_string(),
             author: None,
-            name: "ext.two".to_string(),
+            package_name: "ext.two".to_string(),
             version: "1.0.0".to_string(),
             icon: "".to_string(),
             permissions: None,
             description: None,
             url: Some("pkg2.msox".to_string()),
             registry: None,
+            file_hashes: Default::default(),
+            sha256: None,
             scopes: vec![],
         }],
     };
@@ -258,7 +278,10 @@ async fn test_fetch_multiple_registries_and_download(remote_context: TestRemoteC
     let results = results.unwrap();
     assert_len_eq_x!(&results, 2);
 
-    let ext_one = results.iter().find(|i| i.name == "ext.one").unwrap();
+    let ext_one = results
+        .iter()
+        .find(|i| i.package_name == "ext.one")
+        .unwrap();
     let downloaded_path = remote.download_extension(ext_one.clone()).await;
 
     assert_ok!(downloaded_path.as_ref());
@@ -370,13 +393,15 @@ async fn test_download_extension_http_404_error(remote_context: TestRemoteContex
         display_name: "Broken Extension".to_string(),
         extension_entry: "".to_string(),
         author: None,
-        name: "broken.ext".to_string(),
+        package_name: "broken.ext".to_string(),
         version: "1.0.0".to_string(),
         icon: "".to_string(),
         permissions: None,
         description: Some("Has a broken 404 download link".to_string()),
         url: Some(format!("{}/broken_pkg.msox", server.uri())),
         registry: Some("Test Registry".to_string()),
+        file_hashes: Default::default(),
+        sha256: None,
         scopes: vec![],
     };
 
@@ -404,13 +429,15 @@ async fn test_download_extension_http_500_error(remote_context: TestRemoteContex
         display_name: "Crash Extension".to_string(),
         extension_entry: "".to_string(),
         author: None,
-        name: "crash.ext".to_string(),
+        package_name: "crash.ext".to_string(),
         version: "1.0.0".to_string(),
         icon: "".to_string(),
         permissions: None,
         description: Some("Fails with 500 error".to_string()),
         url: Some(format!("{}/crash_pkg.msox", server.uri())),
         registry: Some("Test Registry".to_string()),
+        file_hashes: Default::default(),
+        sha256: None,
         scopes: vec![],
     };
 
@@ -428,19 +455,22 @@ async fn test_fetch_registry_with_mixed_and_broken_extensions(remote_context: Te
 
     let manifest = ExtensionRegistryManifest {
         name: "fake_server".to_string(),
+        public_key: None,
         extensions: vec![
             ExtensionManifest {
                 moosync_extension: false,
                 display_name: "Fake Spotify Integration".to_string(),
                 extension_entry: "".to_string(),
                 author: None,
-                name: "app.fake.spotify".to_string(),
+                package_name: "app.fake.spotify".to_string(),
                 version: "2.1.0".to_string(),
                 icon: "icons/spotify_logo.png".to_string(),
                 permissions: None,
                 description: Some("Stream metadata and controls from fake spotify".to_string()),
                 url: Some("downloads/spotify.msox".to_string()),
                 registry: None,
+                file_hashes: Default::default(),
+                sha256: None,
                 scopes: vec![],
             },
             ExtensionManifest {
@@ -448,13 +478,15 @@ async fn test_fetch_registry_with_mixed_and_broken_extensions(remote_context: Te
                 display_name: "Broken Missing Version".to_string(),
                 extension_entry: "".to_string(),
                 author: None,
-                name: "app.fake.broken_version".to_string(),
+                package_name: "app.fake.broken_version".to_string(),
                 version: "".to_string(),
                 icon: "".to_string(),
                 permissions: None,
                 description: None,
                 url: Some("broken.msox".to_string()),
                 registry: None,
+                file_hashes: Default::default(),
+                sha256: None,
                 scopes: vec![],
             },
             ExtensionManifest {
@@ -462,13 +494,15 @@ async fn test_fetch_registry_with_mixed_and_broken_extensions(remote_context: Te
                 display_name: "Absolute URLs Extension".to_string(),
                 extension_entry: "".to_string(),
                 author: None,
-                name: "app.fake.absolute_urls".to_string(),
+                package_name: "app.fake.absolute_urls".to_string(),
                 version: "3.0.0".to_string(),
                 icon: "https://cdn.example.com/icon.svg".to_string(),
                 permissions: None,
                 description: None,
                 url: Some("https://cdn.example.com/download.msox".to_string()),
                 registry: None,
+                file_hashes: Default::default(),
+                sha256: None,
                 scopes: vec![],
             },
         ],
@@ -492,7 +526,7 @@ async fn test_fetch_registry_with_mixed_and_broken_extensions(remote_context: Te
 
     let spotify = results
         .iter()
-        .find(|i| i.name == "app.fake.spotify")
+        .find(|i| i.package_name == "app.fake.spotify")
         .unwrap();
     assert_eq!(spotify.display_name, "Fake Spotify Integration");
     assert_eq!(spotify.version, "2.1.0");
@@ -508,7 +542,7 @@ async fn test_fetch_registry_with_mixed_and_broken_extensions(remote_context: Te
 
     let absolute = results
         .iter()
-        .find(|i| i.name == "app.fake.absolute_urls")
+        .find(|i| i.package_name == "app.fake.absolute_urls")
         .unwrap();
     assert_eq!(absolute.display_name, "Absolute URLs Extension");
     assert_eq!(absolute.icon, "https://cdn.example.com/icon.svg");

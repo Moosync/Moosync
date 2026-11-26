@@ -18,6 +18,29 @@ pub enum ExtensionError {
     #[error("Not a valid extension")]
     NotAnExtension,
 
+    #[error("Invalid package name '{0}': must be reverse-domain (e.g. 'app.moosync.spotify')")]
+    InvalidPackageName(String),
+
+    #[error("Extension hash mismatch: expected {expected}, got {actual}")]
+    HashMismatch { expected: String, actual: String },
+
+    #[error("Invalid extension signature: {0}")]
+    InvalidSignature(String),
+
+    #[error("Extension signature is missing or untrusted")]
+    MissingSignature,
+
+    #[error(
+        "Update signing key mismatch for '{0}': please remove the existing extension and install the new one manually"
+    )]
+    UpdateSigningKeyMismatch(String),
+
+    #[error("Extension '{}' is unsigned and requires user approval", .manifest.package_name)]
+    UnsignedExtension {
+        manifest: Box<extensions_proto::moosync::types::ExtensionManifest>,
+        manifest_path: std::path::PathBuf,
+    },
+
     #[error("Extension not found")]
     NoExtensionFound,
 

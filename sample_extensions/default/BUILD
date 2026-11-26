@@ -4,7 +4,7 @@ package(default_visibility = ["//visibility:public"])
 
 rust_extension(
     name = "sample_extension",
-    package_name = "rs.sample",
+    package_name = "app.moosync.sample",
     srcs = ["src/lib.rs"],
     allowed_hosts = [
         {

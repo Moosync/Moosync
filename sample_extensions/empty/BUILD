@@ -4,7 +4,7 @@ package(default_visibility = ["//visibility:public"])
 
 rust_extension(
     name = "sample_extension",
-    package_name = "rs.sample.empty",
+    package_name = "app.moosync.sample.empty",
     srcs = ["src/lib.rs"],
     display_name = "Empty Sample Extension (Rust)",
     scopes = [

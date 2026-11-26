@@ -1385,7 +1385,7 @@ async fn do_mobile_topbar_context_menu_extensions(
         database
             .get_playlists(
                 Playlist {
-                    playlist_id: Some("rs.sample:ctx_action_playlist".into()),
+                    playlist_id: Some("app.moosync.sample:ctx_action_playlist".into()),
                     ..Default::default()
                 },
                 false,

@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use assertables::{assert_is_empty, assert_len_eq_x, assert_none, assert_ok, assert_some_eq_x};
-use extensions::ReplyHandler;
+use extensions::{RegistryKeyStorage, ReplyHandler};
 use extensions_proto::moosync::types::{PlayerState, SystemTimeRequest};
 use rstest::{fixture, rstest};
 use songs_proto::moosync::types::{
@@ -11,7 +11,9 @@ use tempdir::TempDir;
 use tracing_test::traced_test;
 use types::{plugin::PluginContext, prelude::SongsExt};
 
-use crate::{StateManager, reply_handler::StateReplyHandler};
+use crate::{
+    StateManager, hooks::registries::PrefsRegistryKeyStorage, reply_handler::StateReplyHandler,
+};
 
 struct TestReplyContext {
     pub _temp_dir: TempDir,
@@ -185,6 +187,57 @@ async fn test_reply_handler_set_and_get_secure(reply_context: TestReplyContext) 
 
     assert_ok!(loaded.as_ref());
     assert_eq!(loaded.unwrap().unwrap().kind, sec_val.kind);
+}
+
+#[rstest]
+#[tokio::test(flavor = "multi_thread")]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_registry_key_store_uses_secure_storage(reply_context: TestReplyContext) {
+    if std::process::Command::new("gpg")
+        .arg("--version")
+        .output()
+        .is_err()
+    {
+        return;
+    }
+
+    let TestReplyContext { _temp_dir, sm, .. } = reply_context;
+    let gnupg = _temp_dir.path().join("gnupg_sec_store");
+    std::fs::create_dir_all(&gnupg).unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&gnupg, std::fs::Permissions::from_mode(0o700)).unwrap();
+    }
+    let cfg = _temp_dir.path().join("sec_store.cfg");
+    std::fs::write(
+        &cfg,
+        "%no-protection\nKey-Type: eddsa\nKey-Curve: ed25519\nName-Real: Moosync\nName-Email: sec@moosync.app\n%commit\n",
+    )
+    .unwrap();
+    assert!(
+        std::process::Command::new("gpg")
+            .env("GNUPGHOME", &gnupg)
+            .args(["--batch", "--gen-key", cfg.to_str().unwrap()])
+            .output()
+            .unwrap()
+            .status
+            .success()
+    );
+    let pub_key = std::process::Command::new("gpg")
+        .env("GNUPGHOME", &gnupg)
+        .args(["--batch", "--armor", "--export"])
+        .output()
+        .unwrap()
+        .stdout;
+
+    let store = PrefsRegistryKeyStorage(sm.get_preference_config().inner.clone());
+    let url = "https://secure-registry.example/manifest.pb";
+    store.set_registry_key(url, &pub_key).unwrap();
+
+    assert_eq!(store.get_registry_key(url).unwrap().unwrap(), pub_key);
+    assert_eq!(store.list_registry_keys().unwrap(), vec![pub_key]);
+    assert!(!_temp_dir.path().join("registry_keys").exists());
 }
 
 #[rstest]

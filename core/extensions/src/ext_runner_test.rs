@@ -171,10 +171,12 @@ async fn test_ext_runner_dynamic_extension_installation(runner_context: TestRunn
     fs::create_dir_all(&ext1_path).unwrap();
 
     let manifest1 = extensions_proto::moosync::types::ExtensionManifest {
-        name: "ext.one".to_string(),
+        package_name: "app.test.one".to_string(),
         display_name: "Extension One".to_string(),
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
+        file_hashes: Default::default(),
+        sha256: None,
         scopes: vec![extensions_proto::moosync::types::ScopePermission {
             scope: extensions_proto::moosync::types::ExtensionProviderScope::Search as i32,
             justification: "Search".to_string(),
@@ -189,22 +191,31 @@ async fn test_ext_runner_dynamic_extension_installation(runner_context: TestRunn
     fs::write(ext1_path.join("main.wasm"), b"wasm bytes").unwrap();
 
     let reply_handler = Arc::new(DummyReply);
-    runner.spawn_extensions(reply_handler.clone());
+    runner
+        .spawn_single_extension(
+            &ext1_path.join("manifest.pb"),
+            reply_handler.clone(),
+            &[],
+            true,
+        )
+        .unwrap();
 
     let installed_first = runner.get_installed_extensions();
     assert_len_eq_x!(&installed_first, 1);
-    assert_eq!(installed_first[0].package_name, "ext.one");
+    assert_eq!(installed_first[0].package_name, "app.test.one");
 
-    let ext1_arc_first = runner.get_extension("ext.one").unwrap();
+    let ext1_arc_first = runner.get_extension("app.test.one").unwrap();
 
     let ext2_path = ext_dir.join("ext_two");
     fs::create_dir_all(&ext2_path).unwrap();
 
     let manifest2 = extensions_proto::moosync::types::ExtensionManifest {
-        name: "ext.two".to_string(),
+        package_name: "app.test.two".to_string(),
         display_name: "Extension Two".to_string(),
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
+        file_hashes: Default::default(),
+        sha256: None,
         scopes: vec![extensions_proto::moosync::types::ScopePermission {
             scope: extensions_proto::moosync::types::ExtensionProviderScope::Playlists as i32,
             justification: "Playlists".to_string(),
@@ -218,20 +229,22 @@ async fn test_ext_runner_dynamic_extension_installation(runner_context: TestRunn
     .unwrap();
     fs::write(ext2_path.join("main.wasm"), b"wasm bytes").unwrap();
 
-    runner.spawn_extensions(reply_handler);
+    runner
+        .spawn_single_extension(&ext2_path.join("manifest.pb"), reply_handler, &[], true)
+        .unwrap();
 
     let installed_second = runner.get_installed_extensions();
     assert_len_eq_x!(&installed_second, 2);
 
-    let ext1_arc_second = runner.get_extension("ext.one").unwrap();
-    let ext2_arc = runner.get_extension("ext.two").unwrap();
+    let ext1_arc_second = runner.get_extension("app.test.one").unwrap();
+    let ext2_arc = runner.get_extension("app.test.two").unwrap();
 
     assert!(Arc::ptr_eq(&ext1_arc_first, &ext1_arc_second));
-    assert_eq!(ext2_arc.manifest.name, "ext.two");
+    assert_eq!(ext2_arc.manifest.package_name, "app.test.two");
 
-    runner.remove_extension("ext.one");
+    runner.remove_extension("app.test.one");
     assert_len_eq_x!(&runner.get_installed_extensions(), 1);
-    assert!(runner.get_extension("ext.one").is_err());
+    assert!(runner.get_extension("app.test.one").is_err());
 }
 
 #[rstest]
@@ -242,9 +255,11 @@ fn test_ext_runner_missing_and_direct_manifests(runner_context: TestRunnerContex
     let ext_dir = _temp_dir.path().join("exts");
 
     let manifest = extensions_proto::moosync::types::ExtensionManifest {
-        name: "direct.ext".to_string(),
+        package_name: "direct.ext".to_string(),
         display_name: "Direct Ext".to_string(),
         version: "1.0.0".to_string(),
+        file_hashes: Default::default(),
+        sha256: None,
         ..Default::default()
     };
     fs::write(
@@ -258,7 +273,7 @@ fn test_ext_runner_missing_and_direct_manifests(runner_context: TestRunnerContex
     fs::write(invalid_dir.join("manifest.pb"), b"corrupt bytes").unwrap();
 
     let reply_handler = Arc::new(DummyReply);
-    runner.spawn_extensions(reply_handler);
+    runner.spawn_extensions(reply_handler, &[]);
 
     let non_existent_runner = ExtensionHandlerInner::new(
         _temp_dir.path().join("does_not_exist"),

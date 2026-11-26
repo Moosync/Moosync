@@ -394,6 +394,22 @@
         ]
       }
     },
+    "@@extensions_sdk+//:signing.bzl%signing": {
+      "general": {
+        "bzlTransitiveDigest": "GCtNAVn2bKOLp5sO0xuUsk5KygRyrfSvnMDSgdiUZws=",
+        "usagesDigest": "LggmC3o7Uqc+N4MK1o2/39HVcztM+GU1NnJ6WARR5uM=",
+        "recordedFileInputs": {},
+        "recordedDirentsInputs": {},
+        "envVariables": {},
+        "generatedRepoSpecs": {
+          "signing_config": {
+            "repoRuleId": "@@extensions_sdk+//:signing.bzl%_signing_config_repo",
+            "attributes": {}
+          }
+        },
+        "recordedRepoMappingEntries": []
+      }
+    },
     "@@protobuf+//python/dist:system_python.bzl%system_python_extension": {
       "general": {
         "bzlTransitiveDigest": "qh0n9IrXU/xS94wxKQrG1J63zrLkA1Wy2Y3BQxptPcI=",

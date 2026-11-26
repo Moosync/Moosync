@@ -196,6 +196,7 @@ message RequestedSearchResultResponse {
 
 message RequestedRecommendationsRequest {
   bool refresh = 1;
+  repeated Song related_songs = 2;
 }
 
 message RequestedRecommendationsResponse {
@@ -696,7 +697,7 @@ message ExtensionManifest {
   string display_name = 2;
   string extension_entry = 3;
   optional string author = 4;
-  string name = 5;
+  string package_name = 5;
   string version = 6;
   string icon = 7;
   optional ManifestPermissions permissions = 8;
@@ -704,6 +705,8 @@ message ExtensionManifest {
   optional string url = 10;
   optional string registry = 11;
   repeated ScopePermission scopes = 12;
+  map<string, string> file_hashes = 13;
+  optional string sha256 = 14;
 }
 
 message ExtensionDetail {
@@ -734,6 +737,7 @@ message ExtensionAccountDetail {
 message ExtensionRegistryManifest {
   string name = 1;
   repeated ExtensionManifest extensions = 2;
+  optional bytes public_key = 3;
 }
 
 enum ExtensionProviderScope {

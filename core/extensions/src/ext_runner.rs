@@ -2,12 +2,19 @@ use std::{
     collections::{HashMap, HashSet},
     fs,
     path::{Path, PathBuf},
-    sync::{Arc, RwLock},
+    sync::{Arc, RwLock, atomic::AtomicBool},
 };
 
-use extensions_proto::moosync::types::ExtensionDetail;
+use extensions_proto::moosync::types::{ExtensionDetail, ExtensionManifest};
 
 use crate::{MANIFEST_FILE, context::ReplyHandler, errors::ExtensionError, extension::Extension};
+
+/// Unsigned extension awaiting user approval before being spawned.
+#[derive(Debug, Clone)]
+pub struct UnsignedExtension {
+    pub manifest: ExtensionManifest,
+    pub manifest_path: PathBuf,
+}
 
 pub(crate) struct ExtensionHandlerInner {
     extensions_path: String,
@@ -64,65 +71,84 @@ impl ExtensionHandlerInner {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn spawn_extensions(&self, reply_handler: Arc<dyn ReplyHandler>) {
+    pub fn spawn_extensions(
+        &self,
+        reply_handler: Arc<dyn ReplyHandler>,
+        keys: &[Vec<u8>],
+    ) -> Vec<UnsignedExtension> {
         let manifests = self.find_extension_manifests();
         let existing_names: HashSet<String> = {
             let map = self.extensions_map.read().unwrap();
             map.keys().cloned().collect()
         };
-
+        let mut unsigned_prompts = Vec::new();
         for manifest_path in manifests {
-            let manifest = match Extension::read_manifest(&manifest_path) {
-                Ok(m) => m,
-                Err(e) => {
-                    tracing::error!("Error reading manifest {:?}: {:?}", manifest_path, e);
-                    continue;
-                }
-            };
-            if existing_names.contains(&manifest.name) {
-                continue;
+            if let Some(unsigned) =
+                self.spawn_manifest_if_new(&manifest_path, &existing_names, &reply_handler, keys)
+            {
+                unsigned_prompts.push(unsigned);
             }
-            match Extension::new(
-                &manifest_path,
-                reply_handler.clone(),
-                self.cache_path.clone(),
-                Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            ) {
-                Ok(extension) => {
-                    let mut extensions_map = self.extensions_map.write().unwrap();
-                    extensions_map.insert(
-                        extension.get_package_name().to_string(),
-                        Arc::new(extension),
-                    );
-                }
-                Err(e) => tracing::error!("Error spawning extension {:?}: {:?}", manifest_path, e),
+        }
+        unsigned_prompts
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn spawn_manifest_if_new(
+        &self,
+        manifest_path: &Path,
+        existing_names: &HashSet<String>,
+        reply_handler: &Arc<dyn ReplyHandler>,
+        keys: &[Vec<u8>],
+    ) -> Option<UnsignedExtension> {
+        let raw_manifest = match Extension::read_manifest(manifest_path) {
+            Ok(m) => m,
+            Err(e) => {
+                tracing::error!("Error reading manifest {:?}: {:?}", manifest_path, e);
+                return None;
+            }
+        };
+        if existing_names.contains(&raw_manifest.package_name) {
+            return None;
+        }
+
+        match self.spawn_single_extension(manifest_path, reply_handler.clone(), keys, false) {
+            Ok(()) => None,
+            Err(ExtensionError::UnsignedExtension {
+                manifest,
+                manifest_path,
+            }) => Some(UnsignedExtension {
+                manifest: *manifest,
+                manifest_path,
+            }),
+            Err(e) => {
+                tracing::error!("Error spawning extension {:?}: {:?}", manifest_path, e);
+                None
             }
         }
     }
 
-    /*
-    #[cfg(test)]
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn spawn_single_extension(
         &self,
-        manifest_path: &std::path::Path,
+        manifest_path: &Path,
         reply_handler: Arc<dyn ReplyHandler>,
+        keys: &[Vec<u8>],
+        allow_unsigned: bool,
     ) -> Result<(), ExtensionError> {
-        let manifest = Extension::read_manifest(manifest_path)?;
-        let package_name = manifest.name.clone();
-        let has_started = Arc::new(std::sync::atomic::AtomicBool::new(false));
-        let extension = Extension::new(
+        let extension = Extension::new_verified(
             manifest_path,
             reply_handler,
-            active,
             self.cache_path.clone(),
-            has_started,
+            Arc::new(AtomicBool::new(false)),
+            keys,
+            allow_unsigned,
         )?;
-        let mut extension_map = self.extensions_map.lock().unwrap();
-        extension_map.insert(package_name, extension);
+        self.extensions_map.write().unwrap().insert(
+            extension.get_package_name().to_string(),
+            Arc::new(extension),
+        );
         Ok(())
     }
-    */
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_installed_extensions(&self) -> Vec<ExtensionDetail> {
@@ -145,7 +171,7 @@ impl ExtensionHandlerInner {
         extensions_map
             .get(package_name)
             .cloned()
-            .ok_or_else(|| ExtensionError::NoExtensionFound)
+            .ok_or(ExtensionError::NoExtensionFound)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -159,15 +185,5 @@ impl ExtensionHandlerInner {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn shutdown(&self) {
-        let drained: Vec<Arc<Extension>> = {
-            let mut extensions_map = self.extensions_map.write().unwrap();
-            extensions_map.drain().map(|(_, ext)| ext).collect()
-        };
-        for ext in drained {
-            ext.process_manager.kill_all();
-            ext.socket_manager.close_all();
-            ext.ws_manager.close_all();
-        }
-    }
+    pub fn shutdown(&self) { self.extensions_map.write().unwrap().clear(); }
 }

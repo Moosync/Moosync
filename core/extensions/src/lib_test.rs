@@ -9,7 +9,7 @@ use tempdir::TempDir;
 use tracing_test::traced_test;
 use zip_extensions::zip_writer::zip_create_from_directory;
 
-use crate::{ExtensionHandler, ReplyHandler, errors::ExtensionError};
+use crate::{ExtensionHandler, RegistryKeyStorage, ReplyHandler, errors::ExtensionError};
 
 struct DummyReply;
 impl ReplyHandler for DummyReply {
@@ -168,15 +168,17 @@ async fn test_extension_handler_init_and_get_all(handler_context: TestHandlerCon
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_extension_handler_check_for_updates_v1(handler_context: TestHandlerContext) {
-    let ext_dir = handler_context.handler.extensions_dir.join("test_ext");
+    let ext_dir = handler_context.handler.extensions_dir.join("app.test.ext");
     fs::create_dir_all(&ext_dir).unwrap();
     let manifest = extensions_proto::moosync::types::ExtensionManifest {
-        name: "test_ext".to_string(),
+        package_name: "app.test.ext".to_string(),
         display_name: "Test Extension".to_string(),
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
         icon: "icon.png".to_string(),
         author: Some("Tester".to_string()),
+        file_hashes: Default::default(),
+        sha256: None,
         ..Default::default()
     };
     fs::write(
@@ -194,20 +196,25 @@ fn test_extension_handler_check_for_updates_v1(handler_context: TestHandlerConte
         prost::Message::encode_to_vec(&lock_data),
     )
     .unwrap();
-    handler_context.handler.find_new_extensions().unwrap();
+    handler_context
+        .handler
+        .load_extension(&ext_dir.join("manifest.pb"), true)
+        .unwrap();
 
     let remote_manifests = vec![extensions_proto::moosync::types::ExtensionManifest {
         moosync_extension: false,
         display_name: "Test Extension".to_string(),
         extension_entry: "".to_string(),
         author: None,
-        name: "test_ext".to_string(),
+        package_name: "app.test.ext".to_string(),
         version: "1.1.0".to_string(),
         icon: "".to_string(),
         permissions: None,
         description: None,
         url: Some("https://example.com/test_ext.msxt".to_string()),
         registry: Some("default".to_string()),
+        file_hashes: Default::default(),
+        sha256: None,
         scopes: vec![],
     }];
     handler_context
@@ -220,7 +227,7 @@ fn test_extension_handler_check_for_updates_v1(handler_context: TestHandlerConte
     assert!(has_updates);
     assert!(handler_context.handler.has_updates());
     assert_eq!(updatables.len(), 1);
-    assert_eq!(updatables[0].name, "test_ext");
+    assert_eq!(updatables[0].package_name, "app.test.ext");
     assert_eq!(updatables[0].version, "1.1.0");
 }
 
@@ -228,15 +235,17 @@ fn test_extension_handler_check_for_updates_v1(handler_context: TestHandlerConte
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_extension_handler_check_for_updates_older_remote(handler_context: TestHandlerContext) {
-    let ext_dir = handler_context.handler.extensions_dir.join("test_ext");
+    let ext_dir = handler_context.handler.extensions_dir.join("app.test.ext");
     fs::create_dir_all(&ext_dir).unwrap();
     let manifest = extensions_proto::moosync::types::ExtensionManifest {
-        name: "test_ext".to_string(),
+        package_name: "app.test.ext".to_string(),
         display_name: "Test Extension".to_string(),
         version: "1.2.0".to_string(),
         extension_entry: "main.wasm".to_string(),
         icon: "icon.png".to_string(),
         author: Some("Tester".to_string()),
+        file_hashes: Default::default(),
+        sha256: None,
         ..Default::default()
     };
     fs::write(
@@ -254,20 +263,25 @@ fn test_extension_handler_check_for_updates_older_remote(handler_context: TestHa
         prost::Message::encode_to_vec(&lock_data),
     )
     .unwrap();
-    handler_context.handler.find_new_extensions().unwrap();
+    handler_context
+        .handler
+        .load_extension(&ext_dir.join("manifest.pb"), true)
+        .unwrap();
 
     let remote_manifests = vec![extensions_proto::moosync::types::ExtensionManifest {
         moosync_extension: false,
         display_name: "Test Extension".to_string(),
         extension_entry: "".to_string(),
         author: None,
-        name: "test_ext".to_string(),
+        package_name: "app.test.ext".to_string(),
         version: "1.1.0".to_string(),
         icon: "".to_string(),
         permissions: None,
         description: None,
         url: Some("https://example.com/test_ext.msxt".to_string()),
         registry: Some("default".to_string()),
+        file_hashes: Default::default(),
+        sha256: None,
         scopes: vec![],
     }];
     handler_context
@@ -299,15 +313,17 @@ async fn test_extension_handler_update_all_extensions_no_updates(
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_extension_handler_update_all_extensions_failed(handler_context: TestHandlerContext) {
-    let ext_dir = handler_context.handler.extensions_dir.join("test_ext");
+    let ext_dir = handler_context.handler.extensions_dir.join("app.test.ext");
     fs::create_dir_all(&ext_dir).unwrap();
     let manifest = extensions_proto::moosync::types::ExtensionManifest {
-        name: "test_ext".to_string(),
+        package_name: "app.test.ext".to_string(),
         display_name: "Test Extension".to_string(),
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
         icon: "icon.png".to_string(),
         author: Some("Tester".to_string()),
+        file_hashes: Default::default(),
+        sha256: None,
         ..Default::default()
     };
     fs::write(
@@ -325,20 +341,25 @@ async fn test_extension_handler_update_all_extensions_failed(handler_context: Te
         prost::Message::encode_to_vec(&lock_data),
     )
     .unwrap();
-    handler_context.handler.find_new_extensions().unwrap();
+    handler_context
+        .handler
+        .load_extension(&ext_dir.join("manifest.pb"), true)
+        .unwrap();
 
     let remote_manifests = vec![extensions_proto::moosync::types::ExtensionManifest {
         moosync_extension: false,
         display_name: "Test Extension".to_string(),
         extension_entry: "".to_string(),
         author: None,
-        name: "test_ext".to_string(),
+        package_name: "app.test.ext".to_string(),
         version: "1.1.0".to_string(),
         icon: "".to_string(),
         permissions: None,
         description: None,
         url: Some("http://127.0.0.1:9/non_existent.msxt".to_string()),
         registry: Some("default".to_string()),
+        file_hashes: Default::default(),
+        sha256: None,
         scopes: vec![],
     }];
     handler_context
@@ -368,7 +389,9 @@ fn test_extension_info_methods_and_traits() {
         });
     let remote_info =
         crate::ExtensionInfo::Remote(extensions_proto::moosync::types::ExtensionManifest {
-            name: "test.pkg".to_string(),
+            package_name: "test.pkg".to_string(),
+            file_hashes: Default::default(),
+            sha256: None,
             ..Default::default()
         });
     let path_info = crate::ExtensionInfo::LocalPath(std::path::PathBuf::from("/some/path"));
@@ -408,10 +431,12 @@ async fn test_extension_handler_get_active_and_toggle(handler_context: TestHandl
     let ext_dir = handler_context.handler.extensions_dir.join("active_ext");
     fs::create_dir_all(&ext_dir).unwrap();
     let manifest = extensions_proto::moosync::types::ExtensionManifest {
-        name: "active_ext".to_string(),
+        package_name: "app.test.active".to_string(),
         display_name: "Active Extension".to_string(),
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
+        file_hashes: Default::default(),
+        sha256: None,
         scopes: vec![extensions_proto::moosync::types::ScopePermission {
             scope: extensions_proto::moosync::types::ExtensionProviderScope::Search as i32,
             justification: "Search".to_string(),
@@ -426,12 +451,12 @@ async fn test_extension_handler_get_active_and_toggle(handler_context: TestHandl
     fs::write(ext_dir.join("main.wasm"), b"wasm bytes").unwrap();
 
     let handler = &handler_context.handler;
-    handler.find_new_extensions().unwrap();
+    handler
+        .load_extension(&ext_dir.join("manifest.pb"), true)
+        .unwrap();
 
-    let ext = handler.get_extension("active_ext");
-    let ext_mut = handler.get_extension_mut("active_ext");
+    let ext = handler.get_extension("app.test.active");
     assert!(ext.is_ok());
-    assert!(ext_mut.is_ok());
 
     let scoped = handler
         .get_extensions_with_scope(extensions_proto::moosync::types::ExtensionProviderScope::Search)
@@ -447,7 +472,7 @@ async fn test_extension_handler_get_active_and_toggle(handler_context: TestHandl
     let detail = ext_arc.get_extension_detail();
     let toggle_res = handler.toggle_extension(crate::ExtensionInfo::Local(detail));
     assert!(toggle_res.is_ok());
-    assert!(handler.get_extension("active_ext").is_err());
+    assert!(handler.get_extension("app.test.active").is_err());
 
     let invalid_toggle = handler.toggle_extension(crate::ExtensionInfo::Remote(manifest));
     assert!(invalid_toggle.is_err());
@@ -464,10 +489,12 @@ async fn test_extension_version_and_installation(handler_context: TestHandlerCon
     fs::create_dir_all(&valid_dir).unwrap();
     let manifest = extensions_proto::moosync::types::ExtensionManifest {
         moosync_extension: true,
-        name: "zip_ext".to_string(),
+        package_name: "app.test.zip".to_string(),
         display_name: "Zip Extension".to_string(),
         version: "2.3.4".to_string(),
         extension_entry: "main.wasm".to_string(),
+        file_hashes: Default::default(),
+        sha256: None,
         ..Default::default()
     };
     fs::write(
@@ -492,7 +519,7 @@ async fn test_extension_version_and_installation(handler_context: TestHandlerCon
         .await;
     assert!(zip_install.is_ok());
 
-    let installed_ext = handler.get_extension("zip_ext");
+    let installed_ext = handler.get_extension("app.test.zip");
     assert!(installed_ext.is_ok());
 
     let remote_fetch_res = handler
@@ -509,13 +536,17 @@ fn test_check_for_updates_invalid_semver_edge_cases(handler_context: TestHandler
 
     let remote_manifests = vec![
         extensions_proto::moosync::types::ExtensionManifest {
-            name: "uninstalled_ext".to_string(),
+            package_name: "uninstalled_ext".to_string(),
             version: "1.0.0".to_string(),
+            file_hashes: Default::default(),
+            sha256: None,
             ..Default::default()
         },
         extensions_proto::moosync::types::ExtensionManifest {
-            name: "bad_remote_ver".to_string(),
+            package_name: "bad_remote_ver".to_string(),
             version: "invalid-semver".to_string(),
+            file_hashes: Default::default(),
+            sha256: None,
             ..Default::default()
         },
     ];
@@ -532,10 +563,12 @@ fn test_remove_extension_mismatched_dir_name(handler_context: TestHandlerContext
     let ext_dir = handler.extensions_dir.join("mismatched_dir");
     fs::create_dir_all(&ext_dir).unwrap();
     let manifest = extensions_proto::moosync::types::ExtensionManifest {
-        name: "actual.package.name".to_string(),
+        package_name: "actual.package.name".to_string(),
         display_name: "Mismatched Dir Extension".to_string(),
         version: "1.0.0".to_string(),
         extension_entry: "main.wasm".to_string(),
+        file_hashes: Default::default(),
+        sha256: None,
         ..Default::default()
     };
     fs::write(
@@ -544,7 +577,9 @@ fn test_remove_extension_mismatched_dir_name(handler_context: TestHandlerContext
     )
     .unwrap();
     fs::write(ext_dir.join("main.wasm"), b"wasm bytes").unwrap();
-    handler.find_new_extensions().unwrap();
+    handler
+        .load_extension(&ext_dir.join("manifest.pb"), true)
+        .unwrap();
 
     handler
         .remove_extension("actual.package.name".to_string())
@@ -552,4 +587,168 @@ fn test_remove_extension_mismatched_dir_name(handler_context: TestHandlerContext
 
     assert!(!ext_dir.exists());
     assert!(handler.get_extension("actual.package.name").is_err());
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_update_signing_key_mismatch_and_match(handler_context: TestHandlerContext) {
+    if std::process::Command::new("gpg")
+        .arg("--version")
+        .output()
+        .is_err()
+    {
+        return;
+    }
+
+    let handler = &handler_context.handler;
+    let temp = TempDir::new("update_key_mismatch_test").unwrap();
+
+    let make_key = |sub: &str| -> (std::path::PathBuf, Vec<u8>) {
+        let gnupg = temp.path().join(sub);
+        fs::create_dir_all(&gnupg).unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(&gnupg, fs::Permissions::from_mode(0o700)).unwrap();
+        }
+        let cfg = temp.path().join(format!("{sub}.cfg"));
+        fs::write(
+            &cfg,
+            "%no-protection\nKey-Type: eddsa\nKey-Curve: ed25519\nName-Real: Test\nName-Email: test@moosync.app\n%commit\n",
+        )
+        .unwrap();
+        assert!(
+            std::process::Command::new("gpg")
+                .env("GNUPGHOME", &gnupg)
+                .args(["--batch", "--gen-key", cfg.to_str().unwrap()])
+                .output()
+                .unwrap()
+                .status
+                .success()
+        );
+        let pub_bytes = std::process::Command::new("gpg")
+            .env("GNUPGHOME", &gnupg)
+            .args(["--batch", "--armor", "--export"])
+            .output()
+            .unwrap()
+            .stdout;
+        (gnupg, pub_bytes)
+    };
+
+    let (gnupg1, pub1) = make_key("k1");
+    let (gnupg2, pub2) = make_key("k2");
+
+    #[derive(Default)]
+    struct TestKeyStorage(std::sync::Mutex<std::collections::HashMap<String, Vec<u8>>>);
+    impl RegistryKeyStorage for TestKeyStorage {
+        #[tracing::instrument(level = "debug", skip_all)]
+        fn get_registry_key(&self, registry_url: &str) -> Result<Option<Vec<u8>>, ExtensionError> {
+            Ok(self.0.lock().unwrap().get(registry_url).cloned())
+        }
+        #[tracing::instrument(level = "debug", skip_all)]
+        fn set_registry_key(
+            &self,
+            registry_url: &str,
+            public_key: &[u8],
+        ) -> Result<(), ExtensionError> {
+            self.0
+                .lock()
+                .unwrap()
+                .insert(registry_url.to_string(), public_key.to_vec());
+            Ok(())
+        }
+        #[tracing::instrument(level = "debug", skip_all)]
+        fn remove_registry_key(&self, registry_url: &str) -> Result<(), ExtensionError> {
+            self.0.lock().unwrap().remove(registry_url);
+            Ok(())
+        }
+        #[tracing::instrument(level = "debug", skip_all)]
+        fn list_registry_keys(&self) -> Result<Vec<Vec<u8>>, ExtensionError> {
+            Ok(self.0.lock().unwrap().values().cloned().collect())
+        }
+    }
+
+    let key_store = Arc::new(TestKeyStorage::default());
+    key_store
+        .set_registry_key("https://reg1.example/manifest.pb", &pub1)
+        .unwrap();
+    key_store
+        .set_registry_key("https://reg2.example/manifest.pb", &pub2)
+        .unwrap();
+    handler.set_registry_key_storage(key_store);
+
+    let build_signed_msxt = |ver: &str, gnupg: &std::path::Path| -> std::path::PathBuf {
+        let dir = temp.path().join(format!(
+            "pkg_{ver}_{}",
+            gnupg.file_name().unwrap().to_str().unwrap()
+        ));
+        fs::create_dir_all(&dir).unwrap();
+        let wasm = b"wasm bytes";
+        fs::write(dir.join("main.wasm"), wasm).unwrap();
+        let mut hashes = std::collections::HashMap::new();
+        hashes.insert(
+            "main.wasm".to_string(),
+            crate::signing::compute_sha256_hex(wasm),
+        );
+        let manifest = extensions_proto::moosync::types::ExtensionManifest {
+            moosync_extension: true,
+            package_name: "app.test.signed_update".to_string(),
+            display_name: "Signed Update".to_string(),
+            version: ver.to_string(),
+            extension_entry: "main.wasm".to_string(),
+            file_hashes: hashes,
+            ..Default::default()
+        };
+        let manifest_path = dir.join(crate::MANIFEST_FILE);
+        fs::write(&manifest_path, prost::Message::encode_to_vec(&manifest)).unwrap();
+        let sig_path = dir.join(crate::MANIFEST_SIGNATURE_FILE);
+        assert!(
+            std::process::Command::new("gpg")
+                .env("GNUPGHOME", gnupg)
+                .args([
+                    "--batch",
+                    "--yes",
+                    "--detach-sign",
+                    "--armor",
+                    "-o",
+                    sig_path.to_str().unwrap(),
+                    manifest_path.to_str().unwrap(),
+                ])
+                .output()
+                .unwrap()
+                .status
+                .success()
+        );
+        let zip_path = temp.path().join(format!("ext_{ver}.msxt"));
+        zip_create_from_directory(&zip_path, &dir).unwrap();
+        zip_path
+    };
+
+    let v1_msxt = build_signed_msxt("1.0.0", &gnupg1);
+    handler
+        .install_extension(crate::ExtensionInfo::LocalPath(v1_msxt))
+        .await
+        .unwrap();
+
+    // Update signed by a DIFFERENT key must fail with UpdateSigningKeyMismatch
+    let v2_diff_key = build_signed_msxt("2.0.0", &gnupg2);
+    let err = handler
+        .install_extension(crate::ExtensionInfo::LocalPath(v2_diff_key))
+        .await
+        .unwrap_err();
+    assert!(matches!(
+        err,
+        crate::ExtensionError::UpdateSigningKeyMismatch(_)
+    ));
+
+    // Update signed by the SAME key must succeed
+    let v2_same_key = build_signed_msxt("2.0.0", &gnupg1);
+    assert!(
+        handler
+            .install_extension(crate::ExtensionInfo::LocalPath(v2_same_key))
+            .await
+            .is_ok()
+    );
 }

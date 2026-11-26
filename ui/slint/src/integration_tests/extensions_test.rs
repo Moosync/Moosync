@@ -68,7 +68,7 @@ async fn do_extension_preference_text_input(
         groups.row_count() > 0
             && groups
                 .row_data(0)
-                .is_some_and(|g| g.package_name == "rs.sample" && g.preferences.row_count() == 2)
+                .is_some_and(|g| g.package_name == "app.moosync.sample" && g.preferences.row_count() == 2)
     })
     .await;
     assert!(loaded);
@@ -86,7 +86,7 @@ async fn do_extension_preference_text_input(
     main_window
         .global::<AppCallbacks>()
         .invoke_preference_changed(PreferenceChange {
-            id: "ext:rs.sample:api_key".into(),
+            id: "ext:app.moosync.sample:api_key".into(),
             value_string: "secret_value_xyz".into(),
             value_bool: false,
             value_number: 0.0,
@@ -98,7 +98,7 @@ async fn do_extension_preference_text_input(
     while start.elapsed() < Duration::from_secs(5) {
         let config = state_manager.get_preference_config();
         if config
-            .get("ext:rs.sample:api_key")
+            .get("ext:app.moosync.sample:api_key")
             .and_then(|p| p.value::<String>())
             == Some("secret_value_xyz".to_string())
         {
@@ -167,7 +167,7 @@ async fn do_extension_preference_toggle(
         groups.row_count() > 0
             && groups
                 .row_data(0)
-                .is_some_and(|g| g.package_name == "rs.sample" && g.preferences.row_count() == 2)
+                .is_some_and(|g| g.package_name == "app.moosync.sample" && g.preferences.row_count() == 2)
     })
     .await;
     assert!(loaded);
@@ -186,7 +186,7 @@ async fn do_extension_preference_toggle(
     main_window
         .global::<AppCallbacks>()
         .invoke_preference_changed(PreferenceChange {
-            id: "ext:rs.sample:enable_feature".into(),
+            id: "ext:app.moosync.sample:enable_feature".into(),
             value_string: "".into(),
             value_bool: true,
             value_number: 0.0,
@@ -198,7 +198,7 @@ async fn do_extension_preference_toggle(
     while start.elapsed() < Duration::from_secs(5) {
         let config = state_manager.get_preference_config();
         if config
-            .get("ext:rs.sample:enable_feature")
+            .get("ext:app.moosync.sample:enable_feature")
             .and_then(|p| p.value::<bool>())
             == Some(true)
         {
@@ -321,7 +321,7 @@ async fn do_extension_content_toggle_provider_off(
 
     main_window
         .global::<AppCallbacks>()
-        .invoke_toggle_playlist_content_extension("rs.sample".into(), true);
+        .invoke_toggle_playlist_content_extension("app.moosync.sample".into(), true);
 
     let loaded = wait_until(|| {
         main_window
@@ -335,7 +335,7 @@ async fn do_extension_content_toggle_provider_off(
 
     main_window
         .global::<AppCallbacks>()
-        .invoke_toggle_playlist_content_extension("rs.sample".into(), false);
+        .invoke_toggle_playlist_content_extension("app.moosync.sample".into(), false);
 
     let toggled_off = wait_until(|| {
         main_window
@@ -407,7 +407,7 @@ async fn do_extension_content_toggle_provider_on(
 
     main_window
         .global::<AppCallbacks>()
-        .invoke_toggle_playlist_content_extension("rs.sample".into(), true);
+        .invoke_toggle_playlist_content_extension("app.moosync.sample".into(), true);
 
     let loaded = wait_until(|| {
         main_window
@@ -421,7 +421,7 @@ async fn do_extension_content_toggle_provider_on(
 
     main_window
         .global::<AppCallbacks>()
-        .invoke_toggle_playlist_content_extension("rs.sample".into(), false);
+        .invoke_toggle_playlist_content_extension("app.moosync.sample".into(), false);
 
     let _ = wait_until(|| {
         main_window
@@ -434,7 +434,7 @@ async fn do_extension_content_toggle_provider_on(
 
     main_window
         .global::<AppCallbacks>()
-        .invoke_toggle_playlist_content_extension("rs.sample".into(), true);
+        .invoke_toggle_playlist_content_extension("app.moosync.sample".into(), true);
 
     let toggled_on = wait_until(|| {
         main_window
@@ -520,7 +520,7 @@ async fn do_artist_content_extension_toggle_and_open(
 
     main_window
         .global::<AppCallbacks>()
-        .invoke_toggle_artist_content_extension("rs.sample".into(), true);
+        .invoke_toggle_artist_content_extension("app.moosync.sample".into(), true);
 
     let ext_loaded = wait_until(|| {
         main_window
@@ -596,7 +596,7 @@ async fn do_album_content_extension_toggle_and_open(
 
     main_window
         .global::<AppCallbacks>()
-        .invoke_toggle_album_content_extension("rs.sample".into(), true);
+        .invoke_toggle_album_content_extension("app.moosync.sample".into(), true);
 
     let ext_loaded = wait_until(|| {
         main_window
@@ -634,7 +634,7 @@ async fn do_extension_content_pagination_load_more(
         .set_selected_playlist(PlaylistModel {
             id: "sample_playlist_1".into(),
             title: "Sample Playlist".into(),
-            extension: "rs.sample".into(),
+            extension: "app.moosync.sample".into(),
             ..Default::default()
         });
     main_window
@@ -690,8 +690,8 @@ async fn do_multiple_extensions_pagination_integration(
     main_window: MainWindow,
     state_manager: StateManager,
 ) {
-    let _ext1 = ExtensionFixture::new_with_name(&state_manager, "rs.sample.1", "Sample 1").await;
-    let _ext2 = ExtensionFixture::new_with_name(&state_manager, "rs.sample.2", "Sample 2").await;
+    let _ext1 = ExtensionFixture::new_with_name(&state_manager, "app.moosync.sample.one", "Sample 1").await;
+    let _ext2 = ExtensionFixture::new_with_name(&state_manager, "app.moosync.sample.two", "Sample 2").await;
 
     main_window
         .global::<PlaylistsPageProps>()
@@ -715,10 +715,10 @@ async fn do_multiple_extensions_pagination_integration(
 
     main_window
         .global::<AppCallbacks>()
-        .invoke_toggle_playlist_content_extension("rs.sample.1".into(), true);
+        .invoke_toggle_playlist_content_extension("app.moosync.sample.one".into(), true);
     main_window
         .global::<AppCallbacks>()
-        .invoke_toggle_playlist_content_extension("rs.sample.2".into(), true);
+        .invoke_toggle_playlist_content_extension("app.moosync.sample.two".into(), true);
 
     let initial_loaded = wait_until(|| {
         main_window
@@ -806,7 +806,7 @@ async fn do_extension_details_modal_lifecycle(
         exts.row_count() > 0
             && exts
                 .row_data(0)
-                .is_some_and(|e| e.package_name == "rs.sample")
+                .is_some_and(|e| e.package_name == "app.moosync.sample")
     })
     .await;
     assert!(exts_loaded);
@@ -862,7 +862,7 @@ async fn do_extension_details_modal_lifecycle(
 
     let details_state = main_window.global::<ExtensionDetailsState>();
     assert!(details_state.get_show_modal());
-    assert_eq!(details_state.get_item().package_name, "rs.sample");
+    assert_eq!(details_state.get_item().package_name, "app.moosync.sample");
     assert_eq!(details_state.get_item().network_permissions.row_count(), 2);
     assert_eq!(
         details_state.get_item().filesystem_permissions.row_count(),
@@ -987,7 +987,7 @@ async fn do_extension_details_modal_lifecycle(
     assert_eq!(details_state.get_item().scopes.row_count(), 9);
 
     let ext_handler = state_manager.get_extension_handler();
-    assert!(ext_handler.get_extension("rs.sample").is_ok());
+    assert!(ext_handler.get_extension("app.moosync.sample").is_ok());
 
     close_handles[0]
         .single_click(slint::platform::PointerEventButton::Left)
@@ -1078,6 +1078,7 @@ async fn do_extension_install_prompt_lifecycle(
 
     let details_state = main_window.global::<ExtensionDetailsState>();
     assert!(details_state.get_show_install_prompt());
+    assert!(details_state.get_item().is_unsigned);
     assert_eq!(details_state.get_item().name, "Sample Extension (Rust)");
     assert_eq!(details_state.get_item().network_permissions.row_count(), 2);
     assert_eq!(
@@ -1169,7 +1170,7 @@ async fn do_extension_install_prompt_lifecycle(
         ext_handler
             .get_active_extensions()
             .iter()
-            .any(|e| e.get_package_name() == "rs.sample")
+            .any(|e| e.get_package_name() == "app.moosync.sample")
     })
     .await;
     assert!(ext_installed);
@@ -1272,7 +1273,7 @@ async fn do_extension_song_context_menu(main_window: MainWindow, state_manager: 
         database
             .get_songs_by_options(GetSongOptions {
                 song: Some(SearchableSong {
-                    id: Some("rs.sample:ctx_action_song".into()),
+                    id: Some("app.moosync.sample:ctx_action_song".into()),
                     ..Default::default()
                 }),
                 ..Default::default()
@@ -1346,7 +1347,7 @@ async fn do_extension_playlist_context_menu(main_window: MainWindow, state_manag
         database
             .get_playlists(
                 Playlist {
-                    playlist_id: Some("rs.sample:ctx_action_playlist".into()),
+                    playlist_id: Some("app.moosync.sample:ctx_action_playlist".into()),
                     ..Default::default()
                 },
                 false,

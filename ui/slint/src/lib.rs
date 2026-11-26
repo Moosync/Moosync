@@ -106,6 +106,7 @@ pub fn run() {
     );
 }
 
+#[cfg(not(target_os = "android"))]
 #[tracing::instrument(level = "debug", skip_all)]
 fn setup_signal_handlers() {
     tokio::spawn(
